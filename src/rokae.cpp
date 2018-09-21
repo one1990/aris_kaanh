@@ -3,6 +3,7 @@
 #include"rokae.h"
 
 using namespace aris::dynamic;
+using namespace aris::plan;
 
 namespace rokae
 {
@@ -12,14 +13,19 @@ namespace rokae
 
 		for (aris::Size i = 0; i < 6; ++i)
 		{
+			
+#ifdef WIN32
 			double pos_offset[6]
 			{
 				0,   0,	  0,   0,   0,   0
 			};
-			//double pos_offset[6]
-			//{
-			//	0.00292592631763409,0.254680204478808,-0.292379578876203,0.058253692600347,1.55281279890217,17.1269146715038
-			//};
+#endif
+#ifdef UNIX
+			double pos_offset[6]
+			{
+				0.00292592631763409,0.254680204478808,-0.292379578876203,0.058253692600347,1.55281279890217,17.1269146715038
+			};
+#endif
 			double pos_factor[6]
 			{
 				131072.0 * 81 / 2 / PI, 131072.0 * 101 / 2 / PI, 131072.0 * 81 / 2 / PI, 131072.0 * 72.857 / 2 / PI, 131072.0 * 80 / 2 / PI, 131072.0 * 50 / 2 / PI
@@ -154,6 +160,59 @@ namespace rokae
 
 		return model;
 	}
+
+	class MoveX : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void 
+		{
+			target.option |=
+				Plan::USE_TARGET_POS |
+				/*Plan::NOT_CHECK_POS_MIN |
+				Plan::NOT_CHECK_POS_MAX |
+				Plan::NOT_CHECK_POS_CONTINUOUS |
+				Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
+				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER|
+				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START|
+				Plan::NOT_CHECK_POS_FOLLOWING_ERROR|*/
+				Plan::NOT_CHECK_VEL_MIN |
+				Plan::NOT_CHECK_VEL_MAX |
+				Plan::NOT_CHECK_VEL_CONTINUOUS |
+				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
+				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+
+		}
+		auto virtual executeRT(PlanTarget &target)->int 
+		{ 
+			auto &ee = target.model->generalMotionPool().at(0);
+
+			static double begin_x;
+			if (target.count == 1)
+			{
+				double pq[7];
+				ee.getMpq(pq);
+				begin_x = pq[0];
+			}
+
+			double pq2[7];
+			ee.getMpq(pq2);
+			pq2[0] = begin_x + 0.1*(1 - std::cos(2 * PI*target.count / 1000.0)) / 2;
+
+			if (!target.model->solverPool().at(0).kinPos())return -1;
+
+			return 1000-target.count;
+		}
+		auto virtual collectNrt(PlanTarget &target)->void {}
+
+		explicit MoveX(const std::string &name = "plan")
+		{
+			command().loadXmlStr(
+				"<moveX>"
+				"</moveX>");
+		}
+
+	};
+
 	auto createPlanRootRokaeXB4()->std::unique_ptr<aris::plan::PlanRoot>
 	{
 		std::unique_ptr<aris::plan::PlanRoot> plan_root(new aris::plan::PlanRoot);
@@ -169,6 +228,7 @@ namespace rokae
 		plan_root->planPool().add<aris::plan::MovePlan>();
 		plan_root->planPool().add<aris::plan::MoveJ>();
 		plan_root->planPool().add<aris::plan::Show>();
+		plan_root->planPool().add<MoveX>();
 
 	/*	auto &dm1 = plan_root->planPool().add<aris::plan::MoveJ>();
 		dm1.command().findByName("group")->findByName("unique_pos")->findByName("pq")->loadXmlStr("<pq default=\"{0.444,-0,0.562,0.642890516,0.000011540,0.765958083,-0.000008196}\"/>");
