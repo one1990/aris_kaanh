@@ -9,17 +9,11 @@ set(CMAKE_CXX_STANDARD 17)
 
 if(UNIX)
 	# set include and lib folders
-	message("using xenomai")
+	message("using aris")
 	add_definitions(-DUSE_XENOMAI)
-	set(RELY_INCL_DIR "/usr/xenomai/include" ${RELY_INCL_DIR})
-	set(RELY_LINK_DIR "/usr/xenomai/lib" ${RELY_LINK_DIR})
-	set(RELY_LINK_LIB native rtdm xenomai ${RELY_LINK_LIB})
-
-	message("using etherlab")
-	add_definitions(-DUSE_ETHERLAB)
-	set(RELY_INCL_DIR "/opt/etherlab/include" ${RELY_INCL_DIR})
-	set(RELY_LINK_DIR "/opt/etherlab/lib" ${RELY_LINK_DIR})
-	set(RELY_LINK_LIB ethercat_rtdm ${RELY_LINK_LIB})
+	set(RELY_INCL_DIR "/usr/aris/include" ${RELY_INCL_DIR})
+	set(RELY_LINK_DIR "/usr/aris/lib/release" ${RELY_LINK_DIR})
+	set(RELY_LINK_LIB libaris_robot libaris_server libaris_sensor libaris_plan libaris_dynamic libaris_control libaris_core)
 
 	set(ALL_INCL_DIR ${ARIS_INCL_DIR} ${RELY_INCL_DIR})
 	set(ALL_LINK_DIR ${ARIS_LINK_DIR} ${RELY_LINK_DIR})
