@@ -161,20 +161,48 @@ namespace rokae
 		return model;
 	}
 
+	struct MoveXParam
+	{
+		double x, y, z;
+		double time;
+	};
+
 	class MoveX : public aris::plan::Plan
 	{
 	public:
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void 
 		{
+			MoveXParam param{0.0,0.0,0.0,0.0};
+			for (auto &p : params)
+			{
+				if (p.first == "x")
+				{
+					param.x = std::stod(p.second);
+				}
+				else if (p.first == "y")
+				{
+					param.y = std::stod(p.second);
+				}
+				else if (p.first == "z")
+				{
+					param.z = std::stod(p.second);
+				}
+				else if (p.first == "time")
+				{
+					param.time = std::stod(p.second);
+				}
+			}
+			target.param = param;
+
 			target.option |=
 				Plan::USE_TARGET_POS |
-				/*Plan::NOT_CHECK_POS_MIN |
+				Plan::NOT_CHECK_POS_MIN |
 				Plan::NOT_CHECK_POS_MAX |
 				Plan::NOT_CHECK_POS_CONTINUOUS |
 				Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
 				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER|
 				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START|
-				Plan::NOT_CHECK_POS_FOLLOWING_ERROR|*/
+				Plan::NOT_CHECK_POS_FOLLOWING_ERROR|
 				Plan::NOT_CHECK_VEL_MIN |
 				Plan::NOT_CHECK_VEL_MAX |
 				Plan::NOT_CHECK_VEL_CONTINUOUS |
@@ -185,22 +213,25 @@ namespace rokae
 		auto virtual executeRT(PlanTarget &target)->int 
 		{ 
 			auto &ee = target.model->generalMotionPool().at(0);
+			auto &param = std::any_cast<MoveXParam&>(target.param);
 
-			static double begin_x;
+			auto time = static_cast<int>(param.time*1000);
+			static double begin_pq[7];
 			if (target.count == 1)
 			{
-				double pq[7];
-				ee.getMpq(pq);
-				begin_x = pq[0];
+				ee.getMpq(begin_pq);
 			}
 
 			double pq2[7];
 			ee.getMpq(pq2);
-			pq2[0] = begin_x + 0.1*(1 - std::cos(2 * PI*target.count / 1000.0)) / 2;
+			pq2[0] = begin_pq[0] + param.x*(1 - std::cos(2 * PI*target.count / time)) / 2;
+			pq2[1] = begin_pq[1] + param.y*(1 - std::cos(2 * PI*target.count / time)) / 2;
+			pq2[2] = begin_pq[2] + param.z*(1 - std::cos(2 * PI*target.count / time)) / 2;
+			ee.setMpq(pq2);
 
 			if (!target.model->solverPool().at(0).kinPos())return -1;
 
-			return 1000-target.count;
+			return time-target.count;
 		}
 		auto virtual collectNrt(PlanTarget &target)->void {}
 
@@ -208,6 +239,14 @@ namespace rokae
 		{
 			command().loadXmlStr(
 				"<moveX>"
+				"	<group type=\"GroupParam\" default_child_type=\"Param\">"
+				"		<unique_pos type=\"UniqueParam\" default_child_type=\"Param\" default=\"x\">"
+				"			<x default=\"0.1\"/>"
+				"			<y default=\"0.1\"/>"
+				"			<z default=\"0.1\"/>"
+				"		</unique_pos>"
+				"		<time default=\"1.0\" abbreviation=\"t\"/>"
+				"	</group>"
 				"</moveX>");
 		}
 
