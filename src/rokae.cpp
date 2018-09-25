@@ -196,6 +196,7 @@ namespace rokae
 
 			target.option |=
 				Plan::USE_TARGET_POS |
+#ifdef WIN32
 				Plan::NOT_CHECK_POS_MIN |
 				Plan::NOT_CHECK_POS_MAX |
 				Plan::NOT_CHECK_POS_CONTINUOUS |
@@ -203,6 +204,7 @@ namespace rokae
 				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER|
 				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START|
 				Plan::NOT_CHECK_POS_FOLLOWING_ERROR|
+#endif
 				Plan::NOT_CHECK_VEL_MIN |
 				Plan::NOT_CHECK_VEL_MAX |
 				Plan::NOT_CHECK_VEL_CONTINUOUS |
