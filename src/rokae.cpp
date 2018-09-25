@@ -231,6 +231,20 @@ namespace rokae
 
 			if (!target.model->solverPool().at(0).kinPos())return -1;
 
+			// 访问主站 //
+			auto controller = dynamic_cast<aris::control::EthercatController*>(target.master);
+
+			// 打印电流 //
+			auto &cout = controller->mout();
+			if (target.count % 100 == 0)
+			{
+				 cout <<"cur:"<< controller->motionAtAbs(0).actualCur() <<"  "<< controller->motionAtAbs(1).actualCur() << std::endl;
+			}
+			
+			// log 电流 //
+			auto &lout = controller->lout();
+			lout << controller->motionAtAbs(0).actualCur() << "  " << controller->motionAtAbs(1).actualCur() << std::endl;
+
 			return time-target.count;
 		}
 		auto virtual collectNrt(PlanTarget &target)->void {}
