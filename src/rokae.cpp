@@ -160,13 +160,12 @@ namespace rokae
 
 		return model;
 	}
-
+	// 末端四元数轨迹 //
 	struct MoveXParam
 	{
 		double x, y, z;
 		double time;
 	};
-
 	class MoveX : public aris::plan::Plan
 	{
 	public:
@@ -268,47 +267,103 @@ namespace rokae
 
 	};
 
+	// 各关节轨迹 //
 	struct MoveJSParam
 	{
-		double j1, j2, j3, j4, j5, j6;
+		double j[6];
 		double time;
+		std::vector<bool> joint_active_vec;
 	};
-
 	class MoveJS :public aris::plan::Plan
 	{
 	public:
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 		{
-			MoveJSParam param = { 0.0,0.0,0.0,0.0,0.0,0.0,0.0};
+			MoveJSParam param = {{0.0,0.0,0.0,0.0,0.0,0.0},0.0 };
 			for (auto &p : params)
 			{
 				if (p.first == "j1")
 				{
-					param.j1 = std::stod(p.second);
+					if (p.second == "current_pos")
+					{
+						param.joint_active_vec.resize(target.model->motionPool().size(), true);
+						param.j[0] = 0.0;
+					}
+					else
+					{
+						param.joint_active_vec.resize(target.model->motionPool().size(), false);
+						param.j[0] = std::stod(p.second);
+					}
+							
 				}
 				else if (p.first == "j2")
 				{
-					param.j2 = std::stod(p.second);
+					if (p.second == "current_pos")
+					{
+						param.joint_active_vec.resize(target.model->motionPool().size(), true);
+						param.j[1] = 0.0;
+					}
+					else
+					{
+						param.joint_active_vec.resize(target.model->motionPool().size(), false);
+						param.j[1] = std::stod(p.second);
+					}
 				}
 				else if (p.first == "j3")
 				{
-					param.j3 = std::stod(p.second);
+					if (p.second == "current_pos")
+					{
+						param.joint_active_vec.resize(target.model->motionPool().size(), true);
+						param.j[2] = 0.0;
+					}
+					else
+					{
+						param.joint_active_vec.resize(target.model->motionPool().size(), false);
+						param.j[2] = std::stod(p.second);
+					}
 				}
 				else if (p.first == "j4")
 				{
-					param.j4 = std::stod(p.second);
+					if (p.second == "current_pos")
+					{
+						param.joint_active_vec.resize(target.model->motionPool().size(), true);
+						param.j[3] = 0.0;
+					}
+					else
+					{
+						param.joint_active_vec.resize(target.model->motionPool().size(), false);
+						param.j[3] = std::stod(p.second);
+					}
 				}
 				else if (p.first == "j5")
 				{
-					param.j5 = std::stod(p.second);
+					if (p.second == "current_pos")
+					{
+						param.joint_active_vec.resize(target.model->motionPool().size(), true);
+						param.j[4] = 0.0;
+					}
+					else
+					{
+						param.joint_active_vec.resize(target.model->motionPool().size(), false);
+						param.j[4] = std::stod(p.second);
+					}
 				}
 				else if (p.first == "j6")
 				{
-					param.j6 = std::stod(p.second);
+					if (p.second == "current_pos")
+					{
+						param.joint_active_vec.resize(target.model->motionPool().size(), true);
+						param.j[5] = 0.0;
+					}
+					else
+					{
+						param.joint_active_vec.resize(target.model->motionPool().size(), false);
+						param.j[5] = std::stod(p.second);
+					}
 				}
 				else if (p.first == "time")
 				{
-					param.time = std::stod(p.second);
+						param.time = std::stod(p.second);
 				}
 			}
 			target.param = param;
@@ -340,24 +395,18 @@ namespace rokae
 			// 获取起始点的当前位置 //
 			if (target.count == 1)
 			{
-				for (Size i = 0; i < 6; i++)
+				for (Size i = 0; i < param.joint_active_vec.size(); i++)
 				{
 					begin_pjs[i] = target.model->motionPool()[i].mp();
 					step_pjs[i] = target.model->motionPool()[i].mp();
 				}
 			}
 			// 计算每一步的位移量  //
-			step_pjs[0] = begin_pjs[0] + param.j1 * (1 - std::cos(2 * PI*target.count / time)) / 2;
-			step_pjs[1] = begin_pjs[1] + param.j2 * (1 - std::cos(2 * PI*target.count / time)) / 2;
-			step_pjs[2] = begin_pjs[2] + param.j3 * (1 - std::cos(2 * PI*target.count / time)) / 2;
-			step_pjs[3] = begin_pjs[3] + param.j4 * (1 - std::cos(2 * PI*target.count / time)) / 2;
-			step_pjs[4] = begin_pjs[4] + param.j5 * (1 - std::cos(2 * PI*target.count / time)) / 2;
-			step_pjs[5] = begin_pjs[5] + param.j6 * (1 - std::cos(2 * PI*target.count / time)) / 2;
-			for (Size i = 0; i < 6; i++)
+			for (Size i = 0; i < param.joint_active_vec.size(); i++)
 			{
+				step_pjs[i] = begin_pjs[i] + param.j[i] * (1 - std::cos(2 * PI*target.count / time)) / 2;
 				target.model->motionPool().at(i).setMp(step_pjs[i]);
-			}
-			
+			}	
 			if (!target.model->solverPool().at(1).kinPos())return -1;
 
 			// 访问主站 //
@@ -395,14 +444,12 @@ namespace rokae
 			command().loadXmlStr(
 				"<moveJS>"
 				"	<group type=\"GroupParam\" default_child_type=\"Param\">"
-				"		<unique_pos type=\"UniqueParam\" default_child_type=\"Param\" default=\"j1\">"
-				"			<j1 default=\"0.1\"/>"
-				"			<j2 default=\"0.1\"/>"
-				"			<j3 default=\"0.1\"/>"
-				"			<j4 default=\"0.1\"/>"
-				"			<j5 default=\"0.1\"/>"
-				"			<j6 default=\"0.1\"/>"
-				"		</unique_pos>"
+				"		<j1 default=\"current_pos\"/>"
+				"		<j2 default=\"current_pos\"/>"
+				"		<j3 default=\"current_pos\"/>"
+				"		<j4 default=\"current_pos\"/>"
+				"		<j5 default=\"current_pos\"/>"
+				"		<j6 default=\"current_pos\"/>"
 				"		<time default=\"1.0\" abbreviation=\"t\"/>"
 				"	</group>"
 				"</moveJS>");
