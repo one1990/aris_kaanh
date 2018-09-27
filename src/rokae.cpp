@@ -172,7 +172,7 @@ namespace rokae
 	public:
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void 
 		{
-			MoveXParam param{0.0,0.0,0.0,0.0};
+			MoveXParam param ={0.0,0.0,0.0,0.0};
 			for (auto &p : params)
 			{
 				if (p.first == "x")
@@ -268,6 +268,146 @@ namespace rokae
 
 	};
 
+	struct MoveJSParam
+	{
+		double j1, j2, j3, j4, j5, j6;
+		double time;
+	};
+
+	class MoveJS :public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+		{
+			MoveJSParam param = { 0.0,0.0,0.0,0.0,0.0,0.0,0.0};
+			for (auto &p : params)
+			{
+				if (p.first == "j1")
+				{
+					param.j1 = std::stod(p.second);
+				}
+				else if (p.first == "j2")
+				{
+					param.j2 = std::stod(p.second);
+				}
+				else if (p.first == "j3")
+				{
+					param.j3 = std::stod(p.second);
+				}
+				else if (p.first == "j4")
+				{
+					param.j4 = std::stod(p.second);
+				}
+				else if (p.first == "j5")
+				{
+					param.j5 = std::stod(p.second);
+				}
+				else if (p.first == "j6")
+				{
+					param.j6 = std::stod(p.second);
+				}
+				else if (p.first == "time")
+				{
+					param.time = std::stod(p.second);
+				}
+			}
+			target.param = param;
+
+			target.option |=
+				Plan::USE_TARGET_POS |
+#ifdef WIN32
+				Plan::NOT_CHECK_POS_MIN |
+				Plan::NOT_CHECK_POS_MAX |
+				Plan::NOT_CHECK_POS_CONTINUOUS |
+				Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
+				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
+				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
+				Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
+#endif
+				Plan::NOT_CHECK_VEL_MIN |
+				Plan::NOT_CHECK_VEL_MAX |
+				Plan::NOT_CHECK_VEL_CONTINUOUS |
+				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
+				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+
+		}
+		auto virtual executeRT(PlanTarget &target)->int
+		{
+			auto &param = std::any_cast<MoveJSParam&>(target.param);
+			auto time = static_cast<int>(param.time * 1000);
+			static double begin_pjs[6];
+			double step_pjs[6];
+			// 获取起始点的当前位置 //
+			if (target.count == 1)
+			{
+				for (Size i = 0; i < 6; i++)
+				{
+					begin_pjs[i] = target.model->motionPool()[i].mp();
+					step_pjs[i] = target.model->motionPool()[i].mp();
+				}
+			}
+			// 计算每一步的位移量  //
+			step_pjs[0] = begin_pjs[0] + param.j1 * (1 - std::cos(2 * PI*target.count / time)) / 2;
+			step_pjs[1] = begin_pjs[1] + param.j2 * (1 - std::cos(2 * PI*target.count / time)) / 2;
+			step_pjs[2] = begin_pjs[2] + param.j3 * (1 - std::cos(2 * PI*target.count / time)) / 2;
+			step_pjs[3] = begin_pjs[3] + param.j4 * (1 - std::cos(2 * PI*target.count / time)) / 2;
+			step_pjs[4] = begin_pjs[4] + param.j5 * (1 - std::cos(2 * PI*target.count / time)) / 2;
+			step_pjs[5] = begin_pjs[5] + param.j6 * (1 - std::cos(2 * PI*target.count / time)) / 2;
+			for (Size i = 0; i < 6; i++)
+			{
+				target.model->motionPool().at(i).setMp(step_pjs[i]);
+			}
+			
+			if (!target.model->solverPool().at(1).kinPos())return -1;
+
+			// 访问主站 //
+			auto controller = dynamic_cast<aris::control::EthercatController*>(target.master);
+
+			// 打印电流 //
+			auto &cout = controller->mout();
+			if (target.count % 100 == 0)
+			{
+				for (Size i = 0; i < 6; i++)
+				{
+					cout << "pos" << i+1 << ":" << controller->motionAtAbs(i).actualPos() << "  " ;
+					cout << "vel" << i+1 << ":" << controller->motionAtAbs(i).actualVel() << "  ";
+					cout << "cur" << i+1 << ":" << controller->motionAtAbs(i).actualCur() << "  ";
+				}		
+				cout << std::endl;
+			}
+
+			// log 电流 //
+			auto &lout = controller->lout();
+			for (Size i = 0; i < 6; i++)
+			{
+				lout << "pos" << i + 1 << ":" << controller->motionAtAbs(i).actualPos() << "  ";
+				lout << "vel" << i + 1 << ":" << controller->motionAtAbs(i).actualVel() << "  ";
+				lout << "cur" << i + 1 << ":" << controller->motionAtAbs(i).actualCur() << "  ";
+			}
+			lout << std::endl;
+			
+			return time - target.count;
+		}
+		auto virtual collectNrt(PlanTarget &target)->void {}
+
+		explicit MoveJS(const std::string &name = "MoveJS_plan")
+		{
+			command().loadXmlStr(
+				"<moveJS>"
+				"	<group type=\"GroupParam\" default_child_type=\"Param\">"
+				"		<unique_pos type=\"UniqueParam\" default_child_type=\"Param\" default=\"j1\">"
+				"			<j1 default=\"0.1\"/>"
+				"			<j2 default=\"0.1\"/>"
+				"			<j3 default=\"0.1\"/>"
+				"			<j4 default=\"0.1\"/>"
+				"			<j5 default=\"0.1\"/>"
+				"			<j6 default=\"0.1\"/>"
+				"		</unique_pos>"
+				"		<time default=\"1.0\" abbreviation=\"t\"/>"
+				"	</group>"
+				"</moveJS>");
+		}
+	};
 	auto createPlanRootRokaeXB4()->std::unique_ptr<aris::plan::PlanRoot>
 	{
 		std::unique_ptr<aris::plan::PlanRoot> plan_root(new aris::plan::PlanRoot);
@@ -284,6 +424,7 @@ namespace rokae
 		plan_root->planPool().add<aris::plan::MoveJ>();
 		plan_root->planPool().add<aris::plan::Show>();
 		plan_root->planPool().add<MoveX>();
+		plan_root->planPool().add<MoveJS>();
 
 	/*	auto &dm1 = plan_root->planPool().add<aris::plan::MoveJ>();
 		dm1.command().findByName("group")->findByName("unique_pos")->findByName("pq")->loadXmlStr("<pq default=\"{0.444,-0,0.562,0.642890516,0.000011540,0.765958083,-0.000008196}\"/>");
