@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.12)
 
-project(aris_luoshi)
+project(aris_rokae)
 
 # set binary and library folders
 set(EXECUTABLE_OUTPUT_PATH bin)
@@ -9,6 +9,7 @@ set(CMAKE_CXX_STANDARD 17)
 
 # set install directories
 if(UNIX)
+	add_definitions(-DUNIX)
 	set(RELY_LINK_LIB pthread stdc++fs)#pthread is needed for concurrency
 	
 	# rely on etherlab
@@ -21,7 +22,7 @@ if(UNIX)
 	set(RELY_LINK_DIR "/usr/xenomai/lib" ${RELY_LINK_DIR})
 	set(RELY_LINK_LIB native rtdm xenomai ${RELY_LINK_LIB})
 
-	# rely on xenomai
+	# rely on aris
 	set(RELY_INCL_DIR "/usr/aris/include" ${RELY_INCL_DIR})
 	set(RELY_LINK_DIR "/usr/aris/lib/release" ${RELY_LINK_DIR})
 	set(RELY_LINK_LIB aris_robot aris_server aris_sensor aris_plan aris_dynamic aris_control aris_core ${RELY_LINK_LIB})
