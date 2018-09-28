@@ -479,9 +479,10 @@ namespace rokae
 			auto &lout = controller->lout();
 			for (Size i = 0; i < 6; i++)
 			{
-				lout << "pos" << i + 1 << ":" << controller->motionAtAbs(i).actualPos() << "  ";
-				lout << "vel" << i + 1 << ":" << controller->motionAtAbs(i).actualVel() << "  ";
-				lout << "cur" << i + 1 << ":" << controller->motionAtAbs(i).actualCur() << "  ";
+				lout << controller->motionAtAbs(i).targetPos() << ",";
+				lout << controller->motionAtAbs(i).actualPos() << ",";
+				lout << controller->motionAtAbs(i).actualVel() << ",";
+				lout << controller->motionAtAbs(i).actualCur() << ",";
 			}
 			lout << std::endl;
 			
