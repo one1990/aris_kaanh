@@ -272,14 +272,23 @@ namespace rokae
 	{
 		double j[6];
 		double time;
+		uint32_t timenum;
 		std::vector<bool> joint_active_vec;
 	};
-	class MoveJS :public aris::plan::Plan
+	class MoveJS : public aris::plan::Plan
 	{
 	public:
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 		{
-			MoveJSParam param = {{0.0,0.0,0.0,0.0,0.0,0.0},0.0 };
+			//MoveJSParam param = {{0.0,0.0,0.0,0.0,0.0,0.0},0.0,0};
+			MoveJSParam param;
+			for (Size i = 0; i < 6; i++)
+			{
+				param.j[i] = 0.0;
+			}
+			param.time = 0.0;
+			param.timenum = 0;	
+
 			for (auto &p : params)
 			{
 				if (p.first == "j1")
@@ -365,6 +374,10 @@ namespace rokae
 				{
 						param.time = std::stod(p.second);
 				}
+				else if (p.first == "timenum")
+				{
+						param.timenum = std::stoi(p.second);
+				}
 			}
 			target.param = param;
 
@@ -389,24 +402,61 @@ namespace rokae
 		auto virtual executeRT(PlanTarget &target)->int
 		{
 			auto &param = std::any_cast<MoveJSParam&>(target.param);
-			auto time = static_cast<int>(param.time * 1000);
+			auto time = static_cast<uint32_t>(param.time * 1000);
+			auto totaltime = static_cast<uint32_t>(param.timenum * time);
 			static double begin_pjs[6];
-			double step_pjs[6];
+			static double step_pjs[6];
 			// 获取起始点的当前位置 //
-			if (target.count == 1)
+			if ((1 <= target.count) && (target.count <= time / 2))
 			{
-				for (Size i = 0; i < param.joint_active_vec.size(); i++)
+				if (target.count == 1)
 				{
-					begin_pjs[i] = target.model->motionPool()[i].mp();
-					step_pjs[i] = target.model->motionPool()[i].mp();
+					for (Size i = 0; i < param.joint_active_vec.size(); ++i)
+					{
+						begin_pjs[i] = target.model->motionPool()[i].mp();
+						step_pjs[i] = target.model->motionPool()[i].mp();
+					}
+				}
+				for (Size i = 0; i < param.joint_active_vec.size(); ++i)
+				{
+					step_pjs[i] = begin_pjs[i] + param.j[i] * (1 - std::cos(2 * PI*target.count / time)) / 2;
+					target.model->motionPool().at(i).setMp(step_pjs[i]);
 				}
 			}
-			// 计算每一步的位移量  //
-			for (Size i = 0; i < param.joint_active_vec.size(); i++)
+			else if ((time / 2 < target.count) && (target.count <= totaltime - time/2))
 			{
-				step_pjs[i] = begin_pjs[i] + param.j[i] * (1 - std::cos(2 * PI*target.count / time)) / 2;
-				target.model->motionPool().at(i).setMp(step_pjs[i]);
-			}	
+				if (target.count == time / 2+1)
+				{
+					for (Size i = 0; i < param.joint_active_vec.size(); ++i)
+					{
+						begin_pjs[i] = target.model->motionPool()[i].mp();
+						step_pjs[i] = target.model->motionPool()[i].mp();
+					}
+				}
+				for (Size i = 0; i < param.joint_active_vec.size(); ++i)
+				{
+					step_pjs[i] = begin_pjs[i] - 2*param.j[i] * (1 - std::cos(2 * PI*(target.count-time/2) / time)) / 2;
+					target.model->motionPool().at(i).setMp(step_pjs[i]);
+				}
+
+			}
+			else if ((totaltime - time / 2 < target.count) && (target.count <= totaltime))
+			{
+				if (target.count == totaltime - time / 2 + 1)
+				{
+					for (Size i = 0; i < param.joint_active_vec.size(); ++i)
+					{
+						begin_pjs[i] = target.model->motionPool()[i].mp();
+						step_pjs[i] = target.model->motionPool()[i].mp();
+					}
+				}
+				for (Size i = 0; i < param.joint_active_vec.size(); ++i)
+				{
+					step_pjs[i] = begin_pjs[i] - param.j[i] * (1 - std::cos(2 * PI*(target.count - totaltime + time / 2) / time)) / 2;
+					target.model->motionPool().at(i).setMp(step_pjs[i]);
+				}
+			}
+
 			if (!target.model->solverPool().at(1).kinPos())return -1;
 
 			// 访问主站 //
@@ -435,7 +485,7 @@ namespace rokae
 			}
 			lout << std::endl;
 			
-			return time - target.count;
+			return totaltime - target.count;
 		}
 		auto virtual collectNrt(PlanTarget &target)->void {}
 
@@ -451,6 +501,7 @@ namespace rokae
 				"		<j5 default=\"current_pos\"/>"
 				"		<j6 default=\"current_pos\"/>"
 				"		<time default=\"1.0\" abbreviation=\"t\"/>"
+				"		<timenum default=\"2\" abbreviation=\"n\"/>"
 				"	</group>"
 				"</moveJS>");
 		}
@@ -471,7 +522,7 @@ namespace rokae
 		plan_root->planPool().add<aris::plan::MoveJ>();
 		plan_root->planPool().add<aris::plan::Show>();
 		plan_root->planPool().add<MoveX>();
-		plan_root->planPool().add<MoveJS>();
+		plan_root->planPool().add<rokae::MoveJS>();
 
 	/*	auto &dm1 = plan_root->planPool().add<aris::plan::MoveJ>();
 		dm1.command().findByName("group")->findByName("unique_pos")->findByName("pq")->loadXmlStr("<pq default=\"{0.444,-0,0.562,0.642890516,0.000011540,0.765958083,-0.000008196}\"/>");
