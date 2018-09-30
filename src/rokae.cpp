@@ -104,8 +104,8 @@ namespace rokae
 		controller->slavePool().add<aris::control::EthercatMotion>().loadXmlStr(xml_str);
 
 		xml_str =
-			"<m_servo_press type=\"EthercatIO\" phy_id=\"1\" product_code=\"0x00201\""
-			" vendor_id=\"0x00000A09\" revision_num=\"100\" dc_assign_activate=\"0x0300\""
+			"<ethercatIO type=\"EthercatSlave\" phy_id=\"1\" product_code=\"0x00201\""
+			" vendor_id=\"0x00000A09\" revision_num=\"100\" dc_assign_activate=\"0x0300\">"
 			"	<pdo_group_pool type=\"PdoGroupPoolObject\">"
 			"		<index_1600 type=\"PdoGroup\" default_child_type=\"Pdo\" index=\"0x1600\" is_tx=\"false\">"
 			"			<Dout_0_7 index=\"0x7001\" subindex=\"0x01\" size=\"1\"/>"
@@ -113,16 +113,16 @@ namespace rokae
 			"		<index_1601 type=\"PdoGroup\" default_child_type=\"Pdo\" index=\"0x1601\" is_tx=\"false\">"
 			"			<Dout_8_15 index=\"0x7001\" subindex=\"0x02\" size=\"1\"/>"
 			"		</index_1601>"
-			"		<index_1a00 type=\"PdoGroup\" default_child_type=\"Pdo\" index=\"0x1A00\" is_tx=\"true\">"
+			"		<index_1a00 type=\"PdoGroup\" default_child_type=\"Pdo\" index=\"0x1a00\" is_tx=\"true\">"
 			"			<Din_0_7 index=\"0x6001\" subindex=\"0x01\" size=\"1\"/>"
 			"		</index_1a00>"
-			"		<index_1a01 type=\"PdoGroup\" default_child_type=\"Pdo\" index=\"0x1A01\" is_tx=\"true\">"
+			"		<index_1a01 type=\"PdoGroup\" default_child_type=\"Pdo\" index=\"0x1a01\" is_tx=\"true\">"
 			"			<Din_8_15 index=\"0x6001\" subindex=\"0x02\" size=\"1\"/>"
 			"		</index_1a01>"
 			"	</pdo_group_pool>"
 			"	<sdo_pool type=\"SdoPoolObject\" default_child_type=\"Sdo\">"
 			"	</sdo_pool>"
-			"</m_servo_press>";
+			"</ethercatIO>";
 		controller->slavePool().add<aris::control::EthercatSlave>().loadXmlStr(xml_str);
 
 		return controller;
