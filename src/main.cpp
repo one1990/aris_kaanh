@@ -15,15 +15,15 @@ int main(int argc, char *argv[])
 
 	cs.start();
 
-	try 
-	{
-		cs.executeCmd(aris::core::Msg("moveJS"));
-	}
-	catch (std::exception &e)
-	{
-		std::cout << e.what() << std::endl;
-		//1LOG_ERROR << e.what() << std::endl;
-	}
+	//try 
+	//{
+	//	cs.executeCmd(aris::core::Msg("moveJS"));
+	//}
+	//catch (std::exception &e)
+	//{
+	//	std::cout << e.what() << std::endl;
+	//	//1LOG_ERROR << e.what() << std::endl;
+	//}
 	
 	// ½ÓÊÕÃüÁî //
 	for (std::string command_in; std::getline(std::cin, command_in);)
