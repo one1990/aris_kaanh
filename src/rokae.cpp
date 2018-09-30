@@ -105,7 +105,7 @@ namespace rokae
 
 		xml_str =
 			"<ethercatIO type=\"EthercatSlave\" phy_id=\"1\" product_code=\"0x00201\""
-			" vendor_id=\"0x00000A09\" revision_num=\"100\" dc_assign_activate=\"0x0300\">"
+			" vendor_id=\"0x00000A09\" revision_num=\"0x100\" dc_assign_activate=\"0x0300\">"
 			"	<pdo_group_pool type=\"PdoGroupPoolObject\">"
 			"		<index_1600 type=\"PdoGroup\" default_child_type=\"Pdo\" index=\"0x1600\" is_tx=\"false\">"
 			"			<Dout_0_7 index=\"0x7001\" subindex=\"0x01\" size=\"1\"/>"
