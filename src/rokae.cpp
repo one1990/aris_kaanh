@@ -48,7 +48,7 @@ namespace rokae
 			};
 			
 			std::string xml_str =
-				"<m" + std::to_string(i) + " type=\"EthercatMotion\" phy_id=\"" + std::to_string(i) + "\" product_code=\"0x0\""
+				"<m" + std::to_string(i) + " type=\"EthercatMotion\" phy_id=\"" + std::to_string(i + 2) + "\" product_code=\"0x0\""
 				" vendor_id=\"0x000002E1\" revision_num=\"0x29001\" dc_assign_activate=\"0x0300\""
 				" min_pos=\"" + std::to_string(min_pos[i]) + "\" max_pos=\"" + std::to_string(max_pos[i]) + "\" max_vel=\"" + std::to_string(max_vel[i]) + "\" min_vel=\"" + std::to_string(-max_vel[i]) + "\""
 				" max_acc=\"" + std::to_string(max_acc[i]) + "\" min_acc=\"" + std::to_string(-max_acc[i]) + "\" max_pos_following_error=\"0.1\" max_vel_following_error=\"0.5\""
@@ -75,6 +75,56 @@ namespace rokae
 
 			controller->slavePool().add<aris::control::EthercatMotion>().loadXmlStr(xml_str);
 		}
+
+		std::string xml_str =
+			"<m_servo_press type=\"EthercatMotion\" phy_id=\"0\" product_code=\"0x60380007\""
+			" vendor_id=\"0x0000066F\" revision_num=\"0x00010000\" dc_assign_activate=\"0x0300\""
+			" min_pos=\"0.0\" max_pos=\"0.25\" max_vel=\"0.125\" min_vel=\"0.0\""
+			" max_acc=\"2.0\" min_acc=\"0.0\" max_pos_following_error=\"0.005\" max_vel_following_error=\"0.005\""
+			" home_pos=\"0\" pos_factor=\"-3355443200\" pos_offset=\"0.0\">"
+			"	<pdo_group_pool type=\"PdoGroupPoolObject\">"
+			"		<index_1600 type=\"PdoGroup\" default_child_type=\"Pdo\" index=\"0x1600\" is_tx=\"false\">"
+			"			<control_word index=\"0x6040\" subindex=\"0x00\" size=\"2\"/>"
+			"			<mode_of_operation index=\"0x6060\" subindex=\"0x00\" size=\"1\"/>"
+			"			<target_pos index=\"0x607A\" subindex=\"0x00\" size=\"4\"/>"
+			"			<target_vel index=\"0x60FF\" subindex=\"0x00\" size=\"4\"/>"
+			"			<targer_tor index=\"0x6071\" subindex=\"0x00\" size=\"2\"/>"
+			"		</index_1600>"
+			"		<index_1a00 type=\"PdoGroup\" default_child_type=\"Pdo\" index=\"0x1A00\" is_tx=\"true\">"
+			"			<status_word index=\"0x6041\" subindex=\"0x00\" size=\"2\"/>"
+			"			<mode_of_display index=\"0x6061\" subindex=\"0x00\" size=\"1\"/>"
+			"			<pos_actual_value index=\"0x6064\" subindex=\"0x00\" size=\"4\"/>"
+			"			<vel_actual_value index=\"0x606c\" subindex=\"0x00\" size=\"4\"/>"
+			"			<cur_actual_value index=\"0x6078\" subindex=\"0x00\" size=\"2\"/>"
+			"		</index_1a00>"
+			"	</pdo_group_pool>"
+			"	<sdo_pool type=\"SdoPoolObject\" default_child_type=\"Sdo\">"
+			"	</sdo_pool>"
+			"</m_servo_press>";
+		controller->slavePool().add<aris::control::EthercatMotion>().loadXmlStr(xml_str);
+
+		xml_str =
+			"<m_servo_press type=\"EthercatIO\" phy_id=\"1\" product_code=\"0x00201\""
+			" vendor_id=\"0x00000A09\" revision_num=\"100\" dc_assign_activate=\"0x0300\""
+			"	<pdo_group_pool type=\"PdoGroupPoolObject\">"
+			"		<index_1600 type=\"PdoGroup\" default_child_type=\"Pdo\" index=\"0x1600\" is_tx=\"false\">"
+			"			<Dout_0_7 index=\"0x7001\" subindex=\"0x01\" size=\"1\"/>"
+			"		</index_1600>"
+			"		<index_1601 type=\"PdoGroup\" default_child_type=\"Pdo\" index=\"0x1601\" is_tx=\"false\">"
+			"			<Dout_8_15 index=\"0x7001\" subindex=\"0x02\" size=\"1\"/>"
+			"		</index_1601>"
+			"		<index_1a00 type=\"PdoGroup\" default_child_type=\"Pdo\" index=\"0x1A00\" is_tx=\"true\">"
+			"			<Din_0_7 index=\"0x6001\" subindex=\"0x01\" size=\"1\"/>"
+			"		</index_1a00>"
+			"		<index_1a01 type=\"PdoGroup\" default_child_type=\"Pdo\" index=\"0x1A01\" is_tx=\"true\">"
+			"			<Din_8_15 index=\"0x6001\" subindex=\"0x02\" size=\"1\"/>"
+			"		</index_1a01>"
+			"	</pdo_group_pool>"
+			"	<sdo_pool type=\"SdoPoolObject\" default_child_type=\"Sdo\">"
+			"	</sdo_pool>"
+			"</m_servo_press>";
+		controller->slavePool().add<aris::control::EthercatSlave>().loadXmlStr(xml_str);
+
 		return controller;
 	};
 	auto createModelRokaeXB4(const double *robot_pm)->std::unique_ptr<aris::dynamic::Model>
@@ -507,6 +557,32 @@ namespace rokae
 				"</moveJS>");
 		}
 	};
+
+	// EtherCAT IO //
+	
+	class EtherIO : public aris::plan::Plan
+	{
+	public:
+		auto virtual executeRT(PlanTarget &target)->int
+		{
+			// ∑√Œ ÷˜’æ //
+			auto controller = dynamic_cast<aris::control::EthercatController*>(target.master);
+			std::uint8_t a = 0x0F;
+			controller->ecSlavePool().at(7).writePdo(0x7001, 0x01, a);
+
+			return 1000 - target.count;
+		}
+		auto virtual collectNrt(PlanTarget &target)->void {}
+
+		explicit EtherIO(const std::string &name = "plan")
+		{
+			command().loadXmlStr(
+				"<etherIO>"
+				"</etherIO>");
+		}
+
+	};
+
 	auto createPlanRootRokaeXB4()->std::unique_ptr<aris::plan::PlanRoot>
 	{
 		std::unique_ptr<aris::plan::PlanRoot> plan_root(new aris::plan::PlanRoot);
