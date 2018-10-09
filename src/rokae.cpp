@@ -263,7 +263,7 @@ namespace rokae
 			}
 
 			if (!target.model->solverPool().at(1).kinPos())return -1;
-			return 0;
+			return 1000-target.count;
 		}
 		auto virtual collectNrt(PlanTarget &target)->void {}
 		explicit MoveInit(const std::string &name = "MoveInit_plan")
