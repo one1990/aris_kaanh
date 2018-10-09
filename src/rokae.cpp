@@ -364,7 +364,7 @@ namespace rokae
 					if (p.second == "current_pos")
 					{
 						param.joint_active_vec.resize(target.model->motionPool().size(), true);
-						param.j[0] = 0.0;
+						param.j[0] = target.model->motionPool()[0].mp();;
 					}
 					else
 					{
@@ -378,7 +378,7 @@ namespace rokae
 					if (p.second == "current_pos")
 					{
 						param.joint_active_vec.resize(target.model->motionPool().size(), true);
-						param.j[1] = 0.0;
+						param.j[1] = target.model->motionPool()[1].mp();;
 					}
 					else
 					{
@@ -391,7 +391,7 @@ namespace rokae
 					if (p.second == "current_pos")
 					{
 						param.joint_active_vec.resize(target.model->motionPool().size(), true);
-						param.j[2] = 0.0;
+						param.j[2] = target.model->motionPool()[2].mp();;
 					}
 					else
 					{
@@ -404,7 +404,7 @@ namespace rokae
 					if (p.second == "current_pos")
 					{
 						param.joint_active_vec.resize(target.model->motionPool().size(), true);
-						param.j[3] = 0.0;
+						param.j[3] = target.model->motionPool()[3].mp();;
 					}
 					else
 					{
@@ -417,7 +417,7 @@ namespace rokae
 					if (p.second == "current_pos")
 					{
 						param.joint_active_vec.resize(target.model->motionPool().size(), true);
-						param.j[4] = 0.0;
+						param.j[4] = target.model->motionPool()[4].mp();;
 					}
 					else
 					{
@@ -430,7 +430,7 @@ namespace rokae
 					if (p.second == "current_pos")
 					{
 						param.joint_active_vec.resize(target.model->motionPool().size(), true);
-						param.j[5] = 0.0;
+						param.j[5] = target.model->motionPool()[5].mp();;
 					}
 					else
 					{
