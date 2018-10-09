@@ -654,6 +654,92 @@ namespace rokae
 
 	};
 
+	// 电缸驱动轨迹 //
+	struct MoveEAParam
+	{
+		double s;
+		double time;
+	};
+	class MoveEA : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+		{
+			MoveEAParam param = { 0.0,0.0 };
+			for (auto &p : params)
+			{
+				if (p.first == "s")
+				{
+					param.s = std::stod(p.second);
+				}
+				else if (p.first == "time")
+				{
+					param.time = std::stod(p.second);
+				}
+			}
+			target.param = param;
+
+			target.option |=
+				Plan::USE_TARGET_POS |
+#ifdef WIN32
+				Plan::NOT_CHECK_POS_MIN |
+				Plan::NOT_CHECK_POS_MAX |
+				Plan::NOT_CHECK_POS_CONTINUOUS |
+				Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
+				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
+				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
+				Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
+#endif
+				Plan::NOT_CHECK_VEL_MIN |
+				Plan::NOT_CHECK_VEL_MAX |
+				Plan::NOT_CHECK_VEL_CONTINUOUS |
+				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
+				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+
+		}
+		auto virtual executeRT(PlanTarget &target)->int
+		{
+			auto &param = std::any_cast<MoveEAParam&>(target.param);
+
+			auto time = static_cast<int>(param.time * 1000);
+			static double begin_p;
+
+			// 访问主站 //
+			auto controller = dynamic_cast<aris::control::EthercatController*>(target.master);
+			if (target.count == 1)
+			{
+				begin_p = controller->motionAtAbs(6).actualPos();
+			}
+			double end_p;
+			end_p = begin_p + param.s*target.count / time;
+			controller->motionAtAbs(6).setTargetPos(end_p);
+
+			// 打印 位置、速度、电流 //
+			auto &cout = controller->mout();
+			if (target.count % 100 == 0)
+			{
+				cout << controller->motionAtAbs(6).actualPos() << "  " << controller->motionAtAbs(6).actualVel() << "  " << controller->motionAtAbs(6).actualCur() << std::endl;
+			}
+			// log 位置、速度、电流 //
+			auto &lout = controller->lout();
+			lout << controller->motionAtAbs(6).actualPos() << "  " << controller->motionAtAbs(6).actualVel() << "  " << controller->motionAtAbs(6).actualCur() << std::endl;
+
+			return time - target.count;
+		}
+		auto virtual collectNrt(PlanTarget &target)->void {}
+
+		explicit MoveEA(const std::string &name = "MoveEA_plan")
+		{
+			command().loadXmlStr(
+				"<moveEA>"
+				"	<group type=\"GroupParam\" default_child_type=\"Param\">"
+				"		<s default=\"0.1\"/>"
+				"		<time default=\"1.0\" abbreviation=\"t\"/>"
+				"	</group>"
+				"</moveEA>");
+		}
+	};
+
 	auto createPlanRootRokaeXB4()->std::unique_ptr<aris::plan::PlanRoot>
 	{
 		std::unique_ptr<aris::plan::PlanRoot> plan_root(new aris::plan::PlanRoot);
@@ -673,6 +759,7 @@ namespace rokae
 		plan_root->planPool().add<MoveX>();
 		plan_root->planPool().add<rokae::MoveJS>();
 		plan_root->planPool().add<rokae::EtherIO>();
+		plan_root->planPool().add<rokae::MoveEA>();
 
 	/*	auto &dm1 = plan_root->planPool().add<aris::plan::MoveJ>();
 		dm1.command().findByName("group")->findByName("unique_pos")->findByName("pq")->loadXmlStr("<pq default=\"{0.444,-0,0.562,0.642890516,0.000011540,0.765958083,-0.000008196}\"/>");
