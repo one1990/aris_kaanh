@@ -228,6 +228,52 @@ namespace rokae
 
 		return model;
 	}
+	// 获取驱动器当前位置，并设置为起始位置 //
+	class MoveInit : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+		{
+			target.option |=
+				Plan::USE_TARGET_POS |
+#ifdef WIN32
+				Plan::NOT_CHECK_POS_MIN |
+				Plan::NOT_CHECK_POS_MAX |
+				Plan::NOT_CHECK_POS_CONTINUOUS |
+				Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
+				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
+				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
+				Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
+#endif
+				Plan::NOT_CHECK_VEL_MIN |
+				Plan::NOT_CHECK_VEL_MAX |
+				Plan::NOT_CHECK_VEL_CONTINUOUS |
+				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
+				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+
+		}
+		auto virtual executeRT(PlanTarget &target)->int
+		{
+			// 访问主站 //
+			auto controller = dynamic_cast<aris::control::EthercatController*>(target.master);
+
+			for (Size i = 0; i < 6; ++i)
+			{
+				target.model->motionPool().at(i).setMp(controller->motionAtAbs(i).actualPos());
+			}
+
+			if (!target.model->solverPool().at(1).kinPos())return -1;
+			return 0;
+		}
+		auto virtual collectNrt(PlanTarget &target)->void {}
+		explicit MoveInit(const std::string &name = "MoveInit_plan")
+		{
+			command().loadXmlStr(
+				"<moveInit>"
+				"</moveInit>");
+		}
+	};
+
 	// 末端四元数轨迹 //
 	struct MoveXParam
 	{
@@ -357,18 +403,21 @@ namespace rokae
 			param.time = 0.0;
 			param.timenum = 0;	
 
+			param.joint_active_vec.clear();
+			param.joint_active_vec.resize(target.model->motionPool().size(), true);
+
 			for (auto &p : params)
 			{
 				if (p.first == "j1")
 				{
 					if (p.second == "current_pos")
 					{
-						param.joint_active_vec.resize(target.model->motionPool().size(), true);
-						param.j[0] = target.model->motionPool()[0].mp();;
+						param.joint_active_vec[0] = false;
+						param.j[0] = target.model->motionPool()[0].mp();
 					}
 					else
 					{
-						param.joint_active_vec.resize(target.model->motionPool().size(), false);
+						param.joint_active_vec[0] = true;
 						param.j[0] = std::stod(p.second);
 					}
 							
@@ -377,12 +426,12 @@ namespace rokae
 				{
 					if (p.second == "current_pos")
 					{
-						param.joint_active_vec.resize(target.model->motionPool().size(), true);
-						param.j[1] = target.model->motionPool()[1].mp();;
+						param.joint_active_vec[1] = false;
+						param.j[1] = target.model->motionPool()[1].mp();
 					}
 					else
 					{
-						param.joint_active_vec.resize(target.model->motionPool().size(), false);
+						param.joint_active_vec[1] = true;
 						param.j[1] = std::stod(p.second);
 					}
 				}
@@ -390,12 +439,12 @@ namespace rokae
 				{
 					if (p.second == "current_pos")
 					{
-						param.joint_active_vec.resize(target.model->motionPool().size(), true);
-						param.j[2] = target.model->motionPool()[2].mp();;
+						param.joint_active_vec[2] = false;
+						param.j[2] = target.model->motionPool()[2].mp();
 					}
 					else
 					{
-						param.joint_active_vec.resize(target.model->motionPool().size(), false);
+						param.joint_active_vec[2] = true;
 						param.j[2] = std::stod(p.second);
 					}
 				}
@@ -403,12 +452,12 @@ namespace rokae
 				{
 					if (p.second == "current_pos")
 					{
-						param.joint_active_vec.resize(target.model->motionPool().size(), true);
-						param.j[3] = target.model->motionPool()[3].mp();;
+						param.joint_active_vec[3] = false;
+						param.j[3] = target.model->motionPool()[3].mp();
 					}
 					else
 					{
-						param.joint_active_vec.resize(target.model->motionPool().size(), false);
+						param.joint_active_vec[3] = true;
 						param.j[3] = std::stod(p.second);
 					}
 				}
@@ -416,12 +465,12 @@ namespace rokae
 				{
 					if (p.second == "current_pos")
 					{
-						param.joint_active_vec.resize(target.model->motionPool().size(), true);
-						param.j[4] = target.model->motionPool()[4].mp();;
+						param.joint_active_vec[4] = false;
+						param.j[4] = target.model->motionPool()[4].mp();
 					}
 					else
 					{
-						param.joint_active_vec.resize(target.model->motionPool().size(), false);
+						param.joint_active_vec[4] = true;
 						param.j[4] = std::stod(p.second);
 					}
 				}
@@ -429,12 +478,12 @@ namespace rokae
 				{
 					if (p.second == "current_pos")
 					{
-						param.joint_active_vec.resize(target.model->motionPool().size(), true);
-						param.j[5] = target.model->motionPool()[5].mp();;
+						param.joint_active_vec[5] = false;
+						param.j[5] = target.model->motionPool()[5].mp();
 					}
 					else
 					{
-						param.joint_active_vec.resize(target.model->motionPool().size(), false);
+						param.joint_active_vec[5] = true;
 						param.j[5] = std::stod(p.second);
 					}
 				}
@@ -474,9 +523,10 @@ namespace rokae
 			auto totaltime = static_cast<uint32_t>(param.timenum * time);
 			static double begin_pjs[6];
 			static double step_pjs[6];
-			// 获取起始点的当前位置 //
+			
 			if ((1 <= target.count) && (target.count <= time / 2))
 			{
+				// 获取当前起始点位置 //
 				if (target.count == 1)
 				{
 					for (Size i = 0; i < param.joint_active_vec.size(); ++i)
@@ -493,6 +543,7 @@ namespace rokae
 			}
 			else if ((time / 2 < target.count) && (target.count <= totaltime - time/2))
 			{
+				// 获取当前起始点位置 //
 				if (target.count == time / 2+1)
 				{
 					for (Size i = 0; i < param.joint_active_vec.size(); ++i)
@@ -510,6 +561,7 @@ namespace rokae
 			}
 			else if ((totaltime - time / 2 < target.count) && (target.count <= totaltime))
 			{
+				// 获取当前起始点位置 //
 				if (target.count == totaltime - time / 2 + 1)
 				{
 					for (Size i = 0; i < param.joint_active_vec.size(); ++i)
@@ -577,7 +629,6 @@ namespace rokae
 	};
 
 	// EtherCAT IO //
-	
 	class EtherIO : public aris::plan::Plan
 	{
 	public:
@@ -585,10 +636,12 @@ namespace rokae
 		{
 			// 访问主站 //
 			auto controller = dynamic_cast<aris::control::EthercatController*>(target.master);
-			std::uint8_t a = 0x0F;
+			static std::uint8_t a = 0x01;
 			controller->ecSlavePool().at(7).writePdo(0x7001, 0x01, a);
-
-			return 1000 - target.count;
+			// 对DO模块subindex=0x01的第一位取反 //
+			a ^= (1<<0);
+			std::cout << int(a) << std::endl;
+			return 0;
 		}
 		auto virtual collectNrt(PlanTarget &target)->void {}
 
@@ -616,6 +669,7 @@ namespace rokae
 		plan_root->planPool().add<aris::plan::MovePlan>();
 		plan_root->planPool().add<aris::plan::MoveJ>();
 		plan_root->planPool().add<aris::plan::Show>();
+		plan_root->planPool().add<rokae::MoveInit>();
 		plan_root->planPool().add<MoveX>();
 		plan_root->planPool().add<rokae::MoveJS>();
 		plan_root->planPool().add<rokae::EtherIO>();
