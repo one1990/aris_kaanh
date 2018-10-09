@@ -711,7 +711,7 @@ namespace rokae
 				begin_p = controller->motionAtAbs(6).actualPos();
 			}
 			double end_p;
-			end_p = begin_p + param.s*target.count / time;
+			end_p = begin_p + param.s*(1 - std::cos(2 * PI*target.count / time)) / 2;
 			controller->motionAtAbs(6).setTargetPos(end_p);
 
 			// 打印 位置、速度、电流 //
