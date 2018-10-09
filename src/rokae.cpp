@@ -119,7 +119,7 @@ namespace rokae
 			"<ethercatIO type=\"EthercatSlave\" phy_id=\"1\" product_code=\"0x00201\""
 			" vendor_id=\"0x00000A09\" revision_num=\"0x64\" dc_assign_activate=\"0x0300\">"
 			"	<sm_pool type=\"SyncManagerPoolObject\">"
-			"		<sm type=\"SyncManager\" is_tx=\"false\"/>"
+			"		<sm type=\"SyncManager\" is_tx=\"false\">"
 			"			<index_1600 type=\"Pdo\" default_child_type=\"PdoEntry\" index=\"0x1600\" is_tx=\"false\">"
 			"				<Dout_0_7 index=\"0x7001\" subindex=\"0x01\" size=\"1\"/>"
 			"			</index_1600>"
