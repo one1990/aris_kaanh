@@ -266,7 +266,7 @@ namespace rokae
 			return 1000-target.count;
 		}
 		auto virtual collectNrt(PlanTarget &target)->void {}
-		explicit MoveInit(const std::string &name = "MoveInit_plan")
+		explicit MoveInit(const std::string &name = "MoveInit_plan"): Plan(name)
 		{
 			command().loadXmlStr(
 				"<moveInit>"
@@ -364,7 +364,7 @@ namespace rokae
 		}
 		auto virtual collectNrt(PlanTarget &target)->void {}
 
-		explicit MoveX(const std::string &name = "plan")
+		explicit MoveX(const std::string &name = "MoveX_plan") :Plan(name)
 		{
 			command().loadXmlStr(
 				"<moveX>"
@@ -610,7 +610,7 @@ namespace rokae
 		}
 		auto virtual collectNrt(PlanTarget &target)->void {}
 
-		explicit MoveJS(const std::string &name = "MoveJS_plan")
+		explicit MoveJS(const std::string &name = "MoveJS_plan") :Plan(name)
 		{
 			command().loadXmlStr(
 				"<moveJS>"
@@ -628,33 +628,59 @@ namespace rokae
 		}
 	};
 
-	// EtherCAT IO //
-	class EtherIO : public aris::plan::Plan
+	// 夹爪控制 //
+	struct GraspParam
+	{
+		bool status;
+	};
+	class Grasp : public aris::plan::Plan
 	{
 	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+		{
+			GraspParam param = { 0 };
+			for (auto &p : params)
+			{
+				if (p.first == "status")
+				{
+					param.status = std::stod(p.second);
+				}
+			}
+			target.param = param;
+		}
 		auto virtual executeRT(PlanTarget &target)->int
 		{
+			auto &param = std::any_cast<GraspParam&>(target.param);
 			// 访问主站 //
 			auto controller = dynamic_cast<aris::control::EthercatController*>(target.master);
 			static std::uint8_t a = 0x01;
-			controller->ecSlavePool().at(7).writePdo(0x7001, 0x01, a);
-			// 对DO模块subindex=0x01的第一位取反 //
-			a ^= (1<<0);
-			std::cout << int(a) << std::endl;
+			if (param.status)
+			{
+				a = 0x01;
+				controller->ecSlavePool().at(7).writePdo(0x7001, 0x01, a);
+			}
+			else
+			{
+				a = 0x00;
+				controller->ecSlavePool().at(7).writePdo(0x7001, 0x01, a);
+			}	
+			//std::cout << int(a) << std::endl;
 			return 0;
 		}
 		auto virtual collectNrt(PlanTarget &target)->void {}
 
-		explicit EtherIO(const std::string &name = "plan")
+		explicit Grasp(const std::string &name = "Grasp_plan") :Plan(name)
 		{
 			command().loadXmlStr(
-				"<etherIO>"
-				"</etherIO>");
+				"<grasp>"
+				"	<group_switch type=\"GroupParam\" default_child_type=\"Param\">"
+				"		<status default=\"0\"/>"
+				"	</group_switch>"
+				"</grasp>");
 		}
-
 	};
 
-	// 电缸驱动轨迹 //
+	// 电缸余弦往复轨迹 //
 	struct MoveEAParam
 	{
 		double s;
@@ -728,7 +754,7 @@ namespace rokae
 		}
 		auto virtual collectNrt(PlanTarget &target)->void {}
 
-		explicit MoveEA(const std::string &name = "MoveEA_plan")
+		explicit MoveEA(const std::string &name = "MoveEA_plan"):Plan(name)
 		{
 			command().loadXmlStr(
 				"<moveEA>"
@@ -737,6 +763,106 @@ namespace rokae
 				"		<time default=\"1.0\" abbreviation=\"t\"/>"
 				"	</group>"
 				"</moveEA>");
+		}
+	};
+
+	// 电缸轨迹规划 //
+	struct MoveEAPParam
+	{
+		double begin_pos, pos, vel, acc, dec;
+	};
+	class MoveEAP : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+		{
+			MoveEAPParam param = {0.0, 0.0, 0.0, 0.0, 0.0};
+			for (auto &p : params)
+			{
+				if (p.first == "begin_pos")
+				{
+					param.begin_pos = std::stod(p.second);
+				}
+				else if (p.first == "pos")
+				{
+					param.pos = std::stod(p.second);
+				}
+				else if (p.first == "vel")
+				{
+					param.vel = std::stod(p.second);
+				}
+				else if (p.first == "acc")
+				{
+					param.acc = std::stod(p.second);
+				}
+				else if (p.first == "dec")
+				{
+					param.dec = std::stod(p.second);
+				}
+			}
+			target.param = param;
+
+			target.option |=
+				Plan::USE_TARGET_POS |
+#ifdef WIN32
+				Plan::NOT_CHECK_POS_MIN |
+				Plan::NOT_CHECK_POS_MAX |
+				Plan::NOT_CHECK_POS_CONTINUOUS |
+				Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
+				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
+				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
+				Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
+#endif
+				Plan::NOT_CHECK_VEL_MIN |
+				Plan::NOT_CHECK_VEL_MAX |
+				Plan::NOT_CHECK_VEL_CONTINUOUS |
+				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
+				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+
+		}
+		auto virtual executeRT(PlanTarget &target)->int
+		{
+			auto &param = std::any_cast<MoveEAPParam&>(target.param);
+			// 访问主站 //
+			auto controller = dynamic_cast<aris::control::EthercatController*>(target.master);
+
+			if (target.count == 1)
+			{
+				param.begin_pos = controller->motionAtAbs(6).actualPos();
+			}
+			aris::Size total_count{ 1 };
+			double p, v, a;
+			aris::Size t_count;
+			aris::plan::moveAbsolute(target.count, param.begin_pos, param.pos, param.vel / 1000, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
+			controller->motionAtAbs(6).setTargetPos(p);
+			total_count = std::max(total_count, t_count);
+
+			// 打印 位置、速度、电流 //
+			auto &cout = controller->mout();
+			if (target.count % 100 == 0)
+			{
+				cout << controller->motionAtAbs(6).actualPos() << "  " << controller->motionAtAbs(6).actualVel() << "  " << controller->motionAtAbs(6).actualCur() << std::endl;
+			}
+			// log 位置、速度、电流 //
+			auto &lout = controller->lout();
+			lout << controller->motionAtAbs(6).actualPos() << "  " << controller->motionAtAbs(6).actualVel() << "  " << controller->motionAtAbs(6).actualCur() << std::endl;
+
+			return total_count - target.count;
+		}
+		auto virtual collectNrt(PlanTarget &target)->void {}
+
+		explicit MoveEAP(const std::string &name = "MoveEAP_plan") :Plan(name)
+		{
+			command().loadXmlStr(
+				"<moveEAP>"
+				"	<group type=\"GroupParam\" default_child_type=\"Param\">"
+				"		<begin_pos default=\"0.1\" abbreviation=\"b\"/>"
+				"		<pos default=\"0.1\"/>"
+				"		<vel default=\"0.02\"/>"
+				"		<acc default=\"0.3\"/>"
+				"		<dec default=\"-0.3\"/>"
+				"	</group>"
+				"</moveEAP>");
 		}
 	};
 
@@ -758,8 +884,9 @@ namespace rokae
 		plan_root->planPool().add<rokae::MoveInit>();
 		plan_root->planPool().add<MoveX>();
 		plan_root->planPool().add<rokae::MoveJS>();
-		plan_root->planPool().add<rokae::EtherIO>();
+		plan_root->planPool().add<rokae::Grasp>();
 		plan_root->planPool().add<rokae::MoveEA>();
+		plan_root->planPool().add<rokae::MoveEAP>();
 
 	/*	auto &dm1 = plan_root->planPool().add<aris::plan::MoveJ>();
 		dm1.command().findByName("group")->findByName("unique_pos")->findByName("pq")->loadXmlStr("<pq default=\"{0.444,-0,0.562,0.642890516,0.000011540,0.765958083,-0.000008196}\"/>");
