@@ -85,7 +85,7 @@ namespace rokae
 		std::string xml_str =
 			"<m_servo_press type=\"EthercatMotion\" phy_id=\"0\" product_code=\"0x60380007\""
 			" vendor_id=\"0x0000066F\" revision_num=\"0x00010000\" dc_assign_activate=\"0x0300\""
-			" min_pos=\"0.0\" max_pos=\"0.25\" max_vel=\"0.125\" min_vel=\"-0.125\""
+			" min_pos=\"0.01\" max_pos=\"0.26\" max_vel=\"0.125\" min_vel=\"-0.125\""
 			" max_acc=\"2.0\" min_acc=\"-2.0\" max_pos_following_error=\"0.005\" max_vel_following_error=\"0.005\""
 			" home_pos=\"0\" pos_factor=\"-3355443200\" pos_offset=\"0.0\">"
 			"	<sm_pool type=\"SyncManagerPoolObject\">"
