@@ -19,7 +19,7 @@ int main(int argc, char *argv[])
 	{
 		std::string msg_data = msg.toString();
 
-		std::cout << "recv:" << msg_data << std::endl;
+		//std::cout << "recv:" << msg_data << std::endl;
 
 		LOG_INFO << "socket receive normal msg:\n"
 			<< msg.header().msg_size_ << "&"
@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
 	{
 		std::string msg_data = msg.toString();
 
-		std::cout << "recv:" << msg_data << std::endl;
+		//std::cout << "recv:" << msg_data << std::endl;
 
 		LOG_INFO_EVERY_N(10) << "socket receive request msg:"
 			<< msg.header().msg_size_ << "&"
