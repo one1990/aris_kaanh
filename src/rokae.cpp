@@ -224,7 +224,7 @@ namespace rokae
 		inverse_kinematic.allocateMemory();
 		forward_kinematic.allocateMemory();
 
-		inverse_kinematic.setWhichRoot(5);
+		inverse_kinematic.setWhichRoot(8);
 
 		return model;
 	}
@@ -874,6 +874,7 @@ namespace rokae
 		plan_root->planPool().add<aris::plan::DisablePlan>();
 		plan_root->planPool().add<aris::plan::ModePlan>();
 		auto &rc = plan_root->planPool().add<aris::plan::RecoverPlan>();
+		rc.command().findByName("group")->findByName("pos")->loadXmlStr("<pos default=\"{0.5,0.392523364485981,0.789915966386555,0.5,0.5,0.5}\" abbreviation=\"p\"/>");
 
 		plan_root->planPool().add<aris::plan::MovePlan>();
 		plan_root->planPool().add<aris::plan::MoveJ>();
