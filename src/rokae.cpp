@@ -833,7 +833,7 @@ namespace rokae
 			aris::Size total_count{ 1 };
 			double p, v, a;
 			aris::Size t_count;
-			aris::plan::moveAbsolute(target.count, param.begin_pos, param.pos, param.vel / 1000, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
+			aris::plan::moveAbsolute(target.count, param.begin_pos, param.begin_pos+param.pos, param.vel / 1000, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
 			controller->motionAtAbs(6).setTargetPos(p);
 			total_count = std::max(total_count, t_count);
 
