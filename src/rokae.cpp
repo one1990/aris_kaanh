@@ -674,7 +674,7 @@ namespace rokae
 			command().loadXmlStr(
 				"<grasp>"
 				"	<group_switch type=\"GroupParam\" default_child_type=\"Param\">"
-				"		<status default=\"0\"/>"
+				"		<status default=\"1\"/>"
 				"	</group_switch>"
 				"</grasp>");
 		}
@@ -874,10 +874,7 @@ namespace rokae
 		plan_root->planPool().add<aris::plan::DisablePlan>();
 		plan_root->planPool().add<aris::plan::ModePlan>();
 		auto &rc = plan_root->planPool().add<aris::plan::RecoverPlan>();
-		rc.command().findByName("group")->findByName("unique_pos")->findByName("pq")->loadXmlStr("<pq default=\"{0.397, 0.0, 0.6295, 0.0, 0.0, 0.0, 1.0}\"/>");
-		rc.command().findByName("group")->findByName("unique_pos")->findByName("pm")->loadXmlStr("<pm default=\"{0,0,1,0.397,0,1,0,0,-1,0,0,0.6295,0,0,0,1}\"/>");
-		rc.command().findByName("group")->findByName("unique_pos")->findByName("group")->findByName("pe")->loadXmlStr("<pe default=\"{0.397,0,0.6295,0,PI/2,0}\"/>");
-		
+
 		plan_root->planPool().add<aris::plan::MovePlan>();
 		plan_root->planPool().add<aris::plan::MoveJ>();
 		plan_root->planPool().add<aris::plan::Show>();
