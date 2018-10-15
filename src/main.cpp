@@ -38,15 +38,6 @@ int main(int argc, char *argv[])
 
 		//std::cout << "recv:" << msg_data << std::endl;
 
-		LOG_INFO_EVERY_N(10) << "socket receive request msg:"
-			<< msg.header().msg_size_ << "&"
-			<< msg.header().msg_id_ << "&"
-			<< msg.header().msg_type_ << "&"
-			<< msg.header().reserved1_ << "&"
-			<< msg.header().reserved2_ << "&"
-			<< msg.header().reserved3_ << ":"
-			<< msg_data << std::endl;
-
 		if (msg.header().msg_id_ == 0)
 		{
 			LOG_INFO << "the request is cmd:"
@@ -66,12 +57,22 @@ int main(int argc, char *argv[])
 			}
 			catch (std::exception &e)
 			{
+				std::cout << e.what() << std::endl;
 				LOG_ERROR << e.what() << std::endl;
 				return aris::core::Msg(e.what());
 			}
 		}
 		else if (msg.header().msg_id_ == 1)
 		{
+			LOG_INFO_EVERY_N(100) << "socket receive request msg:"
+				<< msg.header().msg_size_ << "&"
+				<< msg.header().msg_id_ << "&"
+				<< msg.header().msg_type_ << "&"
+				<< msg.header().reserved1_ << "&"
+				<< msg.header().reserved2_ << "&"
+				<< msg.header().reserved3_ << ":"
+				<< msg_data << std::endl;
+			
 			auto part_pm = cs.getPartPm();
 			std::vector<double> part_pq(cs.model().partPool().size() * 7, 0.0);
 
