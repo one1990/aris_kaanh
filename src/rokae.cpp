@@ -348,7 +348,7 @@ namespace rokae
 			if (!target.model->solverPool().at(0).kinPos())return -1;
 
 			// 访问主站 //
-			auto controller = dynamic_cast<aris::control::EthercatController*>(target.master);
+			auto controller = dynamic_cast<aris::control::Controller*>(target.master);
 
 			// 打印电流 //
 			auto &cout = controller->mout();
@@ -581,7 +581,7 @@ namespace rokae
 			if (!target.model->solverPool().at(1).kinPos())return -1;
 
 			// 访问主站 //
-			auto controller = dynamic_cast<aris::control::EthercatController*>(target.master);
+			auto controller = dynamic_cast<aris::control::Controller*>(target.master);
 
 			// 打印电流 //
 			auto &cout = controller->mout();
@@ -1105,7 +1105,7 @@ namespace rokae
 			static double begin_p;
 
 			// 访问主站 //
-			auto controller = dynamic_cast<aris::control::EthercatController*>(target.master);
+			auto controller = dynamic_cast<aris::control::Controller*>(target.master);
 			if (target.count == 1)
 			{
 				begin_p = controller->motionAtAbs(6).actualPos();
@@ -1203,7 +1203,7 @@ namespace rokae
 		{
 			auto &param = std::any_cast<MoveEAPParam&>(target.param);
 			// 访问主站 //
-			auto controller = dynamic_cast<aris::control::EthercatController*>(target.master);
+			auto controller = dynamic_cast<aris::control::Controller*>(target.master);
 
 			if (target.count == 1)
 			{
