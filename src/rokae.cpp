@@ -308,6 +308,7 @@ namespace rokae
 			target.param = param;
 
 			target.option |=
+				//用于使用模型轨迹驱动电机//
 				Plan::USE_TARGET_POS |
 #ifdef WIN32
 				Plan::NOT_CHECK_POS_MIN |
@@ -381,7 +382,7 @@ namespace rokae
 
 	};
 
-	// 单关节余弦运动轨迹 //
+	// 关节正弦往复轨迹 //
 	struct MoveJSParam
 	{
 		double j[6];
@@ -628,8 +629,239 @@ namespace rokae
 		}
 	};
 
-	//各关节插值运动轨迹//
-	/*
+	//关节相对运动轨迹//
+	struct MoveJRParam
+	{
+		double vel, acc, dec;
+		std::vector<double> joint_pos_vec, begin_joint_pos_vec;
+		std::vector<bool> joint_active_vec;
+	};
+	class MoveJR : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+		{
+			auto c = dynamic_cast<aris::control::Controller*>(target.master);
+			MoveJRParam param;
+
+			for (auto cmd_param : params)
+			{
+				if (cmd_param.first == "all")
+				{
+					param.joint_active_vec.resize(target.model->motionPool().size(), true);
+				}
+				else if (cmd_param.first == "none")
+				{
+					param.joint_active_vec.resize(target.model->motionPool().size(), false);
+				}
+				else if (cmd_param.first == "motion_id")
+				{
+					param.joint_active_vec.resize(target.model->motionPool().size(), false);
+					param.joint_active_vec.at(std::stoi(cmd_param.second)) = true;
+				}
+				else if (cmd_param.first == "physical_id")
+				{
+					param.joint_active_vec.resize(c->motionPool().size(), false);
+					param.joint_active_vec.at(c->motionAtPhy(std::stoi(cmd_param.second)).phyId()) = true;
+				}
+				else if (cmd_param.first == "slave_id")
+				{
+					param.joint_active_vec.resize(c->motionPool().size(), false);
+					param.joint_active_vec.at(c->motionAtPhy(std::stoi(cmd_param.second)).slaId()) = true;
+				}
+				else if (cmd_param.first == "pos")
+				{
+					aris::core::Matrix mat = target.model->calculator().calculateExpression(cmd_param.second);
+					if (mat.size() == 1)param.joint_pos_vec.resize(c->motionPool().size(), mat.toDouble());
+					else
+					{
+						param.joint_pos_vec.resize(mat.size());
+						std::copy(mat.begin(), mat.end(), param.joint_pos_vec.begin());
+					}
+				}
+				else if (cmd_param.first == "vel")
+				{
+					param.vel = std::stod(cmd_param.second);
+				}
+				else if (cmd_param.first == "acc")
+				{
+					param.acc = std::stod(cmd_param.second);
+				}
+				else if (cmd_param.first == "dec")
+				{
+					param.dec = std::stod(cmd_param.second);
+				}
+			}
+
+			param.begin_joint_pos_vec.resize(target.model->motionPool().size());
+
+			target.param = param;
+
+			target.option |=
+				Plan::USE_TARGET_POS |
+#ifdef WIN32
+				Plan::NOT_CHECK_POS_MIN |
+				Plan::NOT_CHECK_POS_MAX |
+				Plan::NOT_CHECK_POS_CONTINUOUS |
+				Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
+				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
+				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
+				Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
+#endif
+				Plan::NOT_CHECK_VEL_MIN |
+				Plan::NOT_CHECK_VEL_MAX |
+				Plan::NOT_CHECK_VEL_CONTINUOUS |
+				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
+				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+
+		}
+		auto virtual executeRT(PlanTarget &target)->int
+		{
+			auto &param = std::any_cast<MoveJRParam&>(target.param);
+			auto controller = dynamic_cast<aris::control::Controller *>(target.master);
+
+			if (target.count == 1)
+			{
+				for (Size i = 0; i < param.joint_active_vec.size(); ++i)
+				{
+					if (param.joint_active_vec[i])
+					{
+						param.begin_joint_pos_vec[i] = target.model->motionPool()[i].mp();
+					}
+				}
+			}
+
+			aris::Size total_count{ 1 };
+			for (Size i = 0; i < param.joint_active_vec.size(); ++i)
+			{
+				if (param.joint_active_vec[i])
+				{
+					double p, v, a;
+					aris::Size t_count;
+					aris::plan::moveAbsolute(target.count, param.begin_joint_pos_vec[i], param.begin_joint_pos_vec[i]+param.joint_pos_vec[i], param.vel / 1000, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
+					target.model->motionPool().at(i).setMp(p);
+					total_count = std::max(total_count, t_count);
+				}
+			}
+
+			if (!target.model->solverPool().at(1).kinPos())return -1;
+
+			// 打印电流 //
+			auto &cout = controller->mout();
+			if (target.count % 100 == 0)
+			{
+				for (Size i = 0; i < 6; i++)
+				{
+					cout << "pos" << i + 1 << ":" << controller->motionAtAbs(i).actualPos() << "  ";
+					cout << "vel" << i + 1 << ":" << controller->motionAtAbs(i).actualVel() << "  ";
+					cout << "cur" << i + 1 << ":" << controller->motionAtAbs(i).actualCur() << "  ";
+				}
+				cout << std::endl;
+			}
+
+			// log 电流 //
+			auto &lout = controller->lout();
+			for (Size i = 0; i < 6; i++)
+			{
+				lout << controller->motionAtAbs(i).targetPos() << ",";
+				lout << controller->motionAtAbs(i).actualPos() << ",";
+				lout << controller->motionAtAbs(i).actualVel() << ",";
+				lout << controller->motionAtAbs(i).actualCur() << ",";
+			}
+			lout << std::endl;
+
+			return total_count - target.count;
+		}
+		auto virtual collectNrt(PlanTarget &target)->void {}
+
+		explicit MoveJR(const std::string &name = "MoveJR_plan") :Plan(name)
+		{
+			command().loadXmlStr(
+				"<moveJR default_child_type=\"Param\">"
+				"	<group type=\"GroupParam\" default_child_type=\"Param\">"
+				"		<limit_time default=\"5000\"/>"
+				"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"all\">"
+				"			<all abbreviation=\"a\"/>"
+				"			<motion_id abbreviation=\"m\" default=\"0\"/>"
+				"			<physical_id abbreviation=\"p\" default=\"0\"/>"
+				"			<slave_id abbreviation=\"s\" default=\"0\"/>"
+				"		</unique>"
+				"		<pos default=\"0\"/>"
+				"		<vel default=\"0.5\"/>"
+				"		<acc default=\"1\"/>"
+				"		<dec default=\"1\"/>"
+				"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_all\">"
+				"			<check_all/>"
+				"			<check_none/>"
+				"			<group type=\"GroupParam\" default_child_type=\"Param\">"
+				"				<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos\">"
+				"					<check_pos/>"
+				"					<not_check_pos/>"
+				"					<group type=\"GroupParam\" default_child_type=\"Param\">"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_max\">"
+				"							<check_pos_max/>"
+				"							<not_check_pos_max/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_min\">"
+				"							<check_pos_min/>"
+				"							<not_check_pos_min/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous\">"
+				"							<check_pos_continuous/>"
+				"							<not_check_pos_continuous/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous_at_start\">"
+				"							<check_pos_continuous_at_start/>"
+				"							<not_check_pos_continuous_at_start/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous_second_order\">"
+				"							<check_pos_continuous_second_order/>"
+				"							<not_check_pos_continuous_second_order/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous_second_order_at_start\">"
+				"							<check_pos_continuous_second_order_at_start/>"
+				"							<not_check_pos_continuous_second_order_at_start/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_following_error\">"
+				"							<check_pos_following_error/>"
+				"							<not_check_pos_following_error />"
+				"						</unique>"
+				"					</group>"
+				"				</unique>"
+				"				<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel\">"
+				"					<check_vel/>"
+				"					<not_check_vel/>"
+				"					<group type=\"GroupParam\" default_child_type=\"Param\">"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_max\">"
+				"							<check_vel_max/>"
+				"							<not_check_vel_max/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_min\">"
+				"							<check_vel_min/>"
+				"							<not_check_vel_min/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_continuous\">"
+				"							<check_vel_continuous/>"
+				"							<not_check_vel_continuous/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_continuous_at_start\">"
+				"							<check_vel_continuous_at_start/>"
+				"							<not_check_vel_continuous_at_start/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_following_error\">"
+				"							<check_vel_following_error/>"
+				"							<not_check_vel_following_error />"
+				"						</unique>"
+				"					</group>"
+				"				</unique>"
+				"			</group>"
+				"		</unique>"
+				"	</group>"
+				"</moveJR>");
+		}
+	};
+
+	//关节插值运动轨迹//
 	struct MoveJIParam
 	{
 		std::vector<double> pq;
@@ -645,25 +877,20 @@ namespace rokae
 	public:
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 		{
-			auto c = dynamic_cast<aris::control::Controller*>(target.master);
 			MoveJIParam param;
 			param.pq.resize(7, 0.0);
 			param.total_count_vec.resize(6, 1);
 			param.axis_begin_pos_vec.resize(6, 0.0);
-			auto &ee = target.model->generalMotionPool().at(0);
 			double pq_cur[7] = {0.0};
 
+			//params.at("pq")
 			for (auto &p : params)
 			{
 				if (p.first == "pq")
 				{
 					if (p.second == "current_pos")
 					{
-						ee.getMpq(pq_cur);
-						for (Size i = 0; i < param.pq.size(); i++)
-						{
-							param.pq[i] = pq_cur[i];
-						}
+						target.option |= aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
 					}
 					else
 					{
@@ -690,7 +917,6 @@ namespace rokae
 			target.param = param;
 
 			target.option |=
-				Plan::USE_TARGET_POS |
 #ifdef WIN32
 				Plan::NOT_CHECK_POS_MIN |
 				Plan::NOT_CHECK_POS_MAX |
@@ -709,67 +935,30 @@ namespace rokae
 		}
 		auto virtual executeRT(PlanTarget &target)->int
 		{
+			//获取驱动//
+			auto controller = dynamic_cast<aris::control::Controller*>(target.master);
 			auto &param = std::any_cast<MoveJIParam&>(target.param);
 			static double begin_pos[6];
 			static double pos[6];
-
-			if ((1 <= target.count) && (target.count <= time / 2))
+			// 取得起始位置 //
+			if (target.count == 1)
 			{
-				// 获取当前起始点位置 //
-				if (target.count == 1)
+				target.model->generalMotionPool().at(0).setMpq(param.pq.data());
+				if (!target.model->solverPool().at(0).kinPos())return -1;
+				for (Size i = 0; i < param.axis_pos_vec.size(); ++i)
 				{
-					for (Size i = 0; i < 6; ++i)
-					{
-						begin_pjs[i] = target.model->motionPool()[i].mp();
-						step_pjs[i] = target.model->motionPool()[i].mp();
-					}
-				}
-				for (Size i = 0; i < 6; ++i)
-				{
-					step_pjs[i] = begin_pjs[i] + param.j[i] * (1 - std::cos(2 * PI*target.count / time)) / 2;
-					target.model->motionPool().at(i).setMp(step_pjs[i]);
+					param.axis_begin_pos_vec[i] = controller->motionPool().at(i).actualPos();
+					param.axis_pos_vec[i] = target.model->motionPool().at(i).mp();
 				}
 			}
-			else if ((time / 2 < target.count) && (target.count <= totaltime - time / 2))
+			// 设置驱动器的位置 //
+			for (Size i = 0; i < param.axis_pos_vec.size(); ++i)
 			{
-				// 获取当前起始点位置 //
-				if (target.count == time / 2 + 1)
-				{
-					for (Size i = 0; i < 6; ++i)
-					{
-						begin_pjs[i] = target.model->motionPool()[i].mp();
-						step_pjs[i] = target.model->motionPool()[i].mp();
-					}
-				}
-				for (Size i = 0; i < 6; ++i)
-				{
-					step_pjs[i] = begin_pjs[i] - 2 * param.j[i] * (1 - std::cos(2 * PI*(target.count - time / 2) / time)) / 2;
-					target.model->motionPool().at(i).setMp(step_pjs[i]);
-				}
-
-			}
-			else if ((totaltime - time / 2 < target.count) && (target.count <= totaltime))
-			{
-				// 获取当前起始点位置 //
-				if (target.count == totaltime - time / 2 + 1)
-				{
-					for (Size i = 0; i < 6; ++i)
-					{
-						begin_pjs[i] = target.model->motionPool()[i].mp();
-						step_pjs[i] = target.model->motionPool()[i].mp();
-					}
-				}
-				for (Size i = 0; i < 6; ++i)
-				{
-					step_pjs[i] = begin_pjs[i] - param.j[i] * (1 - std::cos(2 * PI*(target.count - totaltime + time / 2) / time)) / 2;
-					target.model->motionPool().at(i).setMp(step_pjs[i]);
-				}
-			}
-
-			if (!target.model->solverPool().at(1).kinPos())return -1;
-
-			// 访问主站 //
-			auto controller = dynamic_cast<aris::control::EthercatController*>(target.master);
+				double p, v, a;
+				aris::plan::moveAbsolute(target.count, param.axis_begin_pos_vec[i], param.axis_pos_vec[i], param.axis_vel_vec[i] / 1000
+					, param.axis_acc_vec[i] / 1000 / 1000, param.axis_dec_vec[i] / 1000 / 1000, p, v, a, param.total_count_vec[i]);
+				controller->motionAtAbs(i).setTargetPos(p);
+			}		
 
 			// 打印电流 //
 			auto &cout = controller->mout();
@@ -795,24 +984,24 @@ namespace rokae
 			}
 			lout << std::endl;
 
-			return totaltime - target.count;
+			return (static_cast<int>(*std::max_element(param.total_count_vec.begin(), param.total_count_vec.end())) > target.count) ? 1 : 0;
 		}
 		auto virtual collectNrt(PlanTarget &target)->void {}
 
-		explicit MoveJI(const std::string &name = "MoveJTI_plan") :Plan(name)
+		explicit MoveJI(const std::string &name = "MoveJI_plan") :Plan(name)
 		{
 			command().loadXmlStr(
 				"<moveJI>"
 				"	<group type=\"GroupParam\" default_child_type=\"Param\">"
 				"		<pq default=\"current_pos\"/>"
-				"		<vel default=\"{0.1,0.1,0.1,0.1,0.1,0.1}\" abbreviation=\"v\"/>"
+				"		<vel default=\"{0.2,0.2,0.2,0.2,0.2,0.2}\" abbreviation=\"v\"/>"
 				"		<acc default=\"{0.1,0.1,0.1,0.1,0.1,0.1}\" abbreviation=\"a\"/>"
 				"		<dec default=\"{0.1,0.1,0.1,0.1,0.1,0.1}\" abbreviation=\"d\"/>"
 				"	</group>"
 				"</moveJI>");
 		}
 	};
-	*/
+	
 	// 夹爪控制 //
 	struct GraspParam
 	{
@@ -1076,7 +1265,7 @@ namespace rokae
 		plan_root->planPool().add<aris::plan::RecoverPlan>();
 		plan_root->planPool().add<aris::plan::SleepPlan>();
 		auto &rs = plan_root->planPool().add<aris::plan::ResetPlan>();
-		rs.command().findByName("group")->findByName("pos")->loadXmlStr("<pos default=\"{0.5,0.392523364485981,0.789915966386555,0.5,0.5,0.5}\" abbreviation=\"p\"/>");
+		rs.command().findByName("group")->findByName("pos")->loadXmlStr("<pos default=\"{0.5,0.392523364485981,0.789915966386555,0.5,0.5,0.5,0.01}\" abbreviation=\"p\"/>");
 
 		plan_root->planPool().add<aris::plan::MovePlan>();
 		plan_root->planPool().add<aris::plan::MoveJ>();
@@ -1084,7 +1273,8 @@ namespace rokae
 		plan_root->planPool().add<rokae::MoveInit>();
 		plan_root->planPool().add<MoveX>();
 		plan_root->planPool().add<rokae::MoveJS>();
-		//plan_root->planPool().add<rokae::MoveJI>();
+		plan_root->planPool().add<rokae::MoveJR>();
+		plan_root->planPool().add<rokae::MoveJI>();
 		plan_root->planPool().add<rokae::Grasp>();
 		plan_root->planPool().add<rokae::MoveEA>();
 		plan_root->planPool().add<rokae::MoveEAP>();

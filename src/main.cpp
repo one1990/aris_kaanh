@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
 			{
 				for (aris::Size i(-1); ++i < cs.model().partPool().size();)
 					cs.model().partPool().at(i).getPm(std::any_cast<std::vector<double>&>(data).data() + i * 16);
-			}, part_pm_vec);
+			}, part_pm_vec);       
 
 			std::vector<double> part_pq(cs.model().partPool().size() * 7);
 			for (aris::Size i(-1); ++i < cs.model().partPool().size();)
