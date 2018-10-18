@@ -959,7 +959,9 @@ namespace rokae
 				aris::plan::moveAbsolute(target.count, param.axis_begin_pos_vec[i], param.axis_pos_vec[i], param.axis_vel_vec[i] / 1000
 					, param.axis_acc_vec[i] / 1000 / 1000, param.axis_dec_vec[i] / 1000 / 1000, p, v, a, param.total_count_vec[i]);
 				controller->motionAtAbs(i).setTargetPos(p);
+				target.model->motionPool().at(i).setMp(p);
 			}		
+			if (!target.model->solverPool().at(1).kinPos())return -1;
 
 			// ´òÓ¡µçÁ÷ //
 			auto &cout = controller->mout();
