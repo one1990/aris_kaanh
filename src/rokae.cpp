@@ -948,7 +948,7 @@ namespace rokae
 				if (!target.model->solverPool().at(0).kinPos())return -1;
 				for (Size i = 0; i < param.axis_pos_vec.size(); ++i)
 				{
-					param.axis_begin_pos_vec[i] = controller->motionPool().at(i).actualPos();
+					param.axis_begin_pos_vec[i] = controller->motionPool().at(i).targetPos();
 					param.axis_pos_vec[i] = target.model->motionPool().at(i).mp();
 				}
 			}
@@ -1177,7 +1177,7 @@ namespace rokae
 			auto controller = dynamic_cast<aris::control::Controller*>(target.master);
 			if (target.count == 1)
 			{
-				begin_p = controller->motionAtAbs(6).actualPos();
+				begin_p = controller->motionAtAbs(6).targetPos();
 			}
 			double end_p;
 			end_p = begin_p + param.s*(1 - std::cos(2 * PI*target.count / time)) / 2;
@@ -1276,7 +1276,7 @@ namespace rokae
 
 			if (target.count == 1)
 			{
-				param.begin_pos = controller->motionAtAbs(6).actualPos();
+				param.begin_pos = controller->motionAtAbs(6).targetPos();
 			}
 			aris::Size total_count{ 1 };
 			double p, v, a;
@@ -1302,7 +1302,7 @@ namespace rokae
 			}
 			// log 位置、速度、电流 //
 			auto &lout = controller->lout();
-			lout << controller->motionAtAbs(6).targetPos() << "  " << controller->motionAtAbs(6).actualPos() << "  " << controller->motionAtAbs(6).targetVel() << "  " << controller->motionAtAbs(6).actualVel() << "  " << controller->motionAtAbs(6).targetCur() << "  " << controller->motionAtAbs(6).actualCur() << std::endl;
+			lout << controller->motionAtAbs(6).actualPos() << "  " << controller->motionAtAbs(6).actualVel() << "  " << controller->motionAtAbs(6).actualCur() << std::endl;
 
 			return total_count - target.count;
 		}
