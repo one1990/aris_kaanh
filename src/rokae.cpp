@@ -1302,7 +1302,7 @@ namespace rokae
 			}
 			// log 位置、速度、电流 //
 			auto &lout = controller->lout();
-			lout << controller->motionAtAbs(6).actualPos() << "  " << controller->motionAtAbs(6).actualVel() << "  " << controller->motionAtAbs(6).actualCur() << std::endl;
+			lout << controller->motionAtAbs(6).targetPos() << "  " << controller->motionAtAbs(6).actualPos() << "  " << controller->motionAtAbs(6).targetVel() << "  " << controller->motionAtAbs(6).actualVel() << "  " << controller->motionAtAbs(6).targetCur() << "  " << controller->motionAtAbs(6).actualCur() << std::endl;
 
 			return total_count - target.count;
 		}
