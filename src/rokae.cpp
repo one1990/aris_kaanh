@@ -881,6 +881,7 @@ namespace rokae
 			param.pq.resize(7, 0.0);
 			param.total_count_vec.resize(6, 1);
 			param.axis_begin_pos_vec.resize(6, 0.0);
+			param.axis_pos_vec.resize(6, 0.0);
 			double pq_cur[7] = {0.0};
 
 			//params.at("pq")
@@ -901,7 +902,7 @@ namespace rokae
 				else if (p.first == "vel")
 				{
 					auto pqarray = target.model->calculator().calculateExpression(p.second);
-					param.axis_pos_vec.assign(pqarray.begin(), pqarray.end());
+					param.axis_vel_vec.assign(pqarray.begin(), pqarray.end());
 				}
 				else if (p.first == "acc")
 				{
@@ -997,6 +998,72 @@ namespace rokae
 				"		<vel default=\"{0.2,0.2,0.2,0.2,0.2,0.2}\" abbreviation=\"v\"/>"
 				"		<acc default=\"{0.1,0.1,0.1,0.1,0.1,0.1}\" abbreviation=\"a\"/>"
 				"		<dec default=\"{0.1,0.1,0.1,0.1,0.1,0.1}\" abbreviation=\"d\"/>"
+				"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_all\">"
+				"			<check_all/>"
+				"			<check_none/>"
+				"			<group type=\"GroupParam\" default_child_type=\"Param\">"
+				"				<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos\">"
+				"					<check_pos/>"
+				"					<not_check_pos/>"
+				"					<group type=\"GroupParam\" default_child_type=\"Param\">"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_max\">"
+				"							<check_pos_max/>"
+				"							<not_check_pos_max/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_min\">"
+				"							<check_pos_min/>"
+				"							<not_check_pos_min/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous\">"
+				"							<check_pos_continuous/>"
+				"							<not_check_pos_continuous/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous_at_start\">"
+				"							<check_pos_continuous_at_start/>"
+				"							<not_check_pos_continuous_at_start/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous_second_order\">"
+				"							<check_pos_continuous_second_order/>"
+				"							<not_check_pos_continuous_second_order/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous_second_order_at_start\">"
+				"							<check_pos_continuous_second_order_at_start/>"
+				"							<not_check_pos_continuous_second_order_at_start/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_following_error\">"
+				"							<check_pos_following_error/>"
+				"							<not_check_pos_following_error />"
+				"						</unique>"
+				"					</group>"
+				"				</unique>"
+				"				<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel\">"
+				"					<check_vel/>"
+				"					<not_check_vel/>"
+				"					<group type=\"GroupParam\" default_child_type=\"Param\">"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_max\">"
+				"							<check_vel_max/>"
+				"							<not_check_vel_max/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_min\">"
+				"							<check_vel_min/>"
+				"							<not_check_vel_min/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_continuous\">"
+				"							<check_vel_continuous/>"
+				"							<not_check_vel_continuous/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_continuous_at_start\">"
+				"							<check_vel_continuous_at_start/>"
+				"							<not_check_vel_continuous_at_start/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_following_error\">"
+				"							<check_vel_following_error/>"
+				"							<not_check_vel_following_error />"
+				"						</unique>"
+				"					</group>"
+				"				</unique>"
+				"			</group>"
+				"		</unique>"
 				"	</group>"
 				"</moveJI>");
 		}
