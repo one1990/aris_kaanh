@@ -1292,6 +1292,7 @@ namespace rokae
 				aris::plan::moveAbsolute(target.count, param.begin_pos, param.begin_pos + param.pos, param.vel / 1000, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
 			}
 			controller->motionAtAbs(6).setTargetPos(p);
+			controller->motionAtAbs(6).setOffsetVel(v);
 			total_count = std::max(total_count, t_count);
 
 			// 打印 位置、速度、电流 //
@@ -1302,7 +1303,7 @@ namespace rokae
 			}
 			// log 位置、速度、电流 //
 			auto &lout = controller->lout();
-			lout << controller->motionAtAbs(6).actualPos() << "  " << controller->motionAtAbs(6).actualVel() << "  " << controller->motionAtAbs(6).actualCur() << std::endl;
+			lout << controller->motionAtAbs(6).targetPos() << "  " << controller->motionAtAbs(6).actualPos() << "  " << controller->motionAtAbs(6).actualVel() << "  " << controller->motionAtAbs(6).actualCur() << std::endl;
 
 			return total_count - target.count;
 		}
