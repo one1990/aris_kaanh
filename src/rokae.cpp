@@ -62,6 +62,7 @@ namespace rokae
 				"				<mode_of_operation index=\"0x6060\" subindex=\"0x00\" size=\"1\"/>"
 				"				<target_pos index=\"0x607A\" subindex=\"0x00\" size=\"4\"/>"
 				"				<target_vel index=\"0x60FF\" subindex=\"0x00\" size=\"4\"/>"
+				"				<offset_vel index=\"0x60B1\" subindex=\"0x00\" size=\"4\"/>"
 				"				<targer_tor index=\"0x6071\" subindex=\"0x00\" size=\"2\"/>"
 				"			</index_1600>"
 				"		</sm>"
@@ -97,6 +98,7 @@ namespace rokae
 			"				<mode_of_operation index=\"0x6060\" subindex=\"0x00\" size=\"1\"/>"
 			"				<target_pos index=\"0x607A\" subindex=\"0x00\" size=\"4\"/>"
 			"				<target_vel index=\"0x60FF\" subindex=\"0x00\" size=\"4\"/>"
+			"				<offset_vel index=\"0x60B1\" subindex=\"0x00\" size=\"4\"/>"
 			"				<targer_tor index=\"0x6071\" subindex=\"0x00\" size=\"2\"/>"
 			"			</index_1600>"
 			"		</sm>"
@@ -310,6 +312,7 @@ namespace rokae
 			target.option |=
 				//用于使用模型轨迹驱动电机//
 				Plan::USE_TARGET_POS |
+				Plan::USE_VEL_OFFSET |
 #ifdef WIN32
 				Plan::NOT_CHECK_POS_MIN |
 				Plan::NOT_CHECK_POS_MAX |
@@ -337,15 +340,21 @@ namespace rokae
 			{
 				ee.getMpq(begin_pq);
 			}
-
 			double pq2[7];
+			double pqv[7] = {0.0, 0.0 ,0.0, 0.0, 0.0 ,0.0, 0.0};
 			ee.getMpq(pq2);
 			pq2[0] = begin_pq[0] + param.x*(1 - std::cos(2 * PI*target.count / time)) / 2;
 			pq2[1] = begin_pq[1] + param.y*(1 - std::cos(2 * PI*target.count / time)) / 2;
 			pq2[2] = begin_pq[2] + param.z*(1 - std::cos(2 * PI*target.count / time)) / 2;
 			ee.setMpq(pq2);
+			//加前馈//
+			pqv[0] = 1000 * param.x*(PI / time)*std::sin(2 * PI*target.count / time);
+			pqv[1] = 1000 * param.y*(PI / time)*std::sin(2 * PI*target.count / time);
+			pqv[2] = 1000 * param.z*(PI / time)*std::sin(2 * PI*target.count / time);
+			ee.setMvq(pqv);
 
 			if (!target.model->solverPool().at(0).kinPos())return -1;
+			target.model->solverPool().at(0).kinVel();
 
 			// 访问主站 //
 			auto controller = dynamic_cast<aris::control::Controller*>(target.master);
@@ -699,6 +708,7 @@ namespace rokae
 
 			target.option |=
 				Plan::USE_TARGET_POS |
+				Plan::USE_VEL_OFFSET |
 #ifdef WIN32
 				Plan::NOT_CHECK_POS_MIN |
 				Plan::NOT_CHECK_POS_MAX |
@@ -740,6 +750,7 @@ namespace rokae
 					aris::Size t_count;
 					aris::plan::moveAbsolute(target.count, param.begin_joint_pos_vec[i], param.begin_joint_pos_vec[i]+param.joint_pos_vec[i], param.vel / 1000, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
 					target.model->motionPool().at(i).setMp(p);
+					target.model->motionPool().at(i).setMv(v*1000);
 					total_count = std::max(total_count, t_count);
 				}
 			}
@@ -877,6 +888,7 @@ namespace rokae
 	public:
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 		{
+			auto c = dynamic_cast<aris::control::Controller*>(target.master);
 			MoveJIParam param;
 			param.pq.resize(7, 0.0);
 			param.total_count_vec.resize(6, 1);
@@ -901,23 +913,98 @@ namespace rokae
 				}
 				else if (p.first == "vel")
 				{
-					auto pqarray = target.model->calculator().calculateExpression(p.second);
-					param.axis_vel_vec.assign(pqarray.begin(), pqarray.end());
+					auto v = target.model->calculator().calculateExpression(p.second);
+					if (v.size() == 1)
+					{
+						param.axis_vel_vec.resize(param.axis_pos_vec.size(), v.toDouble());
+					}
+					else if (v.size() == param.axis_pos_vec.size())
+					{
+						param.axis_vel_vec.assign(v.begin(), v.end());
+					}
+					else
+					{
+						throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+					}
+
+					for (Size i = 0; i < param.axis_pos_vec.size(); ++i)
+					{
+						//if (param.axis_vel_vec[i] > 1.0 || param.axis_vel_vec[i] < 0.01)
+						//	throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+						if (param.axis_vel_vec[i] > 1.0)
+						{
+							param.axis_vel_vec[i] = 1.0;
+						}
+						if (param.axis_vel_vec[i] < 0.0)
+						{
+							param.axis_vel_vec[i] = 0.0;
+						}
+						param.axis_vel_vec[i] = param.axis_vel_vec[i] * c->motionPool()[i].maxVel();
+					}
 				}
 				else if (p.first == "acc")
 				{
-					auto pqarray = target.model->calculator().calculateExpression(p.second);
-					param.axis_acc_vec.assign(pqarray.begin(), pqarray.end());
+					auto a = target.model->calculator().calculateExpression(p.second);
+					if (a.size() == 1)
+					{
+						param.axis_acc_vec.resize(param.axis_pos_vec.size(), a.toDouble());
+					}
+					else if (a.size() == param.axis_pos_vec.size())
+					{
+						param.axis_acc_vec.assign(a.begin(), a.end());
+					}
+					else
+					{
+						throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+					}
+
+					for (Size i = 0; i < param.axis_pos_vec.size(); ++i)
+					{
+						if (param.axis_acc_vec[i] > 1.0)
+						{
+							param.axis_acc_vec[i] = 1.0;
+						}
+						if (param.axis_acc_vec[i] < 0.0)
+						{
+							param.axis_acc_vec[i] = 0.0;
+						}
+						param.axis_acc_vec[i] = param.axis_acc_vec[i] * c->motionPool()[i].maxAcc();
+					}
 				}
 				else if (p.first == "dec")
 				{
-					auto pqarray = target.model->calculator().calculateExpression(p.second);
-					param.axis_dec_vec.assign(pqarray.begin(), pqarray.end());
+					auto d = target.model->calculator().calculateExpression(p.second);
+					if (d.size() == 1)
+					{
+						param.axis_dec_vec.resize(param.axis_pos_vec.size(), d.toDouble());
+					}
+					else if (d.size() == param.axis_pos_vec.size())
+					{
+						param.axis_dec_vec.assign(d.begin(), d.end());
+					}
+					else
+					{
+						throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+					}
+
+					for (Size i = 0; i < param.axis_pos_vec.size(); ++i)
+					{
+						if (param.axis_dec_vec[i] > 1.0)
+						{
+							param.axis_dec_vec[i] = 1.0;
+						}	
+						if (param.axis_dec_vec[i] < 0.0)
+						{
+							param.axis_dec_vec[i] = 0.0;
+						}
+						param.axis_dec_vec[i] = param.axis_dec_vec[i] * c->motionPool()[i].minAcc();
+					}
 				}
 			}
 			target.param = param;
 
 			target.option |=
+				Plan::USE_VEL_OFFSET |
 #ifdef WIN32
 				Plan::NOT_CHECK_POS_MIN |
 				Plan::NOT_CHECK_POS_MAX |
@@ -959,6 +1046,8 @@ namespace rokae
 				aris::plan::moveAbsolute(target.count, param.axis_begin_pos_vec[i], param.axis_pos_vec[i], param.axis_vel_vec[i] / 1000
 					, param.axis_acc_vec[i] / 1000 / 1000, param.axis_dec_vec[i] / 1000 / 1000, p, v, a, param.total_count_vec[i]);
 				controller->motionAtAbs(i).setTargetPos(p);
+				//加前馈//
+				controller->motionAtAbs(i).setOffsetVel(v*1000);
 				target.model->motionPool().at(i).setMp(p);
 			}		
 			if (!target.model->solverPool().at(1).kinPos())return -1;
@@ -1292,7 +1381,8 @@ namespace rokae
 				aris::plan::moveAbsolute(target.count, param.begin_pos, param.begin_pos + param.pos, param.vel / 1000, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
 			}
 			controller->motionAtAbs(6).setTargetPos(p);
-			controller->motionAtAbs(6).setOffsetVel(v);
+			//加前馈//
+			controller->motionAtAbs(6).setOffsetVel(v*1000);
 			total_count = std::max(total_count, t_count);
 
 			// 打印 位置、速度、电流 //
