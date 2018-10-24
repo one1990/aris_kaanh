@@ -3,7 +3,7 @@
 #include"rokae.h"
 #include<atomic>
 #include<string>
-#include<direct.h>
+#include<filesystem>
 
 
 std::atomic_bool is_automatic = false;
@@ -15,13 +15,13 @@ int select_id = 0;
 std::vector<std::vector<std::string>> plantrack(6, std::vector<std::string>());
 std::atomic_int which_di = 0;
 char *buffer;
-std::string xmlpath = getcwd(buffer, 255);
-const std::string xmlfile = "\\plan.xml";
+auto xmlpath = std::filesystem::absolute(".");
+const std::string xmlfile = "plan.xml";
 
 
 int main(int argc, char *argv[])
 {
-	xmlpath = xmlpath + xmlfile;
+	xmlpath = xmlpath / xmlfile;
 	auto&cs = aris::server::ControlServer::instance();
 	auto port = argc < 2 ? 5866 : std::stoi(argv[1]);
 
@@ -56,16 +56,25 @@ int main(int argc, char *argv[])
 			//socket->sendMsg(aris::core::Msg(msg_data));
 			try
 			{
-				auto id = cs.executeCmd(aris::core::Msg(msg_data));
-				std::cout << "command id:" << id << std::endl;
-				socket->sendMsg(aris::core::Msg());
+				try
+				{
+					auto id = cs.executeCmd(aris::core::Msg(msg_data));
+					std::cout << "command id:" << id << std::endl;
+					socket->sendMsg(aris::core::Msg());
+				}
+				catch (std::exception &e)
+				{
+					std::cout << e.what() << std::endl;
+					LOG_ERROR << e.what() << std::endl;
+					socket->sendMsg(aris::core::Msg(e.what()));
+				}
 			}
 			catch (std::exception &e)
 			{
 				std::cout << e.what() << std::endl;
 				LOG_ERROR << e.what() << std::endl;
-				socket->sendMsg(aris::core::Msg(e.what()));
 			}
+
 		}
 		else if (msg.header().msg_id_ == READ_RT_DATA)
 		{
@@ -100,7 +109,15 @@ int main(int argc, char *argv[])
 			aris::core::Msg msg;
 			msg.copy(part_pq.data(), part_pq.size() * 8);
 			msg.copyMore(fce_send, data_num_send * 8);
-			socket->sendMsg(msg);
+			try
+			{
+				socket->sendMsg(msg);
+			}
+			catch (std::exception &e)
+			{
+				std::cout << e.what() << std::endl;
+				LOG_ERROR << e.what() << std::endl;
+			}
 		}
 		else if (msg.header().msg_id_ == READ_XML)
 		{
@@ -114,20 +131,27 @@ int main(int argc, char *argv[])
 				<< msg_data << std::endl;
 			
 			std::cout << "READ_XML id:" << msg.header().msg_id_ << std::endl;
-
 			try
 			{
-				tinyxml2::XMLDocument xml_data;
-				tinyxml2::XMLPrinter printer;
-				xml_data.LoadFile(xmlpath.c_str());
-				xml_data.Print(&printer);
-				socket->sendMsg(aris::core::Msg(printer.CStr()));
+				try
+				{
+					tinyxml2::XMLDocument xml_data;
+					tinyxml2::XMLPrinter printer;
+					xml_data.LoadFile(xmlpath.string().c_str());
+					xml_data.Print(&printer);
+					socket->sendMsg(aris::core::Msg(printer.CStr()));
+				}
+				catch (std::exception &e)
+				{
+					std::cout << e.what() << std::endl;
+					LOG_ERROR << e.what() << std::endl;
+					socket->sendMsg(aris::core::Msg(e.what()));
+				}
 			}
 			catch (std::exception &e)
 			{
 				std::cout << e.what() << std::endl;
 				LOG_ERROR << e.what() << std::endl;
-				socket->sendMsg(aris::core::Msg(e.what()));
 			}
 		}
 		else if (msg.header().msg_id_ == A_RUN)
@@ -146,20 +170,28 @@ int main(int argc, char *argv[])
 			//读取字符串并将其存储在xmlpath指定的路径下//	
 			try
 			{
-				tinyxml2::XMLDocument xml_data;
-				xml_data.Parse(msg_data.c_str());
-				xml_data.SaveFile(xmlpath.c_str());
-			}  
+				try
+				{
+					tinyxml2::XMLDocument xml_data;
+					xml_data.Parse(msg_data.c_str());
+					xml_data.SaveFile(xmlpath.string().c_str());
+				}
+				catch (std::exception &e)
+				{
+					std::cout << e.what() << std::endl;
+					LOG_ERROR << e.what() << std::endl;
+					socket->sendMsg(aris::core::Msg(e.what()));
+				}
+			}
 			catch (std::exception &e)
 			{
 				std::cout << e.what() << std::endl;
 				LOG_ERROR << e.what() << std::endl;
-				socket->sendMsg(aris::core::Msg(e.what()));
 			}
 
 			//加载指定路径下的xml文件//
 			tinyxml2::XMLDocument doc;
-			tinyxml2::XMLError errXml = doc.LoadFile(xmlpath.c_str());
+			tinyxml2::XMLError errXml = doc.LoadFile(xmlpath.string().c_str());
 			if (errXml != tinyxml2::XML_SUCCESS)
 			{
 				std::cout << errXml << std::endl;
@@ -344,7 +376,23 @@ int main(int argc, char *argv[])
 				<< msg.header().reserved3_ << ":"
 				<< msg_data << std::endl;
 			std::cout << "undefined msg id:" << msg.header().msg_id_ << std::endl;
-			socket->sendMsg(aris::core::Msg(msg_data));
+			try
+			{
+				try
+				{
+					socket->sendMsg(aris::core::Msg(msg_data));
+				}
+				catch (std::exception &e)
+				{
+					std::cout << e.what() << std::endl;
+					LOG_ERROR << e.what() << std::endl;
+				}
+			}
+			catch (std::exception &e)
+			{
+				std::cout << e.what() << std::endl;
+				LOG_ERROR << e.what() << std::endl;
+			}
 		}
 		return 0;
 	});
