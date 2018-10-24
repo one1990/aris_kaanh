@@ -52,6 +52,8 @@ int main(int argc, char *argv[])
 				<< msg.header().reserved3_ << ":"
 				<< msg_data << std::endl;
 
+			std::cout << "M_RUN id:" << msg.header().msg_id_ << std::endl;
+			//socket->sendMsg(aris::core::Msg(msg_data));
 			try
 			{
 				auto id = cs.executeCmd(aris::core::Msg(msg_data));
@@ -76,6 +78,8 @@ int main(int argc, char *argv[])
 				<< msg.header().reserved3_ << ":"
 				<< msg_data << std::endl;
 
+			std::cout << "READ_RT_DATA id:" << msg.header().msg_id_ << std::endl;
+
 			auto part_pm_vec = std::make_any<std::vector<double> >(cs.model().partPool().size() * 16);
 			cs.getRtData([](aris::server::ControlServer& cs, std::any& data)
 			{
@@ -96,7 +100,6 @@ int main(int argc, char *argv[])
 			aris::core::Msg msg;
 			msg.copy(part_pq.data(), part_pq.size() * 8);
 			msg.copyMore(fce_send, data_num_send * 8);
-			socket->sendMsg(aris::core::Msg("read rt data"));
 			socket->sendMsg(msg);
 		}
 		else if (msg.header().msg_id_ == READ_XML)
@@ -109,15 +112,15 @@ int main(int argc, char *argv[])
 				<< msg.header().reserved2_ << "&"
 				<< msg.header().reserved3_ << ":"
 				<< msg_data << std::endl;
+			
+			std::cout << "READ_XML id:" << msg.header().msg_id_ << std::endl;
 
-			tinyxml2::XMLDocument xml_data;
-			tinyxml2::XMLPrinter printer;
 			try
 			{
+				tinyxml2::XMLDocument xml_data;
+				tinyxml2::XMLPrinter printer;
 				xml_data.LoadFile(xmlpath.c_str());
 				xml_data.Print(&printer);
-				std::cout << "read xml msg id:" << msg.header().msg_id_ << std::endl;
-				socket->sendMsg(aris::core::Msg("read xml"));
 				socket->sendMsg(aris::core::Msg(printer.CStr()));
 			}
 			catch (std::exception &e)
@@ -129,7 +132,6 @@ int main(int argc, char *argv[])
 		}
 		else if (msg.header().msg_id_ == A_RUN)
 		{
-			std::cout << "switch to automatic mode:" << msg.header().msg_id_ << std::endl;
 			LOG_INFO << "switch to automatic mode:"
 				<< msg.header().msg_size_ << "&"
 				<< msg.header().msg_id_ << "&"
@@ -138,6 +140,8 @@ int main(int argc, char *argv[])
 				<< msg.header().reserved2_ << "&"
 				<< msg.header().reserved3_ << ":"
 				<< msg_data << std::endl;
+
+			std::cout << "A_RUN id:" << msg.header().msg_id_ << std::endl;
 
 			//读取字符串并将其存储在xmlpath指定的路径下//	
 			try
@@ -318,18 +322,19 @@ int main(int argc, char *argv[])
 		}
 		else if (msg.header().msg_id_ == A_QUIT)
 		{
-			std::cout << "quit automatic mode:" << msg.header().msg_id_ << std::endl;
 			LOG_INFO << "quit automatic mode:" 
 				<< msg.header().msg_id_ << "&"
 				<< msg_data << std::endl;
-			is_automatic = false;
+
+			std::cout << "A_QUIT id:" << msg.header().msg_id_ << std::endl;
 			
+			is_automatic = false;
+		
 			//回收栈资源//
 			watch_di_thread.join();
 		}
 		else
 		{
-			std::cout << "undefined msg_id:" << msg.header().msg_id_ << std::endl;
 			LOG_INFO << "undefined msg_id:" 
 				<< msg.header().msg_size_ << "&"
 				<< msg.header().msg_id_ << "&"
@@ -338,7 +343,8 @@ int main(int argc, char *argv[])
 				<< msg.header().reserved2_ << "&"
 				<< msg.header().reserved3_ << ":"
 				<< msg_data << std::endl;
-			socket->sendMsg(aris::core::Msg());
+			std::cout << "undefined msg id:" << msg.header().msg_id_ << std::endl;
+			socket->sendMsg(aris::core::Msg(msg_data));
 		}
 		return 0;
 	});
