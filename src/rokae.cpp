@@ -2,8 +2,14 @@
 
 #include"rokae.h"
 
+
 using namespace aris::dynamic;
 using namespace aris::plan;
+
+extern double fce_data[4000];
+extern int data_num, data_num_send;
+extern std::atomic_int which_di;
+extern std::atomic_bool is_automatic;
 
 namespace rokae
 {
@@ -1185,16 +1191,16 @@ namespace rokae
 			auto &param = std::any_cast<GraspParam&>(target.param);
 			// 访问主站 //
 			auto controller = dynamic_cast<aris::control::EthercatController*>(target.master);
-			static std::uint8_t a = 0x01;
+			static std::uint8_t dq = 0x01;
 			if (param.status)
 			{
-				a = 0x01;
-				controller->ecSlavePool().at(7).writePdo(0x7001, 0x01, a);
+				dq = 0x01;
+				controller->ecSlavePool().at(7).writePdo(0x7001, 0x01, dq);
 			}
 			else
 			{
-				a = 0x00;
-				controller->ecSlavePool().at(7).writePdo(0x7001, 0x01, a);
+				dq = 0x00;
+				controller->ecSlavePool().at(7).writePdo(0x7001, 0x01, dq);
 			}	
 			//std::cout << int(a) << std::endl;
 			return 0;
@@ -1209,6 +1215,188 @@ namespace rokae
 				"		<status default=\"1\"/>"
 				"	</group_switch>"
 				"</grasp>");
+		}
+	};
+
+	// 监听DI信号 //
+	class ListenDI : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void {}
+		auto virtual executeRT(PlanTarget &target)->int
+		{
+			if (is_automatic)
+			{
+				// 访问主站 //
+				auto controller = dynamic_cast<aris::control::EthercatController*>(target.master);
+				static std::uint8_t di = 0x00;
+				static std::int16_t di_delay[6] = { 0,0,0,0,0,0 };
+				controller->ecSlavePool().at(7).readPdo(0x6001, 0x01, di);
+				auto &lout = controller->lout();
+				auto &cout = controller->mout();
+				//di信号持续100ms才会有效，其他情况会将di信号全部置为0//
+				switch (di)
+				{
+				case 0x00:
+				{
+					which_di = 0;
+					for (Size i = 0; i < 6; i++)
+					{
+						di_delay[i] = 0;
+					}
+					break;
+				}
+				case 0x01:
+				{
+					for (Size i = 0; i < 6; i++)
+					{
+						if (i = 0)
+						{
+							di_delay[i] = di_delay[i] + 1;
+						}
+						else
+						{
+							di_delay[i] = 0;
+						}
+					}
+					if (di_delay[0] >= 100)
+					{
+						which_di = 1;
+						di_delay[0] = 0;
+					}
+					break;
+				}
+				case 0x02:
+				{
+					for (Size i = 0; i < 6; i++)
+					{
+						if (i = 1)
+						{
+							di_delay[i] = di_delay[i] + 1;
+						}
+						else
+						{
+							di_delay[i] = 0;
+						}
+					}
+					if (di_delay[1] >= 100)
+					{
+						which_di = 2;
+						di_delay[1] = 0;
+					}
+					break;
+				}
+				case 0x04:
+				{
+					for (Size i = 0; i < 6; i++)
+					{
+						if (i = 2)
+						{
+							di_delay[i] = di_delay[i] + 1;
+						}
+						else
+						{
+							di_delay[i] = 0;
+						}
+					}
+					if (di_delay[2] >= 100)
+					{
+						which_di = 3;
+						di_delay[2] = 0;
+					}
+					break;
+				}
+				case 0x08:
+				{
+					for (Size i = 0; i < 6; i++)
+					{
+						if (i = 3)
+						{
+							di_delay[i] = di_delay[i] + 1;
+						}
+						else
+						{
+							di_delay[i] = 0;
+						}
+					}
+					if (di_delay[3] >= 100)
+					{
+						which_di = 4;
+						di_delay[3] = 0;
+					}
+					break;
+				}
+				case 0x10:
+				{
+					for (Size i = 0; i < 6; i++)
+					{
+						if (i = 4)
+						{
+							di_delay[i] = di_delay[i] + 1;
+						}
+						else
+						{
+							di_delay[i] = 0;
+						}
+					}
+					if (di_delay[4] >= 100)
+					{
+						which_di = 5;
+						di_delay[4] = 0;
+					}
+					break;
+				}
+				case 0x20:
+				{
+					for (Size i = 0; i < 6; i++)
+					{
+						if (i = 5)
+						{
+							di_delay[i] = di_delay[i] + 1;
+						}
+						else
+						{
+							di_delay[i] = 0;
+						}
+					}
+					if (di_delay[5] >= 100)
+					{
+						which_di = 6;
+						di_delay[5] = 0;
+					}
+					break;
+				}
+				default:
+				{
+					which_di = 0;
+					for (Size i = 0; i < 6; i++)
+					{
+						di_delay[i] = 0;
+					}
+					lout << "unexpected di:" << di << std::endl;
+				}
+				}
+				if (which_di == 0)
+				{
+					return 1;
+				}
+				else
+				{
+					return 0;
+				}
+				
+			}
+			else
+			{
+				return 0;
+			}
+			
+		}
+		explicit ListenDI(const std::string &name = "ListenDI_plan") :Plan(name)
+		{
+			command().loadXmlStr(
+				"<listenDI>"
+				"</listenDI>");
 		}
 	};
 
@@ -1280,7 +1468,37 @@ namespace rokae
 			}
 			// log 位置、速度、电流 //
 			auto &lout = controller->lout();
-			lout << controller->motionAtAbs(6).actualPos() << "  " << controller->motionAtAbs(6).actualVel() << "  " << controller->motionAtAbs(6).actualCur() << std::endl;
+			lout << controller->motionAtAbs(6).targetPos() << "  " << controller->motionAtAbs(6).actualPos() << "  " << controller->motionAtAbs(6).actualVel() << "  " << controller->motionAtAbs(6).actualCur() << std::endl;
+			
+			//根据电流值换算压力值//
+			double actualpressure = 0;
+			if (controller->motionAtAbs(6).actualVel() > 0)
+			{
+				actualpressure = -(ea_k * abs(controller->motionAtAbs(6).actualVel()) + ea_b - ea_offset) * ea_index;
+			}
+			else
+			{
+				actualpressure = (ea_k * abs(controller->motionAtAbs(6).actualVel()) + ea_b + ea_offset) * ea_index;
+			}
+			if (data_num >= 4000)
+			{
+				data_num_send = 4000;
+				std::copy_n(&fce_data[4], 3996, fce_data);
+				fce_data[3996] = controller->motionAtAbs(6).actualPos();
+				fce_data[3997] = controller->motionAtAbs(6).actualVel();
+				fce_data[3998] = controller->motionAtAbs(6).actualCur();
+				fce_data[3999] = actualpressure;
+				data_num = data_num + 4;
+
+			}
+			else
+			{
+				fce_data[data_num++] = controller->motionAtAbs(6).actualPos();
+				fce_data[data_num++] = controller->motionAtAbs(6).actualVel();
+				fce_data[data_num++] = controller->motionAtAbs(6).actualCur();
+				fce_data[data_num++] = actualpressure;
+				data_num_send = data_num;
+			}
 
 			return time - target.count;
 		}
@@ -1395,6 +1613,36 @@ namespace rokae
 			// log 位置、速度、电流 //
 			auto &lout = controller->lout();
 			lout << controller->motionAtAbs(6).targetPos() << "  " << controller->motionAtAbs(6).actualPos() << "  " << controller->motionAtAbs(6).actualVel() << "  " << controller->motionAtAbs(6).actualCur() << std::endl;
+			
+			//根据电流值换算压力值//
+			double actualpressure = 0;
+			if (controller->motionAtAbs(6).actualVel() > 0)
+			{
+				actualpressure = -(ea_k * abs(controller->motionAtAbs(6).actualVel()) + ea_b - ea_offset) * ea_index;
+			}
+			else
+			{
+				actualpressure = (ea_k * abs(controller->motionAtAbs(6).actualVel()) + ea_b + ea_offset) * ea_index;
+			}
+			if (data_num >= 4000)
+			{
+				data_num_send = 4000;
+				std::copy_n(&fce_data[4], 3996, fce_data);
+				fce_data[3996] = controller->motionAtAbs(6).actualPos();
+				fce_data[3997] = controller->motionAtAbs(6).actualVel();
+				fce_data[3998] = controller->motionAtAbs(6).actualCur();
+				fce_data[3999] = actualpressure;
+				data_num = data_num + 4;
+
+			}
+			else
+			{
+				fce_data[data_num++] = controller->motionAtAbs(6).actualPos();
+				fce_data[data_num++] = controller->motionAtAbs(6).actualVel();
+				fce_data[data_num++] = controller->motionAtAbs(6).actualCur();
+				fce_data[data_num++] = actualpressure;
+				data_num_send = data_num;
+			}
 
 			return total_count - target.count;
 		}
