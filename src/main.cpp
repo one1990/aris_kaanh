@@ -284,54 +284,54 @@ int main(int argc, char *argv[])
 						break;
 					case 1:
 					{
-						for (std::uint16_t i = 0; i < plantrack[which_di_local].size(); i++)
+						for (std::uint16_t i = 0; i < plantrack[which_di_local - 1].size(); i++)
 						{
-							auto id = cs.executeCmd(aris::core::Msg(plantrack[which_di_local][i]));
+							auto id = cs.executeCmd(aris::core::Msg(plantrack[which_di_local - 1][i]));
 						}		
 						which_di.store(0);
 						break;
 					}
 					case 2:
 					{
-						for (std::uint16_t i = 0; i < plantrack[which_di_local].size(); i++)
+						for (std::uint16_t i = 0; i < plantrack[which_di_local - 1].size(); i++)
 						{
-							auto id = cs.executeCmd(aris::core::Msg(plantrack[which_di_local][i]));
+							auto id = cs.executeCmd(aris::core::Msg(plantrack[which_di_local - 1][i]));
 						}
 						which_di.store(0);
 						break;
 					}
 					case 3:
 					{
-						for (std::uint16_t i = 0; i < plantrack[which_di_local].size(); i++)
+						for (std::uint16_t i = 0; i < plantrack[which_di_local - 1].size(); i++)
 						{
-							auto id = cs.executeCmd(aris::core::Msg(plantrack[which_di_local][i]));
+							auto id = cs.executeCmd(aris::core::Msg(plantrack[which_di_local - 1][i]));
 						}
 						which_di.store(0);
 						break;
 					}
 					case 4:
 					{
-						for (std::uint16_t i = 0; i < plantrack[which_di_local].size(); i++)
+						for (std::uint16_t i = 0; i < plantrack[which_di_local - 1].size(); i++)
 						{
-							auto id = cs.executeCmd(aris::core::Msg(plantrack[which_di_local][i]));
+							auto id = cs.executeCmd(aris::core::Msg(plantrack[which_di_local - 1][i]));
 						}
 						which_di.store(0);
 						break;
 					}
 					case 5:
 					{
-						for (std::uint16_t i = 0; i < plantrack[which_di_local].size(); i++)
+						for (std::uint16_t i = 0; i < plantrack[which_di_local - 1].size(); i++)
 						{
-							auto id = cs.executeCmd(aris::core::Msg(plantrack[which_di_local][i]));
+							auto id = cs.executeCmd(aris::core::Msg(plantrack[which_di_local - 1][i]));
 						}
 						which_di.store(0);
 						break;
 					}
 					case 6:
 					{
-						for (std::uint16_t i = 0; i < plantrack[which_di_local].size(); i++)
+						for (std::uint16_t i = 0; i < plantrack[which_di_local - 1].size(); i++)
 						{
-							auto id = cs.executeCmd(aris::core::Msg(plantrack[which_di_local][i]));
+							auto id = cs.executeCmd(aris::core::Msg(plantrack[which_di_local - 1][i]));
 						}
 						which_di.store(0);
 						break;
