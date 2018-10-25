@@ -1505,16 +1505,36 @@ namespace rokae
 		
 			//根据电流值换算压力值//
 			double actualpressure = 0, frictionforce = 0;
-			if (controller->motionAtAbs(6).actualVel() > 0)
-			{
-				frictionforce = -(ea_k * abs(controller->motionAtAbs(6).actualVel()) + ea_b - ea_offset) * ea_index;
-				actualpressure = controller->motionAtAbs(6).actualCur()*ea_index - frictionforce;
-			}
+			if (abs(controller->motionAtAbs(6).actualVel()) > 0.001)
+				if (controller->motionAtAbs(6).actualVel() > 0)
+				{
+					frictionforce = (ea_a * controller->motionAtAbs(6).actualVel()*controller->motionAtAbs(6).actualVel() - ea_b * controller->motionAtAbs(6).actualVel() - ea_c + ea_gra) * ea_index;
+					actualpressure = controller->motionAtAbs(6).actualCur()*ea_index - frictionforce;
+				}
+				else
+				{
+					frictionforce = (-ea_a * controller->motionAtAbs(6).actualVel()*controller->motionAtAbs(6).actualVel() - ea_b * controller->motionAtAbs(6).actualVel() + ea_c + ea_gra) * ea_index;
+					actualpressure = controller->motionAtAbs(6).actualCur()*ea_index - frictionforce;
+				}
 			else
 			{
-				frictionforce = (ea_k * abs(controller->motionAtAbs(6).actualVel()) + ea_b + ea_offset) * ea_index;
-				actualpressure = controller->motionAtAbs(6).actualCur()*ea_index - frictionforce;
+				if (abs(controller->motionAtAbs(6).actualCur() - ea_gra) <= ea_c)
+				{
+					actualpressure = 0;
+				}
+				else
+				{
+					if (controller->motionAtAbs(6).actualCur() - ea_gra < -ea_c)
+					{
+						actualpressure = ea_index * (controller->motionAtAbs(6).actualCur() - ea_gra + ea_c);
+					}
+					else
+					{
+						actualpressure = ea_index * (controller->motionAtAbs(6).actualCur() - ea_gra - ea_c);
+					}
+				}
 			}
+
 			if (data_num >= 4000)
 			{
 				data_num_send = 4000;
@@ -1652,16 +1672,36 @@ namespace rokae
 			
 			//根据电流值换算压力值//
 			double actualpressure = 0, frictionforce = 0;
-			if (controller->motionAtAbs(6).actualVel() > 0)
-			{
-				frictionforce = -(ea_k * abs(controller->motionAtAbs(6).actualVel()) + ea_b - ea_offset) * ea_index;
-				actualpressure = controller->motionAtAbs(6).actualCur()*ea_index - frictionforce;
-			}
+			if(abs(controller->motionAtAbs(6).actualVel()) > 0.001)
+				if (controller->motionAtAbs(6).actualVel() > 0)
+				{
+					frictionforce = (ea_a * controller->motionAtAbs(6).actualVel()*controller->motionAtAbs(6).actualVel() - ea_b * controller->motionAtAbs(6).actualVel() - ea_c + ea_gra) * ea_index;
+					actualpressure = controller->motionAtAbs(6).actualCur()*ea_index - frictionforce;
+				}
+				else
+				{
+					frictionforce = (-ea_a * controller->motionAtAbs(6).actualVel()*controller->motionAtAbs(6).actualVel() - ea_b * controller->motionAtAbs(6).actualVel() + ea_c + ea_gra) * ea_index;
+					actualpressure = controller->motionAtAbs(6).actualCur()*ea_index - frictionforce;
+				}
 			else
 			{
-				frictionforce = (ea_k * abs(controller->motionAtAbs(6).actualVel()) + ea_b + ea_offset) * ea_index;
-				actualpressure = controller->motionAtAbs(6).actualCur()*ea_index - frictionforce;
+				if (abs(controller->motionAtAbs(6).actualCur() - ea_gra) <= ea_c)
+				{
+					actualpressure = 0;
+				}
+				else
+				{
+					if (controller->motionAtAbs(6).actualCur() - ea_gra < -ea_c)
+					{
+						actualpressure = ea_index * (controller->motionAtAbs(6).actualCur() - ea_gra + ea_c);
+					}
+					else
+					{
+						actualpressure = ea_index * (controller->motionAtAbs(6).actualCur() - ea_gra - ea_c);
+					}
+				}
 			}
+
 			if (data_num >= 4000)
 			{
 				data_num_send = 4000;
