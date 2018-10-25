@@ -289,6 +289,17 @@ int main(int argc, char *argv[])
 							auto id = cs.executeCmd(aris::core::Msg(plantrack[which_di_local - 1][i]));
 						}		
 						which_di.store(0);
+						try
+						{
+							std::cout << "CH1 plan finished ,start listening DI signal again" << std::endl;
+							auto id = cs.executeCmd(aris::core::Msg("listenDI"));
+							std::cout << "command id:" << id << std::endl;
+						}
+						catch (std::exception &e)
+						{
+							std::cout << e.what() << std::endl;
+							LOG_ERROR << e.what() << std::endl;
+						}
 						break;
 					}
 					case 2:
@@ -298,6 +309,17 @@ int main(int argc, char *argv[])
 							auto id = cs.executeCmd(aris::core::Msg(plantrack[which_di_local - 1][i]));
 						}
 						which_di.store(0);
+						try
+						{
+							std::cout << "CH2 plan finished ,start listening DI signal again" << std::endl;
+							auto id = cs.executeCmd(aris::core::Msg("listenDI"));
+							std::cout << "command id:" << id << std::endl;
+						}
+						catch (std::exception &e)
+						{
+							std::cout << e.what() << std::endl;
+							LOG_ERROR << e.what() << std::endl;
+						}
 						break;
 					}
 					case 3:
@@ -307,6 +329,17 @@ int main(int argc, char *argv[])
 							auto id = cs.executeCmd(aris::core::Msg(plantrack[which_di_local - 1][i]));
 						}
 						which_di.store(0);
+						try
+						{
+							std::cout << "CH3 plan finished ,start listening DI signal again" << std::endl;
+							auto id = cs.executeCmd(aris::core::Msg("listenDI"));
+							std::cout << "command id:" << id << std::endl;
+						}
+						catch (std::exception &e)
+						{
+							std::cout << e.what() << std::endl;
+							LOG_ERROR << e.what() << std::endl;
+						}
 						break;
 					}
 					case 4:
@@ -316,6 +349,17 @@ int main(int argc, char *argv[])
 							auto id = cs.executeCmd(aris::core::Msg(plantrack[which_di_local - 1][i]));
 						}
 						which_di.store(0);
+						try
+						{
+							std::cout << "CH4 plan finished ,start listening DI signal again" << std::endl;
+							auto id = cs.executeCmd(aris::core::Msg("listenDI"));
+							std::cout << "command id:" << id << std::endl;
+						}
+						catch (std::exception &e)
+						{
+							std::cout << e.what() << std::endl;
+							LOG_ERROR << e.what() << std::endl;
+						}
 						break;
 					}
 					case 5:
@@ -325,6 +369,17 @@ int main(int argc, char *argv[])
 							auto id = cs.executeCmd(aris::core::Msg(plantrack[which_di_local - 1][i]));
 						}
 						which_di.store(0);
+						try
+						{
+							std::cout << "CH5 plan finished ,start listening DI signal again" << std::endl;
+							auto id = cs.executeCmd(aris::core::Msg("listenDI"));
+							std::cout << "command id:" << id << std::endl;
+						}
+						catch (std::exception &e)
+						{
+							std::cout << e.what() << std::endl;
+							LOG_ERROR << e.what() << std::endl;
+						}
 						break;
 					}
 					case 6:
@@ -334,6 +389,17 @@ int main(int argc, char *argv[])
 							auto id = cs.executeCmd(aris::core::Msg(plantrack[which_di_local - 1][i]));
 						}
 						which_di.store(0);
+						try
+						{
+							std::cout << "CH6 plan finished ,start listening DI signal again" << std::endl;
+							auto id = cs.executeCmd(aris::core::Msg("listenDI"));
+							std::cout << "command id:" << id << std::endl;
+						}
+						catch (std::exception &e)
+						{
+							std::cout << e.what() << std::endl;
+							LOG_ERROR << e.what() << std::endl;
+						}
 						break;
 					}
 					default:
