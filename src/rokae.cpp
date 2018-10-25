@@ -1504,8 +1504,10 @@ namespace rokae
 			controller->motionAtAbs(6).setTargetPos(end_p);
 		
 			//根据电流值换算压力值//
+			//根据电流值换算压力值//
 			double actualpressure = 0, frictionforce = 0;
 			if (abs(controller->motionAtAbs(6).actualVel()) > 0.001)
+			{
 				if (controller->motionAtAbs(6).actualVel() > 0)
 				{
 					frictionforce = (ea_a * controller->motionAtAbs(6).actualVel()*controller->motionAtAbs(6).actualVel() - ea_b * controller->motionAtAbs(6).actualVel() - ea_c + ea_gra) * ea_index;
@@ -1516,6 +1518,7 @@ namespace rokae
 					frictionforce = (-ea_a * controller->motionAtAbs(6).actualVel()*controller->motionAtAbs(6).actualVel() - ea_b * controller->motionAtAbs(6).actualVel() + ea_c + ea_gra) * ea_index;
 					actualpressure = controller->motionAtAbs(6).actualCur()*ea_index - frictionforce;
 				}
+			}
 			else
 			{
 				if (abs(controller->motionAtAbs(6).actualCur() - ea_gra) <= ea_c)
@@ -1672,7 +1675,8 @@ namespace rokae
 			
 			//根据电流值换算压力值//
 			double actualpressure = 0, frictionforce = 0;
-			if(abs(controller->motionAtAbs(6).actualVel()) > 0.001)
+			if (abs(controller->motionAtAbs(6).actualVel()) > 0.001)
+			{
 				if (controller->motionAtAbs(6).actualVel() > 0)
 				{
 					frictionforce = (ea_a * controller->motionAtAbs(6).actualVel()*controller->motionAtAbs(6).actualVel() - ea_b * controller->motionAtAbs(6).actualVel() - ea_c + ea_gra) * ea_index;
@@ -1683,6 +1687,7 @@ namespace rokae
 					frictionforce = (-ea_a * controller->motionAtAbs(6).actualVel()*controller->motionAtAbs(6).actualVel() - ea_b * controller->motionAtAbs(6).actualVel() + ea_c + ea_gra) * ea_index;
 					actualpressure = controller->motionAtAbs(6).actualCur()*ea_index - frictionforce;
 				}
+			}
 			else
 			{
 				if (abs(controller->motionAtAbs(6).actualCur() - ea_gra) <= ea_c)
