@@ -87,7 +87,7 @@ int main(int argc, char *argv[])
 				<< msg.header().reserved3_ << ":"
 				<< msg_data << std::endl;
 
-			std::cout << "READ_RT_DATA id:" << msg.header().msg_id_ << std::endl;
+			//std::cout << "READ_RT_DATA id:" << msg.header().msg_id_ << std::endl;
 
 			auto part_pm_vec = std::make_any<std::vector<double> >(cs.model().partPool().size() * 16);
 			cs.getRtData([](aris::server::ControlServer& cs, std::any& data)
@@ -108,10 +108,14 @@ int main(int argc, char *argv[])
 			//// return binary ////
 			aris::core::Msg msg;
 			msg.copy(part_pq.data(), part_pq.size() * 8);
+			msg.copyMore(&data_num_send, 4);
 			msg.copyMore(fce_send, data_num_send * 8);
 			try
 			{
 				socket->sendMsg(msg);
+				//调试打印//
+				//std::string msg_data = msg.toString();
+				//std::cout <<"rt data length:"<< msg_data.length() << std::endl;
 			}
 			catch (std::exception &e)
 			{
@@ -156,6 +160,7 @@ int main(int argc, char *argv[])
 		}
 		else if (msg.header().msg_id_ == A_RUN)
 		{
+		if (is_automatic) return 0;
 			LOG_INFO << "switch to automatic mode:"
 				<< msg.header().msg_size_ << "&"
 				<< msg.header().msg_id_ << "&"
@@ -189,6 +194,7 @@ int main(int argc, char *argv[])
 				LOG_ERROR << e.what() << std::endl;
 			}
 
+			std::cout << "save xml successed:" << std::endl;
 			//加载指定路径下的xml文件//
 			tinyxml2::XMLDocument doc;
 			tinyxml2::XMLError errXml = doc.LoadFile(xmlpath.string().c_str());
@@ -257,11 +263,10 @@ int main(int argc, char *argv[])
 						cmdNode = cmdNode->NextSiblingElement();
 					}
 				}
-				else
-				{
-					CmdListNode = CmdListNode->NextSiblingElement();
-				}
+		
+				CmdListNode = CmdListNode->NextSiblingElement();	
 			}
+			std::cout << "load xml successed:" << std::endl;
 
 			//自动模式判断标志位，true为自动，false切出自动//
 			is_automatic = true;
@@ -343,6 +348,7 @@ int main(int argc, char *argv[])
 			//开启di信号实时监控//
 			try
 			{
+				std::cout << "start listening DI signal" << std::endl;
 				auto id = cs.executeCmd(aris::core::Msg("listenDI"));
 				std::cout << "command id:" << id << std::endl;
 			}

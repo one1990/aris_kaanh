@@ -1185,6 +1185,22 @@ namespace rokae
 				}
 			}
 			target.param = param;
+
+			target.option |=
+#ifdef WIN32
+				Plan::NOT_CHECK_POS_MIN |
+				Plan::NOT_CHECK_POS_MAX |
+				Plan::NOT_CHECK_POS_CONTINUOUS |
+				Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
+				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
+				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
+				Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
+				Plan::NOT_CHECK_VEL_MIN |
+				Plan::NOT_CHECK_VEL_MAX |
+				Plan::NOT_CHECK_VEL_CONTINUOUS |
+				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
+				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+#endif
 		}
 		auto virtual executeRT(PlanTarget &target)->int
 		{
@@ -1222,7 +1238,24 @@ namespace rokae
 	class ListenDI : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void {}
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void 
+		{
+			target.option |= 
+#ifdef WIN32
+				Plan::NOT_CHECK_POS_MIN |
+				Plan::NOT_CHECK_POS_MAX |
+				Plan::NOT_CHECK_POS_CONTINUOUS |
+				Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
+				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
+				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
+				Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
+				Plan::NOT_CHECK_VEL_MIN |
+				Plan::NOT_CHECK_VEL_MAX |
+				Plan::NOT_CHECK_VEL_CONTINUOUS |
+				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
+				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+#endif
+		}
 		auto virtual executeRT(PlanTarget &target)->int
 		{
 			if (is_automatic)
@@ -1232,6 +1265,9 @@ namespace rokae
 				static std::uint8_t di = 0x00;
 				static std::int16_t di_delay[6] = { 0,0,0,0,0,0 };
 				controller->ecSlavePool().at(7).readPdo(0x6001, 0x01, di);
+				//模拟DI信号为1//
+				//di = 0x01;
+
 				auto &lout = controller->lout();
 				auto &cout = controller->mout();
 				//di信号持续100ms才会有效，其他情况会将di信号全部置为0//
@@ -1250,7 +1286,7 @@ namespace rokae
 				{
 					for (Size i = 0; i < 6; i++)
 					{
-						if (i = 0)
+						if (i == 0)
 						{
 							di_delay[i] = di_delay[i] + 1;
 						}
@@ -1270,7 +1306,7 @@ namespace rokae
 				{
 					for (Size i = 0; i < 6; i++)
 					{
-						if (i = 1)
+						if (i == 1)
 						{
 							di_delay[i] = di_delay[i] + 1;
 						}
@@ -1290,7 +1326,7 @@ namespace rokae
 				{
 					for (Size i = 0; i < 6; i++)
 					{
-						if (i = 2)
+						if (i == 2)
 						{
 							di_delay[i] = di_delay[i] + 1;
 						}
@@ -1310,7 +1346,7 @@ namespace rokae
 				{
 					for (Size i = 0; i < 6; i++)
 					{
-						if (i = 3)
+						if (i == 3)
 						{
 							di_delay[i] = di_delay[i] + 1;
 						}
@@ -1330,7 +1366,7 @@ namespace rokae
 				{
 					for (Size i = 0; i < 6; i++)
 					{
-						if (i = 4)
+						if (i == 4)
 						{
 							di_delay[i] = di_delay[i] + 1;
 						}
@@ -1350,7 +1386,7 @@ namespace rokae
 				{
 					for (Size i = 0; i < 6; i++)
 					{
-						if (i = 5)
+						if (i == 5)
 						{
 							di_delay[i] = di_delay[i] + 1;
 						}
@@ -1435,6 +1471,11 @@ namespace rokae
 				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
 				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
 				Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
+				Plan::NOT_CHECK_VEL_MIN |
+				Plan::NOT_CHECK_VEL_MAX |
+				Plan::NOT_CHECK_VEL_CONTINUOUS |
+				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
+				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 #endif
 				Plan::NOT_CHECK_VEL_MIN |
 				Plan::NOT_CHECK_VEL_MAX |
@@ -1685,6 +1726,7 @@ namespace rokae
 		plan_root->planPool().add<rokae::MoveJR>();
 		plan_root->planPool().add<rokae::MoveJI>();
 		plan_root->planPool().add<rokae::Grasp>();
+		plan_root->planPool().add<rokae::ListenDI>();
 		plan_root->planPool().add<rokae::MoveEA>();
 		plan_root->planPool().add<rokae::MoveEAP>();
 
