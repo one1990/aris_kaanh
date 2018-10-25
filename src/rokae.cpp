@@ -1502,14 +1502,7 @@ namespace rokae
 			double end_p;
 			end_p = begin_p + param.s*(1 - std::cos(2 * PI*target.count / time)) / 2;
 			controller->motionAtAbs(6).setTargetPos(end_p);
-
-			// 打印 位置、速度、电流 //
-			auto &cout = controller->mout();
-			if (target.count % 100 == 0)
-			{
-				cout << controller->motionAtAbs(6).actualPos() << "  " << controller->motionAtAbs(6).actualVel() << "  " << controller->motionAtAbs(6).actualCur() << std::endl;
-			}
-			
+		
 			//根据电流值换算压力值//
 			double actualpressure = 0, frictionforce = 0;
 			if (controller->motionAtAbs(6).actualVel() > 0)
@@ -1540,6 +1533,13 @@ namespace rokae
 				fce_data[data_num++] = controller->motionAtAbs(6).actualCur();
 				fce_data[data_num++] = actualpressure;
 				data_num_send = data_num;
+			}
+
+			// 打印 目标位置、实际位置、实际速度、实际电流、压力 //
+			auto &cout = controller->mout();
+			if (target.count % 100 == 0)
+			{
+				cout << controller->motionAtAbs(6).targetPos() << "  " << controller->motionAtAbs(6).actualPos() << "  " << controller->motionAtAbs(6).actualVel() << "  " << controller->motionAtAbs(6).actualCur() << "  " << actualpressure << std::endl;
 			}
 
 			// log 目标位置、实际位置、实际速度、实际电流、压力 //
@@ -1649,26 +1649,18 @@ namespace rokae
 			//加前馈//
 			controller->motionAtAbs(6).setOffsetVel(v*1000);
 			total_count = std::max(total_count, t_count);
-
-			// 打印 位置、速度、电流 //
-			auto &cout = controller->mout();
-			if (target.count % 100 == 0)
-			{
-				cout << controller->motionAtAbs(6).actualPos() << "  " << controller->motionAtAbs(6).actualVel() << "  " << controller->motionAtAbs(6).actualCur() << std::endl;
-			}
-			// log 位置、速度、电流 //
-			auto &lout = controller->lout();
-			lout << controller->motionAtAbs(6).targetPos() << "  " << controller->motionAtAbs(6).actualPos() << "  " << controller->motionAtAbs(6).actualVel() << "  " << controller->motionAtAbs(6).actualCur() << std::endl;
 			
 			//根据电流值换算压力值//
-			double actualpressure = 0;
+			double actualpressure = 0, frictionforce = 0;
 			if (controller->motionAtAbs(6).actualVel() > 0)
 			{
-				actualpressure = -(ea_k * abs(controller->motionAtAbs(6).actualVel()) + ea_b - ea_offset) * ea_index;
+				frictionforce = -(ea_k * abs(controller->motionAtAbs(6).actualVel()) + ea_b - ea_offset) * ea_index;
+				actualpressure = controller->motionAtAbs(6).actualCur()*ea_index - frictionforce;
 			}
 			else
 			{
-				actualpressure = (ea_k * abs(controller->motionAtAbs(6).actualVel()) + ea_b + ea_offset) * ea_index;
+				frictionforce = (ea_k * abs(controller->motionAtAbs(6).actualVel()) + ea_b + ea_offset) * ea_index;
+				actualpressure = controller->motionAtAbs(6).actualCur()*ea_index - frictionforce;
 			}
 			if (data_num >= 4000)
 			{
@@ -1689,6 +1681,16 @@ namespace rokae
 				fce_data[data_num++] = actualpressure;
 				data_num_send = data_num;
 			}
+
+			// 打印 目标位置、实际位置、实际速度、实际电流、压力 //
+			auto &cout = controller->mout();
+			if (target.count % 100 == 0)
+			{
+				cout << controller->motionAtAbs(6).targetPos() << "  " << controller->motionAtAbs(6).actualPos() << "  " << controller->motionAtAbs(6).actualVel() << "  " << controller->motionAtAbs(6).actualCur() << "  " << actualpressure << std::endl;
+			}
+			// log 目标位置、实际位置、实际速度、实际电流、压力 //
+			auto &lout = controller->lout();
+			lout << controller->motionAtAbs(6).targetPos() << "  " << controller->motionAtAbs(6).actualPos() << "  " << controller->motionAtAbs(6).actualVel() << "  " << controller->motionAtAbs(6).actualCur() << "  " << actualpressure << std::endl;
 
 			return total_count - target.count;
 		}
