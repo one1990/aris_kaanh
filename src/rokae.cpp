@@ -1186,8 +1186,9 @@ namespace rokae
 			}
 			target.param = param;
 
-			target.option |=
 #ifdef WIN32
+			target.option |=
+
 				Plan::NOT_CHECK_POS_MIN |
 				Plan::NOT_CHECK_POS_MAX |
 				Plan::NOT_CHECK_POS_CONTINUOUS |
@@ -1202,6 +1203,7 @@ namespace rokae
 				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 #endif
 		}
+
 		auto virtual executeRT(PlanTarget &target)->int
 		{
 			auto &param = std::any_cast<GraspParam&>(target.param);
@@ -1240,8 +1242,8 @@ namespace rokae
 	public:
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void 
 		{
-			target.option |= 
 #ifdef WIN32
+			target.option |= 
 				Plan::NOT_CHECK_POS_MIN |
 				Plan::NOT_CHECK_POS_MAX |
 				Plan::NOT_CHECK_POS_CONTINUOUS |
