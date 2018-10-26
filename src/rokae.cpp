@@ -6,7 +6,7 @@
 using namespace aris::dynamic;
 using namespace aris::plan;
 
-extern double fce_data[4000];
+extern double fce_data[buffer_length];
 extern int data_num, data_num_send;
 extern std::atomic_int which_di;
 extern std::atomic_bool is_automatic;
