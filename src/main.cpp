@@ -97,7 +97,7 @@ int main(int argc, char *argv[])
 				// rt copy fce data //
 				std::copy_n(fce_data, data_num_send, fce_send);
 				// clear data num //
-				data_num = 0;
+				data_num_send = 0;
 			}, part_pm_vec);
 
 			std::vector<double> part_pq(cs.model().partPool().size() * 7);
