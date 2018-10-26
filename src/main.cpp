@@ -438,9 +438,10 @@ int main(int argc, char *argv[])
 			//回收栈资源//
 			if (is_automatic)
 			{
+				is_automatic = false;
 				watch_di_thread.join();
 			}
-			is_automatic = false;
+			
 		}
 		else
 		{
