@@ -1687,19 +1687,31 @@ namespace rokae
 			controller->motionAtAbs(6).setOffsetVel(v*1000);
 			total_count = std::max(total_count, t_count);
 			
+			int phase;
+			double f1, f2, f3, fr;
+
+
+			//根据电流值换算压力值//
 			//根据电流值换算压力值//
 			double actualpressure = 0, frictionforce = 0;
 			if (abs(controller->motionAtAbs(6).actualVel()) > 0.001)
 			{
 				if (controller->motionAtAbs(6).actualVel() > 0)
 				{
-					frictionforce = (ea_a * controller->motionAtAbs(6).actualVel()*controller->motionAtAbs(6).actualVel() - ea_b * controller->motionAtAbs(6).actualVel() - ea_c + ea_gra) * ea_index;
-					actualpressure = controller->motionAtAbs(6).actualCur()*ea_index - frictionforce;
+					f1 = ea_a * controller->motionAtAbs(6).actualVel()*controller->motionAtAbs(6).actualVel();
+					f2 = -ea_b * controller->motionAtAbs(6).actualVel();
+					f3 = -ea_c + ea_gra;
+					fr = f1 + f2 + f3;
+					actualpressure = (controller->motionAtAbs(6).actualCur() - fr)*ea_index;
+					//frictionforce = (ea_a * controller->motionAtAbs(6).actualVel()*controller->motionAtAbs(6).actualVel() - ea_b * controller->motionAtAbs(6).actualVel() - ea_c + ea_gra) * ea_index;		
+					//actualpressure = controller->motionAtAbs(6).actualCur()*ea_index - frictionforce;
+					phase = 1;
 				}
 				else
 				{
 					frictionforce = (-ea_a * controller->motionAtAbs(6).actualVel()*controller->motionAtAbs(6).actualVel() - ea_b * controller->motionAtAbs(6).actualVel() + ea_c + ea_gra) * ea_index;
 					actualpressure = controller->motionAtAbs(6).actualCur()*ea_index - frictionforce;
+					phase = 2;
 				}
 			}
 			else
@@ -1707,16 +1719,19 @@ namespace rokae
 				if (abs(controller->motionAtAbs(6).actualCur() - ea_gra) <= ea_c)
 				{
 					actualpressure = 0;
+					phase = 3;
 				}
 				else
 				{
 					if (controller->motionAtAbs(6).actualCur() - ea_gra < -ea_c)
 					{
 						actualpressure = ea_index * (controller->motionAtAbs(6).actualCur() - ea_gra + ea_c);
+						phase = 4;
 					}
 					else
 					{
 						actualpressure = ea_index * (controller->motionAtAbs(6).actualCur() - ea_gra - ea_c);
+						phase = 5;
 					}
 				}
 			}
