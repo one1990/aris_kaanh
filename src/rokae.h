@@ -15,6 +15,7 @@
 # define READ_XML 2		//监控实时数据
 # define A_RUN 3	//自动执行
 # define A_QUIT 4	//退出自动执行，返回到手动模式
+# define buffer_length 800
 //statemachine//
 
 /// \brief 机器人命名空间

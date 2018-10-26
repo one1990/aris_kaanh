@@ -1538,14 +1538,14 @@ namespace rokae
 				}
 			}
 
-			if (data_num >= 4000)
+			if (data_num >= buffer_length)
 			{
-				data_num_send = 4000;
-				std::copy_n(&fce_data[4], 3996, fce_data);
-				fce_data[3996] = controller->motionAtAbs(6).actualPos();
-				fce_data[3997] = controller->motionAtAbs(6).actualVel();
-				fce_data[3998] = controller->motionAtAbs(6).actualCur();
-				fce_data[3999] = actualpressure;
+				data_num_send = buffer_length;
+				std::copy_n(&fce_data[4], buffer_length-4, fce_data);
+				fce_data[buffer_length-4] = controller->motionAtAbs(6).actualPos();
+				fce_data[buffer_length-3] = controller->motionAtAbs(6).actualVel();
+				fce_data[buffer_length-2] = controller->motionAtAbs(6).actualCur();
+				fce_data[buffer_length-1] = actualpressure;
 				data_num = data_num + 4;
 
 			}
@@ -1707,14 +1707,14 @@ namespace rokae
 				}
 			}
 
-			if (data_num >= 4000)
+			if (data_num >= buffer_length)
 			{
-				data_num_send = 4000;
-				std::copy_n(&fce_data[4], 3996, fce_data);
-				fce_data[3996] = controller->motionAtAbs(6).actualPos();
-				fce_data[3997] = controller->motionAtAbs(6).actualVel();
-				fce_data[3998] = controller->motionAtAbs(6).actualCur();
-				fce_data[3999] = actualpressure;
+				data_num_send = buffer_length;
+				std::copy_n(&fce_data[4], buffer_length-4, fce_data);
+				fce_data[buffer_length-4] = controller->motionAtAbs(6).actualPos();
+				fce_data[buffer_length-3] = controller->motionAtAbs(6).actualVel();
+				fce_data[buffer_length-2] = controller->motionAtAbs(6).actualCur();
+				fce_data[buffer_length-1] = actualpressure;
 				data_num = data_num + 4;
 
 			}
