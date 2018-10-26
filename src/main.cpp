@@ -433,11 +433,14 @@ int main(int argc, char *argv[])
 				<< msg_data << std::endl;
 
 			std::cout << "A_QUIT id:" << msg.header().msg_id_ << std::endl;
-			
-			is_automatic = false;
-		
+			plantrack.clear();
+				
 			//回收栈资源//
-			watch_di_thread.join();
+			if (is_automatic)
+			{
+				watch_di_thread.join();
+			}
+			is_automatic = false;
 		}
 		else
 		{
