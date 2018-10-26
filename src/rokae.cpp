@@ -1510,7 +1510,7 @@ namespace rokae
 			//根据电流值换算压力值//
 			//根据电流值换算压力值//
 			double actualpressure = 0, frictionforce = 0;
-			if (abs(controller->motionAtAbs(6).actualVel()) > 0.001)
+			if (std::abs(controller->motionAtAbs(6).actualVel()) > 0.001)
 			{
 				if (controller->motionAtAbs(6).actualVel() > 0)
 				{
@@ -1532,7 +1532,7 @@ namespace rokae
 			}
 			else
 			{
-				if (abs(controller->motionAtAbs(6).actualCur() - ea_gra) <= ea_c)
+				if (std::abs(controller->motionAtAbs(6).actualCur() - ea_gra) <= ea_c)
 				{
 					actualpressure = 0;
 					phase = 3;
@@ -1694,7 +1694,7 @@ namespace rokae
 			//根据电流值换算压力值//
 			//根据电流值换算压力值//
 			double actualpressure = 0, frictionforce = 0;
-			if (abs(controller->motionAtAbs(6).actualVel()) > 0.001)
+			if (std::abs(controller->motionAtAbs(6).actualVel()) > 0.001)
 			{
 				if (controller->motionAtAbs(6).actualVel() > 0)
 				{
@@ -1716,7 +1716,7 @@ namespace rokae
 			}
 			else
 			{
-				if (abs(controller->motionAtAbs(6).actualCur() - ea_gra) <= ea_c)
+				if (std::abs(controller->motionAtAbs(6).actualCur() - ea_gra) <= ea_c)
 				{
 					actualpressure = 0;
 					phase = 3;
