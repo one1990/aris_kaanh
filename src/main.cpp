@@ -60,13 +60,17 @@ int main(int argc, char *argv[])
 				{
 					auto id = cs.executeCmd(aris::core::Msg(msg_data));
 					std::cout << "command id:" << id << std::endl;
-					socket->sendMsg(aris::core::Msg());
+					aris::core::Msg msg;
+					msg.header().msg_id_ = M_RUN;
+					socket->sendMsg(msg);
 				}
 				catch (std::exception &e)
 				{
 					std::cout << e.what() << std::endl;
 					LOG_ERROR << e.what() << std::endl;
-					socket->sendMsg(aris::core::Msg(e.what()));
+					aris::core::Msg msg = aris::core::Msg(e.what());
+					msg.header().msg_id_ = M_RUN;
+					socket->sendMsg(msg);
 				}
 			}
 			catch (std::exception &e)
@@ -109,6 +113,7 @@ int main(int argc, char *argv[])
 			}
 			//// return binary ////
 			aris::core::Msg msg;
+			msg.header().msg_id_ = READ_RT_DATA;
 			msg.copy(part_pq.data(), part_pq.size() * 8);
 			msg.copyMore(&data_num_send, 4);
 			msg.copyMore(fce_send, data_num_send * 8);
@@ -145,13 +150,17 @@ int main(int argc, char *argv[])
 					tinyxml2::XMLPrinter printer;
 					xml_data.LoadFile(xmlpath.string().c_str());
 					xml_data.Print(&printer);
-					socket->sendMsg(aris::core::Msg(printer.CStr()));
+					aris::core::Msg msg = aris::core::Msg(printer.CStr());
+					msg.header().msg_id_ = READ_XML;
+					socket->sendMsg(msg);
 				}
 				catch (std::exception &e)
 				{
 					std::cout << e.what() << std::endl;
 					LOG_ERROR << e.what() << std::endl;
-					socket->sendMsg(aris::core::Msg(e.what()));
+					aris::core::Msg msg = aris::core::Msg(e.what());
+					msg.header().msg_id_ = READ_XML;
+					socket->sendMsg(msg);
 				}
 			}
 			catch (std::exception &e)
@@ -187,7 +196,9 @@ int main(int argc, char *argv[])
 				{
 					std::cout << e.what() << std::endl;
 					LOG_ERROR << e.what() << std::endl;
-					socket->sendMsg(aris::core::Msg(e.what()));
+					aris::core::Msg msg = aris::core::Msg(e.what());
+					msg.header().msg_id_ = A_RUN;
+					socket->sendMsg(msg);
 				}
 			}
 			catch (std::exception &e)
@@ -204,7 +215,9 @@ int main(int argc, char *argv[])
 			{
 				std::cout << errXml << std::endl;
 				LOG_ERROR << errXml << std::endl;
-				socket->sendMsg(aris::core::Msg(errXml));
+				aris::core::Msg msg = aris::core::Msg(errXml);
+				msg.header().msg_id_ = A_RUN;
+				socket->sendMsg(msg);
 				return false;
 			}
 			tinyxml2::XMLElement* root = doc.RootElement();
@@ -433,15 +446,14 @@ int main(int argc, char *argv[])
 				<< msg_data << std::endl;
 
 			std::cout << "A_QUIT id:" << msg.header().msg_id_ << std::endl;
-			plantrack.clear();
-				
+			
 			//回收栈资源//
 			if (is_automatic)
 			{
 				is_automatic = false;
 				watch_di_thread.join();
 			}
-			
+			plantrack.clear();
 		}
 		else
 		{
@@ -458,7 +470,7 @@ int main(int argc, char *argv[])
 			{
 				try
 				{
-					socket->sendMsg(aris::core::Msg(msg_data));
+					socket->sendMsg(msg);
 				}
 				catch (std::exception &e)
 				{
