@@ -453,7 +453,11 @@ int main(int argc, char *argv[])
 				is_automatic = false;
 				watch_di_thread.join();
 			}
-			plantrack.clear();
+			for (std::int16_t i = 0; i < 6; i++)
+			{
+				plantrack[i].clear();
+			}
+			
 		}
 		else
 		{
