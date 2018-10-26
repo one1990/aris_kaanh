@@ -1502,7 +1502,11 @@ namespace rokae
 			double end_p;
 			end_p = begin_p + param.s*(1 - std::cos(2 * PI*target.count / time)) / 2;
 			controller->motionAtAbs(6).setTargetPos(end_p);
-		
+			
+			int phase;
+			double f1, f2, f3 , fr;
+
+
 			//根据电流值换算压力值//
 			//根据电流值换算压力值//
 			double actualpressure = 0, frictionforce = 0;
@@ -1510,13 +1514,20 @@ namespace rokae
 			{
 				if (controller->motionAtAbs(6).actualVel() > 0)
 				{
-					frictionforce = (ea_a * controller->motionAtAbs(6).actualVel()*controller->motionAtAbs(6).actualVel() - ea_b * controller->motionAtAbs(6).actualVel() - ea_c + ea_gra) * ea_index;
-					actualpressure = controller->motionAtAbs(6).actualCur()*ea_index - frictionforce;
+					f1 = ea_a * controller->motionAtAbs(6).actualVel()*controller->motionAtAbs(6).actualVel();
+					f2 = -ea_b * controller->motionAtAbs(6).actualVel();
+					f3 = -ea_c + ea_gra;
+					fr = f1 + f2 + f3;
+					actualpressure = (controller->motionAtAbs(6).actualCur() - fr)*ea_index;
+					//frictionforce = (ea_a * controller->motionAtAbs(6).actualVel()*controller->motionAtAbs(6).actualVel() - ea_b * controller->motionAtAbs(6).actualVel() - ea_c + ea_gra) * ea_index;		
+					//actualpressure = controller->motionAtAbs(6).actualCur()*ea_index - frictionforce;
+					phase = 1;
 				}
 				else
 				{
 					frictionforce = (-ea_a * controller->motionAtAbs(6).actualVel()*controller->motionAtAbs(6).actualVel() - ea_b * controller->motionAtAbs(6).actualVel() + ea_c + ea_gra) * ea_index;
 					actualpressure = controller->motionAtAbs(6).actualCur()*ea_index - frictionforce;
+					phase = 2;
 				}
 			}
 			else
@@ -1524,16 +1535,19 @@ namespace rokae
 				if (abs(controller->motionAtAbs(6).actualCur() - ea_gra) <= ea_c)
 				{
 					actualpressure = 0;
+					phase = 3;
 				}
 				else
 				{
 					if (controller->motionAtAbs(6).actualCur() - ea_gra < -ea_c)
 					{
 						actualpressure = ea_index * (controller->motionAtAbs(6).actualCur() - ea_gra + ea_c);
+						phase = 4;
 					}
 					else
 					{
 						actualpressure = ea_index * (controller->motionAtAbs(6).actualCur() - ea_gra - ea_c);
+						phase = 5;
 					}
 				}
 			}
@@ -1567,7 +1581,7 @@ namespace rokae
 
 			// log 目标位置、实际位置、实际速度、实际电流、压力 //
 			auto &lout = controller->lout();
-			lout << controller->motionAtAbs(6).targetPos() << "  " << controller->motionAtAbs(6).actualPos() << "  " << controller->motionAtAbs(6).actualVel() << "  " << controller->motionAtAbs(6).actualCur() << "  " << actualpressure << std::endl;
+			lout << controller->motionAtAbs(6).targetPos() << "  " << controller->motionAtAbs(6).actualPos() << "  " << controller->motionAtAbs(6).actualVel() << "  " << controller->motionAtAbs(6).actualCur() << "  " << actualpressure << "  " << f1 << "  " << f2 << "  " << f3 << "  " << fr << "  " << phase << std::endl;
 
 			return time - target.count;
 		}
