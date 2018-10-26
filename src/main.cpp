@@ -95,9 +95,11 @@ int main(int argc, char *argv[])
 				for (aris::Size i(-1); ++i < cs.model().partPool().size();)
 					cs.model().partPool().at(i).getPm(std::any_cast<std::vector<double>&>(data).data() + i * 16);
 				// rt copy fce data //
-				std::copy_n(fce_data, data_num_send, fce_send);
+				std::copy_n(fce_data, data_num, fce_send);
 				// clear data num //
-				data_num_send = 0;
+				data_num_send = data_num;
+				data_num = 0;
+
 			}, part_pm_vec);
 
 			std::vector<double> part_pq(cs.model().partPool().size() * 7);
