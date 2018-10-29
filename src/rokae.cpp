@@ -1601,6 +1601,7 @@ namespace rokae
 		//平均值速度滤波、摩擦力滤波器初始化//
 		std::vector<double> fore_vel;
 		IIR_FILTER::IIR iir;
+		double tempforce;
 
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 		{
@@ -1724,25 +1725,26 @@ namespace rokae
 				}
 			}
 
-			//对速度进行均值滤波//
-			double mean_vel;
+			//对速度进行均值滤波, 对摩擦力进行滤波//
+			double mean_vel, externalforce;
+			
 			for(Size i=0;i< FORE_VEL_LENGTH;i++)
 			{
 				fore_vel[i] = fore_vel[i+1];
 			}
 			fore_vel[FORE_VEL_LENGTH] = controller->motionAtAbs(6).actualVel();
-			mean_vel = (fore_vel.back() - fore_vel.front()) * 1000 / FORE_VEL_LENGTH;
-			
-			//对摩擦力进行滤波//
-			if (target.count == 1)
+			if (target.count < 20)
 			{
-				for (int i = 0; i < std::max(iir.m_num_order, iir.m_den_order); i++)
-				{
-					iir.filter(actualpressure);
-				}
+				mean_vel = (fore_vel.back() - fore_vel.front()) * 1000 / target.count;
+				iir.filter(actualpressure);
+				tempforce = tempforce + actualpressure;
+				externalforce = tempforce/target.count + 1810 * mean_vel;
 			}
-			double externalforce;
-			externalforce = iir.filter(actualpressure) + 1810*mean_vel;
+			else
+			{
+				mean_vel = (fore_vel.back() - fore_vel.front()) * 1000 / FORE_VEL_LENGTH;
+				externalforce = iir.filter(actualpressure) + 1810 * mean_vel;
+			}
 
 			if (data_num >= buffer_length)
 			{
@@ -1775,7 +1777,7 @@ namespace rokae
 		}
 		auto virtual collectNrt(PlanTarget &target)->void {}
 
-		explicit MoveEAP(const std::string &name = "MoveEAP_plan") :Plan(name), fore_vel(FORE_VEL_LENGTH + 1)
+		explicit MoveEAP(const std::string &name = "MoveEAP_plan") :Plan(name), fore_vel(FORE_VEL_LENGTH + 1), tempforce(0)
 		{
 			command().loadXmlStr(
 				"<moveEAP>"
