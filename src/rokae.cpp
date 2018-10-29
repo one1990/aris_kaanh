@@ -1,6 +1,6 @@
 #include <algorithm>
-
 #include"rokae.h"
+#include"iir.h"
 
 
 using namespace aris::dynamic;
@@ -644,7 +644,7 @@ namespace rokae
 		}
 	};
 
-	//关节相对运动轨迹//
+	// 关节相对运动轨迹 //
 	struct MoveJRParam
 	{
 		double vel, acc, dec;
@@ -878,7 +878,7 @@ namespace rokae
 		}
 	};
 
-	//关节插值运动轨迹//
+	// 关节插值运动轨迹 //
 	struct MoveJIParam
 	{
 		std::vector<double> pq;
@@ -1598,9 +1598,14 @@ namespace rokae
 	class MoveEAP : public aris::plan::Plan
 	{
 	public:
+		//平均值速度滤波、摩擦力滤波器初始化//
+		std::vector<double> fore_vel;
+		IIR_FILTER::IIR iir;
+
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 		{
 			MoveEAPParam param = {0.0, 0.0, 0.0, 0.0, 0.0, 0};
+
 			for (auto &p : params)
 			{
 				if (p.first == "begin_pos")
@@ -1658,6 +1663,8 @@ namespace rokae
 			if (target.count == 1)
 			{
 				param.begin_pos = controller->motionAtAbs(6).targetPos();
+				fore_vel.assign(FORE_VEL_LENGTH + 1, controller->motionAtAbs(6).actualVel());
+				//摩擦力滤波器初始化//		
 			}
 			aris::Size total_count{ 1 };
 			double p, v, a;
@@ -1676,10 +1683,9 @@ namespace rokae
 			//加前馈//
 			controller->motionAtAbs(6).setOffsetVel(v*1000);
 			total_count = std::max(total_count, t_count);
-			
-			int phase;
 
 			//根据电流值换算压力值//
+			int phase;	//标记采用那一段公式计算压力值//
 			double actualpressure = 0, frictionforce = 0;
 			if (std::abs(controller->motionAtAbs(6).actualVel()) > 0.001)
 			{
@@ -1718,13 +1724,33 @@ namespace rokae
 				}
 			}
 
+			//对速度进行均值滤波//
+			double mean_vel;
+			for(Size i=0;i< FORE_VEL_LENGTH;i++)
+			{
+				fore_vel[i] = fore_vel[i+1];
+			}
+			fore_vel[FORE_VEL_LENGTH] = controller->motionAtAbs(6).actualVel();
+			mean_vel = (fore_vel.back() - fore_vel.front()) * 1000 / FORE_VEL_LENGTH;
+			
+			//对摩擦力进行滤波//
+			if (target.count == 1)
+			{
+				for (int i = 0; i < std::max(iir.m_num_order, iir.m_den_order); i++)
+				{
+					iir.filter(actualpressure);
+				}
+			}
+			double externalforce;
+			externalforce = iir.filter(actualpressure) + 1810*mean_vel;
+
 			if (data_num >= buffer_length)
 			{
 				std::copy_n(&fce_data[4], buffer_length-4, fce_data);
 				fce_data[buffer_length-4] = controller->motionAtAbs(6).actualPos();
 				fce_data[buffer_length-3] = controller->motionAtAbs(6).actualVel();
 				fce_data[buffer_length-2] = controller->motionAtAbs(6).actualCur();
-				fce_data[buffer_length-1] = actualpressure;
+				fce_data[buffer_length-1] = externalforce;
 				data_num = buffer_length;
 			}
 			else
@@ -1732,24 +1758,24 @@ namespace rokae
 				fce_data[data_num++] = controller->motionAtAbs(6).actualPos();
 				fce_data[data_num++] = controller->motionAtAbs(6).actualVel();
 				fce_data[data_num++] = controller->motionAtAbs(6).actualCur();
-				fce_data[data_num++] = actualpressure;
+				fce_data[data_num++] = externalforce;
 			}
 
 			// 打印 目标位置、实际位置、实际速度、实际电流、压力 //
 			auto &cout = controller->mout();
 			if (target.count % 100 == 0)
 			{
-				cout << controller->motionAtAbs(6).targetPos() << "  " << controller->motionAtAbs(6).actualPos() << "  " << controller->motionAtAbs(6).actualVel() << "  " << controller->motionAtAbs(6).actualCur() << "  " << actualpressure << std::endl;
+				cout << controller->motionAtAbs(6).targetPos() << "  " << controller->motionAtAbs(6).actualPos() << "  " << controller->motionAtAbs(6).actualVel() << "  " << controller->motionAtAbs(6).actualCur() << "  " << actualpressure << "  " << phase << "  " << externalforce << std::endl;
 			}
 			// log 目标位置、实际位置、实际速度、实际电流、压力 //
 			auto &lout = controller->lout();
-			lout << controller->motionAtAbs(6).targetPos() << "  " << controller->motionAtAbs(6).actualPos() << "  " << controller->motionAtAbs(6).actualVel() << "  " << controller->motionAtAbs(6).actualCur() << "  " << actualpressure << "  " << phase << std::endl;
+			lout << controller->motionAtAbs(6).targetPos() << "  " << controller->motionAtAbs(6).actualPos() << "  " << controller->motionAtAbs(6).actualVel() << "  " << controller->motionAtAbs(6).actualCur() << "  " << actualpressure << "  " << phase << "  " << externalforce << std::endl;
 
 			return total_count - target.count;
 		}
 		auto virtual collectNrt(PlanTarget &target)->void {}
 
-		explicit MoveEAP(const std::string &name = "MoveEAP_plan") :Plan(name)
+		explicit MoveEAP(const std::string &name = "MoveEAP_plan") :Plan(name), fore_vel(FORE_VEL_LENGTH + 1)
 		{
 			command().loadXmlStr(
 				"<moveEAP>"
@@ -1762,6 +1788,11 @@ namespace rokae
 				"		<ab default=\"0\"/>"
 				"	</group>"
 				"</moveEAP>");
+
+			std::vector<double> num_data(IIR_FILTER::num, IIR_FILTER::num + 10);
+			std::vector<double> den_data(IIR_FILTER::den, IIR_FILTER::den + 10);
+			iir.setPara(num_data, den_data);
+
 		}
 	};
 

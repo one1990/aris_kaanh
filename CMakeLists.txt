@@ -45,6 +45,6 @@ set(ALL_LINK_LIB ${RELY_LINK_LIB})
 include_directories(${ALL_INCL_DIR})
 link_directories(${ALL_LINK_DIR})
 
-set(SOURCE_FILES src/main.cpp src/rokae.h src/rokae.cpp )
+set(SOURCE_FILES src/main.cpp src/rokae.h src/rokae.cpp src/iir.h src/iir.cpp)
 add_executable(aris_rokae ${SOURCE_FILES}) 
 target_link_libraries(aris_rokae ${ALL_LINK_LIB})
