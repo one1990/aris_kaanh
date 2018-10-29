@@ -15,10 +15,10 @@ namespace IIR_FILTER
 			std::vector<double> m_px;
 			std::vector<double> m_py;
 		public:
-			int m_num_order = 10;
-			int m_den_order = 10;
+			int m_num_order;
+			int m_den_order;
 			IIR();
-			void IIR::setPara(std::vector<double> &num, std::vector<double> &den);
+			void setPara(std::vector<double> &num, std::vector<double> &den);
 			double filter(double data);
 	};
 	//IIR滤波器设计参数//
@@ -42,7 +42,6 @@ namespace IIR_FILTER
 					 - 7.538271742701063260483351768925786018372,
 					  1.542194756274490874403682028059847652912,
 					 - 0.140879955349824004251502174156485125422 };
-	
 }
 
 #endif
