@@ -4,6 +4,7 @@
 #include <vector>
 
 # define FORE_VEL_LENGTH 20	//速度平均值滤波buffer长度
+# define MEDIAN_LENGTH 5	//中值滤波buffer长度
 
 namespace IIR_FILTER
 { 

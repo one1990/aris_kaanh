@@ -1602,6 +1602,7 @@ namespace rokae
 		std::vector<double> fore_vel;
 		IIR_FILTER::IIR iir;
 		double tempforce;
+		std::vector<double> median_filter;
 
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 		{
@@ -1665,6 +1666,7 @@ namespace rokae
 			{
 				param.begin_pos = controller->motionAtAbs(6).targetPos();
 				fore_vel.assign(FORE_VEL_LENGTH + 1, controller->motionAtAbs(6).actualVel());
+				median_filter.assign(MEDIAN_LENGTH, 0.0);
 				/*iir.m_px.assign(iir.m_num_order, 0.0);
 				iir.m_py.assign(iir.m_den_order, 0.0);*/
 				//摩擦力滤波器初始化//		
@@ -1728,7 +1730,7 @@ namespace rokae
 			}
 
 			//对速度进行均值滤波, 对摩擦力进行滤波//
-			double mean_vel, externalforce, filteredforce;
+			double mean_vel, externalforce, filteredforce, temp;
 			
 			for(Size i=0;i< FORE_VEL_LENGTH;i++)
 			{
@@ -1749,6 +1751,28 @@ namespace rokae
 				externalforce = filteredforce + 1810 * mean_vel;
 			}
 
+			//中值滤波//
+			for (Size i = 0; i < MEDIAN_LENGTH-1; i++)
+			{
+				median_filter[i] = median_filter[i + 1];
+			}
+			median_filter[MEDIAN_LENGTH - 1] = externalforce;
+			
+			for (Size j = 0; j < MEDIAN_LENGTH - 1; j++)
+			{
+				for (Size i = 0; i < MEDIAN_LENGTH - j - 1; i++)
+				{
+					if (median_filter[i] > median_filter[i + 1]) 
+					{
+						temp = median_filter[i];
+						median_filter[i] = median_filter[i + 1];
+						median_filter[i + 1] = temp;
+					}
+				}
+			}
+			externalforce = median_filter[(MEDIAN_LENGTH-1)/2];
+			
+			//发送数据buffer//
 			if (data_num >= buffer_length)
 			{
 				std::copy_n(&fce_data[4], buffer_length-4, fce_data);
@@ -1780,7 +1804,7 @@ namespace rokae
 		}
 		auto virtual collectNrt(PlanTarget &target)->void {}
 
-		explicit MoveEAP(const std::string &name = "MoveEAP_plan") :Plan(name), fore_vel(FORE_VEL_LENGTH + 1), tempforce(0)
+		explicit MoveEAP(const std::string &name = "MoveEAP_plan") :Plan(name), fore_vel(FORE_VEL_LENGTH + 1), tempforce(0), median_filter(MEDIAN_LENGTH)
 		{
 			command().loadXmlStr(
 				"<moveEAP>"
