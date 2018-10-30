@@ -1602,12 +1602,13 @@ namespace rokae
 		std::vector<double> fore_vel;
 		IIR_FILTER::IIR iir;
 		double tempforce;
-		//std::vector<double> median_filter;
+		double median_filter[MEDIAN_LENGTH];
 
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 		{
-			MoveEAPParam param = {0.0, 0.0, 0.0, 0.0, 0.0, 0};
+			std::fill_n(median_filter, MEDIAN_LENGTH, 0.0);
 
+			MoveEAPParam param = {0.0, 0.0, 0.0, 0.0, 0.0, 0};
 			for (auto &p : params)
 			{
 				if (p.first == "begin_pos")
@@ -1662,14 +1663,11 @@ namespace rokae
 			// 访问主站 //
 			auto controller = dynamic_cast<aris::control::Controller*>(target.master);
 
-			static double median_filter[MEDIAN_LENGTH];
-
 			if (target.count == 1)
 			{
 				param.begin_pos = controller->motionAtAbs(6).targetPos();
 				fore_vel.assign(FORE_VEL_LENGTH + 1, controller->motionAtAbs(6).actualVel());
-				std::fill_n(median_filter, MEDIAN_LENGTH, 0.0);
-				//median_filter.assign(MEDIAN_LENGTH, 0.0);
+				
 				/*iir.m_px.assign(iir.m_num_order, 0.0);
 				iir.m_py.assign(iir.m_den_order, 0.0);*/
 				//摩擦力滤波器初始化//		
@@ -1817,6 +1815,7 @@ namespace rokae
 			std::vector<double> num_data(IIR_FILTER::num, IIR_FILTER::num + 20);
 			std::vector<double> den_data(IIR_FILTER::den, IIR_FILTER::den + 20);
 			iir.setPara(num_data, den_data);
+			
 
 		}
 	};
