@@ -1506,19 +1506,19 @@ namespace rokae
 			int phase;
 
 			//根据电流值换算压力值//
-			double actualpressure = 0, frictionforce = 0;
+			double force = 0, frictionforce = 0;
 			if (std::abs(controller->motionAtAbs(6).actualVel()) > 0.001)
 			{
 				if (controller->motionAtAbs(6).actualVel() > 0)
 				{
 					frictionforce = (ea_a * controller->motionAtAbs(6).actualVel()*controller->motionAtAbs(6).actualVel() - ea_b * controller->motionAtAbs(6).actualVel() - ea_c + ea_gra) * ea_index;		
-					actualpressure = controller->motionAtAbs(6).actualCur()*ea_index - frictionforce;
+					force = controller->motionAtAbs(6).actualCur()*ea_index - frictionforce;
 					phase = 1;
 				}
 				else
 				{
 					frictionforce = (-ea_a * controller->motionAtAbs(6).actualVel()*controller->motionAtAbs(6).actualVel() - ea_b * controller->motionAtAbs(6).actualVel() + ea_c + ea_gra) * ea_index;
-					actualpressure = controller->motionAtAbs(6).actualCur()*ea_index - frictionforce;
+					force = controller->motionAtAbs(6).actualCur()*ea_index - frictionforce;
 					phase = 2;
 				}
 			}
@@ -1526,19 +1526,19 @@ namespace rokae
 			{
 				if (std::abs(controller->motionAtAbs(6).actualCur() - ea_gra) <= ea_c)
 				{
-					actualpressure = 0;
+					force = 0;
 					phase = 3;
 				}
 				else
 				{
 					if (controller->motionAtAbs(6).actualCur() - ea_gra < -ea_c)
 					{
-						actualpressure = ea_index * (controller->motionAtAbs(6).actualCur() - ea_gra + ea_c);
+						force = ea_index * (controller->motionAtAbs(6).actualCur() - ea_gra + ea_c);
 						phase = 4;
 					}
 					else
 					{
-						actualpressure = ea_index * (controller->motionAtAbs(6).actualCur() - ea_gra - ea_c);
+						force = ea_index * (controller->motionAtAbs(6).actualCur() - ea_gra - ea_c);
 						phase = 5;
 					}
 				}
@@ -1550,7 +1550,7 @@ namespace rokae
 				fce_data[buffer_length-4] = controller->motionAtAbs(6).actualPos();
 				fce_data[buffer_length-3] = controller->motionAtAbs(6).actualVel();
 				fce_data[buffer_length-2] = controller->motionAtAbs(6).actualCur();
-				fce_data[buffer_length-1] = actualpressure;
+				fce_data[buffer_length-1] = force;
 				data_num = buffer_length;
 
 			}
@@ -1559,19 +1559,19 @@ namespace rokae
 				fce_data[data_num++] = controller->motionAtAbs(6).actualPos();
 				fce_data[data_num++] = controller->motionAtAbs(6).actualVel();
 				fce_data[data_num++] = controller->motionAtAbs(6).actualCur();
-				fce_data[data_num++] = actualpressure;
+				fce_data[data_num++] = force;
 			}
 
 			// 打印 目标位置、实际位置、实际速度、实际电流、压力 //
 			auto &cout = controller->mout();
 			if (target.count % 100 == 0)
 			{
-				cout << controller->motionAtAbs(6).targetPos() << "  " << controller->motionAtAbs(6).actualPos() << "  " << controller->motionAtAbs(6).actualVel() << "  " << controller->motionAtAbs(6).actualCur() << "  " << actualpressure << std::endl;
+				cout << controller->motionAtAbs(6).targetPos() << "  " << controller->motionAtAbs(6).actualPos() << "  " << controller->motionAtAbs(6).actualVel() << "  " << controller->motionAtAbs(6).actualCur() << "  " << force << std::endl;
 			}
 
 			// log 目标位置、实际位置、实际速度、实际电流、压力 //
 			auto &lout = controller->lout();
-			lout << controller->motionAtAbs(6).targetPos() << "  " << controller->motionAtAbs(6).actualPos() << "  " << controller->motionAtAbs(6).actualVel() << "  " << controller->motionAtAbs(6).actualCur() << "  " << actualpressure << "  " << phase << std::endl;
+			lout << controller->motionAtAbs(6).targetPos() << "  " << controller->motionAtAbs(6).actualPos() << "  " << controller->motionAtAbs(6).actualVel() << "  " << controller->motionAtAbs(6).actualCur() << "  " << force << "  " << phase << std::endl;
 
 			return time - target.count;
 		}
@@ -1687,19 +1687,19 @@ namespace rokae
 
 			//根据电流值换算压力值//
 			int phase;	//标记采用那一段公式计算压力值//
-			double actualpressure = 0, frictionforce = 0;
+			double force = 0, frictionforce = 0;
 			if (std::abs(controller->motionAtAbs(6).actualVel()) > 0.001)
 			{
 				if (controller->motionAtAbs(6).actualVel() > 0)
 				{
 					frictionforce = (ea_a * controller->motionAtAbs(6).actualVel()*controller->motionAtAbs(6).actualVel() - ea_b * controller->motionAtAbs(6).actualVel() - ea_c + ea_gra - ea_gra_index) * ea_index;
-					actualpressure = controller->motionAtAbs(6).actualCur()*ea_index - frictionforce;
+					force = controller->motionAtAbs(6).actualCur()*ea_index - frictionforce;
 					phase = 1;
 				}
 				else
 				{
 					frictionforce = (-ea_a * controller->motionAtAbs(6).actualVel()*controller->motionAtAbs(6).actualVel() - ea_b * controller->motionAtAbs(6).actualVel() + ea_c + ea_gra + ea_gra_index) * ea_index;
-					actualpressure = controller->motionAtAbs(6).actualCur()*ea_index - frictionforce;
+					force = controller->motionAtAbs(6).actualCur()*ea_index - frictionforce;
 					phase = 2;
 				}
 			}
@@ -1707,26 +1707,26 @@ namespace rokae
 			{
 				if (std::abs(controller->motionAtAbs(6).actualCur() - ea_gra) <= ea_c)
 				{
-					actualpressure = 0;
+					force = 0;
 					phase = 3;
 				}
 				else
 				{
 					if (controller->motionAtAbs(6).actualCur() - ea_gra < -ea_c)
 					{
-						actualpressure = ea_index * (controller->motionAtAbs(6).actualCur() - ea_gra + ea_c);
+						force = ea_index * (controller->motionAtAbs(6).actualCur() - ea_gra + ea_c);
 						phase = 4;
 					}
 					else
 					{
-						actualpressure = ea_index * (controller->motionAtAbs(6).actualCur() - ea_gra - ea_c);
+						force = ea_index * (controller->motionAtAbs(6).actualCur() - ea_gra - ea_c);
 						phase = 5;
 					}
 				}
 			}
 
 			//对速度进行均值滤波, 对摩擦力进行滤波//
-			double mean_vel, externalforce;
+			double mean_vel, externalforce, filteredforce;
 			
 			for(Size i=0;i< FORE_VEL_LENGTH;i++)
 			{
@@ -1736,15 +1736,16 @@ namespace rokae
 			if (target.count < 21)
 			{
 				mean_vel = (fore_vel.back() - fore_vel.front()) * 1000 / target.count;
-				iir.filter(actualpressure);
-				tempforce = tempforce + actualpressure;
+				filteredforce = iir.filter(force);
+				tempforce = tempforce + force;
 				//externalforce = tempforce/target.count + 1810 * mean_vel;
 				externalforce = 0;
 			}
 			else
 			{
 				mean_vel = (fore_vel.back() - fore_vel.front()) * 1000 / FORE_VEL_LENGTH;
-				externalforce = iir.filter(actualpressure) + 1810 * mean_vel;
+				filteredforce = iir.filter(force);
+				externalforce = filteredforce + 1810 * mean_vel;
 			}
 
 			if (data_num >= buffer_length)
@@ -1768,11 +1769,11 @@ namespace rokae
 			auto &cout = controller->mout();
 			if (target.count % 100 == 0)
 			{
-				cout << controller->motionAtAbs(6).targetPos() << "  " << controller->motionAtAbs(6).actualPos() << "  " << controller->motionAtAbs(6).actualVel() << "  " << controller->motionAtAbs(6).actualCur() << "  " << actualpressure << "  " << phase << "  " << externalforce << std::endl;
+				cout << controller->motionAtAbs(6).targetPos() << "  " << controller->motionAtAbs(6).actualPos() << "  " << controller->motionAtAbs(6).actualVel() << "  " << controller->motionAtAbs(6).actualCur() << "  " << force << "  " << phase << "  " << externalforce << std::endl;
 			}
 			// log 目标位置、实际位置、实际速度、实际电流、压力 //
 			auto &lout = controller->lout();
-			lout << controller->motionAtAbs(6).targetPos() << "  " << controller->motionAtAbs(6).actualPos() << "  " << controller->motionAtAbs(6).actualVel() << "  " << controller->motionAtAbs(6).actualCur() << "  " << actualpressure << "  " << phase << "  " << externalforce << std::endl;
+			lout << controller->motionAtAbs(6).targetPos() << "  " << controller->motionAtAbs(6).actualPos() << "  " << controller->motionAtAbs(6).actualVel() << "  " << controller->motionAtAbs(6).actualCur() << "  " << force << "  " << filteredforce << "  " << phase << "  " << externalforce << std::endl;
 
 			return total_count - target.count;
 		}
