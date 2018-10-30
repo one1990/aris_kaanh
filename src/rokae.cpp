@@ -1740,8 +1740,7 @@ namespace rokae
 				mean_vel = (fore_vel.back() - fore_vel.front()) * 1000 / target.count;
 				filteredforce = iir.filter(force);
 				tempforce = tempforce + force;
-				//externalforce = tempforce/target.count + 1810 * mean_vel;
-				externalforce = 0;
+				externalforce = tempforce/target.count + 1810 * mean_vel;	
 			}
 			else
 			{
@@ -1795,8 +1794,8 @@ namespace rokae
 				"	</group>"
 				"</moveEAP>");
 
-			std::vector<double> num_data(IIR_FILTER::num, IIR_FILTER::num + 21);
-			std::vector<double> den_data(IIR_FILTER::den, IIR_FILTER::den + 21);
+			std::vector<double> num_data(IIR_FILTER::num, IIR_FILTER::num + 20);
+			std::vector<double> den_data(IIR_FILTER::den, IIR_FILTER::den + 20);
 			iir.setPara(num_data, den_data);
 
 		}
