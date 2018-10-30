@@ -1602,12 +1602,9 @@ namespace rokae
 		std::vector<double> fore_vel;
 		IIR_FILTER::IIR iir;
 		double tempforce;
-		double median_filter[MEDIAN_LENGTH];
-
+		
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 		{
-			std::fill_n(median_filter, MEDIAN_LENGTH, 0.0);
-
 			MoveEAPParam param = {0.0, 0.0, 0.0, 0.0, 0.0, 0};
 			for (auto &p : params)
 			{
@@ -1663,6 +1660,7 @@ namespace rokae
 			// ∑√Œ ÷˜’æ //
 			auto controller = dynamic_cast<aris::control::Controller*>(target.master);
 
+			static double median_filter[MEDIAN_LENGTH] = {0.0};
 			if (target.count == 1)
 			{
 				param.begin_pos = controller->motionAtAbs(6).targetPos();
