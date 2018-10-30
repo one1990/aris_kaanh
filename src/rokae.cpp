@@ -1792,8 +1792,8 @@ namespace rokae
 				"	</group>"
 				"</moveEAP>");
 
-			std::vector<double> num_data(IIR_FILTER::num, IIR_FILTER::num + 10);
-			std::vector<double> den_data(IIR_FILTER::den, IIR_FILTER::den + 10);
+			std::vector<double> num_data(IIR_FILTER::num, IIR_FILTER::num + 20);
+			std::vector<double> den_data(IIR_FILTER::den, IIR_FILTER::den + 20);
 			iir.setPara(num_data, den_data);
 
 		}
