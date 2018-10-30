@@ -1602,7 +1602,7 @@ namespace rokae
 		std::vector<double> fore_vel;
 		IIR_FILTER::IIR iir;
 		double tempforce;
-		std::vector<double> median_filter;
+		//std::vector<double> median_filter;
 
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 		{
@@ -1662,11 +1662,14 @@ namespace rokae
 			// 访问主站 //
 			auto controller = dynamic_cast<aris::control::Controller*>(target.master);
 
+			static double median_filter[MEDIAN_LENGTH];
+
 			if (target.count == 1)
 			{
 				param.begin_pos = controller->motionAtAbs(6).targetPos();
 				fore_vel.assign(FORE_VEL_LENGTH + 1, controller->motionAtAbs(6).actualVel());
-				median_filter.assign(MEDIAN_LENGTH, 0.0);
+				std::fill_n(median_filter, MEDIAN_LENGTH, 0.0);
+				//median_filter.assign(MEDIAN_LENGTH, 0.0);
 				/*iir.m_px.assign(iir.m_num_order, 0.0);
 				iir.m_py.assign(iir.m_den_order, 0.0);*/
 				//摩擦力滤波器初始化//		
@@ -1730,7 +1733,7 @@ namespace rokae
 			}
 
 			//对速度进行均值滤波, 对摩擦力进行滤波//
-			double mean_vel, externalforce, filteredforce, temp;
+			double mean_vel, externalforce, filteredforce;
 			
 			for(Size i=0;i< FORE_VEL_LENGTH;i++)
 			{
@@ -1756,21 +1759,14 @@ namespace rokae
 			{
 				median_filter[i] = median_filter[i + 1];
 			}
+
 			median_filter[MEDIAN_LENGTH - 1] = externalforce;
-			
-			for (Size j = 0; j < MEDIAN_LENGTH - 1; j++)
-			{
-				for (Size i = 0; i < MEDIAN_LENGTH - j - 1; i++)
-				{
-					if (median_filter[i] > median_filter[i + 1]) 
-					{
-						temp = median_filter[i];
-						median_filter[i] = median_filter[i + 1];
-						median_filter[i + 1] = temp;
-					}
-				}
-			}
-			externalforce = median_filter[(MEDIAN_LENGTH-1)/2];
+
+			double tem[MEDIAN_LENGTH];
+			std::copy_n(median_filter, MEDIAN_LENGTH, tem);
+
+			std::sort(tem, tem + MEDIAN_LENGTH);
+			externalforce = tem[(MEDIAN_LENGTH-1)/2];
 			
 			//发送数据buffer//
 			if (data_num >= buffer_length)
@@ -1804,7 +1800,7 @@ namespace rokae
 		}
 		auto virtual collectNrt(PlanTarget &target)->void {}
 
-		explicit MoveEAP(const std::string &name = "MoveEAP_plan") :Plan(name), fore_vel(FORE_VEL_LENGTH + 1), tempforce(0), median_filter(MEDIAN_LENGTH)
+		explicit MoveEAP(const std::string &name = "MoveEAP_plan") :Plan(name), fore_vel(FORE_VEL_LENGTH + 1), tempforce(0)
 		{
 			command().loadXmlStr(
 				"<moveEAP>"
