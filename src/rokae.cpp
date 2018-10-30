@@ -1733,7 +1733,7 @@ namespace rokae
 				fore_vel[i] = fore_vel[i+1];
 			}
 			fore_vel[FORE_VEL_LENGTH] = controller->motionAtAbs(6).actualVel();
-			if (target.count < 20)
+			if (target.count < 21)
 			{
 				mean_vel = (fore_vel.back() - fore_vel.front()) * 1000 / target.count;
 				iir.filter(actualpressure);
@@ -1792,8 +1792,8 @@ namespace rokae
 				"	</group>"
 				"</moveEAP>");
 
-			std::vector<double> num_data(IIR_FILTER::num, IIR_FILTER::num + 20);
-			std::vector<double> den_data(IIR_FILTER::den, IIR_FILTER::den + 20);
+			std::vector<double> num_data(IIR_FILTER::num, IIR_FILTER::num + 21);
+			std::vector<double> den_data(IIR_FILTER::den, IIR_FILTER::den + 21);
 			iir.setPara(num_data, den_data);
 
 		}
