@@ -1738,7 +1738,8 @@ namespace rokae
 				mean_vel = (fore_vel.back() - fore_vel.front()) * 1000 / target.count;
 				iir.filter(actualpressure);
 				tempforce = tempforce + actualpressure;
-				externalforce = tempforce/target.count + 1810 * mean_vel;
+				//externalforce = tempforce/target.count + 1810 * mean_vel;
+				externalforce = 0;
 			}
 			else
 			{
