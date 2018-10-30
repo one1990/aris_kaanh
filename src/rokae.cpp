@@ -1692,13 +1692,13 @@ namespace rokae
 			{
 				if (controller->motionAtAbs(6).actualVel() > 0)
 				{
-					frictionforce = (ea_a * controller->motionAtAbs(6).actualVel()*controller->motionAtAbs(6).actualVel() - ea_b * controller->motionAtAbs(6).actualVel() - ea_c + ea_gra) * ea_index;		
+					frictionforce = (ea_a * controller->motionAtAbs(6).actualVel()*controller->motionAtAbs(6).actualVel() - ea_b * controller->motionAtAbs(6).actualVel() - ea_c + ea_gra - ea_gra_index) * ea_index;
 					actualpressure = controller->motionAtAbs(6).actualCur()*ea_index - frictionforce;
 					phase = 1;
 				}
 				else
 				{
-					frictionforce = (-ea_a * controller->motionAtAbs(6).actualVel()*controller->motionAtAbs(6).actualVel() - ea_b * controller->motionAtAbs(6).actualVel() + ea_c + ea_gra) * ea_index;
+					frictionforce = (-ea_a * controller->motionAtAbs(6).actualVel()*controller->motionAtAbs(6).actualVel() - ea_b * controller->motionAtAbs(6).actualVel() + ea_c + ea_gra + ea_gra_index) * ea_index;
 					actualpressure = controller->motionAtAbs(6).actualCur()*ea_index - frictionforce;
 					phase = 2;
 				}
