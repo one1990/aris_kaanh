@@ -1665,8 +1665,8 @@ namespace rokae
 			{
 				param.begin_pos = controller->motionAtAbs(6).targetPos();
 				fore_vel.assign(FORE_VEL_LENGTH + 1, controller->motionAtAbs(6).actualVel());
-				iir.m_px.assign(iir.m_num_order, 0.0);
-				iir.m_py.assign(iir.m_den_order, 0.0);
+				/*iir.m_px.assign(iir.m_num_order, 0.0);
+				iir.m_py.assign(iir.m_den_order, 0.0);*/
 				//Ä¦²ÁÁ¦ÂË²¨Æ÷³õÊ¼»¯//		
 			}
 			aris::Size total_count{ 1 };
