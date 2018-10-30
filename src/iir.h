@@ -12,9 +12,9 @@ namespace IIR_FILTER
 		private:
 			std::vector<double> m_pNum;
 			std::vector<double> m_pDen;
+		public:
 			std::vector<double> m_px;
 			std::vector<double> m_py;
-		public:
 			int m_num_order;
 			int m_den_order;
 			IIR();
