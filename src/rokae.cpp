@@ -69,8 +69,7 @@ namespace rokae
 				"				<target_pos index=\"0x607A\" subindex=\"0x00\" size=\"4\"/>"
 				"				<target_vel index=\"0x60FF\" subindex=\"0x00\" size=\"4\"/>"
 				"				<offset_vel index=\"0x60B1\" subindex=\"0x00\" size=\"4\"/>"
-				"				<targer_tor index=\"0x6071\" subindex=\"0x00\" size=\"2\"/>"
-				"				<offset_tor index=\"0x60B2\" subindex=\"0x00\" size=\"2\"/>"
+				"				<target_tor index=\"0x6071\" subindex=\"0x00\" size=\"2\"/>"
 				"			</index_1600>"
 				"		</sm>"
 				"		<sm type=\"SyncManager\" is_tx=\"true\">"
@@ -2023,7 +2022,6 @@ namespace rokae
 			target.option |=
 				Plan::USE_TARGET_POS |
 				Plan::USE_VEL_OFFSET |
-				Plan::USE_CUR_OFFSET |
 #ifdef WIN32
 				Plan::NOT_CHECK_POS_MIN |
 				Plan::NOT_CHECK_POS_MAX |
@@ -2072,6 +2070,7 @@ namespace rokae
 			controller->motionAtAbs(6).setTargetPos(p);
 			//速度前馈//
 			controller->motionAtAbs(6).setOffsetVel(v*1000);
+
 			total_count = std::max(total_count, t_count);
 
 			//根据电流值换算压力值//
