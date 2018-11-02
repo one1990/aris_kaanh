@@ -106,6 +106,7 @@ namespace rokae
 			"				<target_vel index=\"0x60FF\" subindex=\"0x00\" size=\"4\"/>"
 			"				<offset_vel index=\"0x60B1\" subindex=\"0x00\" size=\"4\"/>"
 			"				<targer_tor index=\"0x6071\" subindex=\"0x00\" size=\"2\"/>"
+			"				<offset_tor index=\"0x60B2\" subindex=\"0x00\" size=\"2\"/>"
 			"			</index_1600>"
 			"		</sm>"
 			"		<sm type=\"SyncManager\" is_tx=\"true\">"
@@ -353,7 +354,7 @@ namespace rokae
 			pq2[1] = begin_pq[1] + param.y*(1 - std::cos(2 * PI*target.count / time)) / 2;
 			pq2[2] = begin_pq[2] + param.z*(1 - std::cos(2 * PI*target.count / time)) / 2;
 			ee.setMpq(pq2);
-			//加前馈//
+			//速度前馈//
 			pqv[0] = 1000 * param.x*(PI / time)*std::sin(2 * PI*target.count / time);
 			pqv[1] = 1000 * param.y*(PI / time)*std::sin(2 * PI*target.count / time);
 			pqv[2] = 1000 * param.z*(PI / time)*std::sin(2 * PI*target.count / time);
@@ -397,7 +398,7 @@ namespace rokae
 
 	};
 
-	// 关节正弦往复轨迹 //
+	// 单关节正弦往复轨迹 //
 	struct MoveJSParam
 	{
 		double j[6];
@@ -644,7 +645,7 @@ namespace rokae
 		}
 	};
 
-	// 关节相对运动轨迹 //
+	// 单关节相对运动轨迹--输入单个关节，角度位置；关节按照梯形速度轨迹执行 //
 	struct MoveJRParam
 	{
 		double vel, acc, dec;
@@ -878,7 +879,343 @@ namespace rokae
 		}
 	};
 
-	// 关节插值运动轨迹 //
+	// 多关节混合插值梯形轨迹 //
+	struct MoveJMParam
+	{
+		std::vector<Size> total_count_vec;
+		std::vector<double> axis_begin_pos_vec;
+		std::vector<double> axis_pos_vec;
+		std::vector<double> axis_vel_vec;
+		std::vector<double> axis_acc_vec;
+		std::vector<double> axis_dec_vec;
+		bool ab;
+	};
+	class MoveJM : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+		{
+			auto c = dynamic_cast<aris::control::Controller*>(target.master);
+			MoveJMParam param;
+			param.total_count_vec.resize(6, 1);
+			param.axis_begin_pos_vec.resize(6, 0.0);
+
+			//params.at("pos")
+			for (auto &p : params)
+			{
+				if (p.first == "pos")
+				{
+					if (p.second == "current_pos")
+					{
+						target.option |= aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
+					}
+					else
+					{
+						auto pos = target.model->calculator().calculateExpression(p.second);
+						if (pos.size() == 1)
+						{
+							param.axis_pos_vec.resize(param.axis_begin_pos_vec.size(), pos.toDouble());
+						}
+						else if (pos.size() == param.axis_begin_pos_vec.size())
+						{
+							param.axis_pos_vec.assign(pos.begin(), pos.end());
+						}
+						else
+						{
+							throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+						}
+
+						for (Size i = 0; i < param.axis_begin_pos_vec.size(); ++i)
+						{
+							//超阈值保护//
+							if (param.axis_pos_vec[i] > 1.0)
+							{
+								param.axis_pos_vec[i] = 1.0;
+							}
+							if (param.axis_pos_vec[i] < -1.0)
+							{
+								param.axis_pos_vec[i] = -1.0;
+							}
+							if (param.axis_pos_vec[i] >= 0)
+							{
+								param.axis_pos_vec[i] = param.axis_pos_vec[i] * c->motionPool()[i].maxPos();
+							}
+							else
+							{
+								param.axis_pos_vec[i] = param.axis_pos_vec[i] * c->motionPool()[i].minPos();
+							}					
+						}
+					}
+				}
+				else if (p.first == "vel")
+				{
+					auto v = target.model->calculator().calculateExpression(p.second);
+					if (v.size() == 1)
+					{
+						param.axis_vel_vec.resize(param.axis_begin_pos_vec.size(), v.toDouble());
+					}
+					else if (v.size() == param.axis_begin_pos_vec.size())
+					{
+						param.axis_vel_vec.assign(v.begin(), v.end());
+					}
+					else
+					{
+						throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+					}
+
+					for (Size i = 0; i < param.axis_begin_pos_vec.size(); ++i)
+					{
+						//if (param.axis_vel_vec[i] > 1.0 || param.axis_vel_vec[i] < 0.01)
+						//	throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+						if (param.axis_vel_vec[i] > 1.0)
+						{
+							param.axis_vel_vec[i] = 1.0;
+						}
+						if (param.axis_vel_vec[i] < 0.0)
+						{
+							param.axis_vel_vec[i] = 0.0;
+						}
+						param.axis_vel_vec[i] = param.axis_vel_vec[i] * c->motionPool()[i].maxVel();
+					}
+				}
+				else if (p.first == "acc")
+				{
+					auto a = target.model->calculator().calculateExpression(p.second);
+					if (a.size() == 1)
+					{
+						param.axis_acc_vec.resize(param.axis_begin_pos_vec.size(), a.toDouble());
+					}
+					else if (a.size() == param.axis_begin_pos_vec.size())
+					{
+						param.axis_acc_vec.assign(a.begin(), a.end());
+					}
+					else
+					{
+						throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+					}
+
+					for (Size i = 0; i < param.axis_begin_pos_vec.size(); ++i)
+					{
+						if (param.axis_acc_vec[i] > 1.0)
+						{
+							param.axis_acc_vec[i] = 1.0;
+						}
+						if (param.axis_acc_vec[i] < 0.0)
+						{
+							param.axis_acc_vec[i] = 0.0;
+						}
+						param.axis_acc_vec[i] = param.axis_acc_vec[i] * c->motionPool()[i].maxAcc();
+					}
+				}
+				else if (p.first == "dec")
+				{
+					auto d = target.model->calculator().calculateExpression(p.second);
+					if (d.size() == 1)
+					{
+						param.axis_dec_vec.resize(param.axis_begin_pos_vec.size(), d.toDouble());
+					}
+					else if (d.size() == param.axis_begin_pos_vec.size())
+					{
+						param.axis_dec_vec.assign(d.begin(), d.end());
+					}
+					else
+					{
+						throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+					}
+
+					for (Size i = 0; i < param.axis_begin_pos_vec.size(); ++i)
+					{
+						if (param.axis_dec_vec[i] > 1.0)
+						{
+							param.axis_dec_vec[i] = 1.0;
+						}
+						if (param.axis_dec_vec[i] < 0.0)
+						{
+							param.axis_dec_vec[i] = 0.0;
+						}
+						param.axis_dec_vec[i] = param.axis_dec_vec[i] * c->motionPool()[i].minAcc();
+					}
+				}
+				else if (p.first == "ab")
+				{
+					param.ab = std::stod(p.second);
+				}
+			}
+			target.param = param;
+
+			target.option |=
+				Plan::USE_VEL_OFFSET |
+#ifdef WIN32
+				Plan::NOT_CHECK_POS_MIN |
+				Plan::NOT_CHECK_POS_MAX |
+				Plan::NOT_CHECK_POS_CONTINUOUS |
+				Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
+				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
+				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
+				Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
+#endif
+				Plan::NOT_CHECK_VEL_MIN |
+				Plan::NOT_CHECK_VEL_MAX |
+				Plan::NOT_CHECK_VEL_CONTINUOUS |
+				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
+				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+
+		}
+		auto virtual executeRT(PlanTarget &target)->int
+		{
+			//获取驱动//
+			auto controller = dynamic_cast<aris::control::Controller*>(target.master);
+			auto &param = std::any_cast<MoveJMParam&>(target.param);
+			static double begin_pos[6];
+			static double pos[6];
+			// 取得起始位置 //
+			if (target.count == 1)
+			{
+				for (Size i = 0; i < param.axis_begin_pos_vec.size(); ++i)
+				{
+					param.axis_begin_pos_vec[i] = controller->motionPool().at(i).targetPos();
+				}
+			}
+			// 设置驱动器的位置 //
+			if (param.ab)
+			{
+				for (Size i = 0; i < param.axis_begin_pos_vec.size(); ++i)
+				{
+					double p, v, a;
+					aris::plan::moveAbsolute(target.count, param.axis_begin_pos_vec[i], param.axis_pos_vec[i], param.axis_vel_vec[i] / 1000
+						, param.axis_acc_vec[i] / 1000 / 1000, param.axis_dec_vec[i] / 1000 / 1000, p, v, a, param.total_count_vec[i]);
+					controller->motionAtAbs(i).setTargetPos(p);
+					//速度前馈//
+					controller->motionAtAbs(i).setOffsetVel(v * 1000);
+					target.model->motionPool().at(i).setMp(p);
+				}
+			}
+			else
+			{
+				for (Size i = 0; i < param.axis_begin_pos_vec.size(); ++i)
+				{
+					double p, v, a;
+					aris::plan::moveAbsolute(target.count, param.axis_begin_pos_vec[i], param.axis_begin_pos_vec[i] + param.axis_pos_vec[i], param.axis_vel_vec[i] / 1000
+						, param.axis_acc_vec[i] / 1000 / 1000, param.axis_dec_vec[i] / 1000 / 1000, p, v, a, param.total_count_vec[i]);
+					controller->motionAtAbs(i).setTargetPos(p);
+					//速度前馈//
+					controller->motionAtAbs(i).setOffsetVel(v * 1000);
+					target.model->motionPool().at(i).setMp(p);
+				}
+			}
+				
+			if (!target.model->solverPool().at(1).kinPos())return -1;
+
+			// 打印电流 //
+			auto &cout = controller->mout();
+			if (target.count % 100 == 0)
+			{
+				for (Size i = 0; i < 6; i++)
+				{
+					cout << "pos" << i + 1 << ":" << controller->motionAtAbs(i).actualPos() << "  ";
+					cout << "vel" << i + 1 << ":" << controller->motionAtAbs(i).actualVel() << "  ";
+					cout << "cur" << i + 1 << ":" << controller->motionAtAbs(i).actualCur() << "  ";
+				}
+				cout << std::endl;
+			}
+
+			// log 电流 //
+			auto &lout = controller->lout();
+			for (Size i = 0; i < 6; i++)
+			{
+				lout << controller->motionAtAbs(i).targetPos() << ",";
+				lout << controller->motionAtAbs(i).actualPos() << ",";
+				lout << controller->motionAtAbs(i).actualVel() << ",";
+				lout << controller->motionAtAbs(i).actualCur() << ",";
+			}
+			lout << std::endl;
+
+			return (static_cast<int>(*std::max_element(param.total_count_vec.begin(), param.total_count_vec.end())) > target.count) ? 1 : 0;
+		}
+		auto virtual collectNrt(PlanTarget &target)->void {}
+
+		explicit MoveJM(const std::string &name = "MoveJM_plan") :Plan(name)
+		{
+			command().loadXmlStr(
+				"<moveJM>"
+				"	<group type=\"GroupParam\" default_child_type=\"Param\">"
+				"		<pos default=\"current_pos\"/>"
+				"		<vel default=\"{0.2,0.2,0.2,0.2,0.2,0.2}\" abbreviation=\"v\"/>"
+				"		<acc default=\"{0.1,0.1,0.1,0.1,0.1,0.1}\" abbreviation=\"a\"/>"
+				"		<dec default=\"{0.1,0.1,0.1,0.1,0.1,0.1}\" abbreviation=\"d\"/>"
+				"		<ab default=\"1\"/>"
+				"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_all\">"
+				"			<check_all/>"
+				"			<check_none/>"
+				"			<group type=\"GroupParam\" default_child_type=\"Param\">"
+				"				<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos\">"
+				"					<check_pos/>"
+				"					<not_check_pos/>"
+				"					<group type=\"GroupParam\" default_child_type=\"Param\">"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_max\">"
+				"							<check_pos_max/>"
+				"							<not_check_pos_max/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_min\">"
+				"							<check_pos_min/>"
+				"							<not_check_pos_min/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous\">"
+				"							<check_pos_continuous/>"
+				"							<not_check_pos_continuous/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous_at_start\">"
+				"							<check_pos_continuous_at_start/>"
+				"							<not_check_pos_continuous_at_start/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous_second_order\">"
+				"							<check_pos_continuous_second_order/>"
+				"							<not_check_pos_continuous_second_order/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous_second_order_at_start\">"
+				"							<check_pos_continuous_second_order_at_start/>"
+				"							<not_check_pos_continuous_second_order_at_start/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_following_error\">"
+				"							<check_pos_following_error/>"
+				"							<not_check_pos_following_error />"
+				"						</unique>"
+				"					</group>"
+				"				</unique>"
+				"				<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel\">"
+				"					<check_vel/>"
+				"					<not_check_vel/>"
+				"					<group type=\"GroupParam\" default_child_type=\"Param\">"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_max\">"
+				"							<check_vel_max/>"
+				"							<not_check_vel_max/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_min\">"
+				"							<check_vel_min/>"
+				"							<not_check_vel_min/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_continuous\">"
+				"							<check_vel_continuous/>"
+				"							<not_check_vel_continuous/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_continuous_at_start\">"
+				"							<check_vel_continuous_at_start/>"
+				"							<not_check_vel_continuous_at_start/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_following_error\">"
+				"							<check_vel_following_error/>"
+				"							<not_check_vel_following_error />"
+				"						</unique>"
+				"					</group>"
+				"				</unique>"
+				"			</group>"
+				"		</unique>"
+				"	</group>"
+				"</moveJM>");
+		}
+	};
+
+	// 关节插值运动轨迹--输入末端pq姿态，各个关节的速度、加速度；各关节按照梯形速度轨迹执行 //
 	struct MoveJIParam
 	{
 		std::vector<double> pq;
@@ -900,7 +1237,6 @@ namespace rokae
 			param.total_count_vec.resize(6, 1);
 			param.axis_begin_pos_vec.resize(6, 0.0);
 			param.axis_pos_vec.resize(6, 0.0);
-			double pq_cur[7] = {0.0};
 
 			//params.at("pq")
 			for (auto &p : params)
@@ -1037,12 +1373,12 @@ namespace rokae
 			// 取得起始位置 //
 			if (target.count == 1)
 			{
-				target.model->generalMotionPool().at(0).setMpq(param.pq.data());
+				target.model->generalMotionPool().at(0).setMpq(param.pq.data());	//generalMotionPool()指模型末端，at(0)表示第1个末端，对于6足就有6个末端，对于机器人只有1个末端
 				if (!target.model->solverPool().at(0).kinPos())return -1;
 				for (Size i = 0; i < param.axis_pos_vec.size(); ++i)
 				{
 					param.axis_begin_pos_vec[i] = controller->motionPool().at(i).targetPos();
-					param.axis_pos_vec[i] = target.model->motionPool().at(i).mp();
+					param.axis_pos_vec[i] = target.model->motionPool().at(i).mp();		//motionPool()指模型驱动器，at(0)表示第1个驱动器
 				}
 			}
 			// 设置驱动器的位置 //
@@ -1052,7 +1388,7 @@ namespace rokae
 				aris::plan::moveAbsolute(target.count, param.axis_begin_pos_vec[i], param.axis_pos_vec[i], param.axis_vel_vec[i] / 1000
 					, param.axis_acc_vec[i] / 1000 / 1000, param.axis_dec_vec[i] / 1000 / 1000, p, v, a, param.total_count_vec[i]);
 				controller->motionAtAbs(i).setTargetPos(p);
-				//加前馈//
+				//速度前馈//
 				controller->motionAtAbs(i).setOffsetVel(v*1000);
 				target.model->motionPool().at(i).setMp(p);
 			}		
@@ -1447,6 +1783,11 @@ namespace rokae
 	class MoveEA : public aris::plan::Plan
 	{
 	public:
+		//平均值速度滤波、摩擦力滤波器初始化//
+		std::vector<double> fore_vel;
+		IIR_FILTER::IIR iir;
+		double tempforce;
+
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 		{
 			MoveEAParam param = { 0.0,0.0 };
@@ -1495,89 +1836,127 @@ namespace rokae
 
 			// 访问主站 //
 			auto controller = dynamic_cast<aris::control::Controller*>(target.master);
+
+			static double median_filter[MEDIAN_LENGTH] = { 0.0 };
+
 			if (target.count == 1)
 			{
 				begin_p = controller->motionAtAbs(6).targetPos();
+				fore_vel.assign(FORE_VEL_LENGTH + 1, controller->motionAtAbs(6).actualVel());
 			}
 			double end_p;
 			end_p = begin_p + param.s*(1 - std::cos(2 * PI*target.count / time)) / 2;
 			controller->motionAtAbs(6).setTargetPos(end_p);
 			
-			int phase;
-
 			//根据电流值换算压力值//
-			double force = 0, frictionforce = 0;
+			int phase;	//标记采用那一段公式计算压力值//
+			double force = 0, ff = 0, fc = controller->motionAtAbs(6).actualCur() * ea_index, fg = ea_gra, fs = std::abs(ea_c * ea_index);
 			if (std::abs(controller->motionAtAbs(6).actualVel()) > 0.001)
 			{
 				if (controller->motionAtAbs(6).actualVel() > 0)
 				{
-					frictionforce = (ea_a * controller->motionAtAbs(6).actualVel()*controller->motionAtAbs(6).actualVel() - ea_b * controller->motionAtAbs(6).actualVel() - ea_c + ea_gra) * ea_index;		
-					force = controller->motionAtAbs(6).actualCur()*ea_index - frictionforce;
+					ff = (ea_a * controller->motionAtAbs(6).actualVel()*controller->motionAtAbs(6).actualVel() - ea_b * controller->motionAtAbs(6).actualVel() - ea_c) * ea_index;
+					force = ff + fg + fc;
 					phase = 1;
 				}
 				else
 				{
-					frictionforce = (-ea_a * controller->motionAtAbs(6).actualVel()*controller->motionAtAbs(6).actualVel() - ea_b * controller->motionAtAbs(6).actualVel() + ea_c + ea_gra) * ea_index;
-					force = controller->motionAtAbs(6).actualCur()*ea_index - frictionforce;
+					ff = (-ea_a * controller->motionAtAbs(6).actualVel()*controller->motionAtAbs(6).actualVel() - ea_b * controller->motionAtAbs(6).actualVel() + ea_c) * ea_index;
+					force = ff + fg + fc;
 					phase = 2;
 				}
 			}
 			else
 			{
-				if (std::abs(controller->motionAtAbs(6).actualCur() - ea_gra) <= ea_c)
+				if (std::abs(fc + fg) <= fs)
 				{
 					force = 0;
 					phase = 3;
 				}
 				else
 				{
-					if (controller->motionAtAbs(6).actualCur() - ea_gra < -ea_c)
+					if (fc + fg < -fs)
 					{
-						force = ea_index * (controller->motionAtAbs(6).actualCur() - ea_gra + ea_c);
+						force = fc + fg + fs;
 						phase = 4;
 					}
 					else
 					{
-						force = ea_index * (controller->motionAtAbs(6).actualCur() - ea_gra - ea_c);
+						force = fc + fg - fs;;
 						phase = 5;
 					}
 				}
 			}
 
+			//对速度进行均值滤波, 对摩擦力进行滤波//
+			double mean_vel, fe, filteredforce;
+
+			for (Size i = 0; i < FORE_VEL_LENGTH; i++)
+			{
+				fore_vel[i] = fore_vel[i + 1];
+			}
+			fore_vel[FORE_VEL_LENGTH] = controller->motionAtAbs(6).actualVel();
+			if (target.count < 21)
+			{
+				mean_vel = (fore_vel.back() - fore_vel.front()) * 1000 / target.count;
+				filteredforce = iir.filter(force);
+				tempforce = tempforce + force;
+				fe = -tempforce / target.count + 1810 * mean_vel;
+			}
+			else
+			{
+				mean_vel = (fore_vel.back() - fore_vel.front()) * 1000 / FORE_VEL_LENGTH;
+				filteredforce = iir.filter(force);
+				fe = -filteredforce + 1810 * mean_vel;
+			}
+
+			//中值滤波//
+			for (Size i = 0; i < MEDIAN_LENGTH - 1; i++)
+			{
+				median_filter[i] = median_filter[i + 1];
+			}
+
+			median_filter[MEDIAN_LENGTH - 1] = fe;
+
+			double tem[MEDIAN_LENGTH];
+			std::copy_n(median_filter, MEDIAN_LENGTH, tem);
+
+			std::sort(tem, tem + MEDIAN_LENGTH);
+			fe = tem[(MEDIAN_LENGTH - 1) / 2];
+
+			//发送数据buffer//
 			if (data_num >= buffer_length)
 			{
-				std::copy_n(&fce_data[4], buffer_length-4, fce_data);
-				fce_data[buffer_length-4] = controller->motionAtAbs(6).actualPos();
-				fce_data[buffer_length-3] = controller->motionAtAbs(6).actualVel();
-				fce_data[buffer_length-2] = controller->motionAtAbs(6).actualCur();
-				fce_data[buffer_length-1] = force;
+				std::copy_n(&fce_data[4], buffer_length - 4, fce_data);
+				fce_data[buffer_length - 4] = controller->motionAtAbs(6).actualPos();
+				fce_data[buffer_length - 3] = controller->motionAtAbs(6).actualVel();
+				fce_data[buffer_length - 2] = controller->motionAtAbs(6).actualCur();
+				fce_data[buffer_length - 1] = fe;
 				data_num = buffer_length;
-
 			}
 			else
 			{
 				fce_data[data_num++] = controller->motionAtAbs(6).actualPos();
 				fce_data[data_num++] = controller->motionAtAbs(6).actualVel();
 				fce_data[data_num++] = controller->motionAtAbs(6).actualCur();
-				fce_data[data_num++] = force;
+				fce_data[data_num++] = fe;
 			}
 
 			// 打印 目标位置、实际位置、实际速度、实际电流、压力 //
 			auto &cout = controller->mout();
 			if (target.count % 100 == 0)
 			{
-				cout << controller->motionAtAbs(6).targetPos() << "  " << controller->motionAtAbs(6).actualPos() << "  " << controller->motionAtAbs(6).actualVel() << "  " << controller->motionAtAbs(6).actualCur() << "  " << force << std::endl;
+				cout << controller->motionAtAbs(6).targetPos() << "  " << controller->motionAtAbs(6).actualPos() << "  " << controller->motionAtAbs(6).actualVel() << "  " << controller->motionAtAbs(6).actualCur() << "  " << force << "  " << phase << "  " << fe << std::endl;
 			}
-
 			// log 目标位置、实际位置、实际速度、实际电流、压力 //
 			auto &lout = controller->lout();
-			lout << controller->motionAtAbs(6).targetPos() << "  " << controller->motionAtAbs(6).actualPos() << "  " << controller->motionAtAbs(6).actualVel() << "  " << controller->motionAtAbs(6).actualCur() << "  " << force << "  " << phase << std::endl;
+			lout << controller->motionAtAbs(6).targetPos() << "  " << controller->motionAtAbs(6).actualPos() << "  " << controller->motionAtAbs(6).actualVel() << "  " << controller->motionAtAbs(6).actualCur() << "  " << force << "  " << filteredforce << "  " << phase << "  " << fe << std::endl;
 
 			return time - target.count;
 		}
 		auto virtual collectNrt(PlanTarget &target)->void {}
 
-		explicit MoveEA(const std::string &name = "MoveEA_plan"):Plan(name)
+		explicit MoveEA(const std::string &name = "MoveEA_plan"):Plan(name), fore_vel(FORE_VEL_LENGTH + 1), tempforce(0)
 		{
 			command().loadXmlStr(
 				"<moveEA>"
@@ -1586,6 +1965,11 @@ namespace rokae
 				"		<time default=\"1.0\" abbreviation=\"t\"/>"
 				"	</group>"
 				"</moveEA>");
+
+			std::vector<double> num_data(IIR_FILTER::num, IIR_FILTER::num + 20);
+			std::vector<double> den_data(IIR_FILTER::den, IIR_FILTER::den + 20);
+			iir.setPara(num_data, den_data);
+
 		}
 	};
 
@@ -1638,6 +2022,7 @@ namespace rokae
 			target.option |=
 				Plan::USE_TARGET_POS |
 				Plan::USE_VEL_OFFSET |
+				Plan::USE_CUR_OFFSET |
 #ifdef WIN32
 				Plan::NOT_CHECK_POS_MIN |
 				Plan::NOT_CHECK_POS_MAX |
@@ -1684,52 +2069,61 @@ namespace rokae
 				aris::plan::moveAbsolute(target.count, param.begin_pos, param.begin_pos + param.pos, param.vel / 1000, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
 			}
 			controller->motionAtAbs(6).setTargetPos(p);
-			//加前馈//
+			//速度前馈//
 			controller->motionAtAbs(6).setOffsetVel(v*1000);
 			total_count = std::max(total_count, t_count);
 
 			//根据电流值换算压力值//
 			int phase;	//标记采用那一段公式计算压力值//
-			double force = 0, frictionforce = 0;
+			double fore_cur = 0, force = 0, ff = 0, fc = controller->motionAtAbs(6).actualCur() * ea_index, fg = ea_gra, fs = std::abs(ea_c * ea_index);
 			if (std::abs(controller->motionAtAbs(6).actualVel()) > 0.001)
 			{
 				if (controller->motionAtAbs(6).actualVel() > 0)
 				{
-					frictionforce = (ea_a * controller->motionAtAbs(6).actualVel()*controller->motionAtAbs(6).actualVel() - ea_b * controller->motionAtAbs(6).actualVel() - ea_c + ea_gra - ea_gra_index) * ea_index;
-					force = controller->motionAtAbs(6).actualCur()*ea_index - frictionforce;
+					ff = (ea_a * controller->motionAtAbs(6).actualVel()*controller->motionAtAbs(6).actualVel() - ea_b * controller->motionAtAbs(6).actualVel() - ea_c) * ea_index;
+					force = ff + fg + fc;
 					phase = 1;
+					fore_cur = (1810 * a - ff - fg)/ ea_index;
 				}
 				else
 				{
-					frictionforce = (-ea_a * controller->motionAtAbs(6).actualVel()*controller->motionAtAbs(6).actualVel() - ea_b * controller->motionAtAbs(6).actualVel() + ea_c + ea_gra + ea_gra_index) * ea_index;
-					force = controller->motionAtAbs(6).actualCur()*ea_index - frictionforce;
+					ff = (-ea_a * controller->motionAtAbs(6).actualVel()*controller->motionAtAbs(6).actualVel() - ea_b * controller->motionAtAbs(6).actualVel() + ea_c) * ea_index;
+					force = ff + fg + fc;
 					phase = 2;
+					fore_cur = (1810 * a - ff - fg)/ ea_index;
 				}
+
 			}
 			else
 			{
-				if (std::abs(controller->motionAtAbs(6).actualCur() - ea_gra) <= ea_c)
+				if (std::abs(fc + fg) <= fs)
 				{
 					force = 0;
 					phase = 3;
+					fore_cur = 0.0;
 				}
 				else
 				{
-					if (controller->motionAtAbs(6).actualCur() - ea_gra < -ea_c)
+					if (fc + fg < -fs)
 					{
-						force = ea_index * (controller->motionAtAbs(6).actualCur() - ea_gra + ea_c);
+						force = fc + fg + fs;
 						phase = 4;
+						fore_cur = (1810 * a - fg - fs)/ ea_index;
 					}
 					else
 					{
-						force = ea_index * (controller->motionAtAbs(6).actualCur() - ea_gra - ea_c);
+						force = fc + fg - fs;;
 						phase = 5;
+						fore_cur = (1810 * a - fg + fs)/ ea_index;;
 					}
 				}
 			}
 
+			//电流前馈//
+			controller->motionAtAbs(6).setOffsetCur(fore_cur);
+
 			//对速度进行均值滤波, 对摩擦力进行滤波//
-			double mean_vel, externalforce, filteredforce;
+			double mean_vel, fe, filteredforce;
 			
 			for(Size i=0;i< FORE_VEL_LENGTH;i++)
 			{
@@ -1741,13 +2135,13 @@ namespace rokae
 				mean_vel = (fore_vel.back() - fore_vel.front()) * 1000 / target.count;
 				filteredforce = iir.filter(force);
 				tempforce = tempforce + force;
-				externalforce = tempforce/target.count + 1810 * mean_vel;	
+				fe = - tempforce/target.count + 1810 * mean_vel;
 			}
 			else
 			{
 				mean_vel = (fore_vel.back() - fore_vel.front()) * 1000 / FORE_VEL_LENGTH;
 				filteredforce = iir.filter(force);
-				externalforce = filteredforce + 1810 * mean_vel;
+				fe = -filteredforce + 1810 * mean_vel;
 			}
 
 			//中值滤波//
@@ -1756,13 +2150,13 @@ namespace rokae
 				median_filter[i] = median_filter[i + 1];
 			}
 
-			median_filter[MEDIAN_LENGTH - 1] = externalforce;
+			median_filter[MEDIAN_LENGTH - 1] = fe;
 
 			double tem[MEDIAN_LENGTH];
 			std::copy_n(median_filter, MEDIAN_LENGTH, tem);
 
 			std::sort(tem, tem + MEDIAN_LENGTH);
-			externalforce = tem[(MEDIAN_LENGTH-1)/2];
+			fe = tem[(MEDIAN_LENGTH-1)/2];
 			
 			//发送数据buffer//
 			if (data_num >= buffer_length)
@@ -1771,7 +2165,7 @@ namespace rokae
 				fce_data[buffer_length-4] = controller->motionAtAbs(6).actualPos();
 				fce_data[buffer_length-3] = controller->motionAtAbs(6).actualVel();
 				fce_data[buffer_length-2] = controller->motionAtAbs(6).actualCur();
-				fce_data[buffer_length-1] = externalforce;
+				fce_data[buffer_length-1] = fe;
 				data_num = buffer_length;
 			}
 			else
@@ -1779,18 +2173,18 @@ namespace rokae
 				fce_data[data_num++] = controller->motionAtAbs(6).actualPos();
 				fce_data[data_num++] = controller->motionAtAbs(6).actualVel();
 				fce_data[data_num++] = controller->motionAtAbs(6).actualCur();
-				fce_data[data_num++] = externalforce;
+				fce_data[data_num++] = fe;
 			}
 
 			// 打印 目标位置、实际位置、实际速度、实际电流、压力 //
 			auto &cout = controller->mout();
 			if (target.count % 100 == 0)
 			{
-				cout << controller->motionAtAbs(6).targetPos() << "  " << controller->motionAtAbs(6).actualPos() << "  " << controller->motionAtAbs(6).actualVel() << "  " << controller->motionAtAbs(6).actualCur() << "  " << force << "  " << phase << "  " << externalforce << std::endl;
+				cout << controller->motionAtAbs(6).targetPos() << "  " << controller->motionAtAbs(6).actualPos() << "  " << controller->motionAtAbs(6).actualVel() << "  " << controller->motionAtAbs(6).actualCur() << "  " << force << "  " << phase << "  " << fe << std::endl;
 			}
 			// log 目标位置、实际位置、实际速度、实际电流、压力 //
 			auto &lout = controller->lout();
-			lout << controller->motionAtAbs(6).targetPos() << "  " << controller->motionAtAbs(6).actualPos() << "  " << controller->motionAtAbs(6).actualVel() << "  " << controller->motionAtAbs(6).actualCur() << "  " << force << "  " << filteredforce << "  " << phase << "  " << externalforce << std::endl;
+			lout << controller->motionAtAbs(6).targetPos() << "  " << controller->motionAtAbs(6).actualPos() << "  " << controller->motionAtAbs(6).actualVel() << "  " << controller->motionAtAbs(6).actualCur() << "  " << force << "  " << filteredforce << "  " << phase << "  " << fe << std::endl;
 
 			return total_count - target.count;
 		}
@@ -1837,6 +2231,7 @@ namespace rokae
 		plan_root->planPool().add<MoveX>();
 		plan_root->planPool().add<rokae::MoveJS>();
 		plan_root->planPool().add<rokae::MoveJR>();
+		plan_root->planPool().add<rokae::MoveJM>();
 		plan_root->planPool().add<rokae::MoveJI>();
 		plan_root->planPool().add<rokae::Grasp>();
 		plan_root->planPool().add<rokae::ListenDI>();
