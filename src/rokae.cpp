@@ -1855,13 +1855,13 @@ namespace rokae
 			{
 				if (controller->motionAtAbs(6).actualVel() > 0)
 				{
-					ff = (ea_a * controller->motionAtAbs(6).actualVel()*controller->motionAtAbs(6).actualVel() - ea_b * controller->motionAtAbs(6).actualVel() - ea_c) * ea_index;
+					ff = (-ea_a * controller->motionAtAbs(6).actualVel()*controller->motionAtAbs(6).actualVel() + ea_b * controller->motionAtAbs(6).actualVel() + ea_c) * ea_index;
 					force = ff + fg + fc;
 					phase = 1;
 				}
 				else
 				{
-					ff = (-ea_a * controller->motionAtAbs(6).actualVel()*controller->motionAtAbs(6).actualVel() - ea_b * controller->motionAtAbs(6).actualVel() + ea_c) * ea_index;
+					ff = (ea_a * controller->motionAtAbs(6).actualVel()*controller->motionAtAbs(6).actualVel() + ea_b * controller->motionAtAbs(6).actualVel() - ea_c) * ea_index;
 					force = ff + fg + fc;
 					phase = 2;
 				}
@@ -2083,14 +2083,14 @@ namespace rokae
 			{
 				if (controller->motionAtAbs(6).actualVel() > 0)
 				{
-					ff = (ea_a * controller->motionAtAbs(6).actualVel()*controller->motionAtAbs(6).actualVel() - ea_b * controller->motionAtAbs(6).actualVel() - ea_c) * ea_index;
+					ff = (-ea_a * controller->motionAtAbs(6).actualVel()*controller->motionAtAbs(6).actualVel() + ea_b * controller->motionAtAbs(6).actualVel() + ea_c) * ea_index;
 					force = ff + fg + fc;
 					phase = 1;
 					fore_cur = (1810 * a * 1000 * 1000 - ff - fg)/ ea_index;
 				}
 				else
 				{
-					ff = (-ea_a * controller->motionAtAbs(6).actualVel()*controller->motionAtAbs(6).actualVel() - ea_b * controller->motionAtAbs(6).actualVel() + ea_c) * ea_index;
+					ff = (ea_a * controller->motionAtAbs(6).actualVel()*controller->motionAtAbs(6).actualVel() + ea_b * controller->motionAtAbs(6).actualVel() - ea_c) * ea_index;
 					force = ff + fg + fc;
 					phase = 2;
 					fore_cur = (1810 * a * 1000 * 1000 - ff - fg)/ ea_index;
