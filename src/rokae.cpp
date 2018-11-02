@@ -2086,14 +2086,14 @@ namespace rokae
 					ff = (ea_a * controller->motionAtAbs(6).actualVel()*controller->motionAtAbs(6).actualVel() - ea_b * controller->motionAtAbs(6).actualVel() - ea_c) * ea_index;
 					force = ff + fg + fc;
 					phase = 1;
-					fore_cur = (1810 * a - ff - fg)/ ea_index;
+					fore_cur = (1810 * a * 1000 * 1000 - ff - fg)/ ea_index;
 				}
 				else
 				{
 					ff = (-ea_a * controller->motionAtAbs(6).actualVel()*controller->motionAtAbs(6).actualVel() - ea_b * controller->motionAtAbs(6).actualVel() + ea_c) * ea_index;
 					force = ff + fg + fc;
 					phase = 2;
-					fore_cur = (1810 * a - ff - fg)/ ea_index;
+					fore_cur = (1810 * a * 1000 * 1000 - ff - fg)/ ea_index;
 				}
 
 			}
@@ -2111,13 +2111,13 @@ namespace rokae
 					{
 						force = fc + fg + fs;
 						phase = 4;
-						fore_cur = (1810 * a - fg - fs)/ ea_index;
+						fore_cur = (1810 * a * 1000 * 1000 - fg - fs)/ ea_index;
 					}
 					else
 					{
 						force = fc + fg - fs;;
 						phase = 5;
-						fore_cur = (1810 * a - fg + fs)/ ea_index;;
+						fore_cur = (1810 * a * 1000 * 1000 - fg + fs)/ ea_index;;
 					}
 				}
 			}
@@ -2184,12 +2184,12 @@ namespace rokae
 			if (target.count % 100 == 0)
 			{
 				cout << controller->motionAtAbs(6).targetPos() << "  " << controller->motionAtAbs(6).actualPos() << "  " << v << "  " << controller->motionAtAbs(6).actualVel() << "  "
-					<< a << "  " << fore_cur << "  " << controller->motionAtAbs(6).actualCur() << "  " << force << "  " << filteredforce << "  " << phase << "  " << fe << std::endl;
+					<< a << "  " << fore_cur << "  " << controller->motionAtAbs(6).actualCur() << "  " << ff << "  " << fg << "  " << fc << "  " << force << "  " << filteredforce << "  " << phase << "  " << fe << std::endl;
 			}
 			// log 目标位置、实际位置、实际速度、实际电流、压力 //
 			auto &lout = controller->lout();
 			lout << controller->motionAtAbs(6).targetPos() << "  " << controller->motionAtAbs(6).actualPos() << "  " << v << "  " << controller->motionAtAbs(6).actualVel() << "  " 
-				<< a << "  " << fore_cur << "  " << controller->motionAtAbs(6).actualCur() << "  " << force << "  " << filteredforce << "  " << phase << "  " << fe << std::endl;
+				<< a << "  " << fore_cur << "  " << controller->motionAtAbs(6).actualCur() << "  " << ff << "  " << fg << "  " << fc << "  " << force << "  " << filteredforce << "  " << phase << "  " << fe << std::endl;
 
 			return total_count - target.count;
 		}
