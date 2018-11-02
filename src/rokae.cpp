@@ -70,6 +70,7 @@ namespace rokae
 				"				<target_vel index=\"0x60FF\" subindex=\"0x00\" size=\"4\"/>"
 				"				<offset_vel index=\"0x60B1\" subindex=\"0x00\" size=\"4\"/>"
 				"				<targer_tor index=\"0x6071\" subindex=\"0x00\" size=\"2\"/>"
+				"				<targer_tor index=\"0x60B2\" subindex=\"0x00\" size=\"2\"/>"
 				"			</index_1600>"
 				"		</sm>"
 				"		<sm type=\"SyncManager\" is_tx=\"true\">"
@@ -106,7 +107,7 @@ namespace rokae
 			"				<target_vel index=\"0x60FF\" subindex=\"0x00\" size=\"4\"/>"
 			"				<offset_vel index=\"0x60B1\" subindex=\"0x00\" size=\"4\"/>"
 			"				<targer_tor index=\"0x6071\" subindex=\"0x00\" size=\"2\"/>"
-			"				<offset_tor index=\"0x60B2\" subindex=\"0x00\" size=\"2\"/>"
+			"				<targer_tor index=\"0x60B2\" subindex=\"0x00\" size=\"2\"/>"
 			"			</index_1600>"
 			"		</sm>"
 			"		<sm type=\"SyncManager\" is_tx=\"true\">"
@@ -2075,8 +2076,11 @@ namespace rokae
 
 			//根据电流值换算压力值//
 			int phase;	//标记采用那一段公式计算压力值//
-			double fore_cur = 0, force = 0, ff = 0, fc = controller->motionAtAbs(6).actualCur() * ea_index, fg = ea_gra, fs = std::abs(ea_c * ea_index);
-			if (std::abs(controller->motionAtAbs(6).actualVel()) > 0.001)
+			double fore_cur = 0, force = 0, ff = 0, fc, fg, fs;
+			fc = controller->motionAtAbs(6).actualCur() * ea_index;
+			fg = ea_gra;
+			fs = std::abs(ea_c * ea_index);
+			if(std::abs(controller->motionAtAbs(6).actualVel())>0.001)
 			{
 				if (controller->motionAtAbs(6).actualVel() > 0)
 				{
