@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.12)
 
-project(aris_rokae)
+project(aris_kaanh)
 
 # set binary and library folders
 set(EXECUTABLE_OUTPUT_PATH bin)
@@ -18,9 +18,17 @@ if(UNIX)
 	set(RELY_LINK_LIB ethercat_rtdm ${RELY_LINK_LIB})
 	
 	# rely on xenomai
-	set(RELY_INCL_DIR "/usr/xenomai/include" ${RELY_INCL_DIR})
+	message("using xenomai")
+	
+	add_definitions(-DUSE_XENOMAI)
 	set(RELY_LINK_DIR "/usr/xenomai/lib" ${RELY_LINK_DIR})
-	set(RELY_LINK_LIB native rtdm xenomai ${RELY_LINK_LIB})
+	set(XENOMAI_ROOT_DIR "/usr/xenomai")
+	
+	# copy this file to you project/config
+	set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/config)
+	find_package(Xenomai REQUIRED)
+	include_directories(${XENOMAI_INCLUDE_DIRS})
+	set(RELY_LINK_LIB ${XENOMAI_LIBRARIES} ${RELY_LINK_LIB})
 
 	# rely on aris
 	set(RELY_INCL_DIR "/usr/aris/include" ${RELY_INCL_DIR})
@@ -46,5 +54,5 @@ include_directories(${ALL_INCL_DIR})
 link_directories(${ALL_LINK_DIR})
 
 set(SOURCE_FILES src/main.cpp src/rokae.h src/rokae.cpp src/iir.h src/iir.cpp)
-add_executable(aris_rokae ${SOURCE_FILES}) 
-target_link_libraries(aris_rokae ${ALL_LINK_LIB})
+add_executable(aris_kaanh ${SOURCE_FILES}) 
+target_link_libraries(aris_kaanh ${ALL_LINK_LIB})
