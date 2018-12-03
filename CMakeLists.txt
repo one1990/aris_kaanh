@@ -39,8 +39,8 @@ endif(UNIX)
 
 if(WIN32)
 	set(RELY_LINK_LIB "ws2_32")#ws2_32 is needed for socket
-	set(RELY_INCL_DIR "C:/aris/include/" ${RELY_INCL_DIR})
-	set(RELY_LINK_DIR "C:/aris/lib/debug/" ${RELY_LINK_DIR})
+	set(RELY_INCL_DIR "C:/aris/aris-1.5.0/include/" ${RELY_INCL_DIR})
+	set(RELY_LINK_DIR "C:/aris/aris-1.5.0/lib/debug/" ${RELY_LINK_DIR})
 	set(RELY_LINK_LIB aris_robot aris_server aris_sensor aris_plan aris_dynamic aris_control aris_core ${RELY_LINK_LIB})
 	set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
 	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
