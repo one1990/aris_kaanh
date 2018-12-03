@@ -17,7 +17,6 @@ std::atomic_int which_di = 0;
 auto xmlpath = std::filesystem::absolute(".");
 const std::string xmlfile = "plan.xml";
 
-
 int main(int argc, char *argv[])
 {
 	xmlpath = xmlpath / xmlfile;
@@ -534,7 +533,6 @@ int main(int argc, char *argv[])
 	//	//1LOG_ERROR << e.what() << std::endl;
 	//}
 	
-
 	// ½ÓÊÕÃüÁî //
 	for (std::string command_in; std::getline(std::cin, command_in);)
 	{
