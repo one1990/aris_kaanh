@@ -8,7 +8,7 @@ set(CMAKE_CXX_STANDARD 17)
 # find aris
 if(UNIX)
 	add_definitions(-DUNIX)
-	find_package(aris REQUIRED /usr/aris)
+	find_package(aris REQUIRED PATHS /usr/aris)
 endif(UNIX)
 IF(WIN32)
 	find_package(aris REQUIRED PATHS C:/aris/aris-1.5.0)
