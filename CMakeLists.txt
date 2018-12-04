@@ -5,11 +5,17 @@ project(kaanh)
 # aris use c++ 17 standard
 set(CMAKE_CXX_STANDARD 17)
 
+if(UNIX)
+	add_definitions(-DUNIX)
+endif(UNIX)
+
 # find aris
-find_package(aris REQUIRED HINTS /usr/aris/)
+find_package(aris REQUIRED PATHS C:/aris/aris-1.5.0)
 include_directories(${aris_INCLUDE_DIRS})
 
+message(${aris_DIR})
+
 # user program started...
-set(SOURCE_FILES src/main.cpp src/rokae.cpp src/iir.cpp)
+set(SOURCE_FILES src/main.cpp src/rokae.cpp src/iir.cpp src/rokae.h src/iir.h)
 add_executable(kaanh ${SOURCE_FILES})
 target_link_libraries(kaanh ${aris_LIBRARIES})
