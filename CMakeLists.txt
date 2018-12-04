@@ -10,7 +10,12 @@ if(UNIX)
 endif(UNIX)
 
 # find aris
-find_package(aris REQUIRED PATHS C:/aris/aris-1.5.0)
+if(UNIX)
+	find_package(aris REQUIRED /usr/aris)
+endif(UNIX)
+IF(WIN32)
+	find_package(aris REQUIRED PATHS C:/aris/aris-1.5.0)
+endif(WIN32)
 include_directories(${aris_INCLUDE_DIRS})
 
 message(${aris_DIR})
