@@ -5,12 +5,9 @@ project(kaanh)
 # aris use c++ 17 standard
 set(CMAKE_CXX_STANDARD 17)
 
-if(UNIX)
-	add_definitions(-DUNIX)
-endif(UNIX)
-
 # find aris
 if(UNIX)
+	add_definitions(-DUNIX)
 	find_package(aris REQUIRED /usr/aris)
 endif(UNIX)
 IF(WIN32)
