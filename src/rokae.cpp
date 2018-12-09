@@ -645,6 +645,224 @@ namespace rokae
 		}
 	};
 
+	// 任意关节正弦往复轨迹 //
+	struct MoveJSNParam
+	{
+		std::vector<double> axis_pos_vec;
+		std::vector<double> axis_time_vec;
+		std::vector<bool> joint_active_vec;
+		uint32_t timenum;
+	};
+	class MoveJSN : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+		{
+			MoveJSNParam param;
+			auto c = dynamic_cast<aris::control::Controller*>(target.master);
+			param.axis_pos_vec.clear();
+			param.axis_pos_vec.resize(target.model->motionPool().size(), 0.0);
+
+			param.axis_time_vec.clear();
+			param.axis_time_vec.resize(target.model->motionPool().size(), 1.0);
+
+			param.joint_active_vec.clear();
+			param.joint_active_vec.resize(target.model->motionPool().size(), true);
+
+			param.timenum = 0;
+			for (auto &p : params)
+			{
+				if (p.first == "pos")
+				{
+					auto pos = target.model->calculator().calculateExpression(p.second);
+					if (pos.size() == 1)
+					{
+						param.axis_pos_vec.resize(param.axis_pos_vec.size(), pos.toDouble());
+					}
+					else if (pos.size() == param.axis_pos_vec.size())
+					{
+						param.axis_pos_vec.assign(pos.begin(), pos.end());
+					}
+					else
+					{
+						throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+					}
+
+					for (Size i = 0; i < param.axis_pos_vec.size(); ++i)
+					{
+						//超阈值保护//
+						if (param.axis_pos_vec[i] > 1.0)
+						{
+							param.axis_pos_vec[i] = 1.0;
+						}
+						if (param.axis_pos_vec[i] < -1.0)
+						{
+							param.axis_pos_vec[i] = -1.0;
+						}
+						if (param.axis_pos_vec[i] >= 0)
+						{
+							param.axis_pos_vec[i] = param.axis_pos_vec[i] * c->motionPool()[i].maxPos();
+						}
+						else
+						{
+							param.axis_pos_vec[i] = param.axis_pos_vec[i] * c->motionPool()[i].minPos();
+						}
+					}
+					
+				}
+				else if (p.first == "time")
+				{
+					auto t = target.model->calculator().calculateExpression(p.second);
+					if (t.size() == 1)
+					{
+						param.axis_time_vec.resize(param.axis_time_vec.size(), t.toDouble());
+					}
+					else if (t.size() == param.axis_time_vec.size())
+					{
+						param.axis_time_vec.assign(t.begin(), t.end());
+					}
+					else
+					{
+						throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+					}
+
+					for (Size i = 0; i < param.axis_time_vec.size(); ++i)
+					{
+						//超阈值保护，机器人单关节运动频率不超过5Hz//
+						if (param.axis_time_vec[i] < 0.2)
+						{
+							param.axis_time_vec[i] = 0.2;
+						}
+					}
+				}
+				else if (p.first == "timenum")
+				{
+					param.timenum = std::stoi(p.second);
+				}
+			}
+			target.param = param;
+
+			target.option |=
+				Plan::USE_TARGET_POS |
+#ifdef WIN32
+				Plan::NOT_CHECK_POS_MIN |
+				Plan::NOT_CHECK_POS_MAX |
+				Plan::NOT_CHECK_POS_CONTINUOUS |
+				Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
+				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
+				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
+				Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
+#endif
+				Plan::NOT_CHECK_VEL_MIN |
+				Plan::NOT_CHECK_VEL_MAX |
+				Plan::NOT_CHECK_VEL_CONTINUOUS |
+				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
+				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+
+		}
+		auto virtual executeRT(PlanTarget &target)->int
+		{
+			auto &param = std::any_cast<MoveJSNParam&>(target.param);
+			static uint32_t time[6];
+			static uint32_t totaltime[6];
+			static uint32_t totaltime_max=0;
+			for (Size i = 0; i < 6; i++)
+			{
+				time[i]= static_cast<uint32_t>(param.axis_time_vec[i] * 1000);
+				totaltime[i] = static_cast<uint32_t>(param.timenum * time[i]);
+				if (totaltime[i] > totaltime_max)
+				{
+					totaltime_max = totaltime[i];
+				}
+			}
+
+			static double begin_pjs[6];
+			static double step_pjs[6];
+
+			for (Size i = 0; i < param.axis_time_vec.size(); i++)
+			{
+				if ((1 <= target.count) && (target.count <= time[i] / 2))
+				{
+					// 获取当前起始点位置 //
+					if (target.count == 1)
+					{
+						begin_pjs[i] = target.model->motionPool()[i].mp();
+						step_pjs[i] = target.model->motionPool()[i].mp();
+					}
+					step_pjs[i] = begin_pjs[i] + param.axis_pos_vec[i] * (1 - std::cos(2 * PI*target.count / time[i])) / 2;
+					target.model->motionPool().at(i).setMp(step_pjs[i]);
+				}
+				else if ((time[i] / 2 < target.count) && (target.count <= totaltime[i] - time[i] / 2))
+				{
+					// 获取当前起始点位置 //
+					if (target.count == time[i] / 2 + 1)
+					{
+						begin_pjs[i] = target.model->motionPool()[i].mp();
+						step_pjs[i] = target.model->motionPool()[i].mp();				
+					}
+						step_pjs[i] = begin_pjs[i] - 2 * param.axis_pos_vec[i] * (1 - std::cos(2 * PI*(target.count - time[i] / 2) / time[i])) / 2;
+						target.model->motionPool().at(i).setMp(step_pjs[i]);
+
+				}
+				else if ((totaltime[i] - time[i] / 2 < target.count) && (target.count <= totaltime[i]))
+				{
+					// 获取当前起始点位置 //
+					if (target.count == totaltime[i] - time[i] / 2 + 1)
+					{
+						begin_pjs[i] = target.model->motionPool()[i].mp();
+						step_pjs[i] = target.model->motionPool()[i].mp();
+					}
+					step_pjs[i] = begin_pjs[i] - param.axis_pos_vec[i] * (1 - std::cos(2 * PI*(target.count - totaltime[i] + time[i] / 2) / time[i])) / 2;
+					target.model->motionPool().at(i).setMp(step_pjs[i]);
+				}
+			}
+
+			if (!target.model->solverPool().at(1).kinPos())return -1;
+
+			// 访问主站 //
+			auto controller = dynamic_cast<aris::control::Controller*>(target.master);
+
+			// 打印电流 //
+			auto &cout = controller->mout();
+			if (target.count % 100 == 0)
+			{
+				for (Size i = 0; i < 6; i++)
+				{
+					cout << "pos" << i + 1 << ":" << controller->motionAtAbs(i).actualPos() << "  ";
+					cout << "vel" << i + 1 << ":" << controller->motionAtAbs(i).actualVel() << "  ";
+					cout << "cur" << i + 1 << ":" << controller->motionAtAbs(i).actualCur() << "  ";
+				}
+				cout << std::endl;
+			}
+
+			// log 电流 //
+			auto &lout = controller->lout();
+			for (Size i = 0; i < 6; i++)
+			{
+				lout << controller->motionAtAbs(i).targetPos() << ",";
+				lout << controller->motionAtAbs(i).actualPos() << ",";
+				lout << controller->motionAtAbs(i).actualVel() << ",";
+				lout << controller->motionAtAbs(i).actualCur() << ",";
+			}
+			lout << std::endl;
+
+			return totaltime_max - target.count;
+		}
+		auto virtual collectNrt(PlanTarget &target)->void {}
+
+		explicit MoveJSN(const std::string &name = "MoveJSN_plan") :Plan(name)
+		{
+			command().loadXmlStr(
+				"<moveJSN>"
+				"	<group type=\"GroupParam\" default_child_type=\"Param\">"
+				"		<pos default=\"{0.1,0.2,0.2,0.2,0.2,0.2}\" abbreviation=\"p\"/>"
+				"		<time default=\"{1.0,1.0,1.0,1.0,1.0,1.0}\" abbreviation=\"t\"/>"
+				"		<timenum default=\"2\" abbreviation=\"n\"/>"
+				"	</group>"
+				"</moveJSN>");
+		}
+	};
+
 	// 单关节相对运动轨迹--输入单个关节，角度位置；关节按照梯形速度轨迹执行 //
 	struct MoveJRParam
 	{
@@ -2235,6 +2453,7 @@ namespace rokae
 		plan_root->planPool().add<rokae::MoveInit>();
 		plan_root->planPool().add<MoveX>();
 		plan_root->planPool().add<rokae::MoveJS>();
+		plan_root->planPool().add<rokae::MoveJSN>();
 		plan_root->planPool().add<rokae::MoveJR>();
 		plan_root->planPool().add<rokae::MoveJM>();
 		plan_root->planPool().add<rokae::MoveJI>();
