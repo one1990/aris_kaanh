@@ -283,7 +283,7 @@ namespace rokae
 		}
 	};
 
-	// 末端四元数xyz方向余弦轨迹 //
+	// 末端四元数xyz方向余弦轨迹；速度前馈//
 	struct MoveXParam
 	{
 		double x, y, z;
@@ -863,7 +863,7 @@ namespace rokae
 		}
 	};
 
-	// 单关节相对运动轨迹--输入单个关节，角度位置；关节按照梯形速度轨迹执行 //
+	// 单关节相对运动轨迹--输入单个关节，角度位置；关节按照梯形速度轨迹执行；速度前馈//
 	struct MoveJRParam
 	{
 		double vel, acc, dec;
@@ -1097,7 +1097,284 @@ namespace rokae
 		}
 	};
 
-	// 多关节混合插值梯形轨迹 //
+	// 单关节相对运动轨迹--输入单个关节，角度位置；关节按照梯形速度轨迹执行；速度前馈；电流控制//
+	struct MoveJRCParam
+	{
+		double kp_p, kp_v, ki_v;
+		double vel, acc, dec;
+		std::vector<double> joint_pos_vec, begin_joint_pos_vec;
+		std::vector<bool> joint_active_vec;
+	};
+	class MoveJRC : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+		{
+			auto c = dynamic_cast<aris::control::Controller*>(target.master);
+			MoveJRCParam param;
+
+			for (auto cmd_param : params)
+			{
+				if (cmd_param.first == "all")
+				{
+					param.joint_active_vec.resize(target.model->motionPool().size(), true);
+				}
+				else if (cmd_param.first == "none")
+				{
+					param.joint_active_vec.resize(target.model->motionPool().size(), false);
+				}
+				else if (cmd_param.first == "motion_id")
+				{
+					param.joint_active_vec.resize(target.model->motionPool().size(), false);
+					param.joint_active_vec.at(std::stoi(cmd_param.second)) = true;
+				}
+				else if (cmd_param.first == "physical_id")
+				{
+					param.joint_active_vec.resize(c->motionPool().size(), false);
+					param.joint_active_vec.at(c->motionAtPhy(std::stoi(cmd_param.second)).phyId()) = true;
+				}
+				else if (cmd_param.first == "slave_id")
+				{
+					param.joint_active_vec.resize(c->motionPool().size(), false);
+					param.joint_active_vec.at(c->motionAtPhy(std::stoi(cmd_param.second)).slaId()) = true;
+				}
+				else if (cmd_param.first == "pos")
+				{
+					aris::core::Matrix mat = target.model->calculator().calculateExpression(cmd_param.second);
+					if (mat.size() == 1)param.joint_pos_vec.resize(c->motionPool().size(), mat.toDouble());
+					else
+					{
+						param.joint_pos_vec.resize(mat.size());
+						std::copy(mat.begin(), mat.end(), param.joint_pos_vec.begin());
+					}
+				}
+				else if (cmd_param.first == "vel")
+				{
+					param.vel = std::stod(cmd_param.second);
+				}
+				else if (cmd_param.first == "acc")
+				{
+					param.acc = std::stod(cmd_param.second);
+				}
+				else if (cmd_param.first == "dec")
+				{
+					param.dec = std::stod(cmd_param.second);
+				}
+				else if (cmd_param.first == "kp_p")
+				{
+					param.vel = std::stod(cmd_param.second);
+				}
+				else if (cmd_param.first == "kp_v")
+				{
+					param.acc = std::stod(cmd_param.second);
+				}
+				else if (cmd_param.first == "ki_v")
+				{
+					param.dec = std::stod(cmd_param.second);
+				}
+			}
+
+			param.begin_joint_pos_vec.resize(target.model->motionPool().size());
+
+			target.param = param;
+
+			target.option |=
+				Plan::USE_TARGET_POS |
+				Plan::USE_VEL_OFFSET |
+				Plan::USE_CUR_OFFSET |
+#ifdef WIN32
+				Plan::NOT_CHECK_POS_MIN |
+				Plan::NOT_CHECK_POS_MAX |
+				Plan::NOT_CHECK_POS_CONTINUOUS |
+				Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
+				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
+				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
+				Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
+#endif
+				Plan::NOT_CHECK_VEL_MIN |
+				Plan::NOT_CHECK_VEL_MAX |
+				Plan::NOT_CHECK_VEL_CONTINUOUS |
+				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
+				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+
+		}
+		auto virtual executeRT(PlanTarget &target)->int
+		{
+			auto &param = std::any_cast<MoveJRCParam&>(target.param);
+			auto controller = dynamic_cast<aris::control::Controller *>(target.master);
+
+			if (target.count == 1)
+			{
+				//目标电机的控制模式切换到电流控制模式，其他电机去使能
+				for (Size i = 0; i < param.joint_active_vec.size(); ++i)
+				{
+					if (param.joint_active_vec[i])
+					{
+						param.begin_joint_pos_vec[i] = target.model->motionPool()[i].mp();
+						controller->motionPool().at(i).setModeOfOperation(10);	//切换到电流控制
+					}
+					else
+					{
+						controller->motionPool().at(i).disable();
+					}
+				}
+			}
+
+			aris::Size total_count{ 1 };
+			for (Size i = 0; i < param.joint_active_vec.size(); ++i)
+			{
+				if (param.joint_active_vec[i])
+				{
+					double p, v, a, pa, vt, va, voff, ft, foff;
+					static double vinteg = 0.0;
+					aris::Size t_count;
+					aris::plan::moveAbsolute(target.count, param.begin_joint_pos_vec[i], param.begin_joint_pos_vec[i] + param.joint_pos_vec[i], param.vel / 1000, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
+					pa = controller->motionAtAbs(i).actualPos();
+					va = controller->motionAtAbs(i).actualVel();
+					voff = v * 1000;
+					foff = 0.0;
+					vt = param.kp_p*(p - pa) + voff;
+					vinteg = vinteg + vt - va;
+					ft = param.kp_v*(vt - va) + param.ki_v*vinteg + foff;
+					target.model->motionPool().at(i).setMf(ft/(ea_index));
+
+					total_count = std::max(total_count, t_count);
+				}
+			}
+			//最后一个周期将目标电机的控制模式切换到位置控制模式，且将当期位置设置为目标位置
+			if (total_count - target.count == 1)
+			{
+				for (Size i = 0; i < param.joint_active_vec.size(); ++i)
+				{		
+					if (param.joint_active_vec[i])
+					{
+						controller->motionPool().at(i).setModeOfOperation(8);	
+						target.model->motionPool().at(i).setMp(controller->motionAtAbs(i).actualPos());
+					}
+				}
+			}
+
+			if (!target.model->solverPool().at(1).kinPos())return -1;
+
+			// 打印电流 //
+			auto &cout = controller->mout();
+			if (target.count % 100 == 0)
+			{
+				for (Size i = 0; i < 6; i++)
+				{
+					cout << "pos" << i + 1 << ":" << controller->motionAtAbs(i).actualPos() << "  ";
+					cout << "vel" << i + 1 << ":" << controller->motionAtAbs(i).actualVel() << "  ";
+					cout << "cur" << i + 1 << ":" << controller->motionAtAbs(i).actualCur() << "  ";
+				}
+				cout << std::endl;
+			}
+
+			// log 电流 //
+			auto &lout = controller->lout();
+			for (Size i = 0; i < 6; i++)
+			{
+				lout << controller->motionAtAbs(i).targetPos() << ",";
+				lout << controller->motionAtAbs(i).actualPos() << ",";
+				lout << controller->motionAtAbs(i).actualVel() << ",";
+				lout << controller->motionAtAbs(i).actualCur() << ",";
+			}
+			lout << std::endl;
+
+			return total_count - target.count;
+		}
+		auto virtual collectNrt(PlanTarget &target)->void {}
+
+		explicit MoveJRC(const std::string &name = "MoveJRC_plan") :Plan(name)
+		{
+			command().loadXmlStr(
+				"<moveJRC default_child_type=\"Param\">"
+				"	<group type=\"GroupParam\" default_child_type=\"Param\">"
+				"		<limit_time default=\"5000\"/>"
+				"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"all\">"
+				"			<all abbreviation=\"a\"/>"
+				"			<motion_id abbreviation=\"m\" default=\"0\"/>"
+				"			<physical_id abbreviation=\"p\" default=\"0\"/>"
+				"			<slave_id abbreviation=\"s\" default=\"0\"/>"
+				"		</unique>"
+				"		<pos default=\"0\"/>"
+				"		<vel default=\"0.5\"/>"
+				"		<acc default=\"1\"/>"
+				"		<dec default=\"1\"/>"
+				"		<kp_p default=\"1\"/>"
+				"		<kp_v default=\"1\"/>"
+				"		<ki_v default=\"0.1\"/>"
+				"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_all\">"
+				"			<check_all/>"
+				"			<check_none/>"
+				"			<group type=\"GroupParam\" default_child_type=\"Param\">"
+				"				<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos\">"
+				"					<check_pos/>"
+				"					<not_check_pos/>"
+				"					<group type=\"GroupParam\" default_child_type=\"Param\">"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_max\">"
+				"							<check_pos_max/>"
+				"							<not_check_pos_max/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_min\">"
+				"							<check_pos_min/>"
+				"							<not_check_pos_min/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous\">"
+				"							<check_pos_continuous/>"
+				"							<not_check_pos_continuous/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous_at_start\">"
+				"							<check_pos_continuous_at_start/>"
+				"							<not_check_pos_continuous_at_start/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous_second_order\">"
+				"							<check_pos_continuous_second_order/>"
+				"							<not_check_pos_continuous_second_order/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous_second_order_at_start\">"
+				"							<check_pos_continuous_second_order_at_start/>"
+				"							<not_check_pos_continuous_second_order_at_start/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_following_error\">"
+				"							<check_pos_following_error/>"
+				"							<not_check_pos_following_error />"
+				"						</unique>"
+				"					</group>"
+				"				</unique>"
+				"				<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel\">"
+				"					<check_vel/>"
+				"					<not_check_vel/>"
+				"					<group type=\"GroupParam\" default_child_type=\"Param\">"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_max\">"
+				"							<check_vel_max/>"
+				"							<not_check_vel_max/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_min\">"
+				"							<check_vel_min/>"
+				"							<not_check_vel_min/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_continuous\">"
+				"							<check_vel_continuous/>"
+				"							<not_check_vel_continuous/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_continuous_at_start\">"
+				"							<check_vel_continuous_at_start/>"
+				"							<not_check_vel_continuous_at_start/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_following_error\">"
+				"							<check_vel_following_error/>"
+				"							<not_check_vel_following_error />"
+				"						</unique>"
+				"					</group>"
+				"				</unique>"
+				"			</group>"
+				"		</unique>"
+				"	</group>"
+				"</moveJRC>");
+		}
+	};
+
+	// 多关节混合插值梯形轨迹；速度前馈 //
 	struct MoveJMParam
 	{
 		std::vector<Size> total_count_vec;
@@ -1433,7 +1710,7 @@ namespace rokae
 		}
 	};
 
-	// 关节插值运动轨迹--输入末端pq姿态，各个关节的速度、加速度；各关节按照梯形速度轨迹执行 //
+	// 关节插值运动轨迹--输入末端pq姿态，各个关节的速度、加速度；各关节按照梯形速度轨迹执行；速度前馈 //
 	struct MoveJIParam
 	{
 		std::vector<double> pq;
@@ -2191,7 +2468,7 @@ namespace rokae
 		}
 	};
 
-	// 电缸运动轨迹 //
+	// 电缸运动轨迹；速度前馈 //
 	struct MoveEAPParam
 	{
 		double begin_pos, pos, vel, acc, dec;
@@ -2455,6 +2732,7 @@ namespace rokae
 		plan_root->planPool().add<rokae::MoveJS>();
 		plan_root->planPool().add<rokae::MoveJSN>();
 		plan_root->planPool().add<rokae::MoveJR>();
+		plan_root->planPool().add<rokae::MoveJRC>();
 		plan_root->planPool().add<rokae::MoveJM>();
 		plan_root->planPool().add<rokae::MoveJI>();
 		plan_root->planPool().add<rokae::Grasp>();
