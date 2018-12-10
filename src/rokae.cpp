@@ -1202,6 +1202,7 @@ namespace rokae
 		{
 			auto &param = std::any_cast<MoveJRCParam&>(target.param);
 			auto controller = dynamic_cast<aris::control::Controller *>(target.master);
+			static double vinteg[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 
 			if (target.count == 1)
 			{
@@ -1226,23 +1227,25 @@ namespace rokae
 				if (param.joint_active_vec[i])
 				{
 					double p, v, a, pa, vt, va, voff, ft, foff;
-					static double vinteg = 0.0;
 					aris::Size t_count;
 					aris::plan::moveAbsolute(target.count, param.begin_joint_pos_vec[i], param.begin_joint_pos_vec[i] + param.joint_pos_vec[i], param.vel / 1000, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
-					pa = controller->motionAtAbs(i).actualPos();
-					va = controller->motionAtAbs(i).actualVel();
-					voff = v * 1000;
-					foff = 0.0;
-					vt = param.kp_p*(p - pa) + voff;
-					vinteg = vinteg + vt - va;
-					ft = param.kp_v*(vt - va) + param.ki_v*vinteg + foff;
-					target.model->motionPool().at(i).setMf(ft/(ea_index));
-
 					total_count = std::max(total_count, t_count);
+					if (total_count - target.count != 0)
+					{
+						pa = controller->motionAtAbs(i).actualPos();
+						va = controller->motionAtAbs(i).actualVel();
+						voff = v * 1000;
+						foff = 0.0;
+						vt = param.kp_p*(p - pa) + voff;
+						vinteg[i] = vinteg[i] + vt - va;
+						ft = param.kp_v*(vt - va) + param.ki_v*vinteg[i] + foff;
+						target.model->motionPool().at(i).setMf(ft / (ea_index));
+					}			
 				}
 			}
+			
 			//最后一个周期将目标电机的控制模式切换到位置控制模式，且将当期位置设置为目标位置
-			if (total_count - target.count == 1)
+			if(total_count - target.count == 0)
 			{
 				for (Size i = 0; i < param.joint_active_vec.size(); ++i)
 				{		
