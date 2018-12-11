@@ -10,6 +10,7 @@ extern double fce_data[buffer_length];
 extern int data_num, data_num_send;
 extern std::atomic_int which_di;
 extern std::atomic_bool is_automatic;
+std::atomic_bool enable_moveJRC = true;
 
 namespace rokae
 {
@@ -1162,15 +1163,15 @@ namespace rokae
 				}
 				else if (cmd_param.first == "kp_p")
 				{
-					param.vel = std::stod(cmd_param.second);
+					param.kp_p = std::stod(cmd_param.second);
 				}
 				else if (cmd_param.first == "kp_v")
 				{
-					param.acc = std::stod(cmd_param.second);
+					param.kp_v = std::stod(cmd_param.second);
 				}
 				else if (cmd_param.first == "ki_v")
 				{
-					param.dec = std::stod(cmd_param.second);
+					param.ki_v = std::stod(cmd_param.second);
 				}
 			}
 
@@ -1181,8 +1182,7 @@ namespace rokae
 			target.option |=
 				Plan::USE_TARGET_POS |
 				Plan::USE_VEL_OFFSET |
-				Plan::USE_CUR_OFFSET |
-#ifdef WIN32
+//#ifdef WIN32
 				Plan::NOT_CHECK_POS_MIN |
 				Plan::NOT_CHECK_POS_MAX |
 				Plan::NOT_CHECK_POS_CONTINUOUS |
@@ -1190,7 +1190,7 @@ namespace rokae
 				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
 				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
 				Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
-#endif
+//#endif
 				Plan::NOT_CHECK_VEL_MIN |
 				Plan::NOT_CHECK_VEL_MAX |
 				Plan::NOT_CHECK_VEL_CONTINUOUS |
@@ -1203,10 +1203,11 @@ namespace rokae
 			auto &param = std::any_cast<MoveJRCParam&>(target.param);
 			auto controller = dynamic_cast<aris::control::Controller *>(target.master);
 			static double vinteg[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
-
+			
+			//第一个周期，将目标电机的控制模式切换到电流控制模式
 			if (target.count == 1)
 			{
-				//目标电机的控制模式切换到电流控制模式，其他电机去使能
+				
 				for (Size i = 0; i < param.joint_active_vec.size(); ++i)
 				{
 					if (param.joint_active_vec[i])
@@ -1214,40 +1215,48 @@ namespace rokae
 						param.begin_joint_pos_vec[i] = target.model->motionPool()[i].mp();
 						controller->motionPool().at(i).setModeOfOperation(10);	//切换到电流控制
 					}
-					else
-					{
-						controller->motionPool().at(i).disable();
-					}
 				}
 			}
 
-			aris::Size total_count{ 1 };
-			for (Size i = 0; i < param.joint_active_vec.size(); ++i)
+			if(enable_moveJRC)
 			{
-				if (param.joint_active_vec[i])
+				for (Size i = 0; i < param.joint_active_vec.size(); ++i)
 				{
-					double p, v, a, pa, vt, va, voff, ft, foff;
-					aris::Size t_count;
-					aris::plan::moveAbsolute(target.count, param.begin_joint_pos_vec[i], param.begin_joint_pos_vec[i] + param.joint_pos_vec[i], param.vel / 1000, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
-					total_count = std::max(total_count, t_count);
-					if (total_count - target.count != 0)
+					if (param.joint_active_vec[i])
 					{
+						double p, v, pa, vt, va, voff, ft, foff;
+						p = 0.0;
+						v = 0.0;
 						pa = controller->motionAtAbs(i).actualPos();
 						va = controller->motionAtAbs(i).actualVel();
 						voff = v * 1000;
 						foff = 0.0;
 						vt = param.kp_p*(p - pa) + voff;
+						//限制速度的范围在-1.0~1.0之间
+						vt = std::max(-1.0, vt);
+						vt = std::min(1.0, vt);
+
 						vinteg[i] = vinteg[i] + vt - va;
 						ft = param.kp_v*(vt - va) + param.ki_v*vinteg[i] + foff;
-						ft = std::max(-200.0, ft);
-						ft = std::min(200.0, ft);
+						//限制电流的范围在-400~400(千分数：额定电流是1000)之间
+						ft = std::max(-400.0, ft);
+						ft = std::min(400.0, ft);
+
 						controller->motionAtAbs(i).setTargetCur(ft);
-					}			
+
+						//打印PID控制结果
+						auto &cout = controller->mout();
+						if (target.count % 100 == 0)
+						{
+							cout << "ft:" << ft << "  " << "vt:" << vt << "  " << "va:" << va << "  " << "param.kp_v*(vt - va):" << param.kp_v*(vt - va) << "  " << "param.ki_v*vinteg[i]:" << param.ki_v*vinteg[i] << "    ";
+							cout << "p:" << p << "  " << "pa:" << pa << std::endl;
+						}
+					}
 				}
 			}
-			
+					
 			//最后一个周期将目标电机的控制模式切换到位置控制模式，且将当期位置设置为目标位置
-			if(total_count - target.count == 0)
+			if(!enable_moveJRC)
 			{
 				for (Size i = 0; i < param.joint_active_vec.size(); ++i)
 				{		
@@ -1265,27 +1274,31 @@ namespace rokae
 			auto &cout = controller->mout();
 			if (target.count % 100 == 0)
 			{
-				for (Size i = 0; i < 6; i++)
+				for (Size i = 0; i < param.joint_active_vec.size(); i++)
 				{
-					cout << "pos" << i + 1 << ":" << controller->motionAtAbs(i).actualPos() << "  ";
-					cout << "vel" << i + 1 << ":" << controller->motionAtAbs(i).actualVel() << "  ";
-					cout << "cur" << i + 1 << ":" << controller->motionAtAbs(i).actualCur() << "  ";
+					if (param.joint_active_vec[i])
+					{
+						cout << "target_cur" << i + 1 << ":" << controller->motionAtAbs(i).targetCur() << "  ";
+						cout << "pos" << i + 1 << ":" << controller->motionAtAbs(i).actualPos() << "  ";
+						cout << "vel" << i + 1 << ":" << controller->motionAtAbs(i).actualVel() << "  ";
+						cout << "cur" << i + 1 << ":" << controller->motionAtAbs(i).actualCur() << "  ";
+					}
 				}
 				cout << std::endl;
 			}
 
 			// log 电流 //
 			auto &lout = controller->lout();
-			for (Size i = 0; i < 6; i++)
+			for (Size i = 0; i < param.joint_active_vec.size(); i++)
 			{
-				lout << controller->motionAtAbs(i).targetPos() << ",";
+				lout << controller->motionAtAbs(i).targetCur() << ",";
 				lout << controller->motionAtAbs(i).actualPos() << ",";
 				lout << controller->motionAtAbs(i).actualVel() << ",";
 				lout << controller->motionAtAbs(i).actualCur() << ",";
 			}
 			lout << std::endl;
 
-			return total_count - target.count;
+			return enable_moveJRC ? 1 : 0;
 		}
 		auto virtual collectNrt(PlanTarget &target)->void {}
 
@@ -1376,6 +1389,24 @@ namespace rokae
 				"		</unique>"
 				"	</group>"
 				"</moveJRC>");
+		}
+	};
+
+	// 停止MoveJRC，使得电机保持//
+	class MoveStop : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+		{
+			enable_moveJRC = false;
+			target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
+		}
+
+		explicit MoveStop(const std::string &name = "MoveJRC_plan") :Plan(name)
+		{
+			command().loadXmlStr(
+				"<moveStop>"
+				"</moveStop>");
 		}
 	};
 
