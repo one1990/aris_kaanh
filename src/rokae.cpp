@@ -29,12 +29,12 @@ namespace rokae
 #ifdef UNIX
 			double pos_offset[6]
 			{
-				0.00293480352126769,0.317555328381088,-0.292382537944081,0.0582675097338009,1.53363576057128,-17.1269434336436
+				0.00293480352126769,0.317555328381088,-0.292382537944081,0.0582675097338009,1.53363576057128,17.1269434336436
 			};
 #endif
 			double pos_factor[6]
 			{
-				131072.0 * 81 / 2 / PI, 131072.0 * 81 / 2 / PI, 131072.0 * 81 / 2 / PI, 131072.0 * 72.857 / 2 / PI, 131072.0 * 81 / 2 / PI, -131072.0 * 50 / 2 / PI
+				131072.0 * 81 / 2 / PI, 131072.0 * 81 / 2 / PI, 131072.0 * 81 / 2 / PI, 131072.0 * 72.857 / 2 / PI, 131072.0 * 81 / 2 / PI, 131072.0 * 50 / 2 / PI
 			};
 			double max_pos[6]
 			{
@@ -186,7 +186,7 @@ namespace rokae
 		const double j3_axis[6]{ 0.0, 1.0, 0.0 };
 		const double j4_axis[6]{ 1.0, 0.0, 0.0 };
 		const double j5_axis[6]{ 0.0, 1.0, 0.0 };
-		const double j6_axis[6]{ -1.0, 0.0, 0.0 };
+		const double j6_axis[6]{ 1.0, 0.0, 0.0 };
 
 		auto &j1 = model->addRevoluteJoint(p1, model->ground(), j1_pos, j1_axis);
 		auto &j2 = model->addRevoluteJoint(p2, p1, j2_pos, j2_axis);
@@ -1239,7 +1239,9 @@ namespace rokae
 						vt = param.kp_p*(p - pa) + voff;
 						vinteg[i] = vinteg[i] + vt - va;
 						ft = param.kp_v*(vt - va) + param.ki_v*vinteg[i] + foff;
-						target.model->motionPool().at(i).setMf(ft / (ea_index));
+						ft = std::max(-200.0, ft);
+						ft = std::min(200.0, ft);
+						controller->motionAtAbs(i).setTargetCur(ft);
 					}			
 				}
 			}
@@ -1251,7 +1253,7 @@ namespace rokae
 				{		
 					if (param.joint_active_vec[i])
 					{
-						controller->motionPool().at(i).setModeOfOperation(8);	
+						controller->motionPool().at(i).setModeOfOperation(8);
 						target.model->motionPool().at(i).setMp(controller->motionAtAbs(i).actualPos());
 					}
 				}
@@ -1304,7 +1306,7 @@ namespace rokae
 				"		<acc default=\"1\"/>"
 				"		<dec default=\"1\"/>"
 				"		<kp_p default=\"1\"/>"
-				"		<kp_v default=\"1\"/>"
+				"		<kp_v default=\"100\"/>"
 				"		<ki_v default=\"0.1\"/>"
 				"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_all\">"
 				"			<check_all/>"
