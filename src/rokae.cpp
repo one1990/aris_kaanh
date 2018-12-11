@@ -10,7 +10,6 @@ extern double fce_data[buffer_length];
 extern int data_num, data_num_send;
 extern std::atomic_int which_di;
 extern std::atomic_bool is_automatic;
-std::atomic_bool enable_moveJRC = true;
 
 namespace rokae
 {
@@ -1099,6 +1098,7 @@ namespace rokae
 	};
 
 	// 单关节相对运动轨迹--输入单个关节，角度位置；关节按照梯形速度轨迹执行；速度前馈；电流控制//
+	std::atomic_bool enable_moveJRC = true;
 	struct MoveJRCParam
 	{
 		double kp_p, kp_v, ki_v;
@@ -2769,6 +2769,7 @@ namespace rokae
 		plan_root->planPool().add<rokae::MoveJSN>();
 		plan_root->planPool().add<rokae::MoveJR>();
 		plan_root->planPool().add<rokae::MoveJRC>();
+		plan_root->planPool().add<rokae::MoveStop>();
 		plan_root->planPool().add<rokae::MoveJM>();
 		plan_root->planPool().add<rokae::MoveJI>();
 		plan_root->planPool().add<rokae::Grasp>();
