@@ -26,6 +26,7 @@ namespace rokae
 {
 	//const std::string xmlpath = "C:\\Users\\kevin\\Desktop\\aris_rokae\\ServoPressorCmdList.xml";
 	constexpr double ea_a = 3765.8, ea_b = 1334.8, ea_c = 45.624, ea_gra = 24, ea_index = -6, ea_gra_index = 36;  //电缸电流换算压力的系数，ea_k表示比例系数，ea_b表示截距，ea_offset表示重力影响量，ea_index表示电流扭矩系数=额定扭矩*6.28*减速比/导程/1000//
+	constexpr double f_static = 0.03668565983638, f_vel = 0.00735060469159, f_acc = 0.00066416315897, f2c_index = 5378.33927639823;
 	using Size = std::size_t;
 	constexpr double PI = 3.141592653589793;
 	auto createModelRokaeXB4(const double *robot_pm = nullptr)->std::unique_ptr<aris::dynamic::Model>;

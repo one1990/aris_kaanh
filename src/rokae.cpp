@@ -1224,8 +1224,8 @@ namespace rokae
 				{
 					if (param.joint_active_vec[i])
 					{
-						double p, v, pa, vt, va, voff, ft, foff;
-						p = 0.0;
+						double p, v, pa, vt, va, voff, ft, foff, ft_offset;
+						p = controller->motionAtAbs(i).actualPos();
 						v = 0.0;
 						pa = controller->motionAtAbs(i).actualPos();
 						va = controller->motionAtAbs(i).actualVel();
@@ -1242,7 +1242,10 @@ namespace rokae
 						ft = std::max(-400.0, ft);
 						ft = std::min(400.0, ft);
 
-						controller->motionAtAbs(i).setTargetCur(ft);
+						//拖动示教
+						ft_offset = (rokae::f_vel*controller->motionAtAbs(i).actualVel())*rokae::f2c_index;
+						
+						controller->motionAtAbs(i).setTargetCur(ft_offset);
 
 						//打印PID控制结果
 						auto &cout = controller->mout();
