@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
 	auto port = argc < 2 ? 5866 : std::stoi(argv[1]);
 
 	cs.resetController(rokae::createControllerRokaeXB4().release());
-	cs.resetModel(rokae::createModelRokaeXB4().release());
+	cs.resetModel(aris::dynamic::createModelRokaeXB4().release());
 	cs.resetPlanRoot(rokae::createPlanRootRokaeXB4().release());
 	cs.resetSensorRoot(new aris::sensor::SensorRoot);
 

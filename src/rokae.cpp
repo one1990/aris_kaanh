@@ -1243,7 +1243,10 @@ namespace rokae
 						ft = std::min(400.0, ft);
 
 						//拖动示教
-						ft_offset = (rokae::f_vel*controller->motionAtAbs(i).actualVel())*rokae::f2c_index;
+						auto real_vel = std::max(std::min(max_static_vel, controller->motionAtAbs(i).actualVel()), -max_static_vel);
+						ft_offset = (f_vel[i] * controller->motionAtAbs(i).actualVel() + f_static_index * f_static[i] * real_vel / max_static_vel)*f2c_index;
+						ft_offset = std::max(-800.0, ft_offset);
+						ft_offset = std::min(800.0, ft_offset);
 						
 						controller->motionAtAbs(i).setTargetCur(ft_offset);
 
@@ -1251,8 +1254,12 @@ namespace rokae
 						auto &cout = controller->mout();
 						if (target.count % 100 == 0)
 						{
-							cout << "ft:" << ft << "  " << "vt:" << vt << "  " << "va:" << va << "  " << "param.kp_v*(vt - va):" << param.kp_v*(vt - va) << "  " << "param.ki_v*vinteg[i]:" << param.ki_v*vinteg[i] << "    ";
-							cout << "p:" << p << "  " << "pa:" << pa << std::endl;
+							//cout << "ft:" << ft << "  " << "vt:" << vt << "  " << "va:" << va << "  " << "param.kp_v*(vt - va):" << param.kp_v*(vt - va) << "  " << "param.ki_v*vinteg[i]:" << param.ki_v*vinteg[i] << "    ";
+							cout << "feedbackf:" << std::setw(10) << controller->motionAtAbs(i).actualCur()
+								<< "f:" << std::setw(10) << ft_offset
+								<< "p:" << std::setw(10) << p
+								<< "pa:" << std::setw(10) << pa
+								<< "va:" << std::setw(10) << va << std::endl;
 						}
 					}
 				}
@@ -1274,6 +1281,7 @@ namespace rokae
 			if (!target.model->solverPool().at(1).kinPos())return -1;
 
 			// 打印电流 //
+			/*
 			auto &cout = controller->mout();
 			if (target.count % 100 == 0)
 			{
@@ -1289,15 +1297,16 @@ namespace rokae
 				}
 				cout << std::endl;
 			}
+			*/
 
 			// log 电流 //
 			auto &lout = controller->lout();
 			for (Size i = 0; i < param.joint_active_vec.size(); i++)
 			{
-				lout << controller->motionAtAbs(i).targetCur() << ",";
-				lout << controller->motionAtAbs(i).actualPos() << ",";
-				lout << controller->motionAtAbs(i).actualVel() << ",";
-				lout << controller->motionAtAbs(i).actualCur() << ",";
+				lout << std::setw(10) << controller->motionAtAbs(i).targetCur() << ",";
+				lout << std::setw(10) << controller->motionAtAbs(i).actualPos() << ",";
+				lout << std::setw(10) << controller->motionAtAbs(i).actualVel() << ",";
+				lout << std::setw(10) << controller->motionAtAbs(i).actualCur() << " | ";
 			}
 			lout << std::endl;
 
