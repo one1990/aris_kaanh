@@ -1113,7 +1113,7 @@ namespace rokae
 		{
 			auto c = dynamic_cast<aris::control::Controller*>(target.master);
 			MoveJRCParam param;
-
+			enable_moveJRC = true;
 			for (auto cmd_param : params)
 			{
 				if (cmd_param.first == "all")
@@ -1256,7 +1256,7 @@ namespace rokae
 
 						//ÍÏ¶¯Ê¾½Ì
 						auto real_vel = std::max(std::min(max_static_vel, controller->motionAtAbs(i).actualVel()), -max_static_vel);
-						ft_offset = (f_vel[i] * controller->motionAtAbs(i).actualVel() + f_static_index * f_static[i] * real_vel / max_static_vel)*f2c_index;
+						ft_offset = (f_vel[i] * controller->motionAtAbs(i).actualVel() + f_static_index * f_static[i] * real_vel / max_static_vel)*f2c_index[i];
 						
 						ft_offset = std::max(-800.0, ft_offset);
 						ft_offset = std::min(800.0, ft_offset);
