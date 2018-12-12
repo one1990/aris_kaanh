@@ -1218,6 +1218,18 @@ namespace rokae
 				}
 			}
 
+			//动力学
+			for (int i = 0; i < 6; ++i)
+			{
+				target.model->motionPool()[i].setMp(controller->motionPool()[i].actualPos());
+				target.model->motionPool().at(i).setMv(controller->motionAtAbs(i).actualVel());
+				target.model->motionPool().at(i).setMa(0.0);
+			}
+
+			target.model->solverPool()[1].kinPos();
+			target.model->solverPool()[1].kinVel();
+			target.model->solverPool()[2].dynAccAndFce();
+
 			if(enable_moveJRC)
 			{
 				for (Size i = 0; i < param.joint_active_vec.size(); ++i)
@@ -1245,10 +1257,11 @@ namespace rokae
 						//拖动示教
 						auto real_vel = std::max(std::min(max_static_vel, controller->motionAtAbs(i).actualVel()), -max_static_vel);
 						ft_offset = (f_vel[i] * controller->motionAtAbs(i).actualVel() + f_static_index * f_static[i] * real_vel / max_static_vel)*f2c_index;
+						
 						ft_offset = std::max(-800.0, ft_offset);
 						ft_offset = std::min(800.0, ft_offset);
 						
-						controller->motionAtAbs(i).setTargetCur(ft_offset);
+						controller->motionAtAbs(i).setTargetCur(ft_offset + target.model->motionPool()[i].mfDyn());
 
 						//打印PID控制结果
 						auto &cout = controller->mout();
