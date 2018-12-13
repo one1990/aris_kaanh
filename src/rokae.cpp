@@ -1202,13 +1202,16 @@ namespace rokae
 		{
 			auto &param = std::any_cast<MoveJRCParam&>(target.param);
 			auto controller = dynamic_cast<aris::control::Controller *>(target.master);
-			static double vinteg[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
-			
+            static bool is_running{true};
+            static double vinteg[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+            bool is_all_finished{true};
+
 			//第一个周期，将目标电机的控制模式切换到电流控制模式
 			if (target.count == 1)
 			{
 				
-				for (Size i = 0; i < param.joint_active_vec.size(); ++i)
+                is_running = true;
+                for (Size i = 0; i < param.joint_active_vec.size(); ++i)
 				{
 					if (param.joint_active_vec[i])
 					{
@@ -1217,6 +1220,30 @@ namespace rokae
 					}
 				}
 			}
+
+            //最后一个周期将目标电机的控制模式切换到位置控制模式，且将当期位置设置为目标位置
+            if(!enable_moveJRC)
+            {
+                is_running = false;
+            }
+            if(!is_running)
+            {
+
+                for (Size i = 0; i < param.joint_active_vec.size(); ++i)
+                {
+                    if (param.joint_active_vec[i])
+                    {
+                        //controller->motionPool().at(i).setModeOfOperation(8);
+                        //controller->motionPool().at(i).setTargetPos(controller->motionAtAbs(i).actualPos());
+                        //target.model->motionPool().at(i).setMp(controller->motionAtAbs(i).actualPos());
+                        auto ret = controller->motionPool().at(i).disable();
+                        if(ret)
+                        {
+                            is_all_finished = false;
+                        }
+                    }
+                }
+            }
 
 			//动力学
 			for (int i = 0; i < 6; ++i)
@@ -1230,7 +1257,7 @@ namespace rokae
 			target.model->solverPool()[1].kinVel();
 			target.model->solverPool()[2].dynAccAndFce();
 
-			if(enable_moveJRC)
+            if(is_running)
 			{
 				for (Size i = 0; i < param.joint_active_vec.size(); ++i)
 				{
@@ -1255,13 +1282,20 @@ namespace rokae
 						ft = std::min(400.0, ft);
 
 						//拖动示教
-						auto real_vel = std::max(std::min(max_static_vel, controller->motionAtAbs(i).actualVel()), -max_static_vel);
-						ft_offset = (f_vel[i] * controller->motionAtAbs(i).actualVel() + f_static_index * f_static[i] * real_vel / max_static_vel)*f2c_index[i];
+                        //constexpr double f_static[6] = { 0.116994475,0.139070885,0.057812486,0.04834123,0.032697209,0.03668566 };
+                        //constexpr double f_vel[6] = { 0.091826484,0.189104972,0.090449316,0.044415268,0.015864525,0.007350605 };
+                        //constexpr double f_acc[6] = { 0.011658463,0.044943276,0.005936147,0.002210092,0.000618672,0.000664163 };
+                        //constexpr double f2c_index[6] = { 734.9352963,734.9352963,1423.090497,2843.68815,5378.339276,5378.339276 };
+                        //constexpr double max_static_vel[6] = {0.1, 0.1, 0.1, 0.05, 0.05, 0.075};
+                        //constexpr double f_static_index[6] = {0.5, 0.5, 0.5, 0.85, 0.95, 0.8};
+
+                        auto real_vel = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
+                        ft_offset = (f_vel[i] * controller->motionAtAbs(i).actualVel() + f_static_index[i] * f_static[i] * real_vel / max_static_vel[i])*f2c_index[i];
 						
-						ft_offset = std::max(-800.0, ft_offset);
-						ft_offset = std::min(800.0, ft_offset);
+                        ft_offset = std::max(-500.0, ft_offset);
+                        ft_offset = std::min(500.0, ft_offset);
 						
-						controller->motionAtAbs(i).setTargetCur(ft_offset + target.model->motionPool()[i].mfDyn());
+                        controller->motionAtAbs(i).setTargetCur(ft_offset + target.model->motionPool()[i].mfDyn()*f2c_index[i]);
 
 						//打印PID控制结果
 						auto &cout = controller->mout();
@@ -1278,19 +1312,6 @@ namespace rokae
 				}
 			}
 					
-			//最后一个周期将目标电机的控制模式切换到位置控制模式，且将当期位置设置为目标位置
-			if(!enable_moveJRC)
-			{
-				for (Size i = 0; i < param.joint_active_vec.size(); ++i)
-				{		
-					if (param.joint_active_vec[i])
-					{
-						controller->motionPool().at(i).setModeOfOperation(8);
-						target.model->motionPool().at(i).setMp(controller->motionAtAbs(i).actualPos());
-					}
-				}
-			}
-
 			if (!target.model->solverPool().at(1).kinPos())return -1;
 
 			// 打印电流 //
@@ -1323,7 +1344,7 @@ namespace rokae
 			}
 			lout << std::endl;
 
-			return enable_moveJRC ? 1 : 0;
+            return (!is_running&&is_all_finished) ? 0 : 1;
 		}
 		auto virtual collectNrt(PlanTarget &target)->void {}
 
