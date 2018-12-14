@@ -1097,7 +1097,7 @@ namespace rokae
 		}
 	};
 
-	// 单关节相对运动轨迹--输入单个关节，角度位置；关节按照梯形速度轨迹执行；速度前馈；电流控制//
+	// 拖动示教——单关节或者6个轨迹相对运动轨迹--输入单个关节，角度位置；关节按照梯形速度轨迹执行；速度前馈；电流控制//
 	std::atomic_bool enable_moveJRC = true;
 	struct MoveJRCParam
 	{
@@ -1204,7 +1204,8 @@ namespace rokae
 			auto controller = dynamic_cast<aris::control::Controller *>(target.master);
             static bool is_running{true};
             static double vinteg[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
-            bool is_all_finished{true};
+            bool ds_is_all_finished{true};
+			bool md_is_all_finished{ true };
 
 			//第一个周期，将目标电机的控制模式切换到电流控制模式
 			if (target.count == 1)
@@ -1221,14 +1222,13 @@ namespace rokae
 				}
 			}
 
-            //最后一个周期将目标电机的控制模式切换到位置控制模式，且将当期位置设置为目标位置
+            //最后一个周期将目标电机去使能
             if(!enable_moveJRC)
             {
                 is_running = false;
             }
             if(!is_running)
             {
-
                 for (Size i = 0; i < param.joint_active_vec.size(); ++i)
                 {
                     if (param.joint_active_vec[i])
@@ -1239,12 +1239,31 @@ namespace rokae
                         auto ret = controller->motionPool().at(i).disable();
                         if(ret)
                         {
-                            is_all_finished = false;
+							ds_is_all_finished = false;
                         }
                     }
                 }
             }
-
+			
+			//将目标电机由电流模式切换到位置模式
+			if (!is_running&&ds_is_all_finished)
+			{
+				for (Size i = 0; i < param.joint_active_vec.size(); ++i)
+				{
+					if (param.joint_active_vec[i])
+					{
+						//controller->motionPool().at(i).setModeOfOperation(8);
+						//controller->motionPool().at(i).setTargetPos(controller->motionAtAbs(i).actualPos());
+						//target.model->motionPool().at(i).setMp(controller->motionAtAbs(i).actualPos());
+						auto ret = controller->motionPool().at(i).disable();
+						if (ret)
+						{
+							md_is_all_finished = false;
+						}
+					}
+				}
+			}
+			
 			//动力学
 			for (int i = 0; i < 6; ++i)
 			{
@@ -1344,7 +1363,7 @@ namespace rokae
 			}
 			lout << std::endl;
 
-            return (!is_running&&is_all_finished) ? 0 : 1;
+            return (!is_running&&md_is_all_finished) ? 0 : 1;
 		}
 		auto virtual collectNrt(PlanTarget &target)->void {}
 
@@ -1438,7 +1457,7 @@ namespace rokae
 		}
 	};
 
-	// 停止MoveJRC，使得电机保持//
+	// 停止拖动示教——停止MoveJRC，去使能电机//
 	class MoveStop : public aris::plan::Plan
 	{
 	public:
