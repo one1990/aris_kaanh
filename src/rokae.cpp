@@ -1643,8 +1643,9 @@ namespace rokae
 			{
 				for (Size i = 0; i < param.ft.size(); ++i)
 				{
-					auto ret = controller->motionPool().at(i).disable();
-					if (ret)
+                    controller->motionPool().at(i).setModeOfOperation(8);
+                    auto ret = controller->motionPool().at(i).modeOfDisplay();
+                    if (ret != 8)
 					{
 						md_is_all_finished = false;
 					}	
@@ -1692,7 +1693,24 @@ namespace rokae
 					}			
 				}
 
+                auto &cout = controller->mout();
+                cout << "ft00:";
+                for (Size i = 0; i < 6; i++)
+                {
+                    cout <<param.ft[i]<<"  ";
+                }
+                cout <<std::endl;
+
+
 				s_c3a(param.pqa.data(), param.ft.data(), param.ft.data() + 3);
+
+                cout << "ft01:";
+                for (Size i = 0; i < 6; i++)
+                {
+                    cout <<param.ft[i]<<"  ";
+                }
+                cout <<std::endl;
+
 				//通过雅克比矩阵将param.ft转换到关节param.ft_input
 				auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(target.model->solverPool()[1]);
 				//inv.Ji();
@@ -1707,6 +1725,14 @@ namespace rokae
 				s_householder_utp2pinv(6, 6, rank, U, tau, p, J_fce, tau2);*/
 				
 				s_mm(6, 1, 6, fwd.Jf(), aris::dynamic::ColMajor{6}, param.ft.data(), 1, param.ft_input.data(), 1);
+
+
+                cout << "ft10:";
+                for (Size i = 0; i < 6; i++)
+                {
+                    cout <<param.ft_input[i]<<"  ";
+                }
+                cout <<std::endl;
 
 				//动力学载荷
 				for (Size i = 0; i < param.ft.size(); ++i)
@@ -1731,7 +1757,7 @@ namespace rokae
 					ft_dynamic = target.model->motionPool()[i].mfDyn()*f2c_index[i];
 					ft_offset = ft_static + ft_dynamic;	
 
-					controller->motionAtAbs(i).setTargetCur(ft_offset + param.ft_input[i]);
+                    controller->motionAtAbs(i).setTargetCur(ft_offset + 0.0*param.ft_input[i]*f2c_index[i]);
 					//打印PID控制结果
 					//auto &cout = controller->mout();
 					//if (target.count % 100 == 0)
@@ -1749,26 +1775,33 @@ namespace rokae
 			auto &cout = controller->mout();
 			if (target.count % 1000 == 0)
 			{
-				dsp(1, 7, param.pqa.data());
-				dsp(1, 7, param.pqt.data());
-				dsp(1, 6, param.ft.data());
-				dsp(1, 6, param.ft_input.data());
+                //dsp(1, 7, param.pqa.data());
+                //dsp(1, 7, param.pqt.data());
+                //dsp(1, 6, param.ft.data());
+                //dsp(1, 6, param.ft_input.data());
+                cout << "ft:";
+                for (Size i = 0; i < 6; i++)
+                {
+                    cout <<param.ft_input[i]*f2c_index[i]<<"  ";
+                }
+                cout <<std::endl;
 
+                /*
 				for (Size i = 0; i < 6; i++)
 				{
-					cout << std::setw(6) << "pos" << i + 1 << ":" << controller->motionAtAbs(i).actualPos();
-					cout << std::setw(6) << "vel" << i + 1 << ":" << controller->motionAtAbs(i).actualVel();
+                    cout << std::setw(6) << "pos" << i + 1 << ":" << controller->motionAtAbs(i).actualPos();
+                    cout << std::setw(6) << "vel" << i + 1 << ":" << controller->motionAtAbs(i).actualVel();
 					cout << std::setw(6) << "cur" << i + 1 << ":" << controller->motionAtAbs(i).actualCur();
 				}
-				cout << std::endl;
+                cout << std::endl;*/
 			}
 			
 			// log //
 			auto &lout = controller->lout();
 			for (Size i = 0; i < param.ft.size(); i++)
 			{
-				lout << std::setw(10) << controller->motionAtAbs(i).targetCur() << ",";
-				lout << std::setw(10) << controller->motionAtAbs(i).actualPos() << ",";
+                lout << std::setw(10) << controller->motionAtAbs(i).targetCur() << ",";
+                lout << std::setw(10) << controller->motionAtAbs(i).actualPos() << ",";
 				lout << std::setw(10) << controller->motionAtAbs(i).actualVel() << ",";
 				lout << std::setw(10) << controller->motionAtAbs(i).actualCur() << " | ";
 			}
@@ -1783,7 +1816,7 @@ namespace rokae
 			command().loadXmlStr(
 				"<moveJCrash>"
 				"	<group type=\"GroupParam\" default_child_type=\"Param\">"
-				"		<pqt default=\"{0.408,0.0,0.6295,0.0,0.0,0.0,1.0}\" abbreviation=\"p\"/>"
+                "		<pqt default=\"{0.7171,0.0,0.7071,0.0,0.0,0.0,1.0}\" abbreviation=\"p\"/>"
 				"		<kp_p default=\"{1.0,1.0,1.0,1.0,1.0,1.0,1.0}\"/>"
 				"		<kp_v default=\"{100,100,100,100,100,100}\"/>"
 				"		<ki_v default=\"{0.1,0.1,0.1,0.1,0.1,0.1}\"/>"
