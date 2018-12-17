@@ -1252,10 +1252,8 @@ namespace rokae
 				{
 					if (param.joint_active_vec[i])
 					{
-						//controller->motionPool().at(i).setModeOfOperation(8);
-						//controller->motionPool().at(i).setTargetPos(controller->motionAtAbs(i).actualPos());
-						//target.model->motionPool().at(i).setMp(controller->motionAtAbs(i).actualPos());
-						auto ret = controller->motionPool().at(i).disable();
+						controller->motionPool().at(i).setModeOfOperation(8);
+						auto ret = controller->motionPool().at(i).mode(8);
 						if (ret)
 						{
 							md_is_all_finished = false;
