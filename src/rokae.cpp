@@ -1726,6 +1726,7 @@ namespace rokae
 				
 				s_mm(6, 1, 6, fwd.Jf(), aris::dynamic::ColMajor{6}, param.ft.data(), 1, param.ft_input.data(), 1);
 
+				dsp(6, 6, fwd.Jf());
 
                 cout << "ft10:";
                 for (Size i = 0; i < 6; i++)
@@ -1757,17 +1758,7 @@ namespace rokae
 					ft_dynamic = target.model->motionPool()[i].mfDyn()*f2c_index[i];
 					ft_offset = ft_static + ft_dynamic;	
 
-                    controller->motionAtAbs(i).setTargetCur(ft_offset + 0.0*param.ft_input[i]*f2c_index[i]);
-					//打印PID控制结果
-					//auto &cout = controller->mout();
-					//if (target.count % 100 == 0)
-					//{
-					//	cout << "ft_static:" << std::setw(10) << ft_static
-					//		<< "ft_dynamic:" << std::setw(10) << ft_dynamic
-					//		<< "ft_offset:" << std::setw(10) << ft_offset
-					//		<< "param.ft[i]:" << std::setw(10) << param.ft[i] 
-					//		<< "ft_offset + param.ft[i]:" << std::setw(10) << ft_offset + param.ft[i] << std::endl;
-					//}
+                    controller->motionAtAbs(i).setTargetCur(ft_offset + param.ft_input[i]*f2c_index[i]/80.0);
 				}
 			}
 			
