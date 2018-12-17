@@ -1301,12 +1301,12 @@ namespace rokae
 						ft = std::min(400.0, ft);
 
 						//拖动示教
-                        //constexpr double f_static[6] = { 0.116994475,0.139070885,0.057812486,0.04834123,0.032697209,0.03668566 };
-                        //constexpr double f_vel[6] = { 0.091826484,0.189104972,0.090449316,0.044415268,0.015864525,0.007350605 };
-                        //constexpr double f_acc[6] = { 0.011658463,0.044943276,0.005936147,0.002210092,0.000618672,0.000664163 };
-                        //constexpr double f2c_index[6] = { 734.9352963,734.9352963,1423.090497,2843.68815,5378.339276,5378.339276 };
-                        //constexpr double max_static_vel[6] = {0.1, 0.1, 0.1, 0.05, 0.05, 0.075};
-                        //constexpr double f_static_index[6] = {0.5, 0.5, 0.5, 0.85, 0.95, 0.8};
+						//constexpr double f_static[6] = { 9.349947583,11.64080253,4.770140543,3.631416685,2.58310847,1.783739862 };
+						//constexpr double f_vel[6] = { 7.80825641,13.26518528,7.856443575,3.354615249,1.419632126,0.319206404 };
+						//constexpr double f_acc[6] = { 0,3.555679326,0.344454603,0.148247716,0.048552673,0.033815455 };
+						//constexpr double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
+						//constexpr double max_static_vel[6] = { 0.1, 0.1, 0.1, 0.05, 0.05, 0.075 };
+						//constexpr double f_static_index[6] = { 0.5, 0.5, 0.5, 0.85, 0.95, 0.8 };
 
                         auto real_vel = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
                         ft_offset = (f_vel[i] * controller->motionAtAbs(i).actualVel() + f_static_index[i] * f_static[i] * real_vel / max_static_vel[i])*f2c_index[i];
@@ -1693,29 +1693,8 @@ namespace rokae
 					}			
 				}
 
-                auto &cout = controller->mout();
-                cout << "ft00:";
-                for (Size i = 0; i < 6; i++)
-                {
-                    cout <<param.ft[i]<<"  ";
-                }
-                cout <<std::endl;
-
-
-				s_c3a(param.pqa.data(), param.ft.data(), param.ft.data() + 3);
-
-                cout << "ft01:";
-                for (Size i = 0; i < 6; i++)
-                {
-                    cout <<param.ft[i]<<"  ";
-                }
-                cout <<std::endl;
-
 				//通过雅克比矩阵将param.ft转换到关节param.ft_input
 				auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(target.model->solverPool()[1]);
-				//inv.Ji();
-				//inv.mJi();
-				//inv.nJi();
 
 				fwd.cptJacobi();
 		/*		double U[36], tau[6], tau2[6], J_fce[36];
@@ -1723,22 +1702,12 @@ namespace rokae
 				
 				s_householder_utp(6, 6, inv.Jf(), U, tau, p, rank);
 				s_householder_utp2pinv(6, 6, rank, U, tau, p, J_fce, tau2);*/
-				
 				s_mm(6, 1, 6, fwd.Jf(), aris::dynamic::ColMajor{6}, param.ft.data(), 1, param.ft_input.data(), 1);
-
-				dsp(6, 6, fwd.Jf());
-
-                cout << "ft10:";
-                for (Size i = 0; i < 6; i++)
-                {
-                    cout <<param.ft_input[i]<<"  ";
-                }
-                cout <<std::endl;
 
 				//动力学载荷
 				for (Size i = 0; i < param.ft.size(); ++i)
 				{
-					double ft_offset, ft_static, ft_dynamic;
+					double ft_offset, ft_friction, ft_dynamic, ft_pid;
 					
 					//动力学参数
 					//constexpr double f_static[6] = { 0.116994475,0.139070885,0.057812486,0.04834123,0.032697209,0.03668566 };
@@ -1748,17 +1717,22 @@ namespace rokae
 					//constexpr double max_static_vel[6] = {0.1, 0.1, 0.1, 0.05, 0.05, 0.075};
 					//constexpr double f_static_index[6] = {0.5, 0.5, 0.5, 0.85, 0.95, 0.8};
 					
-					//静摩擦力+动摩擦力=ft_static
-					auto real_vel = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
-					ft_static = (f_vel[i] * controller->motionAtAbs(i).actualVel() + f_static_index[i] * f_static[i] * s_sgn(param.ft_input[i]))*f2c_index[i];
-					ft_static = std::max(-500.0, ft_offset);
-					ft_static = std::min(500.0, ft_offset);
+					//静摩擦力+动摩擦力=ft_friction
+					double ft_input_limit = 0.5;
+					auto real_ft = std::max(std::min(ft_input_limit, param.ft_input[i]), -ft_input_limit);
+					ft_friction = (f_vel[i] * controller->motionAtAbs(i).actualVel() + f_static_index[i] * f_static[i] * real_ft / ft_input_limit)*f2c_index[i];
 					
-					//动力学载荷ft_dynamic
+					ft_friction = std::max(-500.0, ft_friction);
+					ft_friction = std::min(500.0, ft_friction);
+					
+					//动力学载荷=ft_dynamic
 					ft_dynamic = target.model->motionPool()[i].mfDyn()*f2c_index[i];
-					ft_offset = ft_static + ft_dynamic;	
 
-                    controller->motionAtAbs(i).setTargetCur(ft_offset + param.ft_input[i]*f2c_index[i]/80.0);
+					//PID输入=ft_pid
+					ft_pid = param.ft_input[i] * f2c_index[i];
+
+					ft_offset = ft_friction + ft_dynamic + ft_pid;
+                    controller->motionAtAbs(i).setTargetCur(ft_offset);
 				}
 			}
 			
@@ -1766,11 +1740,7 @@ namespace rokae
 			auto &cout = controller->mout();
 			if (target.count % 1000 == 0)
 			{
-                //dsp(1, 7, param.pqa.data());
-                //dsp(1, 7, param.pqt.data());
-                //dsp(1, 6, param.ft.data());
-                //dsp(1, 6, param.ft_input.data());
-                cout << "ft:";
+                cout << "ft_pid:";
                 for (Size i = 0; i < 6; i++)
                 {
                     cout <<param.ft_input[i]*f2c_index[i]<<"  ";
