@@ -1456,7 +1456,8 @@ namespace rokae
 	};
 
 	// 碰撞检测——关节插值运动轨迹--输入末端pq姿态，各个关节的速度、加速度；各关节按照梯形速度轨迹执行；速度前馈；电流控制 //
-	struct MoveJCrashParam
+    std::atomic_bool enable_moveJCrash = true;
+    struct MoveJCrashParam
 	{
 		std::vector<double> kp_p;
 		std::vector<double> kp_v;
@@ -1476,6 +1477,7 @@ namespace rokae
 		{
 			auto c = dynamic_cast<aris::control::Controller*>(target.master);
 			MoveJCrashParam param;
+            enable_moveJCrash = true;
 			param.kp_p.resize(7, 0.0);
 			param.kp_v.resize(6, 0.0);
 			param.ki_v.resize(6, 0.0);
@@ -1620,7 +1622,7 @@ namespace rokae
 			}
 
 			//最后一个周期将目标电机去使能
-			if (!enable_moveJRC)
+            if (!enable_moveJCrash)
 			{
 				is_running = false;
 			}
@@ -1642,8 +1644,9 @@ namespace rokae
 				for (Size i = 0; i < param.ft.size(); ++i)
 				{
                     controller->motionPool().at(i).setModeOfOperation(8);
-                    auto ret = controller->motionPool().at(i).modeOfDisplay();
-                    if (ret != 8)
+                    //auto ret = controller->motionPool().at(i).modeOfDisplay();
+                    auto ret = controller->motionPool().at(i).mode(8);
+                    if (ret)
 					{
 						md_is_all_finished = false;
 					}	
@@ -1662,6 +1665,8 @@ namespace rokae
 			target.model->solverPool()[1].kinVel();
 			target.model->solverPool()[2].dynAccAndFce();
 
+            double ft_input_limit[6];
+            double real_ft[6];
 			if (is_running)
 			{
 				//位置环PID+速度限制
@@ -1691,6 +1696,9 @@ namespace rokae
 					}			
 				}
 
+                s_c3a(param.pqa.data(), param.ft.data(), param.ft.data() + 3);
+
+
 				//通过雅克比矩阵将param.ft转换到关节param.ft_input
 				auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(target.model->solverPool()[1]);
 
@@ -1702,24 +1710,31 @@ namespace rokae
 				s_householder_utp2pinv(6, 6, rank, U, tau, p, J_fce, tau2);*/
 				s_mm(6, 1, 6, fwd.Jf(), aris::dynamic::ColMajor{6}, param.ft.data(), 1, param.ft_input.data(), 1);
 
+
+                if (target.count % 1000 == 0)target.master->mout()<<"ratio:";
 				//动力学载荷
 				for (Size i = 0; i < param.ft.size(); ++i)
 				{
 					double ft_offset, ft_friction, ft_dynamic, ft_pid;
 					
 					//动力学参数
-					//constexpr double f_static[6] = { 0.116994475,0.139070885,0.057812486,0.04834123,0.032697209,0.03668566 };
-					//constexpr double f_vel[6] = { 0.091826484,0.189104972,0.090449316,0.044415268,0.015864525,0.007350605 };
-					//constexpr double f_acc[6] = { 0.011658463,0.044943276,0.005936147,0.002210092,0.000618672,0.000664163 };
-					//constexpr double f2c_index[6] = { 734.9352963,734.9352963,1423.090497,2843.68815,5378.339276,5378.339276 };
-					//constexpr double max_static_vel[6] = {0.1, 0.1, 0.1, 0.05, 0.05, 0.075};
-					//constexpr double f_static_index[6] = {0.5, 0.5, 0.5, 0.85, 0.95, 0.8};
-					
+                    //constexpr double f_static[6] = { 9.349947583,11.64080253,4.770140543,3.631416685,2.58310847,1.783739862 };
+                    //constexpr double f_vel[6] = { 7.80825641,13.26518528,7.856443575,3.354615249,1.419632126,0.319206404 };
+                    //constexpr double f_acc[6] = { 0,3.555679326,0.344454603,0.148247716,0.048552673,0.033815455 };
+                    //constexpr double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
+                    //constexpr double f_static_index[6] = {0.5, 0.5, 0.5, 0.85, 0.95, 0.8};
+
 					//静摩擦力+动摩擦力=ft_friction
-					double ft_input_limit = 0.5;
-					auto real_ft = std::max(std::min(ft_input_limit, param.ft_input[i]), -ft_input_limit);
-					ft_friction = (f_vel[i] * controller->motionAtAbs(i).actualVel() + f_static_index[i] * f_static[i] * real_ft / ft_input_limit)*f2c_index[i];
-					
+                    ft_input_limit[i] = 0.1 * f_static[i];
+                    real_ft[i] = std::max(std::min(ft_input_limit[i], param.ft_input[i]), -ft_input_limit[i]);
+                    ft_friction = (f_vel[i] * controller->motionAtAbs(i).actualVel() + f_static[i] * real_ft[i] / ft_input_limit[i])*f2c_index[i];
+
+                    if (target.count % 1000 == 0)target.master->mout()<< real_ft[i] / ft_input_limit[i] <<"  ";
+
+
+                    //auto real_vel = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
+                    //ft_friction = (f_vel[i] * controller->motionAtAbs(i).actualVel() + f_static_index[i] * f_static[i] * real_vel / max_static_vel[i])*f2c_index[i];
+
 					ft_friction = std::max(-500.0, ft_friction);
 					ft_friction = std::min(500.0, ft_friction);
 					
@@ -1727,23 +1742,42 @@ namespace rokae
 					ft_dynamic = target.model->motionPool()[i].mfDyn()*f2c_index[i];
 
 					//PID输入=ft_pid
-					ft_pid = param.ft_input[i] * f2c_index[i];
+                    ft_pid = param.ft_input[i] * f2c_index[i];
+                    //ft_pid = 0.0;
 
 					ft_offset = ft_friction + ft_dynamic + ft_pid;
                     controller->motionAtAbs(i).setTargetCur(ft_offset);
 				}
+                if (target.count % 1000 == 0)target.master->mout() <<std::endl;
 			}
 			
 			//打印//
 			auto &cout = controller->mout();
 			if (target.count % 1000 == 0)
 			{
-                cout << "ft_pid:";
+                cout << "vt:";
+                for (Size i = 0; i < 6; i++)
+                {
+                    cout <<param.vt[i]<<"  ";
+                }
+                cout <<std::endl;
+
+                cout << "ft:";
+                for (Size i = 0; i < 6; i++)
+                {
+                    cout <<param.ft[i]<<"  ";
+                }
+                cout <<std::endl;
+
+                cout << "fi:";
                 for (Size i = 0; i < 6; i++)
                 {
                     cout <<param.ft_input[i]*f2c_index[i]<<"  ";
                 }
                 cout <<std::endl;
+
+
+                cout <<"------------------------------------------------"<<std::endl;
 
                 /*
 				for (Size i = 0; i < 6; i++)
@@ -1759,10 +1793,17 @@ namespace rokae
 			auto &lout = controller->lout();
 			for (Size i = 0; i < param.ft.size(); i++)
 			{
-                lout << std::setw(10) << controller->motionAtAbs(i).targetCur() << ",";
-                lout << std::setw(10) << controller->motionAtAbs(i).actualPos() << ",";
-				lout << std::setw(10) << controller->motionAtAbs(i).actualVel() << ",";
-				lout << std::setw(10) << controller->motionAtAbs(i).actualCur() << " | ";
+                lout << std::setw(10) << param.kp_p[i] << ",";
+                lout << std::setw(10) << param.kp_v[i] << ",";
+                lout << std::setw(10) << param.ki_v[i] << ",";
+                lout << std::setw(10) << real_ft[i] / ft_input_limit[i] << ",";
+                lout << std::setw(10) << param.vt[i] << ",";
+                lout << std::setw(10) << param.ft[i] << ",";
+                lout << std::setw(10) << param.ft_input[i]*f2c_index[i] << " | ";
+                //lout << std::setw(10) << controller->motionAtAbs(i).targetCur() << ",";
+                //lout << std::setw(10) << controller->motionAtAbs(i).actualPos() << ",";
+                //lout << std::setw(10) << controller->motionAtAbs(i).actualVel() << ",";
+                //lout << std::setw(10) << controller->motionAtAbs(i).actualCur() << " | ";
 			}
 			lout << std::endl;
 
@@ -1775,10 +1816,10 @@ namespace rokae
 			command().loadXmlStr(
 				"<moveJCrash>"
 				"	<group type=\"GroupParam\" default_child_type=\"Param\">"
-                "		<pqt default=\"{0.7171,0.0,0.7071,0.0,0.0,0.0,1.0}\" abbreviation=\"p\"/>"
-				"		<kp_p default=\"{1.0,1.0,1.0,1.0,1.0,1.0,1.0}\"/>"
-				"		<kp_v default=\"{100,100,100,100,100,100}\"/>"
-				"		<ki_v default=\"{0.1,0.1,0.1,0.1,0.1,0.1}\"/>"
+                "		<pqt default=\"{0.42,0.0,0.55,0,0,0,1}\" abbreviation=\"p\"/>"
+                "		<kp_p default=\"2*{1.0,1.0,1.0,1.0,1.0,1.0,1.0}\"/>"
+                "		<kp_v default=\"{100,100,100,100,100,100}\"/>"
+                "		<ki_v default=\"10*{1,1,1,1,1,1}\"/>"
 				"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_all\">"
 				"			<check_all/>"
 				"			<check_none/>"
@@ -1857,6 +1898,7 @@ namespace rokae
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 		{
 			enable_moveJRC = false;
+            enable_moveJCrash = false;
 			target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
 		}
 
