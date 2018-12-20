@@ -1667,6 +1667,7 @@ namespace rokae
 
             double ft_input_limit[6];
             double real_ft[6];
+			double real_vel[6];
 			if (is_running)
 			{
 				//位置环PID+速度限制
@@ -1710,12 +1711,11 @@ namespace rokae
 				s_householder_utp2pinv(6, 6, rank, U, tau, p, J_fce, tau2);*/
 				s_mm(6, 1, 6, fwd.Jf(), aris::dynamic::ColMajor{6}, param.ft.data(), 1, param.ft_input.data(), 1);
 
-
                 if (target.count % 1000 == 0)target.master->mout()<<"ratio:";
 				//动力学载荷
 				for (Size i = 0; i < param.ft.size(); ++i)
 				{
-					double ft_offset, ft_friction, ft_dynamic, ft_pid;
+					double ft_offset, ft_friction, ft_friction1, ft_friction2, ft_dynamic, ft_pid;
 					
 					//动力学参数
                     //constexpr double f_static[6] = { 9.349947583,11.64080253,4.770140543,3.631416685,2.58310847,1.783739862 };
@@ -1725,16 +1725,19 @@ namespace rokae
                     //constexpr double f_static_index[6] = {0.5, 0.5, 0.5, 0.85, 0.95, 0.8};
 
 					//静摩擦力+动摩擦力=ft_friction
-					ft_input_limit[i] = max_static_vel[i];
-					real_ft[i] = std::max(std::min(ft_input_limit[i], controller->motionAtAbs(i).actualVel()), -ft_input_limit[i]);
-
-                    //ft_input_limit[i] = 0.1 * f_static[i];
-                    //real_ft[i] = std::max(std::min(ft_input_limit[i], param.ft_input[i]), -ft_input_limit[i]);
-
-                    ft_friction = (f_vel[i] * controller->motionAtAbs(i).actualVel() + f_static[i] * real_ft[i] / ft_input_limit[i])*f2c_index[i];
+					
+					real_vel[i] = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
+					ft_friction1 = (f_static[i] * real_vel[i] / max_static_vel[i]);
+                    
+					double ft_friction2_max = std::min(0.0, controller->motionAtAbs(i).actualVel() >= 0 ? f_static[i] - ft_friction1 : f_static[i] + ft_friction1);
+					double ft_friction2_min = std::max(0.0, controller->motionAtAbs(i).actualVel() >= 0 ? -f_static[i] + ft_friction1 : -f_static[i] - ft_friction1);
+					
+					double ft_friction2_index = 0.1;
+					ft_friction2 = std::max(ft_friction2_min, std::min(ft_friction2_max, ft_friction2_index * param.ft_input[i]));
+						
+					ft_friction = ft_friction1 + ft_friction2 + f_vel[i] * controller->motionAtAbs(i).actualVel();
 
                     if (target.count % 1000 == 0)target.master->mout()<< real_ft[i] / ft_input_limit[i] <<"  ";
-
 
                     //auto real_vel = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
                     //ft_friction = (f_vel[i] * controller->motionAtAbs(i).actualVel() + f_static_index[i] * f_static[i] * real_vel / max_static_vel[i])*f2c_index[i];
@@ -1743,13 +1746,13 @@ namespace rokae
 					ft_friction = std::min(500.0, ft_friction);
 					
 					//动力学载荷=ft_dynamic
-					ft_dynamic = target.model->motionPool()[i].mfDyn()*f2c_index[i];
+					ft_dynamic = target.model->motionPool()[i].mfDyn();
 
 					//PID输入=ft_pid
-                    ft_pid = param.ft_input[i] * f2c_index[i];
+                    ft_pid = param.ft_input[i];
                     //ft_pid = 0.0;
 
-					ft_offset = ft_friction + ft_dynamic + ft_pid;
+					ft_offset = (ft_friction + ft_dynamic + ft_pid)*f_static[i];
                     controller->motionAtAbs(i).setTargetCur(ft_offset);
 				}
                 if (target.count % 1000 == 0)target.master->mout() <<std::endl;
