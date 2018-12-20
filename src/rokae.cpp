@@ -1670,6 +1670,7 @@ namespace rokae
             double ft_offset[6];
 			double real_vel[6];
 			double ft_friction1[6], ft_friction2[6], ft_dynamic[6], ft_pid[6];
+			static double ft_friction2_index[6] = { 5.0, 5.0, 5.0, 5.0, 5.0, 4.0 };
 			if (is_running)
 			{
 				//位置环PID+速度限制
@@ -1740,8 +1741,7 @@ namespace rokae
                     double ft_friction2_max = std::max(0.0, controller->motionAtAbs(i).actualVel() >= 0 ? f_static[i] - ft_friction1[i] : f_static[i] + ft_friction1[i]);
                     double ft_friction2_min = std::min(0.0, controller->motionAtAbs(i).actualVel() >= 0 ? -f_static[i] + ft_friction1[i] : -f_static[i] - ft_friction1[i]);
 					
-                    double ft_friction2_index = 5.0;
-					ft_friction2[i] = std::max(ft_friction2_min, std::min(ft_friction2_max, ft_friction2_index * param.ft_input[i]));
+					ft_friction2[i] = std::max(ft_friction2_min, std::min(ft_friction2_max, ft_friction2_index[i] * param.ft_input[i]));
 						
                     ft_friction[i] = ft_friction1[i] + ft_friction2[i] + f_vel[i] * controller->motionAtAbs(i).actualVel();
 
@@ -1812,14 +1812,10 @@ namespace rokae
 			auto &lout = controller->lout();
 			for (Size i = 0; i < param.kp_p.size(); i++)
 			{
-				lout << param.kp_p[i] << ",";
-				lout << param.kp_v[i] << ",";
-				lout << param.ki_v[i] << ",";
 				lout << param.pqt[i] << ",";
 				lout << param.pqa[i] << ",";
 				lout << param.vt[i] << ",";
 				lout << va[i] << ",";
-
 			}
 			for (Size i = 0; i < param.ft.size(); i++)
 			{
@@ -1832,11 +1828,11 @@ namespace rokae
                 lout << ft_friction[i] << ",";
 				lout << ft_dynamic[i] << ",";
 				lout << ft_offset[i] << ",";
-                lout << ft_pid[i] << " | ";
-                //lout << std::setw(10) << controller->motionAtAbs(i).targetCur() << ",";
-                //lout << std::setw(10) << controller->motionAtAbs(i).actualPos() << ",";
-                //lout << std::setw(10) << controller->motionAtAbs(i).actualVel() << ",";
-                //lout << std::setw(10) << controller->motionAtAbs(i).actualCur() << " | ";
+                lout << ft_pid[i] << ",";
+                lout << controller->motionAtAbs(i).targetCur() << ",";
+                lout << controller->motionAtAbs(i).actualPos() << ",";
+                lout << controller->motionAtAbs(i).actualVel() << ",";
+                lout << controller->motionAtAbs(i).actualCur();
 			}
 			lout << std::endl;
 
