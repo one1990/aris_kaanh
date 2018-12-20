@@ -1361,7 +1361,7 @@ namespace rokae
 			}
 			lout << std::endl;
 
-            return (!is_running&&md_is_all_finished) ? 0 : 1;
+            return (!is_running&&ds_is_all_finished&&md_is_all_finished) ? 0 : 1;
 		}
 		auto virtual collectNrt(PlanTarget &target)->void {}
 
@@ -1725,8 +1725,12 @@ namespace rokae
                     //constexpr double f_static_index[6] = {0.5, 0.5, 0.5, 0.85, 0.95, 0.8};
 
 					//¾²Ä¦²ÁÁ¦+¶¯Ä¦²ÁÁ¦=ft_friction
-                    ft_input_limit[i] = 0.1 * f_static[i];
-                    real_ft[i] = std::max(std::min(ft_input_limit[i], param.ft_input[i]), -ft_input_limit[i]);
+					ft_input_limit[i] = max_static_vel[i];
+					real_ft[i] = std::max(std::min(ft_input_limit[i], controller->motionAtAbs(i).actualVel()), -ft_input_limit[i]);
+
+                    //ft_input_limit[i] = 0.1 * f_static[i];
+                    //real_ft[i] = std::max(std::min(ft_input_limit[i], param.ft_input[i]), -ft_input_limit[i]);
+
                     ft_friction = (f_vel[i] * controller->motionAtAbs(i).actualVel() + f_static[i] * real_ft[i] / ft_input_limit[i])*f2c_index[i];
 
                     if (target.count % 1000 == 0)target.master->mout()<< real_ft[i] / ft_input_limit[i] <<"  ";
@@ -1807,7 +1811,7 @@ namespace rokae
 			}
 			lout << std::endl;
 
-			return (!is_running&&md_is_all_finished) ? 0 : 1;
+			return (!is_running&&ds_is_all_finished&&md_is_all_finished) ? 0 : 1;
 		}
 		auto virtual collectNrt(PlanTarget &target)->void {}
 
