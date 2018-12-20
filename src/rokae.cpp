@@ -1664,13 +1664,16 @@ namespace rokae
 
 			target.model->solverPool()[1].kinPos();
 			target.model->solverPool()[1].kinVel();
+            double ee_acc[6]{0,0,0,0,0,0};
+            target.model->generalMotionPool()[0].setMaa(ee_acc);
+            target.model->solverPool()[0].dynAccAndFce();
 			target.model->solverPool()[2].dynAccAndFce();
 
             double ft_friction[6];
             double ft_offset[6];
 			double real_vel[6];
 			double ft_friction1[6], ft_friction2[6], ft_dynamic[6], ft_pid[6];
-			static double ft_friction2_index[6] = { 5.0, 5.0, 5.0, 5.0, 5.0, 4.0 };
+            static double ft_friction2_index[6] = { 3.0, 3.0, 3.0, 3.0, 3.0, 3.0 };
 			if (is_running)
 			{
 				//位置环PID+速度限制
@@ -1811,7 +1814,10 @@ namespace rokae
 			// log //
 			auto &lout = controller->lout();
 			for (Size i = 0; i < param.kp_p.size(); i++)
-			{
+            {
+                lout << param.kp_p[i] << ",";
+                lout << param.kp_v[i] << ",";
+                lout << param.ki_v[i] << ",";
 				lout << param.pqt[i] << ",";
 				lout << param.pqa[i] << ",";
 				lout << param.vt[i] << ",";
@@ -1845,10 +1851,10 @@ namespace rokae
 			command().loadXmlStr(
 				"<moveJCrash>"
 				"	<group type=\"GroupParam\" default_child_type=\"Param\">"
-                "		<pqt default=\"{0.42,0.0,0.55,0,0,0,1}\" abbreviation=\"p\"/>"
+                "		<pqt default=\"{0.42,0.0,0.55,0,0.7071,0,0.7071}\" abbreviation=\"p\"/>"
                 "		<kp_p default=\"{1.0,1.0,1.0,1.0,1.0,1.0,1.0}\"/>"
                 "		<kp_v default=\"0.1*{100,100,100,100,100,100}\"/>"
-                "		<ki_v default=\"3*{1,1,1,1,1,1}\"/>"
+                "		<ki_v default=\"30*{1,1,1,1,1,1}\"/>"
 				"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_all\">"
 				"			<check_all/>"
 				"			<check_none/>"
