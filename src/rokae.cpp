@@ -1607,6 +1607,7 @@ namespace rokae
 			static double va[7];
 			static bool is_running{ true };
 			static double vinteg[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+            static double vproportion[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 			bool ds_is_all_finished{ true };
 			bool md_is_all_finished{ true };
 
@@ -1681,20 +1682,27 @@ namespace rokae
 
 				//速度环PID+力及力矩的限制
 				target.model->generalMotionPool().at(0).getMvq(va);
+
 				for (Size i = 0; i < param.ft.size(); ++i)
 				{
-					vinteg[i] = vinteg[i] + param.vt[i] - va[i];
-					param.ft[i] = param.kp_v[i] * (param.vt[i] - va[i]) + param.ki_v[i] * vinteg[i];
+                    double limit = i<3?ft_limit:Mt_limit;
+
+                    //vproportion[i] = std::min(r2*limit, std::max(-r2*limit, param.kp_v[i] * (param.vt[i] - va[i])));
+                    vproportion[i] = param.kp_v[i] * (param.vt[i] - va[i]);
+                    double vinteg_limit = std::max(0.0,limit - vproportion[i]);
+                    vinteg[i] = std::min(vinteg_limit, std::max(-vinteg_limit, vinteg[i] + param.ki_v[i] * (param.vt[i] - va[i])));
+
+                    param.ft[i] = vproportion[i] + vinteg[i];
 					//力的限制
-					if (i < 3)
-					{
-						param.ft[i] = std::max(std::min(param.ft[i], ft_limit), -ft_limit);
-					}
+                    //if (i < 3)
+                    //{
+                    //	param.ft[i] = std::max(std::min(param.ft[i], ft_limit), -ft_limit);
+                    //}
 					//力矩的限制
-					else
-					{
-						param.ft[i] = std::max(std::min(param.ft[i], Mt_limit), -Mt_limit);
-					}			
+                    //else
+                    //{
+                    //	param.ft[i] = std::max(std::min(param.ft[i], Mt_limit), -Mt_limit);
+                    //}
 				}
 
                 s_c3a(param.pqa.data(), param.ft.data(), param.ft.data() + 3);
@@ -1711,7 +1719,7 @@ namespace rokae
 				s_householder_utp2pinv(6, 6, rank, U, tau, p, J_fce, tau2);*/
 				s_mm(6, 1, 6, fwd.Jf(), aris::dynamic::ColMajor{6}, param.ft.data(), 1, param.ft_input.data(), 1);
 
-                if (target.count % 1000 == 0)target.master->mout()<<"ratio:";
+                if (target.count % 1000 == 0)target.master->mout()<<"friction 1 and 2:"<<std::endl;
 				//动力学载荷
 				for (Size i = 0; i < param.ft.size(); ++i)
 				{
@@ -1727,17 +1735,17 @@ namespace rokae
 					//静摩擦力+动摩擦力=ft_friction
 					
 					real_vel[i] = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
-					ft_friction1 = (f_static[i] * real_vel[i] / max_static_vel[i]);
+                    ft_friction1 = 0.8*(f_static[i] * real_vel[i] / max_static_vel[i]);
                     
-					double ft_friction2_max = std::min(0.0, controller->motionAtAbs(i).actualVel() >= 0 ? f_static[i] - ft_friction1 : f_static[i] + ft_friction1);
-					double ft_friction2_min = std::max(0.0, controller->motionAtAbs(i).actualVel() >= 0 ? -f_static[i] + ft_friction1 : -f_static[i] - ft_friction1);
+                    double ft_friction2_max = std::max(0.0, controller->motionAtAbs(i).actualVel() >= 0 ? f_static[i] - ft_friction1 : f_static[i] + ft_friction1);
+                    double ft_friction2_min = std::min(0.0, controller->motionAtAbs(i).actualVel() >= 0 ? -f_static[i] + ft_friction1 : -f_static[i] - ft_friction1);
 					
-					double ft_friction2_index = 0.1;
+                    double ft_friction2_index = 5.0;
 					ft_friction2 = std::max(ft_friction2_min, std::min(ft_friction2_max, ft_friction2_index * param.ft_input[i]));
 						
 					ft_friction = ft_friction1 + ft_friction2 + f_vel[i] * controller->motionAtAbs(i).actualVel();
 
-                    if (target.count % 1000 == 0)target.master->mout()<< real_ft[i] / ft_input_limit[i] <<"  ";
+                    if (target.count % 1000 == 0)target.master->mout()<< ft_friction1 <<"  "<< ft_friction2<<"  "<< ft_friction2_max<<"  "<< ft_friction2_min<<"  "<< ft_friction2_index * param.ft_input[i] <<std::endl;
 
                     //auto real_vel = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
                     //ft_friction = (f_vel[i] * controller->motionAtAbs(i).actualVel() + f_static_index[i] * f_static[i] * real_vel / max_static_vel[i])*f2c_index[i];
@@ -1752,7 +1760,7 @@ namespace rokae
                     ft_pid = param.ft_input[i];
                     //ft_pid = 0.0;
 
-					ft_offset = (ft_friction + ft_dynamic + ft_pid)*f_static[i];
+                    ft_offset = (ft_friction + ft_dynamic + ft_pid)*f2c_index[i];
                     controller->motionAtAbs(i).setTargetCur(ft_offset);
 				}
                 if (target.count % 1000 == 0)target.master->mout() <<std::endl;
@@ -1824,9 +1832,9 @@ namespace rokae
 				"<moveJCrash>"
 				"	<group type=\"GroupParam\" default_child_type=\"Param\">"
                 "		<pqt default=\"{0.42,0.0,0.55,0,0,0,1}\" abbreviation=\"p\"/>"
-                "		<kp_p default=\"2*{1.0,1.0,1.0,1.0,1.0,1.0,1.0}\"/>"
-                "		<kp_v default=\"{100,100,100,100,100,100}\"/>"
-                "		<ki_v default=\"10*{1,1,1,1,1,1}\"/>"
+                "		<kp_p default=\"{1.0,1.0,1.0,1.0,1.0,1.0,1.0}\"/>"
+                "		<kp_v default=\"0.1*{100,100,100,100,100,100}\"/>"
+                "		<ki_v default=\"3*{1,1,1,1,1,1}\"/>"
 				"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_all\">"
 				"			<check_all/>"
 				"			<check_none/>"
