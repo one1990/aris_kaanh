@@ -1098,7 +1098,7 @@ namespace rokae
 	};
 
 	// 拖动示教——单关节或者6个轨迹相对运动轨迹--输入单个关节，角度位置；关节按照梯形速度轨迹执行；速度前馈；电流控制//
-	std::atomic_bool enable_moveJRC = true;
+    static std::atomic_bool enable_moveJRC = true;
 	struct MoveJRCParam
 	{
 		double kp_p, kp_v, ki_v;
@@ -1456,7 +1456,7 @@ namespace rokae
 	};
 
 	// 碰撞检测——关节插值运动轨迹--输入末端pq姿态；先末端PID算法，再末端力反解到轴空间，然后控制每个电机——优点是能够控制末端力；速度前馈；电流控制 //
-    std::atomic_bool enable_movePQCrash = true;
+    static std::atomic_bool enable_movePQCrash = true;
     struct MovePQCrashParam
 	{
 		std::vector<double> kp_p;
@@ -1927,7 +1927,7 @@ namespace rokae
 	};
 
 	// 碰撞检测——关节插值运动轨迹--输入末端pq姿态，先末端pq反解到轴空间，然后轴空间PID，然后控制每个电机——PID算法好实现，抖动小；速度前馈；电流控制 //
-	std::atomic_bool enable_moveJCrash = true;
+    static std::atomic_bool enable_moveJCrash = true;
 	struct MoveJCrashParam
 	{
 		std::vector<double> kp_p;
@@ -2150,7 +2150,7 @@ namespace rokae
 			double ft_offset[6];
 			double real_vel[6];
 			double ft_friction1[6], ft_friction2[6], ft_dynamic[6], ft_pid[6];
-			static double ft_friction2_index[6] = { 5.0, 5.0, 5.0, 5.0, 5.0, 4.0 };
+            static double ft_friction2_index[6] = { 5.0, 5.0, 5.0, 5.0, 5.0, 3.0 };
 			if (is_running)
 			{
 				//位置环PID+速度限制
@@ -2183,7 +2183,7 @@ namespace rokae
 					//静摩擦力+动摩擦力=ft_friction
 
 					real_vel[i] = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
-					ft_friction1[i] = 0.8*(f_static[i] * real_vel[i] / max_static_vel[i]);
+                    ft_friction1[i] = 1.0*(f_static[i] * real_vel[i] / max_static_vel[i]);
 
 					double ft_friction2_max = std::max(0.0, controller->motionAtAbs(i).actualVel() >= 0 ? f_static[i] - ft_friction1[i] : f_static[i] + ft_friction1[i]);
 					double ft_friction2_min = std::min(0.0, controller->motionAtAbs(i).actualVel() >= 0 ? -f_static[i] + ft_friction1[i] : -f_static[i] - ft_friction1[i]);
@@ -2217,52 +2217,80 @@ namespace rokae
 				cout << "friction1:";
 				for (Size i = 0; i < 6; i++)
 				{
-					cout << ft_friction1[i] << "  ";
+                    cout <<std::setw(10)<< ft_friction1[i] << "  ";
 				}
 				cout << std::endl;
 				cout << "friction2:";
 				for (Size i = 0; i < 6; i++)
 				{
-					cout << ft_friction2[i] << "  ";
+                    cout << std::setw(10)<< ft_friction2[i] << "  ";
 				}
 				cout << std::endl;
 				cout << "friction:";
 				for (Size i = 0; i < 6; i++)
 				{
-					cout << ft_friction[i] << "  ";
+                    cout << std::setw(10)<< ft_friction[i] << "  ";
 				}
 				cout << std::endl;
 				cout << "ft_dynamic:";
 				for (Size i = 0; i < 6; i++)
 				{
-					cout << ft_dynamic[i] << "  ";
+                    cout << std::setw(10)<< ft_dynamic[i] << "  ";
 				}
 				cout << std::endl;
 				cout << "ft_pid:";
 				for (Size i = 0; i < 6; i++)
 				{
-					cout << ft_pid[i] << "  ";
+                    cout << std::setw(10)<< ft_pid[i] << "  ";
 				}
 				cout << std::endl;
 				cout << "ft_offset:";
 				for (Size i = 0; i < 6; i++)
 				{
-					cout << ft_offset[i] << "  ";
+                    cout << std::setw(10)<< ft_offset[i] << "  ";
 				}
 				cout << std::endl;
 				cout << "vt:";
 				for (Size i = 0; i < 6; i++)
 				{
-					cout << param.vt[i] << "  ";
+                    cout << std::setw(10)<< param.vt[i] << "  ";
 				}
 				cout << std::endl;
 
 				cout << "ft:";
 				for (Size i = 0; i < 6; i++)
 				{
-					cout << param.ft[i] << "  ";
+                    cout << std::setw(10)<< param.ft[i] << "  ";
 				}
 				cout << std::endl;
+
+                cout << "vproportion:";
+                for (Size i = 0; i < 6; i++)
+                {
+                    cout << std::setw(10)<< vproportion[i] << "  ";
+                }
+                cout << std::endl;
+
+                cout << "vinteg:";
+                for (Size i = 0; i < 6; i++)
+                {
+                    cout << std::setw(10)<< vinteg[i] << "  ";
+                }
+                cout << std::endl;
+
+                cout << "pt:";
+                for (Size i = 0; i < 6; i++)
+                {
+                    cout << std::setw(10)<< param.pt[i] << "  ";
+                }
+                cout << std::endl;
+
+                cout << "pa:";
+                for (Size i = 0; i < 6; i++)
+                {
+                    cout << std::setw(10)<< param.pa[i] << "  ";
+                }
+                cout << std::endl;
 				cout << "------------------------------------------------" << std::endl;
 			}
 
@@ -2297,9 +2325,9 @@ namespace rokae
 				"<moveJCrash>"
 				"	<group type=\"GroupParam\" default_child_type=\"Param\">"
 				"		<pqt default=\"{0.42,0.0,0.55,0,0,0,1}\" abbreviation=\"p\"/>"
-				"		<kp_p default=\"{1.0,1.0,1.0,1.0,1.0,1.0}\"/>"
-				"		<kp_v default=\"0.1*{100,100,100,100,100,100}\"/>"
-				"		<ki_v default=\"3*{1.0,1.0,1.0,1.0,1.0,1.0}\"/>"
+                "		<kp_p default=\"10*{1.0,1.0,1.0,1.0,1.0,1.0}\"/>"
+                "		<kp_v default=\"0.2*{100,100,100,100,100,100}\"/>"
+                "		<ki_v default=\"1*{1.0,1.0,1.0,1.0,1.0,1.0}\"/>"
 				"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_all\">"
 				"			<check_all/>"
 				"			<check_none/>"
