@@ -1846,7 +1846,7 @@ namespace rokae
 		}
 		auto virtual collectNrt(PlanTarget &target)->void {}
 
-		explicit MovePQCrash(const std::string &name = "MoveJCrash_plan") :Plan(name)
+		explicit MovePQCrash(const std::string &name = "MovePQCrash_plan") :Plan(name)
 		{
 			command().loadXmlStr(
 				"<movePQCrash>"
