@@ -8,7 +8,6 @@
 #include <aris_plan.h>
 #include <tinyxml2.h>  
 
-
 //statemachine//
 # define M_RUN 0	//手动单步执行
 # define READ_RT_DATA 1		//监控实时数据
@@ -46,6 +45,5 @@ namespace rokae
 	auto createControllerRokaeXB4()->std::unique_ptr<aris::control::Controller>;
 	auto createPlanRootRokaeXB4()->std::unique_ptr<aris::plan::PlanRoot>;
 }
-
 
 #endif
