@@ -1942,7 +1942,7 @@ namespace rokae
 
 		std::vector<double> ft;
 	};
-	class MoveJCrash : public aris::plan::Plan
+    class MoveJCrash : public aris::plan::Plan
 	{
 	public:
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
@@ -2164,10 +2164,13 @@ namespace rokae
 				for (Size i = 0; i < param.ft.size(); ++i)
 				{
 					vproportion[i] = param.kp_v[i] * (param.vt[i] - param.va[i]);
-					double vinteg_limit = std::max(0.0, ft_limit - vproportion[i]);
-					vinteg[i] = std::min(vinteg_limit, std::max(-vinteg_limit, vinteg[i] + param.ki_v[i] * (param.vt[i] - param.va[i])));
+                    vinteg[i] = vinteg[i] + param.ki_v[i] * (param.vt[i] - param.va[i]);
+                    vinteg[i] = std::min(vinteg[i], fi_limit[i]);
+                    vinteg[i] = std::max(vinteg[i], -fi_limit[i]);
 
 					param.ft[i] = vproportion[i] + vinteg[i];
+                    //param.ft[i] = std::min(param.ft[i], fi_limit[i]);
+                    //param.ft[i] = std::max(param.ft[i], -fi_limit[i]);
 				}
 
 				//动力学载荷
@@ -2183,14 +2186,14 @@ namespace rokae
 					//静摩擦力+动摩擦力=ft_friction
 
 					real_vel[i] = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
-                    ft_friction1[i] = 1.0*(f_static[i] * real_vel[i] / max_static_vel[i]);
+                    ft_friction1[i] = 0.8*(f_static[i] * real_vel[i] / max_static_vel[i]);
 
-					double ft_friction2_max = std::max(0.0, controller->motionAtAbs(i).actualVel() >= 0 ? f_static[i] - ft_friction1[i] : f_static[i] + ft_friction1[i]);
-					double ft_friction2_min = std::min(0.0, controller->motionAtAbs(i).actualVel() >= 0 ? -f_static[i] + ft_friction1[i] : -f_static[i] - ft_friction1[i]);
+                    //double ft_friction2_max = std::max(0.0, controller->motionAtAbs(i).actualVel() >= 0 ? f_static[i] - ft_friction1[i] : f_static[i] + ft_friction1[i]);
+                    //double ft_friction2_min = std::min(0.0, controller->motionAtAbs(i).actualVel() >= 0 ? -f_static[i] + ft_friction1[i] : -f_static[i] - ft_friction1[i]);
+                    //ft_friction2[i] = std::max(ft_friction2_min, std::min(ft_friction2_max, ft_friction2_index[i] * param.ft[i]));
+                    //ft_friction[i] = ft_friction1[i] + ft_friction2[i] + f_vel[i] * controller->motionAtAbs(i).actualVel();
 
-					ft_friction2[i] = std::max(ft_friction2_min, std::min(ft_friction2_max, ft_friction2_index[i] * param.ft[i]));
-
-					ft_friction[i] = ft_friction1[i] + ft_friction2[i] + f_vel[i] * controller->motionAtAbs(i).actualVel();
+                    ft_friction[i] = ft_friction1[i] + f_vel[i] * controller->motionAtAbs(i).actualVel();
 
 					//auto real_vel = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
 					//ft_friction = (f_vel[i] * controller->motionAtAbs(i).actualVel() + f_static_index[i] * f_static[i] * real_vel / max_static_vel[i])*f2c_index[i];
@@ -2220,12 +2223,6 @@ namespace rokae
                     cout <<std::setw(10)<< ft_friction1[i] << "  ";
 				}
 				cout << std::endl;
-				cout << "friction2:";
-				for (Size i = 0; i < 6; i++)
-				{
-                    cout << std::setw(10)<< ft_friction2[i] << "  ";
-				}
-				cout << std::endl;
 				cout << "friction:";
 				for (Size i = 0; i < 6; i++)
 				{
@@ -2250,19 +2247,34 @@ namespace rokae
                     cout << std::setw(10)<< ft_offset[i] << "  ";
 				}
 				cout << std::endl;
-				cout << "vt:";
-				for (Size i = 0; i < 6; i++)
-				{
-                    cout << std::setw(10)<< param.vt[i] << "  ";
-				}
-				cout << std::endl;
 
-				cout << "ft:";
-				for (Size i = 0; i < 6; i++)
-				{
-                    cout << std::setw(10)<< param.ft[i] << "  ";
-				}
-				cout << std::endl;
+                cout << "pt:";
+                for (Size i = 0; i < 6; i++)
+                {
+                    cout << std::setw(10)<< param.pt[i] << "  ";
+                }
+                cout << std::endl;
+
+                cout << "pa:";
+                for (Size i = 0; i < 6; i++)
+                {
+                    cout << std::setw(10)<< param.pa[i] << "  ";
+                }
+                cout << std::endl;
+
+                cout << "vt:";
+                for (Size i = 0; i < 6; i++)
+                {
+                    cout << std::setw(10)<< param.vt[i] << "  ";
+                }
+                cout << std::endl;
+
+                cout << "va:";
+                for (Size i = 0; i < 6; i++)
+                {
+                    cout << std::setw(10)<< param.va[i] << "  ";
+                }
+                cout << std::endl;
 
                 cout << "vproportion:";
                 for (Size i = 0; i < 6; i++)
@@ -2278,17 +2290,10 @@ namespace rokae
                 }
                 cout << std::endl;
 
-                cout << "pt:";
+                cout << "ft:";
                 for (Size i = 0; i < 6; i++)
                 {
-                    cout << std::setw(10)<< param.pt[i] << "  ";
-                }
-                cout << std::endl;
-
-                cout << "pa:";
-                for (Size i = 0; i < 6; i++)
-                {
-                    cout << std::setw(10)<< param.pa[i] << "  ";
+                    cout << std::setw(10)<< param.ft[i] << "  ";
                 }
                 cout << std::endl;
 				cout << "------------------------------------------------" << std::endl;
@@ -2308,7 +2313,6 @@ namespace rokae
 				lout << vinteg[i] << ",";
 				lout << param.ft[i] << ",";
 				lout << ft_friction1[i] << ",";
-				lout << ft_friction2[i] << ",";
 				lout << ft_friction[i] << ",";
 				lout << ft_dynamic[i] << ",";
 				lout << ft_pid[i] << ",";
@@ -2325,9 +2329,9 @@ namespace rokae
 				"<moveJCrash>"
 				"	<group type=\"GroupParam\" default_child_type=\"Param\">"
 				"		<pqt default=\"{0.42,0.0,0.55,0,0,0,1}\" abbreviation=\"p\"/>"
-                "		<kp_p default=\"10*{1.0,1.0,1.0,1.0,1.0,1.0}\"/>"
-                "		<kp_v default=\"0.2*{100,100,100,100,100,100}\"/>"
-                "		<ki_v default=\"1*{1.0,1.0,1.0,1.0,1.0,1.0}\"/>"
+                "		<kp_p default=\"0.5*{1.0,1.0,1.0,1.0,1.0,1.0}\"/>"
+                "		<kp_v default=\"1.0*{20,20,20,20,10,10}\"/>"
+                "		<ki_v default=\"2.0*{1.0,1.0,1.0,1.0,0.1,0.1}\"/>"
 				"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_all\">"
 				"			<check_all/>"
 				"			<check_none/>"
