@@ -17,9 +17,9 @@
 # define buffer_length 800
 //statemachine//
 
-/// \brief 机器人命名空间
-/// \ingroup aris
-/// 
+// \brief 机器人命名空间
+// \ingroup aris
+//
 
 namespace rokae
 {
@@ -39,7 +39,7 @@ namespace rokae
     constexpr double ft_limit = 10;
     constexpr double Mt_limit = 1;
 
-	//其他参数和函数声明
+	//其他参数和函数声明 
 	using Size = std::size_t;
 	constexpr double PI = 3.141592653589793;
 	auto createModelRokaeXB4(const double *robot_pm = nullptr)->std::unique_ptr<aris::dynamic::Model>;

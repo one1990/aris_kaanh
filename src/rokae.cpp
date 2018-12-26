@@ -2403,6 +2403,562 @@ namespace rokae
 		}
 	};
 
+	// 碰撞检测——输入单个或者全部轴空间位置，然后分别对各个轴空间进行PID，最后控制每个电机——方便调试单个轴的PID参数；速度前馈；电流控制 //
+	static std::atomic_bool enable_moveJPID = true;
+	struct MoveJPIDParam
+	{
+		std::vector<bool> joint_active_vec;
+		std::vector<double> kp_p;
+		std::vector<double> kp_v;
+		std::vector<double> ki_v;
+
+		std::vector<double> pt;
+		std::vector<double> pa;
+		std::vector<double> vt;
+		std::vector<double> va;
+
+		std::vector<double> ft;
+	};
+	class MoveJPID : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+		{
+			auto c = dynamic_cast<aris::control::Controller*>(target.master);
+			MoveJPIDParam param;
+			enable_moveJPID = true;
+			param.kp_p.resize(6, 0.0);
+			param.kp_v.resize(6, 0.0);
+			param.ki_v.resize(6, 0.0);
+
+			param.pa.resize(6, 0.0);
+			param.vt.resize(6, 0.0);
+			param.va.resize(6, 0.0);
+			param.ft.resize(6, 0.0);
+
+			for (auto &p : params)
+			{
+				if (p.first == "all")
+				{
+					param.joint_active_vec.resize(target.model->motionPool().size(), true);
+				}
+				else if (p.first == "none")
+				{
+					param.joint_active_vec.resize(target.model->motionPool().size(), false);
+				}
+				else if (p.first == "motion_id")
+				{
+					param.joint_active_vec.resize(target.model->motionPool().size(), false);
+					param.joint_active_vec.at(std::stoi(p.second)) = true;
+				}
+				else if (p.first == "physical_id")
+				{
+					param.joint_active_vec.resize(c->motionPool().size(), false);
+					param.joint_active_vec.at(c->motionAtPhy(std::stoi(p.second)).phyId()) = true;
+				}
+				else if (p.first == "slave_id")
+				{
+					param.joint_active_vec.resize(c->motionPool().size(), false);
+					param.joint_active_vec.at(c->motionAtPhy(std::stoi(p.second)).slaId()) = true;
+				}
+				else if (p.first == "pos")
+				{
+					aris::core::Matrix mat = target.model->calculator().calculateExpression(p.second);
+					if (mat.size() == 1)param.pt.resize(c->motionPool().size(), mat.toDouble());
+					else
+					{
+						param.pt.resize(mat.size());
+						std::copy(mat.begin(), mat.end(), param.pt.begin());
+					}
+				}
+				else if (p.first == "kp_p")
+				{
+					auto v = target.model->calculator().calculateExpression(p.second);
+					if (v.size() == 1)
+					{
+						param.kp_p.resize(param.kp_p.size(), v.toDouble());
+					}
+					else if (v.size() == param.kp_p.size())
+					{
+						param.kp_p.assign(v.begin(), v.end());
+					}
+					else
+					{
+						throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+					}
+
+					for (Size i = 0; i < param.kp_p.size(); ++i)
+					{
+						if (param.kp_p[i] > 10000.0)
+						{
+							param.kp_p[i] = 10000.0;
+						}
+						if (param.kp_p[i] < 0.01)
+						{
+							param.kp_p[i] = 0.01;
+						}
+					}
+				}
+				else if (p.first == "kp_v")
+				{
+					auto a = target.model->calculator().calculateExpression(p.second);
+					if (a.size() == 1)
+					{
+						param.kp_v.resize(param.kp_v.size(), a.toDouble());
+					}
+					else if (a.size() == param.kp_v.size())
+					{
+						param.kp_v.assign(a.begin(), a.end());
+					}
+					else
+					{
+						throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+					}
+
+					for (Size i = 0; i < param.kp_v.size(); ++i)
+					{
+						if (param.kp_v[i] > 10000.0)
+						{
+							param.kp_v[i] = 10000.0;
+						}
+						if (param.kp_v[i] < 0.01)
+						{
+							param.kp_v[i] = 0.01;
+						}
+					}
+				}
+				else if (p.first == "ki_v")
+				{
+					auto d = target.model->calculator().calculateExpression(p.second);
+					if (d.size() == 1)
+					{
+						param.ki_v.resize(param.ki_v.size(), d.toDouble());
+					}
+					else if (d.size() == param.ki_v.size())
+					{
+						param.ki_v.assign(d.begin(), d.end());
+					}
+					else
+					{
+						throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+					}
+
+					for (Size i = 0; i < param.ki_v.size(); ++i)
+					{
+						if (param.ki_v[i] > 10000.0)
+						{
+							param.ki_v[i] = 10000.0;
+						}
+						if (param.ki_v[i] < 0.001)
+						{
+							param.ki_v[i] = 0.001;
+						}
+					}
+				}
+			}
+			target.param = param;
+
+			target.option |=
+				Plan::USE_VEL_OFFSET |
+				//#ifdef WIN32
+				Plan::NOT_CHECK_POS_MIN |
+				Plan::NOT_CHECK_POS_MAX |
+				Plan::NOT_CHECK_POS_CONTINUOUS |
+				Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
+				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
+				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
+				Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
+				//#endif
+				Plan::NOT_CHECK_VEL_MIN |
+				Plan::NOT_CHECK_VEL_MAX |
+				Plan::NOT_CHECK_VEL_CONTINUOUS |
+				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
+				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+
+		}
+		auto virtual executeRT(PlanTarget &target)->int
+		{
+			auto &param = std::any_cast<MoveJPIDParam&>(target.param);
+			auto controller = dynamic_cast<aris::control::Controller *>(target.master);
+			static bool is_running{ true };
+			static double vinteg[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+			static double vproportion[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+			bool ds_is_all_finished{ true };
+			bool md_is_all_finished{ true };
+
+			//第一个周期，将目标电机的控制模式切换到电流控制模式		
+			if (target.count == 1)
+			{
+				is_running = true;
+				for (Size i = 0; i < param.joint_active_vec.size(); ++i)
+				{
+					if (param.joint_active_vec[i])
+					{
+						controller->motionPool().at(i).setModeOfOperation(10);	//切换到电流控制
+					}
+				}
+			}
+
+			//最后一个周期将目标电机去使能
+			if (!enable_moveJPID)
+			{
+				is_running = false;
+			}
+			if (!is_running)
+			{
+				for (Size i = 0; i < param.ft.size(); ++i)
+				{
+					auto ret = controller->motionPool().at(i).disable();
+					if (ret)
+					{
+						ds_is_all_finished = false;
+					}
+				}
+			}
+
+			//将目标电机由电流模式切换到位置模式
+			if (!is_running&&ds_is_all_finished)
+			{
+				for (Size i = 0; i < param.ft.size(); ++i)
+				{
+					controller->motionPool().at(i).setModeOfOperation(8);
+					auto ret = controller->motionPool().at(i).mode(8);
+					if (ret)
+					{
+						md_is_all_finished = false;
+					}
+				}
+			}
+
+			//获取电机实际位置、实际速度
+			for (Size i = 0; i < param.joint_active_vec.size(); ++i)
+			{
+				if (param.joint_active_vec[i])
+				{
+					param.pa[i] = controller->motionPool().at(i).actualPos();	//motionPool()指模型驱动器，at(0)表示第1个驱动器
+					param.va[i] = controller->motionPool().at(i).actualVel();
+				}
+			}
+
+			//模型正解
+			for (int i = 0; i < param.ft.size(); ++i)
+			{
+				target.model->motionPool()[i].setMp(controller->motionPool()[i].actualPos());
+				target.model->motionPool().at(i).setMv(controller->motionAtAbs(i).actualVel());
+				target.model->motionPool().at(i).setMa(0.0);
+			}
+			target.model->solverPool()[1].kinPos();
+			target.model->solverPool()[1].kinVel();
+			target.model->solverPool()[2].dynAccAndFce();
+
+			double ft_friction[6];
+			double ft_offset[6];
+			double real_vel[6];
+			double ft_friction1[6], ft_friction2[6], ft_dynamic[6], ft_pid[6];
+			static double ft_friction2_index[6] = { 5.0, 5.0, 5.0, 5.0, 5.0, 3.0 };
+			if (is_running)
+			{
+				//位置环PID+速度限制
+				for (Size i = 0; i < param.joint_active_vec.size(); ++i)
+				{
+					if (param.joint_active_vec[i])
+					{
+						param.vt[i] = param.kp_p[i] * (param.pt[i] - param.pa[i]);
+						param.vt[i] = std::max(std::min(param.vt[i], vt_limit), -vt_limit);
+					}
+				}
+
+				//速度环PID+力及力矩的限制
+				for (Size i = 0; i < param.joint_active_vec.size(); ++i)
+				{
+					if (param.joint_active_vec[i])
+					{
+						vproportion[i] = param.kp_v[i] * (param.vt[i] - param.va[i]);
+						vinteg[i] = vinteg[i] + param.ki_v[i] * (param.vt[i] - param.va[i]);
+						vinteg[i] = std::min(vinteg[i], fi_limit[i]);
+						vinteg[i] = std::max(vinteg[i], -fi_limit[i]);
+
+						param.ft[i] = vproportion[i] + vinteg[i];
+						//param.ft[i] = std::min(param.ft[i], fi_limit[i]);
+						//param.ft[i] = std::max(param.ft[i], -fi_limit[i]);
+					}
+				}
+
+				//动力学载荷
+				for (Size i = 0; i < param.joint_active_vec.size(); ++i)
+				{
+					if (param.joint_active_vec[i])
+					{
+						//动力学参数
+						//constexpr double f_static[6] = { 9.349947583,11.64080253,4.770140543,3.631416685,2.58310847,1.783739862 };
+						//constexpr double f_vel[6] = { 7.80825641,13.26518528,7.856443575,3.354615249,1.419632126,0.319206404 };
+						//constexpr double f_acc[6] = { 0,3.555679326,0.344454603,0.148247716,0.048552673,0.033815455 };
+						//constexpr double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
+						//constexpr double f_static_index[6] = {0.5, 0.5, 0.5, 0.85, 0.95, 0.8};
+
+						//静摩擦力+动摩擦力=ft_friction
+
+						real_vel[i] = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
+						ft_friction1[i] = 0.8*(f_static[i] * real_vel[i] / max_static_vel[i]);
+
+						//double ft_friction2_max = std::max(0.0, controller->motionAtAbs(i).actualVel() >= 0 ? f_static[i] - ft_friction1[i] : f_static[i] + ft_friction1[i]);
+						//double ft_friction2_min = std::min(0.0, controller->motionAtAbs(i).actualVel() >= 0 ? -f_static[i] + ft_friction1[i] : -f_static[i] - ft_friction1[i]);
+						//ft_friction2[i] = std::max(ft_friction2_min, std::min(ft_friction2_max, ft_friction2_index[i] * param.ft[i]));
+						//ft_friction[i] = ft_friction1[i] + ft_friction2[i] + f_vel[i] * controller->motionAtAbs(i).actualVel();
+
+						ft_friction[i] = ft_friction1[i] + f_vel[i] * controller->motionAtAbs(i).actualVel();
+
+						//auto real_vel = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
+						//ft_friction = (f_vel[i] * controller->motionAtAbs(i).actualVel() + f_static_index[i] * f_static[i] * real_vel / max_static_vel[i])*f2c_index[i];
+
+						ft_friction[i] = std::max(-500.0, ft_friction[i]);
+						ft_friction[i] = std::min(500.0, ft_friction[i]);
+
+						//动力学载荷=ft_dynamic
+						ft_dynamic[i] = target.model->motionPool()[i].mfDyn();
+
+						//PID输入=ft_pid
+						ft_pid[i] = param.ft[i];
+						//ft_pid = 0.0;
+
+						ft_offset[i] = (ft_friction[i] + ft_dynamic[i] + ft_pid[i])*f2c_index[i];
+						controller->motionAtAbs(i).setTargetCur(ft_offset[i]);
+					}
+				}
+			}
+
+			//print//
+			auto &cout = controller->mout();
+			if (target.count % 1000 == 0)
+			{
+				cout << "friction1:";
+				for (Size i = 0; i < 6; i++)
+				{
+					if (param.joint_active_vec[i])
+					{
+						cout << std::setw(10) << ft_friction1[i] << "  ";
+					}
+				}
+				cout << std::endl;
+				cout << "friction:";
+				for (Size i = 0; i < 6; i++)
+				{
+					if (param.joint_active_vec[i])
+					{
+						cout << std::setw(10) << ft_friction[i] << "  ";
+					}
+				}
+				cout << std::endl;
+				cout << "ft_dynamic:";
+				for (Size i = 0; i < 6; i++)
+				{
+					if (param.joint_active_vec[i])
+					{
+						cout << std::setw(10) << ft_dynamic[i] << "  ";
+					}
+				}
+				cout << std::endl;
+				cout << "ft_pid:";
+				for (Size i = 0; i < 6; i++)
+				{
+					if (param.joint_active_vec[i])
+					{
+						cout << std::setw(10) << ft_pid[i] << "  ";
+					}
+				}
+				cout << std::endl;
+				cout << "ft_offset:";
+				for (Size i = 0; i < 6; i++)
+				{
+					if (param.joint_active_vec[i])
+					{
+						cout << std::setw(10) << ft_offset[i] << "  ";
+					}
+				}
+				cout << std::endl;
+
+				cout << "pt:";
+				for (Size i = 0; i < 6; i++)
+				{
+					if (param.joint_active_vec[i])
+					{
+						cout << std::setw(10) << param.pt[i] << "  ";
+					}
+				}
+				cout << std::endl;
+
+				cout << "pa:";
+				for (Size i = 0; i < 6; i++)
+				{
+					if (param.joint_active_vec[i])
+					{
+						cout << std::setw(10) << param.pa[i] << "  ";
+					}
+				}
+				cout << std::endl;
+
+				cout << "vt:";
+				for (Size i = 0; i < 6; i++)
+				{
+					if (param.joint_active_vec[i])
+					{
+						cout << std::setw(10) << param.vt[i] << "  ";
+					}
+				}
+				cout << std::endl;
+
+				cout << "va:";
+				for (Size i = 0; i < 6; i++)
+				{
+					if (param.joint_active_vec[i])
+					{
+						cout << std::setw(10) << param.va[i] << "  ";
+					}
+				}
+				cout << std::endl;
+
+				cout << "vproportion:";
+				for (Size i = 0; i < 6; i++)
+				{
+					if (param.joint_active_vec[i])
+					{
+						cout << std::setw(10) << vproportion[i] << "  ";
+					}
+				}
+				cout << std::endl;
+
+				cout << "vinteg:";
+				for (Size i = 0; i < 6; i++)
+				{
+					if (param.joint_active_vec[i])
+					{
+						cout << std::setw(10) << vinteg[i] << "  ";
+					}
+				}
+				cout << std::endl;
+
+				cout << "ft:";
+				for (Size i = 0; i < 6; i++)
+				{
+					if (param.joint_active_vec[i])
+					{
+						cout << std::setw(10) << param.ft[i] << "  ";
+					}
+				}
+				cout << std::endl;
+				cout << "------------------------------------------------" << std::endl;
+			}
+
+			// log //
+			auto &lout = controller->lout();
+			for (Size i = 0; i < param.ft.size(); i++)
+			{
+				lout << param.pt[i] << ",";
+				lout << controller->motionAtAbs(i).actualPos() << ",";
+				lout << param.vt[i] << ",";
+				lout << controller->motionAtAbs(i).actualVel() << ",";
+				lout << ft_offset[i] << ",";
+				lout << controller->motionAtAbs(i).actualCur() << ",";
+				lout << vproportion[i] << ",";
+				lout << vinteg[i] << ",";
+				lout << param.ft[i] << ",";
+				lout << ft_friction1[i] << ",";
+				lout << ft_friction[i] << ",";
+				lout << ft_dynamic[i] << ",";
+				lout << ft_pid[i] << ",";
+			}
+			lout << std::endl;
+
+			return (!is_running&&ds_is_all_finished&&md_is_all_finished) ? 0 : 1;
+		}
+		auto virtual collectNrt(PlanTarget &target)->void {}
+
+		explicit MoveJPID(const std::string &name = "MoveJPID_plan") :Plan(name)
+		{
+			command().loadXmlStr(
+				"<moveJPID>"
+				"	<group type=\"GroupParam\" default_child_type=\"Param\">"
+				"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"all\">"
+				"			<all abbreviation=\"a\"/>"
+				"			<motion_id abbreviation=\"m\" default=\"0\"/>"
+				"			<physical_id abbreviation=\"p\" default=\"0\"/>"
+				"			<slave_id abbreviation=\"s\" default=\"0\"/>"
+				"		</unique>"
+				"		<pos default=\"0.0\"/>"
+				"		<kp_p default=\"{1.0,1.0,1.0,1.0,1.0,1.0}\"/>"
+				"		<kp_v default=\"{20,20,20,20,10,10}\"/>"
+				"		<ki_v default=\"{1.0,1.0,1.0,1.0,0.1,0.1}\"/>"
+				"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_all\">"
+				"			<check_all/>"
+				"			<check_none/>"
+				"			<group type=\"GroupParam\" default_child_type=\"Param\">"
+				"				<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos\">"
+				"					<check_pos/>"
+				"					<not_check_pos/>"
+				"					<group type=\"GroupParam\" default_child_type=\"Param\">"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_max\">"
+				"							<check_pos_max/>"
+				"							<not_check_pos_max/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_min\">"
+				"							<check_pos_min/>"
+				"							<not_check_pos_min/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous\">"
+				"							<check_pos_continuous/>"
+				"							<not_check_pos_continuous/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous_at_start\">"
+				"							<check_pos_continuous_at_start/>"
+				"							<not_check_pos_continuous_at_start/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous_second_order\">"
+				"							<check_pos_continuous_second_order/>"
+				"							<not_check_pos_continuous_second_order/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous_second_order_at_start\">"
+				"							<check_pos_continuous_second_order_at_start/>"
+				"							<not_check_pos_continuous_second_order_at_start/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_following_error\">"
+				"							<check_pos_following_error/>"
+				"							<not_check_pos_following_error />"
+				"						</unique>"
+				"					</group>"
+				"				</unique>"
+				"				<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel\">"
+				"					<check_vel/>"
+				"					<not_check_vel/>"
+				"					<group type=\"GroupParam\" default_child_type=\"Param\">"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_max\">"
+				"							<check_vel_max/>"
+				"							<not_check_vel_max/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_min\">"
+				"							<check_vel_min/>"
+				"							<not_check_vel_min/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_continuous\">"
+				"							<check_vel_continuous/>"
+				"							<not_check_vel_continuous/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_continuous_at_start\">"
+				"							<check_vel_continuous_at_start/>"
+				"							<not_check_vel_continuous_at_start/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_following_error\">"
+				"							<check_vel_following_error/>"
+				"							<not_check_vel_following_error />"
+				"						</unique>"
+				"					</group>"
+				"				</unique>"
+				"			</group>"
+				"		</unique>"
+				"	</group>"
+				"</moveJPID>");
+		}
+	};
+
 	// 停止拖动示教——停止MoveJRC，去使能电机//
 	class MoveStop : public aris::plan::Plan
 	{
@@ -2412,6 +2968,7 @@ namespace rokae
 			enable_moveJRC = false;
 			enable_movePQCrash = false;
             enable_moveJCrash = false;
+			enable_moveJPID = false;
 			target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
 		}
 
@@ -3784,6 +4341,7 @@ namespace rokae
 		plan_root->planPool().add<rokae::MoveJRC>();
 		plan_root->planPool().add<rokae::MovePQCrash>();
 		plan_root->planPool().add<rokae::MoveJCrash>();
+		plan_root->planPool().add<rokae::MoveJPID>();
 		plan_root->planPool().add<rokae::MoveStop>();
 		plan_root->planPool().add<rokae::MoveJM>();
 		plan_root->planPool().add<rokae::MoveJI>();
