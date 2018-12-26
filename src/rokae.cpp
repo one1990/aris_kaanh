@@ -2411,6 +2411,7 @@ namespace rokae
 		std::vector<double> kp_p;
 		std::vector<double> kp_v;
 		std::vector<double> ki_v;
+		std::vector<double> kd_v;
 
 		std::vector<double> pt;
 		std::vector<double> pa;
@@ -2430,6 +2431,7 @@ namespace rokae
 			param.kp_p.resize(6, 0.0);
 			param.kp_v.resize(6, 0.0);
 			param.ki_v.resize(6, 0.0);
+			param.kd_v.resize(6, 0.0);
 
 			param.pa.resize(6, 0.0);
 			param.vt.resize(6, 0.0);
@@ -2476,7 +2478,7 @@ namespace rokae
 					auto v = target.model->calculator().calculateExpression(p.second);
 					if (v.size() == 1)
 					{
-						param.kp_p.resize(param.kp_p.size(), v.toDouble());
+						std::fill(param.kp_p.begin(), param.kp_p.end(), v.toDouble());
 					}
 					else if (v.size() == param.kp_p.size())
 					{
@@ -2504,7 +2506,7 @@ namespace rokae
 					auto a = target.model->calculator().calculateExpression(p.second);
 					if (a.size() == 1)
 					{
-						param.kp_v.resize(param.kp_v.size(), a.toDouble());
+						std::fill(param.kp_v.begin(), param.kp_v.end(), a.toDouble());
 					}
 					else if (a.size() == param.kp_v.size())
 					{
@@ -2532,7 +2534,7 @@ namespace rokae
 					auto d = target.model->calculator().calculateExpression(p.second);
 					if (d.size() == 1)
 					{
-						param.ki_v.resize(param.ki_v.size(), d.toDouble());
+						std::fill(param.ki_v.begin(), param.ki_v.end(), d.toDouble());
 					}
 					else if (d.size() == param.ki_v.size())
 					{
@@ -2554,6 +2556,34 @@ namespace rokae
 							param.ki_v[i] = 0.001;
 						}
 					}
+				}
+				else if (p.first == "kd_v")
+				{
+				auto d = target.model->calculator().calculateExpression(p.second);
+				if (d.size() == 1)
+				{
+					std::fill(param.kd_v.begin(), param.kd_v.end(), d.toDouble());
+				}
+				else if (d.size() == param.kd_v.size())
+				{
+					param.kd_v.assign(d.begin(), d.end());
+				}
+				else
+				{
+					throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+				}
+
+				for (Size i = 0; i < param.kd_v.size(); ++i)
+				{
+					if (param.kd_v[i] > 10000.0)
+					{
+						param.kd_v[i] = 10000.0;
+					}
+					if (param.kd_v[i] < 0.001)
+					{
+						param.kd_v[i] = 0.001;
+					}
+				}
 				}
 			}
 			target.param = param;
@@ -2581,8 +2611,11 @@ namespace rokae
 			auto &param = std::any_cast<MoveJPIDParam&>(target.param);
 			auto controller = dynamic_cast<aris::control::Controller *>(target.master);
 			static bool is_running{ true };
-			static double vinteg[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 			static double vproportion[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+			static double vinteg[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+			static double vdiff[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+			static double vt_va_last[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+			static double vt_va_this[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 			bool ds_is_all_finished{ true };
 			bool md_is_all_finished{ true };
 
@@ -2654,7 +2687,7 @@ namespace rokae
 			double ft_friction[6];
 			double ft_offset[6];
 			double real_vel[6];
-			double ft_friction1[6], ft_friction2[6], ft_dynamic[6], ft_pid[6];
+			double ft_friction1[6], ft_friction2[6], ft_dynamic[6];
 			static double ft_friction2_index[6] = { 5.0, 5.0, 5.0, 5.0, 5.0, 3.0 };
 			if (is_running)
 			{
@@ -2674,13 +2707,16 @@ namespace rokae
 					if (param.joint_active_vec[i])
 					{
 						vproportion[i] = param.kp_v[i] * (param.vt[i] - param.va[i]);
+
 						vinteg[i] = vinteg[i] + param.ki_v[i] * (param.vt[i] - param.va[i]);
 						vinteg[i] = std::min(vinteg[i], fi_limit[i]);
 						vinteg[i] = std::max(vinteg[i], -fi_limit[i]);
 
-						param.ft[i] = vproportion[i] + vinteg[i];
-						//param.ft[i] = std::min(param.ft[i], fi_limit[i]);
-						//param.ft[i] = std::max(param.ft[i], -fi_limit[i]);
+						vt_va_this[i] = param.vt[i] - param.va[i];
+						vdiff[i] = param.kd_v[i]*(vt_va_this[i] - vt_va_last[i]);
+						vt_va_last[i] = param.vt[i] - param.va[i];
+
+						param.ft[i] = vproportion[i] + vinteg[i] + vdiff[i];
 					}
 				}
 
@@ -2717,11 +2753,7 @@ namespace rokae
 						//动力学载荷=ft_dynamic
 						ft_dynamic[i] = target.model->motionPool()[i].mfDyn();
 
-						//PID输入=ft_pid
-						ft_pid[i] = param.ft[i];
-						//ft_pid = 0.0;
-
-						ft_offset[i] = (ft_friction[i] + ft_dynamic[i] + ft_pid[i])*f2c_index[i];
+						ft_offset[i] = (ft_friction[i] + ft_dynamic[i] + param.ft[i])*f2c_index[i];
 						controller->motionAtAbs(i).setTargetCur(ft_offset[i]);
 					}
 				}
@@ -2731,52 +2763,6 @@ namespace rokae
 			auto &cout = controller->mout();
 			if (target.count % 1000 == 0)
 			{
-				cout << "friction1:";
-				for (Size i = 0; i < 6; i++)
-				{
-					if (param.joint_active_vec[i])
-					{
-						cout << std::setw(10) << ft_friction1[i] << "  ";
-					}
-				}
-				cout << std::endl;
-				cout << "friction:";
-				for (Size i = 0; i < 6; i++)
-				{
-					if (param.joint_active_vec[i])
-					{
-						cout << std::setw(10) << ft_friction[i] << "  ";
-					}
-				}
-				cout << std::endl;
-				cout << "ft_dynamic:";
-				for (Size i = 0; i < 6; i++)
-				{
-					if (param.joint_active_vec[i])
-					{
-						cout << std::setw(10) << ft_dynamic[i] << "  ";
-					}
-				}
-				cout << std::endl;
-				cout << "ft_pid:";
-				for (Size i = 0; i < 6; i++)
-				{
-					if (param.joint_active_vec[i])
-					{
-						cout << std::setw(10) << ft_pid[i] << "  ";
-					}
-				}
-				cout << std::endl;
-				cout << "ft_offset:";
-				for (Size i = 0; i < 6; i++)
-				{
-					if (param.joint_active_vec[i])
-					{
-						cout << std::setw(10) << ft_offset[i] << "  ";
-					}
-				}
-				cout << std::endl;
-
 				cout << "pt:";
 				for (Size i = 0; i < 6; i++)
 				{
@@ -2837,6 +2823,16 @@ namespace rokae
 				}
 				cout << std::endl;
 
+				cout << "vdiff:";
+				for (Size i = 0; i < 6; i++)
+				{
+					if (param.joint_active_vec[i])
+					{
+						cout << std::setw(10) << vdiff[i] << "  ";
+					}
+				}
+				cout << std::endl;
+
 				cout << "ft:";
 				for (Size i = 0; i < 6; i++)
 				{
@@ -2846,6 +2842,43 @@ namespace rokae
 					}
 				}
 				cout << std::endl;
+				cout << "friction1:";
+				for (Size i = 0; i < 6; i++)
+				{
+					if (param.joint_active_vec[i])
+					{
+						cout << std::setw(10) << ft_friction1[i] << "  ";
+					}
+				}
+				cout << std::endl;
+				cout << "friction:";
+				for (Size i = 0; i < 6; i++)
+				{
+					if (param.joint_active_vec[i])
+					{
+						cout << std::setw(10) << ft_friction[i] << "  ";
+					}
+				}
+				cout << std::endl;
+				cout << "ft_dynamic:";
+				for (Size i = 0; i < 6; i++)
+				{
+					if (param.joint_active_vec[i])
+					{
+						cout << std::setw(10) << ft_dynamic[i] << "  ";
+					}
+				}
+				cout << std::endl;
+				cout << "ft_offset:";
+				for (Size i = 0; i < 6; i++)
+				{
+					if (param.joint_active_vec[i])
+					{
+						cout << std::setw(10) << ft_offset[i] << "  ";
+					}
+				}
+				cout << std::endl;
+
 				cout << "------------------------------------------------" << std::endl;
 			}
 
@@ -2861,11 +2894,11 @@ namespace rokae
 				lout << controller->motionAtAbs(i).actualCur() << ",";
 				lout << vproportion[i] << ",";
 				lout << vinteg[i] << ",";
+				lout << vdiff[i] << ",";
 				lout << param.ft[i] << ",";
 				lout << ft_friction1[i] << ",";
 				lout << ft_friction[i] << ",";
 				lout << ft_dynamic[i] << ",";
-				lout << ft_pid[i] << ",";
 			}
 			lout << std::endl;
 
@@ -2888,6 +2921,7 @@ namespace rokae
 				"		<kp_p default=\"{1.0,1.0,1.0,1.0,1.0,1.0}\"/>"
 				"		<kp_v default=\"{20,20,20,20,10,10}\"/>"
 				"		<ki_v default=\"{1.0,1.0,1.0,1.0,0.1,0.1}\"/>"
+				"		<kd_v default=\"{1.0,1.0,1.0,1.0,0.1,0.1}\"/>"
 				"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_all\">"
 				"			<check_all/>"
 				"			<check_none/>"
