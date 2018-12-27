@@ -2921,7 +2921,7 @@ namespace rokae
 				"		<kp_p default=\"{1.0,1.0,1.0,1.0,1.0,1.0}\"/>"
 				"		<kp_v default=\"{20,20,20,20,10,10}\"/>"
 				"		<ki_v default=\"{1.0,1.0,1.0,1.0,0.1,0.1}\"/>"
-				"		<kd_v default=\"{1.0,1.0,1.0,1.0,0.1,0.1}\"/>"
+				"		<kd_v default=\"0\"/>"
 				"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_all\">"
 				"			<check_all/>"
 				"			<check_none/>"
