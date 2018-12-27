@@ -1495,91 +1495,92 @@ namespace rokae
 					auto pqarray = target.model->calculator().calculateExpression(p.second);
 					param.pqt.assign(pqarray.begin(), pqarray.end());
 				}
-				else if (p.first == "kp_p")
-				{
-					auto v = target.model->calculator().calculateExpression(p.second);
-					if (v.size() == 1)
-					{
-						param.kp_p.resize(param.kp_p.size(), v.toDouble());
-					}
-					else if (v.size() == param.kp_p.size())
-					{
-						param.kp_p.assign(v.begin(), v.end());
-					}
-					else
-					{
-						throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
-					}
+                else if (p.first == "kp_p")
+                {
+                    auto v = target.model->calculator().calculateExpression(p.second);
+                    if (v.size() == 1)
+                    {
+                        std::fill(param.kp_p.begin(), param.kp_p.end(), v.toDouble());
+                    }
+                    else if (v.size() == param.kp_p.size())
+                    {
+                        param.kp_p.assign(v.begin(), v.end());
+                    }
+                    else
+                    {
+                        throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+                    }
 
-					for (Size i = 0; i < param.kp_p.size(); ++i)
-					{
-						if (param.kp_p[i] > 10000.0)
-						{
-							param.kp_p[i] = 10000.0;
-						}
-						if (param.kp_p[i] < 0.01)
-						{
-							param.kp_p[i] = 0.01;
-						}
-					}
-				}
-				else if (p.first == "kp_v")
-				{
-					auto a = target.model->calculator().calculateExpression(p.second);
-					if (a.size() == 1)
-					{
-						param.kp_v.resize(param.kp_v.size(), a.toDouble());
-					}
-					else if (a.size() == param.kp_v.size())
-					{
-						param.kp_v.assign(a.begin(), a.end());
-					}
-					else
-					{
-						throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
-					}
+                    for (Size i = 0; i < param.kp_p.size(); ++i)
+                    {
+                        if (param.kp_p[i] > 10000.0)
+                        {
+                            param.kp_p[i] = 10000.0;
+                        }
+                        if (param.kp_p[i] < 0.01)
+                        {
+                            param.kp_p[i] = 0.01;
+                        }
+                    }
+                }
+                else if (p.first == "kp_v")
+                {
+                    auto a = target.model->calculator().calculateExpression(p.second);
+                    if (a.size() == 1)
+                    {
+                        std::fill(param.kp_v.begin(), param.kp_v.end(), a.toDouble());
+                    }
+                    else if (a.size() == param.kp_v.size())
+                    {
+                        param.kp_v.assign(a.begin(), a.end());
+                    }
+                    else
+                    {
+                        throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+                    }
 
-					for (Size i = 0; i < param.kp_v.size(); ++i)
-					{
-						if (param.kp_v[i] > 10000.0)
-						{
-							param.kp_v[i] = 10000.0;
-						}
-						if (param.kp_v[i] < 0.01)
-						{
-							param.kp_v[i] = 0.01;
-						}
-					}
-				}
-				else if (p.first == "ki_v")
-				{
-					auto d = target.model->calculator().calculateExpression(p.second);
-					if (d.size() == 1)
-					{
-						param.ki_v.resize(param.ki_v.size(), d.toDouble());
-					}
-					else if (d.size() == param.ki_v.size())
-					{
-						param.ki_v.assign(d.begin(), d.end());
-					}
-					else
-					{
-						throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
-					}
+                    for (Size i = 0; i < param.kp_v.size(); ++i)
+                    {
+                        if (param.kp_v[i] > 10000.0)
+                        {
+                            param.kp_v[i] = 10000.0;
+                        }
+                        if (param.kp_v[i] < 0.01)
+                        {
+                            param.kp_v[i] = 0.01;
+                        }
+                    }
+                }
+                else if (p.first == "ki_v")
+                {
+                    auto d = target.model->calculator().calculateExpression(p.second);
+                    if (d.size() == 1)
+                    {
+                        std::fill(param.ki_v.begin(), param.ki_v.end(), d.toDouble());
+                    }
+                    else if (d.size() == param.ki_v.size())
+                    {
+                        param.ki_v.assign(d.begin(), d.end());
+                    }
+                    else
+                    {
+                        throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+                    }
 
-					for (Size i = 0; i < param.ki_v.size(); ++i)
-					{
-						if (param.ki_v[i] > 10000.0)
-						{
-							param.ki_v[i] = 10000.0;
-						}
-						if (param.ki_v[i] < 0.001)
-						{
-							param.ki_v[i] = 0.001;
-						}
-					}
-				}
-			}
+                    for (Size i = 0; i < param.ki_v.size(); ++i)
+                    {
+                        if (param.ki_v[i] > 10000.0)
+                        {
+                            param.ki_v[i] = 10000.0;
+                        }
+                        if (param.ki_v[i] < 0.001)
+                        {
+                            param.ki_v[i] = 0.001;
+                        }
+                    }
+                }
+
+            }
 			target.param = param;
 
 			target.option |=
@@ -1682,7 +1683,7 @@ namespace rokae
 				for (Size i = 0; i < param.kp_p.size(); ++i)
 				{
 					param.vt[i] = param.kp_p[i] * (param.pqt[i] - param.pqa[i]);
-					param.vt[i] = std::max(std::min(param.vt[i], vt_limit), -vt_limit);
+                    param.vt[i] = std::max(std::min(param.vt[i], vt_limit[i]), -vt_limit[i]);
 				}
 
 				//速度环PID+力及力矩的限制
@@ -1690,7 +1691,7 @@ namespace rokae
 
 				for (Size i = 0; i < param.ft.size(); ++i)
 				{
-                    double limit = i<3?ft_limit:Mt_limit;
+                    double limit = mt_limit[i];
 
                     //vproportion[i] = std::min(r2*limit, std::max(-r2*limit, param.kp_v[i] * (param.vt[i] - va[i])));
                     vproportion[i] = param.kp_v[i] * (param.vt[i] - va[i]);
@@ -1968,91 +1969,92 @@ namespace rokae
 					auto pqarray = target.model->calculator().calculateExpression(p.second);
 					param.pqt.assign(pqarray.begin(), pqarray.end());
 				}
-				else if (p.first == "kp_p")
-				{
-					auto v = target.model->calculator().calculateExpression(p.second);
-					if (v.size() == 1)
-					{
-						param.kp_p.resize(param.kp_p.size(), v.toDouble());
-					}
-					else if (v.size() == param.kp_p.size())
-					{
-						param.kp_p.assign(v.begin(), v.end());
-					}
-					else
-					{
-						throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
-					}
+                else if (p.first == "kp_p")
+                {
+                    auto v = target.model->calculator().calculateExpression(p.second);
+                    if (v.size() == 1)
+                    {
+                        std::fill(param.kp_p.begin(), param.kp_p.end(), v.toDouble());
+                    }
+                    else if (v.size() == param.kp_p.size())
+                    {
+                        param.kp_p.assign(v.begin(), v.end());
+                    }
+                    else
+                    {
+                        throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+                    }
 
-					for (Size i = 0; i < param.kp_p.size(); ++i)
-					{
-						if (param.kp_p[i] > 10000.0)
-						{
-							param.kp_p[i] = 10000.0;
-						}
-						if (param.kp_p[i] < 0.01)
-						{
-							param.kp_p[i] = 0.01;
-						}
-					}
-				}
-				else if (p.first == "kp_v")
-				{
-					auto a = target.model->calculator().calculateExpression(p.second);
-					if (a.size() == 1)
-					{
-						param.kp_v.resize(param.kp_v.size(), a.toDouble());
-					}
-					else if (a.size() == param.kp_v.size())
-					{
-						param.kp_v.assign(a.begin(), a.end());
-					}
-					else
-					{
-						throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
-					}
+                    for (Size i = 0; i < param.kp_p.size(); ++i)
+                    {
+                        if (param.kp_p[i] > 10000.0)
+                        {
+                            param.kp_p[i] = 10000.0;
+                        }
+                        if (param.kp_p[i] < 0.01)
+                        {
+                            param.kp_p[i] = 0.01;
+                        }
+                    }
+                }
+                else if (p.first == "kp_v")
+                {
+                    auto a = target.model->calculator().calculateExpression(p.second);
+                    if (a.size() == 1)
+                    {
+                        std::fill(param.kp_v.begin(), param.kp_v.end(), a.toDouble());
+                    }
+                    else if (a.size() == param.kp_v.size())
+                    {
+                        param.kp_v.assign(a.begin(), a.end());
+                    }
+                    else
+                    {
+                        throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+                    }
 
-					for (Size i = 0; i < param.kp_v.size(); ++i)
-					{
-						if (param.kp_v[i] > 10000.0)
-						{
-							param.kp_v[i] = 10000.0;
-						}
-						if (param.kp_v[i] < 0.01)
-						{
-							param.kp_v[i] = 0.01;
-						}
-					}
-				}
-				else if (p.first == "ki_v")
-				{
-					auto d = target.model->calculator().calculateExpression(p.second);
-					if (d.size() == 1)
-					{
-						param.ki_v.resize(param.ki_v.size(), d.toDouble());
-					}
-					else if (d.size() == param.ki_v.size())
-					{
-						param.ki_v.assign(d.begin(), d.end());
-					}
-					else
-					{
-						throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
-					}
+                    for (Size i = 0; i < param.kp_v.size(); ++i)
+                    {
+                        if (param.kp_v[i] > 10000.0)
+                        {
+                            param.kp_v[i] = 10000.0;
+                        }
+                        if (param.kp_v[i] < 0.01)
+                        {
+                            param.kp_v[i] = 0.01;
+                        }
+                    }
+                }
+                else if (p.first == "ki_v")
+                {
+                    auto d = target.model->calculator().calculateExpression(p.second);
+                    if (d.size() == 1)
+                    {
+                        std::fill(param.ki_v.begin(), param.ki_v.end(), d.toDouble());
+                    }
+                    else if (d.size() == param.ki_v.size())
+                    {
+                        param.ki_v.assign(d.begin(), d.end());
+                    }
+                    else
+                    {
+                        throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+                    }
 
-					for (Size i = 0; i < param.ki_v.size(); ++i)
-					{
-						if (param.ki_v[i] > 10000.0)
-						{
-							param.ki_v[i] = 10000.0;
-						}
-						if (param.ki_v[i] < 0.001)
-						{
-							param.ki_v[i] = 0.001;
-						}
-					}
-				}
-			}
+                    for (Size i = 0; i < param.ki_v.size(); ++i)
+                    {
+                        if (param.ki_v[i] > 10000.0)
+                        {
+                            param.ki_v[i] = 10000.0;
+                        }
+                        if (param.ki_v[i] < 0.001)
+                        {
+                            param.ki_v[i] = 0.001;
+                        }
+                    }
+                }
+
+            }
 			target.param = param;
 
 			target.option |=
@@ -2149,7 +2151,7 @@ namespace rokae
 			double ft_friction[6];
 			double ft_offset[6];
 			double real_vel[6];
-			double ft_friction1[6], ft_friction2[6], ft_dynamic[6], ft_pid[6];
+            double ft_friction1[6], ft_friction2[6], ft_dynamic[6];
             static double ft_friction2_index[6] = { 5.0, 5.0, 5.0, 5.0, 5.0, 3.0 };
 			if (is_running)
 			{
@@ -2157,7 +2159,7 @@ namespace rokae
 				for (Size i = 0; i < param.kp_p.size(); ++i)
 				{
 					param.vt[i] = param.kp_p[i] * (param.pt[i] - param.pa[i]);
-					param.vt[i] = std::max(std::min(param.vt[i], vt_limit), -vt_limit);
+                    param.vt[i] = std::max(std::min(param.vt[i], vt_limit[i]), -vt_limit[i]);
 				}
 
 				//速度环PID+力及力矩的限制
@@ -2169,8 +2171,8 @@ namespace rokae
                     vinteg[i] = std::max(vinteg[i], -fi_limit[i]);
 
 					param.ft[i] = vproportion[i] + vinteg[i];
-                    //param.ft[i] = std::min(param.ft[i], fi_limit[i]);
-                    //param.ft[i] = std::max(param.ft[i], -fi_limit[i]);
+                    param.ft[i] = std::min(param.ft[i], ft_limit[i]);
+                    param.ft[i] = std::max(param.ft[i], -ft_limit[i]);
 				}
 
 				//动力学载荷
@@ -2204,50 +2206,15 @@ namespace rokae
 					//动力学载荷=ft_dynamic
 					ft_dynamic[i] = target.model->motionPool()[i].mfDyn();
 
-					//PID输入=ft_pid
-					ft_pid[i] = param.ft[i];
-					//ft_pid = 0.0;
-
-					ft_offset[i] = (ft_friction[i] + ft_dynamic[i] + ft_pid[i])*f2c_index[i];
+                    ft_offset[i] = (ft_friction[i] + ft_dynamic[i] + param.ft[i])*f2c_index[i];
 					controller->motionAtAbs(i).setTargetCur(ft_offset[i]);
 				}
 			}
 
-			//print//
-			auto &cout = controller->mout();
-			if (target.count % 1000 == 0)
-			{
-				cout << "friction1:";
-				for (Size i = 0; i < 6; i++)
-				{
-                    cout <<std::setw(10)<< ft_friction1[i] << "  ";
-				}
-				cout << std::endl;
-				cout << "friction:";
-				for (Size i = 0; i < 6; i++)
-				{
-                    cout << std::setw(10)<< ft_friction[i] << "  ";
-				}
-				cout << std::endl;
-				cout << "ft_dynamic:";
-				for (Size i = 0; i < 6; i++)
-				{
-                    cout << std::setw(10)<< ft_dynamic[i] << "  ";
-				}
-				cout << std::endl;
-				cout << "ft_pid:";
-				for (Size i = 0; i < 6; i++)
-				{
-                    cout << std::setw(10)<< ft_pid[i] << "  ";
-				}
-				cout << std::endl;
-				cout << "ft_offset:";
-				for (Size i = 0; i < 6; i++)
-				{
-                    cout << std::setw(10)<< ft_offset[i] << "  ";
-				}
-				cout << std::endl;
-
+            //print//
+            auto &cout = controller->mout();
+            if (target.count % 1000 == 0)
+            {
                 cout << "pt:";
                 for (Size i = 0; i < 6; i++)
                 {
@@ -2296,28 +2263,51 @@ namespace rokae
                     cout << std::setw(10)<< param.ft[i] << "  ";
                 }
                 cout << std::endl;
-				cout << "------------------------------------------------" << std::endl;
-			}
+                cout << "friction1:";
+                for (Size i = 0; i < 6; i++)
+                {
+                    cout <<std::setw(10)<< ft_friction1[i] << "  ";
+                }
+                cout << std::endl;
+                cout << "friction:";
+                for (Size i = 0; i < 6; i++)
+                {
+                    cout << std::setw(10)<< ft_friction[i] << "  ";
+                }
+                cout << std::endl;
+                cout << "ft_dynamic:";
+                for (Size i = 0; i < 6; i++)
+                {
+                    cout << std::setw(10)<< ft_dynamic[i] << "  ";
+                }
+                cout << std::endl;
+                cout << "ft_offset:";
+                for (Size i = 0; i < 6; i++)
+                {
+                    cout << std::setw(10)<< ft_offset[i] << "  ";
+                }
+                cout << std::endl;
+                cout << "------------------------------------------------" << std::endl;
+            }
 
-			// log //
-			auto &lout = controller->lout();
-			for (Size i = 0; i < param.ft.size(); i++)
-			{
-				lout << param.pt[i] << ",";
-				lout << controller->motionAtAbs(i).actualPos() << ",";
-				lout << param.vt[i] << ",";
-				lout << controller->motionAtAbs(i).actualVel() << ",";
-				lout << ft_offset[i] << ",";
-				lout << controller->motionAtAbs(i).actualCur() << ",";
-				lout << vproportion[i] << ",";
-				lout << vinteg[i] << ",";
-				lout << param.ft[i] << ",";
-				lout << ft_friction1[i] << ",";
-				lout << ft_friction[i] << ",";
-				lout << ft_dynamic[i] << ",";
-				lout << ft_pid[i] << ",";
-			}
-			lout << std::endl;
+            // log //
+            auto &lout = controller->lout();
+            for (Size i = 0; i < param.ft.size(); i++)
+            {
+                lout << param.pt[i] << ",";
+                lout << controller->motionAtAbs(i).actualPos() << ",";
+                lout << param.vt[i] << ",";
+                lout << controller->motionAtAbs(i).actualVel() << ",";
+                lout << ft_offset[i] << ",";
+                lout << controller->motionAtAbs(i).actualCur() << ",";
+                lout << vproportion[i] << ",";
+                lout << vinteg[i] << ",";
+                lout << param.ft[i] << ",";
+                lout << ft_friction1[i] << ",";
+                lout << ft_friction[i] << ",";
+                lout << ft_dynamic[i] << ",";
+            }
+            lout << std::endl;
 
 			return (!is_running&&ds_is_all_finished&&md_is_all_finished) ? 0 : 1;
 		}
@@ -2329,9 +2319,9 @@ namespace rokae
 				"<moveJCrash>"
 				"	<group type=\"GroupParam\" default_child_type=\"Param\">"
 				"		<pqt default=\"{0.42,0.0,0.55,0,0,0,1}\" abbreviation=\"p\"/>"
-                "		<kp_p default=\"0.5*{1.0,1.0,1.0,1.0,1.0,1.0}\"/>"
-                "		<kp_v default=\"1.0*{20,20,20,20,10,10}\"/>"
-                "		<ki_v default=\"2.0*{1.0,1.0,1.0,1.0,0.1,0.1}\"/>"
+                "		<kp_p default=\"{10,12,70,5,6,3}\"/>"
+                "		<kp_v default=\"{270,360,120,120,60,25}\"/>"
+                "		<ki_v default=\"{2,18,20,0.6,0.5,0.5}\"/>"
 				"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_all\">"
 				"			<check_all/>"
 				"			<check_none/>"
@@ -2575,13 +2565,13 @@ namespace rokae
 
 				for (Size i = 0; i < param.kd_v.size(); ++i)
 				{
-					if (param.kd_v[i] > 10000.0)
+                    if (param.kd_v[i] > 1000.0)
 					{
-						param.kd_v[i] = 10000.0;
+                        param.kd_v[i] = 1000.0;
 					}
-					if (param.kd_v[i] < 0.001)
+                    if (param.kd_v[i] < 0.0)
 					{
-						param.kd_v[i] = 0.001;
+                        param.kd_v[i] = 0.0;
 					}
 				}
 				}
@@ -2697,7 +2687,7 @@ namespace rokae
 					if (param.joint_active_vec[i])
 					{
 						param.vt[i] = param.kp_p[i] * (param.pt[i] - param.pa[i]);
-						param.vt[i] = std::max(std::min(param.vt[i], vt_limit), -vt_limit);
+                        param.vt[i] = std::max(std::min(param.vt[i], vt_limit[i]), -vt_limit[i]);
 					}
 				}
 
@@ -2829,6 +2819,8 @@ namespace rokae
 					if (param.joint_active_vec[i])
 					{
 						cout << std::setw(10) << vdiff[i] << "  ";
+                        cout << std::setw(10) << param.kd_v[i] << "  ";
+
 					}
 				}
 				cout << std::endl;
@@ -2918,9 +2910,9 @@ namespace rokae
 				"			<slave_id abbreviation=\"s\" default=\"0\"/>"
 				"		</unique>"
 				"		<pos default=\"0.0\"/>"
-				"		<kp_p default=\"{1.0,1.0,1.0,1.0,1.0,1.0}\"/>"
-				"		<kp_v default=\"{20,20,20,20,10,10}\"/>"
-				"		<ki_v default=\"{1.0,1.0,1.0,1.0,0.1,0.1}\"/>"
+                "		<kp_p default=\"{10,12,70,5,6,3}\"/>"
+                "		<kp_v default=\"{270,360,120,120,60,25}\"/>"
+                "		<ki_v default=\"{2,18,20.0,0.6,0.5,0.5}\"/>"
 				"		<kd_v default=\"0\"/>"
 				"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_all\">"
 				"			<check_all/>"

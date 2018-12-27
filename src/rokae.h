@@ -35,9 +35,9 @@ namespace rokae
     constexpr double max_static_vel[6] = {0.12, 0.12, 0.1, 0.05, 0.05, 0.075};
     constexpr double f_static_index[6] = {0.5, 0.5, 0.5, 0.85, 0.95, 0.8};
     constexpr double fi_limit[6] = {15,10,10,10,5,5};
-    constexpr double vt_limit = 0.05;
-    constexpr double ft_limit = 10;
-    constexpr double Mt_limit = 1;
+    constexpr double vt_limit[6] = {0.05,0.05,0.05,0.05,0.05,0.05};
+    constexpr double ft_limit[6] = {15,10,10,10,5,5};
+    constexpr double mt_limit[6] = {15,10,10,1,1,1};
 
 	//其他参数和函数声明 
 	using Size = std::size_t;
