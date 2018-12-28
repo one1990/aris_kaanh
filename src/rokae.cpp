@@ -1927,7 +1927,7 @@ namespace rokae
 		}
 	};
 
-	// 碰撞检测——关节插值运动轨迹--输入末端pq姿态，先末端pq反解到轴空间，然后轴空间PID，然后控制每个电机——PID算法好实现，抖动小；速度前馈；电流控制 //
+	// 碰撞检测——输入末端pq姿态，对末端pq进行梯形轨迹规划，然后规划好的末端pq反解到轴空间，最后通过轴空间控制每个电机——PID算法好实现，抖动小；速度前馈；电流控制 //
     static std::atomic_bool enable_moveJCrash = true;
 	struct MoveJCrashParam
 	{
@@ -1936,10 +1936,16 @@ namespace rokae
 		std::vector<double> ki_v;
 
 		std::vector<double> pqt;
+		std::vector<double> pqb;
+		std::vector<double> vqt;
+		std::vector<double> xyz;
+		double vel, acc, dec;
+		Size which_dir;
 		std::vector<double> pt;
 		std::vector<double> pa;
 		std::vector<double> vt;
 		std::vector<double> va;
+		std::vector<double> vfwd;
 
 		std::vector<double> ft;
 	};
@@ -1956,10 +1962,15 @@ namespace rokae
 			param.ki_v.resize(6, 0.0);
 
 			param.pqt.resize(7, 0.0);
+			param.pqb.resize(7, 0.0);
+			param.vqt.resize(7, 0.0);
+			param.xyz.resize(3, 0.0);
+			param.which_dir = 0;
 			param.pt.resize(6, 0.0);
 			param.pa.resize(6, 0.0);
 			param.vt.resize(6, 0.0);
 			param.va.resize(6, 0.0);
+			param.vfwd.resize(6, 0.0);
 			param.ft.resize(6, 0.0);
 			//params.at("pqt")
 			for (auto &p : params)
@@ -1968,6 +1979,25 @@ namespace rokae
 				{
 					auto pqarray = target.model->calculator().calculateExpression(p.second);
 					param.pqt.assign(pqarray.begin(), pqarray.end());
+					param.which_dir = 0;
+				}
+				else if (p.first == "xyz")
+				{
+					auto xyzarray = target.model->calculator().calculateExpression(p.second);
+					param.xyz.assign(xyzarray.begin(), xyzarray.end());
+					param.which_dir = 1;
+				}
+				else if (p.first == "vel")
+				{
+					param.vel = std::stod(p.second);
+				}
+				else if (p.first == "acc")
+				{
+					param.acc = std::stod(p.second);
+				}
+				else if (p.first == "dec")
+				{
+					param.dec = std::stod(p.second);
 				}
                 else if (p.first == "kp_p")
                 {
@@ -2089,7 +2119,8 @@ namespace rokae
 			if (target.count == 1)
 			{
 				is_running = true;
-
+				target.model->generalMotionPool().at(0).getMpq(param.pqb.data());
+				param.pqt.assign(param.pqb.begin(), param.pqb.end());
 				for (Size i = 0; i < param.ft.size(); ++i)
 				{
 					controller->motionPool().at(i).setModeOfOperation(10);	//切换到电流控制
@@ -2127,14 +2158,49 @@ namespace rokae
 				}
 			}
 
-			//求目标位置pq的运动学反解，获取电机实际位置、实际速度
-			target.model->generalMotionPool().at(0).setMpq(param.pqt.data());
-			if (!target.model->solverPool().at(0).kinPos())return -1;
-			for (Size i = 0; i < param.pt.size(); ++i)
+			//轨迹规划
+			aris::Size total_count{ 1 };
+			if (param.which_dir == 0)
 			{
-				param.pt[i] = target.model->motionPool().at(i).mp();		//motionPool()指模型驱动器，at(0)表示第1个驱动器
-				param.pa[i] = controller->motionPool().at(i).actualPos();
-				param.va[i] = controller->motionPool().at(i).actualVel();
+				//求目标位置pq的运动学反解，获取电机实际位置、实际速度
+				target.model->generalMotionPool().at(0).setMpq(param.pqt.data());
+				if (!target.model->solverPool().at(0).kinPos())return -1;
+				for (Size i = 0; i < param.pt.size(); ++i)
+				{
+					param.pt[i] = target.model->motionPool().at(i).mp();		//motionPool()指模型驱动器，at(0)表示第1个驱动器
+					param.pa[i] = controller->motionPool().at(i).actualPos();
+					param.va[i] = controller->motionPool().at(i).actualVel();
+				}
+			}
+			else
+			{
+				//x,y,z方向梯形轨迹规划
+				double norm, p, v, a;
+				norm = std::sqrt(param.xyz[0] * param.xyz[0] + param.xyz[1] * param.xyz[1] + param.xyz[2] * param.xyz[2]);
+				aris::plan::moveAbsolute(target.count, 0.0, norm, param.vel / 1000, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, total_count);
+				
+				//double norm = aris::dynamic::s_norm(3, param.xyz.data());
+				//aris::dynamic::s_vc(7, param.pqb.data(), param.pqt.data());
+				//aris::dynamic::s_va(3, p / norm, param.xyz.data(), param.pqt.data());
+				//aris::dynamic::s_vc(3, v / norm * 1000, param.xyz.data(), param.vqt.data());
+				
+				for (Size i = 0; i < param.xyz.size(); i++)
+				{
+					param.pqt[i] = param.pqb[i] + param.xyz[i] * p/norm;
+					param.vqt[i] = param.xyz[i] * v/norm * 1000;
+				}
+				target.model->generalMotionPool().at(0).setMpq(param.pqt.data());
+				if (!target.model->solverPool().at(0).kinPos())return -1;
+				target.model->generalMotionPool().at(0).setMvq(param.vqt.data());
+				target.model->solverPool().at(0).kinVel();
+
+				for (Size i = 0; i < param.pt.size(); ++i)
+				{
+					param.pt[i] = target.model->motionPool().at(i).mp();		//motionPool()指模型驱动器，at(0)表示第1个驱动器
+					param.vfwd[i] = target.model->motionPool().at(i).mv();
+					param.pa[i] = controller->motionPool().at(i).actualPos();
+					param.va[i] = controller->motionPool().at(i).actualVel();	
+				}
 			}
 
 			//模型正解
@@ -2160,6 +2226,7 @@ namespace rokae
 				{
 					param.vt[i] = param.kp_p[i] * (param.pt[i] - param.pa[i]);
                     param.vt[i] = std::max(std::min(param.vt[i], vt_limit[i]), -vt_limit[i]);
+					param.vt[i] = param.vt[i] + param.vfwd[i];
 				}
 
 				//速度环PID+力及力矩的限制
@@ -2318,7 +2385,13 @@ namespace rokae
 			command().loadXmlStr(
 				"<moveJCrash>"
 				"	<group type=\"GroupParam\" default_child_type=\"Param\">"
-				"		<pqt default=\"{0.42,0.0,0.55,0,0,0,1}\" abbreviation=\"p\"/>"
+				"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"pqt\">"
+				"			<pqt default=\"{0.42,0.0,0.55,0,0,0,1}\" abbreviation=\"p\"/>"
+				"			<xyz default=\"{0.01,0.0,0.0}\"/>"
+				"		</unique>"
+				"		<vel default=\"0.2\"/>"
+				"		<acc default=\"0.4\"/>"
+				"		<dec default=\"0.4\"/>"
                 "		<kp_p default=\"{10,12,70,5,6,3}\"/>"
                 "		<kp_v default=\"{270,360,120,120,60,25}\"/>"
                 "		<ki_v default=\"{2,18,20,0.6,0.5,0.5}\"/>"
@@ -2393,7 +2466,7 @@ namespace rokae
 		}
 	};
 
-	// 碰撞检测——输入单个或者全部轴空间位置，然后分别对各个轴空间进行PID，最后控制每个电机——方便调试单个轴的PID参数；速度前馈；电流控制 //
+	// 碰撞检测PID参数整定——输入单个或者全部轴空间位置，然后分别对各个轴空间进行PID整定；速度前馈；电流控制 //
 	static std::atomic_bool enable_moveJPID = true;
 	struct MoveJPIDParam
 	{
