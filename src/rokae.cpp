@@ -2119,8 +2119,16 @@ namespace rokae
 			if (target.count == 1)
 			{
 				is_running = true;
-				target.model->generalMotionPool().at(0).getMpq(param.pqb.data());
-				param.pqt.assign(param.pqb.begin(), param.pqb.end());
+                if (param.which_dir == 0)
+                {
+                    target.model->generalMotionPool().at(0).getMpq(param.pqb.data());
+                }
+                else
+                {
+                    target.model->generalMotionPool().at(0).getMpq(param.pqb.data());
+                    param.pqt.assign(param.pqb.begin(), param.pqb.end());
+                }
+
 				for (Size i = 0; i < param.ft.size(); ++i)
 				{
 					controller->motionPool().at(i).setModeOfOperation(10);	//切换到电流控制
@@ -2389,9 +2397,9 @@ namespace rokae
 				"			<pqt default=\"{0.42,0.0,0.55,0,0,0,1}\" abbreviation=\"p\"/>"
 				"			<xyz default=\"{0.01,0.0,0.0}\"/>"
 				"		</unique>"
-				"		<vel default=\"0.2\"/>"
-				"		<acc default=\"0.4\"/>"
-				"		<dec default=\"0.4\"/>"
+                "		<vel default=\"0.05\"/>"
+                "		<acc default=\"0.1\"/>"
+                "		<dec default=\"0.1\"/>"
                 "		<kp_p default=\"{10,12,70,5,6,3}\"/>"
                 "		<kp_v default=\"{270,360,120,120,60,25}\"/>"
                 "		<ki_v default=\"{2,18,20,0.6,0.5,0.5}\"/>"
