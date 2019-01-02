@@ -56,6 +56,16 @@ namespace forcecontrol
 		explicit MoveJCrash(const std::string &name = "MoveJCrash_plan");
 	};
 
+	class MoveJF : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+
+		explicit MoveJF(const std::string &name = "MoveJF_plan");
+	};
+
 	class MoveJPID : public aris::plan::Plan
 	{
 	public:
@@ -71,6 +81,13 @@ namespace forcecontrol
 	public:
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
 		explicit MoveStop(const std::string &name = "MoveStop_plan");
+	};
+
+	class MoveSPQ : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		explicit MoveSPQ(const std::string &name = "MoveSPQ_plan");
 	};
 }
 
