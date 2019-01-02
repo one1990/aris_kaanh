@@ -55,7 +55,7 @@ namespace kaanh
 			};
 			
 			std::string xml_str =
-				"<m" + std::to_string(i) + " type=\"EthercatMotion\" phy_id=\"" + std::to_string(i + 2) + "\" product_code=\"0x0\""
+                "<m" + std::to_string(i) + " type=\"EthercatMotion\" phy_id=\"" + std::to_string(i) + "\" product_code=\"0x0\""
 				" vendor_id=\"0x000002E1\" revision_num=\"0x29001\" dc_assign_activate=\"0x0300\""
 				" min_pos=\"" + std::to_string(min_pos[i]) + "\" max_pos=\"" + std::to_string(max_pos[i]) + "\" max_vel=\"" + std::to_string(max_vel[i]) + "\" min_vel=\"" + std::to_string(-max_vel[i]) + "\""
 				" max_acc=\"" + std::to_string(max_acc[i]) + "\" min_acc=\"" + std::to_string(-max_acc[i]) + "\" max_pos_following_error=\"0.1\" max_vel_following_error=\"0.5\""
@@ -89,69 +89,6 @@ namespace kaanh
 
 			controller->slavePool().add<aris::control::EthercatMotion>().loadXmlStr(xml_str);
 		}
-
-		std::string xml_str =
-			"<m_servo_press type=\"EthercatMotion\" phy_id=\"0\" product_code=\"0x60380007\""
-			" vendor_id=\"0x0000066F\" revision_num=\"0x00010000\" dc_assign_activate=\"0x0300\""
-			" min_pos=\"0.01\" max_pos=\"0.26\" max_vel=\"0.125\" min_vel=\"-0.125\""
-			" max_acc=\"2.0\" min_acc=\"-2.0\" max_pos_following_error=\"0.005\" max_vel_following_error=\"0.005\""
-			" home_pos=\"0\" pos_factor=\"-3355443200\" pos_offset=\"0.0\">"
-			"	<sm_pool type=\"SyncManagerPoolObject\">"
-			"		<sm type=\"SyncManager\" is_tx=\"false\"/>"
-			"		<sm type=\"SyncManager\" is_tx=\"true\"/>"
-			"		<sm type=\"SyncManager\" is_tx=\"false\">"
-			"			<index_1600 type=\"Pdo\" default_child_type=\"PdoEntry\" index=\"0x1600\" is_tx=\"false\">"
-			"				<control_word index=\"0x6040\" subindex=\"0x00\" size=\"16\"/>"
-			"				<mode_of_operation index=\"0x6060\" subindex=\"0x00\" size=\"8\"/>"
-			"				<target_pos index=\"0x607A\" subindex=\"0x00\" size=\"32\"/>"
-			"				<target_vel index=\"0x60FF\" subindex=\"0x00\" size=\"32\"/>"
-			"				<offset_vel index=\"0x60B1\" subindex=\"0x00\" size=\"32\"/>"
-			"				<targer_tor index=\"0x6071\" subindex=\"0x00\" size=\"16\"/>"
-			"				<offset_tor index=\"0x60B2\" subindex=\"0x00\" size=\"16\"/>"
-			"			</index_1600>"
-			"		</sm>"
-			"		<sm type=\"SyncManager\" is_tx=\"true\">"
-			"			<index_1a00 type=\"Pdo\" default_child_type=\"PdoEntry\" index=\"0x1A00\" is_tx=\"true\">"
-			"				<status_word index=\"0x6041\" subindex=\"0x00\" size=\"16\"/>"
-			"				<mode_of_display index=\"0x6061\" subindex=\"0x00\" size=\"8\"/>"
-			"				<pos_actual_value index=\"0x6064\" subindex=\"0x00\" size=\"32\"/>"
-			"				<vel_actual_value index=\"0x606c\" subindex=\"0x00\" size=\"32\"/>"
-			"				<cur_actual_value index=\"0x6078\" subindex=\"0x00\" size=\"16\"/>"
-			"			</index_1a00>"
-			"		</sm>"
-			"	</sm_pool>"
-			"	<sdo_pool type=\"SdoPoolObject\" default_child_type=\"Sdo\">"
-			"	</sdo_pool>"
-			"</m_servo_press>";
-		controller->slavePool().add<aris::control::EthercatMotion>().loadXmlStr(xml_str);
-
-		xml_str =
-			"<ethercatIO type=\"EthercatSlave\" phy_id=\"1\" product_code=\"0x00201\""
-			" vendor_id=\"0x00000A09\" revision_num=\"0x64\" dc_assign_activate=\"0x00\">"
-			"	<sm_pool type=\"SyncManagerPoolObject\">"
-			"		<sm type=\"SyncManager\" is_tx=\"false\">"
-			"			<index_1600 type=\"Pdo\" default_child_type=\"PdoEntry\" index=\"0x1600\" is_tx=\"false\">"
-			"				<Dout_0_7 index=\"0x7001\" subindex=\"0x01\" size=\"8\"/>"
-			"			</index_1600>"
-			"		</sm>"
-			"		<sm type=\"SyncManager\" is_tx=\"false\">"
-			"			<index_1601 type=\"Pdo\" default_child_type=\"PdoEntry\" index=\"0x1601\" is_tx=\"false\">"
-			"				<Dout_8_15 index=\"0x7001\" subindex=\"0x02\" size=\"8\"/>"
-			"			</index_1601>"
-			"		</sm>"
-			"		<sm type=\"SyncManager\" is_tx=\"true\">"
-			"			<index_1a00 type=\"Pdo\" default_child_type=\"PdoEntry\" index=\"0x1a00\" is_tx=\"true\">"
-			"				<Din_0_7 index=\"0x6001\" subindex=\"0x01\" size=\"8\"/>"
-			"			</index_1a00>"
-			"			<index_1a01 type=\"Pdo\" default_child_type=\"PdoEntry\" index=\"0x1a01\" is_tx=\"true\">"
-			"				<Din_8_15 index=\"0x6001\" subindex=\"0x02\" size=\"8\"/>"
-			"			</index_1a01>"
-			"		</sm>"
-			"	</sm_pool>"
-			"	<sdo_pool type=\"SdoPoolObject\" default_child_type=\"Sdo\">"
-			"	</sdo_pool>"
-			"</ethercatIO>";
-		controller->slavePool().add<aris::control::EthercatSlave>().loadXmlStr(xml_str);
 
 		return controller;
 	};

@@ -1,4 +1,5 @@
 #include"forcecontrol.h"
+#include <atomic>
 
 
 using namespace aris::dynamic;
@@ -1388,7 +1389,7 @@ namespace forcecontrol
 		std::vector<double> ft;
 	};
 	static std::atomic_bool enable_moveJF = true;
-	static std::atomic<std::array<double, 7>>setpqvalue;
+    static std::atomic<std::array<double, 7> > setpqvalue;
 	auto MoveJF::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
 		auto c = dynamic_cast<aris::control::Controller*>(target.master);
@@ -1771,9 +1772,9 @@ namespace forcecontrol
 			"<moveJF>"
 			"	<group type=\"GroupParam\" default_child_type=\"Param\">"
 			"		<pqt default=\"{0.42,0.0,0.55,0,0,0,1}\" abbreviation=\"p\"/>"
-			"		<kp_p default=\"{10,12,70,4,6,3}\"/>"
-			"		<kp_v default=\"{200,360,120,100,60,20}\"/>"
-			"		<ki_v default=\"{2,18,20,0.6,0.5,0.4}\"/>"
+            "		<kp_p default=\"{10,12,20,3,4,3}\"/>"
+            "		<kp_v default=\"{200,360,120,80,40,20}\"/>"
+            "		<ki_v default=\"{2,18,20,0.4,0.3,0.4}\"/>"
 			"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_all\">"
 			"			<check_all/>"
 			"			<check_none/>"
