@@ -24,6 +24,11 @@ namespace forcecontrol
     constexpr double ft_limit[6] = { 15,15,10,10,5,5 };
 	constexpr double mt_limit[6] = { 15,10,10,1,1,1 };
 
+	constexpr double fi_limit_JFB[6] = { 15,15,10,10,5,5 };
+	constexpr double vt_limit_JFB[6] = { 0.1,0.1,0.1,0.1,0.1,0.1 };
+	constexpr double ft_limit_JFB[6] = { 15,15,10,15,10,10 };
+	
+
 	//其他参数和函数声明 
 	using Size = std::size_t;
 	constexpr double PI = 3.141592653589793;
@@ -66,6 +71,16 @@ namespace forcecontrol
 		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
 
 		explicit MoveJF(const std::string &name = "MoveJF_plan");
+	};
+
+	class MoveJFB : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+
+		explicit MoveJFB(const std::string &name = "MoveJFB_plan");
 	};
 
 	class MoveJPID : public aris::plan::Plan

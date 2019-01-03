@@ -2397,6 +2397,7 @@ namespace kaanh
 		plan_root->planPool().add<forcecontrol::MovePQCrash>();
 		plan_root->planPool().add<forcecontrol::MoveJCrash>();
 		plan_root->planPool().add<forcecontrol::MoveJF>();
+		plan_root->planPool().add<forcecontrol::MoveJFB>();
 		plan_root->planPool().add<forcecontrol::MoveJPID>();
 		plan_root->planPool().add<forcecontrol::MoveStop>();
 		plan_root->planPool().add<forcecontrol::MoveSPQ>();

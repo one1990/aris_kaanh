@@ -616,7 +616,6 @@ namespace forcecontrol
 
 				s_c3a(param.pqa.data(), param.ft.data(), param.ft.data() + 3);
 
-
 				//通过雅克比矩阵将param.ft转换到关节param.ft_input
 				auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(target.model->solverPool()[1]);
 
@@ -1389,7 +1388,7 @@ namespace forcecontrol
 		std::vector<double> ft;
 	};
 	static std::atomic_bool enable_moveJF = true;
-    static std::atomic<std::array<double, 7> > setpqvalue;
+    static std::atomic<std::array<double, 7> > setpqJF;
 	auto MoveJF::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
 		auto c = dynamic_cast<aris::control::Controller*>(target.master);
@@ -1415,7 +1414,7 @@ namespace forcecontrol
 				param.pqt.assign(pqarray.begin(), pqarray.end());
 				std::array<double, 7> temp;
 				std::copy(pqarray.begin(), pqarray.end(), temp.begin());
-				setpqvalue.store(temp);
+				setpqJF.store(temp);
 			}
 			else if (p.first == "kp_p")
 			{
@@ -1577,7 +1576,7 @@ namespace forcecontrol
 
 		//通过moveSPQ设置实时目标PQ位置
 		std::array<double, 7> temp;
-		temp = setpqvalue.load();
+		temp = setpqJF.load();
 		std::copy(temp.begin(), temp.end(), param.pqt.begin());
 		
 		//求目标位置pq的运动学反解，获取电机实际位置、实际速度
@@ -1843,6 +1842,495 @@ namespace forcecontrol
 			"		</unique>"
 			"	</group>"
 			"</moveJF>");
+	}
+
+
+	// 力控跟随——末端pq由MoveSetPQ给定，最后三个轴保持不动——速度前馈；电流控制 //
+	struct MoveJFBParam
+	{
+		std::vector<double> kp_p;
+		std::vector<double> kp_v;
+		std::vector<double> ki_v;
+
+		std::vector<double> pqt;
+		std::vector<double> pqa;
+		std::vector<double> pt;
+		std::vector<double> pa;
+		std::vector<double> vt;
+		std::vector<double> va;
+		std::vector<double> vfwd;
+
+		std::vector<double> ft;
+	};
+	static std::atomic_bool enable_moveJFB = true;
+	static std::atomic<std::array<double, 7> > setpqJFB;
+	auto MoveJFB::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		auto c = dynamic_cast<aris::control::Controller*>(target.master);
+		MoveJFBParam param;
+		enable_moveJFB = true;
+		param.kp_p.resize(6, 0.0);
+		param.kp_v.resize(6, 0.0);
+		param.ki_v.resize(6, 0.0);
+
+		param.pqt.resize(7, 0.0);
+		param.pqa.resize(7, 0.0);
+		param.pt.resize(6, 0.0);
+		param.pa.resize(6, 0.0);
+		param.vt.resize(6, 0.0);
+		param.va.resize(6, 0.0);
+		param.vfwd.resize(6, 0.0);
+		param.ft.resize(6, 0.0);
+
+		for (auto &p : params)
+		{
+			if (p.first == "pqt")
+			{
+				auto pqarray = target.model->calculator().calculateExpression(p.second);
+				param.pqt.assign(pqarray.begin(), pqarray.end());
+				std::array<double, 7> temp;
+				std::copy(pqarray.begin(), pqarray.end(), temp.begin());
+				setpqJFB.store(temp);
+			}
+			else if (p.first == "kp_p")
+			{
+				auto v = target.model->calculator().calculateExpression(p.second);
+				if (v.size() == 1)
+				{
+					std::fill(param.kp_p.begin(), param.kp_p.end(), v.toDouble());
+				}
+				else if (v.size() == param.kp_p.size())
+				{
+					param.kp_p.assign(v.begin(), v.end());
+				}
+				else
+				{
+					throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+				}
+
+				for (Size i = 0; i < param.kp_p.size(); ++i)
+				{
+					if (param.kp_p[i] > 10000.0)
+					{
+						param.kp_p[i] = 10000.0;
+					}
+					if (param.kp_p[i] < 0.01)
+					{
+						param.kp_p[i] = 0.01;
+					}
+				}
+			}
+			else if (p.first == "kp_v")
+			{
+				auto a = target.model->calculator().calculateExpression(p.second);
+				if (a.size() == 1)
+				{
+					std::fill(param.kp_v.begin(), param.kp_v.end(), a.toDouble());
+				}
+				else if (a.size() == param.kp_v.size())
+				{
+					param.kp_v.assign(a.begin(), a.end());
+				}
+				else
+				{
+					throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+				}
+
+				for (Size i = 0; i < param.kp_v.size(); ++i)
+				{
+					if (param.kp_v[i] > 10000.0)
+					{
+						param.kp_v[i] = 10000.0;
+					}
+					if (param.kp_v[i] < 0.01)
+					{
+						param.kp_v[i] = 0.01;
+					}
+				}
+			}
+			else if (p.first == "ki_v")
+			{
+				auto d = target.model->calculator().calculateExpression(p.second);
+				if (d.size() == 1)
+				{
+					std::fill(param.ki_v.begin(), param.ki_v.end(), d.toDouble());
+				}
+				else if (d.size() == param.ki_v.size())
+				{
+					param.ki_v.assign(d.begin(), d.end());
+				}
+				else
+				{
+					throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+				}
+
+				for (Size i = 0; i < param.ki_v.size(); ++i)
+				{
+					if (param.ki_v[i] > 10000.0)
+					{
+						param.ki_v[i] = 10000.0;
+					}
+					if (param.ki_v[i] < 0.001)
+					{
+						param.ki_v[i] = 0.001;
+					}
+				}
+			}
+
+		}
+		target.param = param;
+
+		target.option |=
+			Plan::USE_VEL_OFFSET |
+			//#ifdef WIN32
+			Plan::NOT_CHECK_POS_MIN |
+			Plan::NOT_CHECK_POS_MAX |
+			Plan::NOT_CHECK_POS_CONTINUOUS |
+			Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
+			Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
+			Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
+			Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
+			//#endif
+			Plan::NOT_CHECK_VEL_MIN |
+			Plan::NOT_CHECK_VEL_MAX |
+			Plan::NOT_CHECK_VEL_CONTINUOUS |
+			Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
+			Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+
+	}
+	auto MoveJFB::executeRT(PlanTarget &target)->int
+	{
+		auto &param = std::any_cast<MoveJFBParam&>(target.param);
+		auto controller = dynamic_cast<aris::control::Controller *>(target.master);
+		static bool is_running{ true };
+		static double vinteg[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+		static double vproportion[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+		bool ds_is_all_finished{ true };
+		bool md_is_all_finished{ true };
+
+		//第一个周期，将目标电机的控制模式切换到电流控制模式		
+		if (target.count == 1)
+		{
+			is_running = true;
+
+			for (Size i = 0; i < param.ft.size(); ++i)
+			{
+				controller->motionPool().at(i).setModeOfOperation(10);	//切换到电流控制
+			}
+		}
+
+		//最后一个周期将目标电机去使能
+		if (!enable_moveJFB)
+		{
+			is_running = false;
+		}
+		if (!is_running)
+		{
+			for (Size i = 0; i < param.ft.size(); ++i)
+			{
+				auto ret = controller->motionPool().at(i).disable();
+				if (ret)
+				{
+					ds_is_all_finished = false;
+				}
+			}
+		}
+
+		//将目标电机由电流模式切换到位置模式
+		if (!is_running&&ds_is_all_finished)
+		{
+			for (Size i = 0; i < param.ft.size(); ++i)
+			{
+				controller->motionPool().at(i).setModeOfOperation(8);
+				auto ret = controller->motionPool().at(i).mode(8);
+				if (ret)
+				{
+					md_is_all_finished = false;
+				}
+			}
+		}
+
+		//通过moveSPQ设置实时目标PQ位置
+		std::array<double, 7> temp;
+		temp = setpqJFB.load();
+		std::copy(temp.begin(), temp.end(), param.pqt.begin());
+
+		//求目标位置pq的运动学反解，获取电机实际位置、实际速度
+		target.model->generalMotionPool().at(0).setMpq(param.pqt.data());
+		if (!target.model->solverPool().at(0).kinPos())return -1;
+		for (Size i = 0; i < param.pt.size(); ++i)
+		{
+			param.pt[i] = target.model->motionPool().at(i).mp();		//motionPool()指模型驱动器，at(0)表示第1个驱动器
+			param.pa[i] = controller->motionPool().at(i).actualPos();
+			param.va[i] = controller->motionPool().at(i).actualVel();
+		}
+
+		//模型运动学正解、动力学正解
+		for (int i = 0; i < param.ft.size(); ++i)
+		{
+			target.model->motionPool()[i].setMp(controller->motionPool()[i].actualPos());
+			target.model->motionPool().at(i).setMv(controller->motionAtAbs(i).actualVel());
+			target.model->motionPool().at(i).setMa(0.0);
+		}
+		target.model->solverPool()[1].kinPos();
+		target.model->solverPool()[1].kinVel();
+		target.model->solverPool()[2].dynAccAndFce();
+
+		//角度不变，位置变化
+		target.model->generalMotionPool().at(0).getMpq(param.pqa.data());
+		std::array<double, 4> q = {0.0,0.0,0.0,1.0};
+		std::copy(q.begin(), q.end(), param.pqa.begin()+3);
+		target.model->generalMotionPool().at(0).setMpq(param.pqa.data());
+		if (!target.model->solverPool().at(1).kinPos())return -1;
+		for (Size i = 3; i < param.pt.size(); ++i)
+		{
+			param.pt[i] = target.model->motionPool().at(i).mp();		//motionPool()指模型驱动器，at(0)表示第1个驱动器
+			param.pa[i] = controller->motionPool().at(i).actualPos();
+			param.va[i] = controller->motionPool().at(i).actualVel();
+		}
+
+		double ft_friction[6];
+		double ft_offset[6];
+		double real_vel[6];
+		double ft_friction1[6], ft_friction2[6], ft_dynamic[6];
+		static double ft_friction2_index[6] = { 5.0, 5.0, 5.0, 5.0, 5.0, 3.0 };
+		if (is_running)
+		{
+			//位置环PID+速度限制
+			for (Size i = 0; i < param.kp_p.size(); ++i)
+			{
+				param.vt[i] = param.kp_p[i] * (param.pt[i] - param.pa[i]);
+				param.vt[i] = std::max(std::min(param.vt[i], vt_limit_JFB[i]), -vt_limit_JFB[i]);
+				param.vt[i] = param.vt[i] + param.vfwd[i];
+			}
+
+			//速度环PID+力及力矩的限制
+			for (Size i = 0; i < param.ft.size(); ++i)
+			{
+				vproportion[i] = param.kp_v[i] * (param.vt[i] - param.va[i]);
+				vinteg[i] = vinteg[i] + param.ki_v[i] * (param.vt[i] - param.va[i]);
+				vinteg[i] = std::min(vinteg[i], fi_limit_JFB[i]);
+				vinteg[i] = std::max(vinteg[i], -fi_limit_JFB[i]);
+
+				param.ft[i] = vproportion[i] + vinteg[i];
+				param.ft[i] = std::min(param.ft[i], ft_limit_JFB[i]);
+				param.ft[i] = std::max(param.ft[i], -ft_limit_JFB[i]);
+			}
+
+			//动力学载荷
+			for (Size i = 0; i < param.ft.size(); ++i)
+			{
+				//动力学参数
+				//constexpr double f_static[6] = { 9.349947583,11.64080253,4.770140543,3.631416685,2.58310847,1.783739862 };
+				//constexpr double f_vel[6] = { 7.80825641,13.26518528,7.856443575,3.354615249,1.419632126,0.319206404 };
+				//constexpr double f_acc[6] = { 0,3.555679326,0.344454603,0.148247716,0.048552673,0.033815455 };
+				//constexpr double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
+				//constexpr double f_static_index[6] = {0.5, 0.5, 0.5, 0.85, 0.95, 0.8};
+
+				//静摩擦力+动摩擦力=ft_friction
+
+				real_vel[i] = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
+				ft_friction1[i] = 0.8*(f_static[i] * real_vel[i] / max_static_vel[i]);
+
+				//double ft_friction2_max = std::max(0.0, controller->motionAtAbs(i).actualVel() >= 0 ? f_static[i] - ft_friction1[i] : f_static[i] + ft_friction1[i]);
+				//double ft_friction2_min = std::min(0.0, controller->motionAtAbs(i).actualVel() >= 0 ? -f_static[i] + ft_friction1[i] : -f_static[i] - ft_friction1[i]);
+				//ft_friction2[i] = std::max(ft_friction2_min, std::min(ft_friction2_max, ft_friction2_index[i] * param.ft[i]));
+				//ft_friction[i] = ft_friction1[i] + ft_friction2[i] + f_vel[i] * controller->motionAtAbs(i).actualVel();
+
+				ft_friction[i] = ft_friction1[i] + f_vel[i] * controller->motionAtAbs(i).actualVel();
+
+				//auto real_vel = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
+				//ft_friction = (f_vel[i] * controller->motionAtAbs(i).actualVel() + f_static_index[i] * f_static[i] * real_vel / max_static_vel[i])*f2c_index[i];
+
+				ft_friction[i] = std::max(-500.0, ft_friction[i]);
+				ft_friction[i] = std::min(500.0, ft_friction[i]);
+
+				//动力学载荷=ft_dynamic
+				ft_dynamic[i] = target.model->motionPool()[i].mfDyn();
+
+				ft_offset[i] = (ft_friction[i] + ft_dynamic[i] + param.ft[i])*f2c_index[i];
+				controller->motionAtAbs(i).setTargetCur(ft_offset[i]);
+			}
+		}
+
+		//print//
+		auto &cout = controller->mout();
+		if (target.count % 1000 == 0)
+		{
+			cout << "pt:";
+			for (Size i = 0; i < 6; i++)
+			{
+				cout << std::setw(10) << param.pt[i] << "  ";
+			}
+			cout << std::endl;
+
+			cout << "pa:";
+			for (Size i = 0; i < 6; i++)
+			{
+				cout << std::setw(10) << param.pa[i] << "  ";
+			}
+			cout << std::endl;
+
+			cout << "vt:";
+			for (Size i = 0; i < 6; i++)
+			{
+				cout << std::setw(10) << param.vt[i] << "  ";
+			}
+			cout << std::endl;
+
+			cout << "va:";
+			for (Size i = 0; i < 6; i++)
+			{
+				cout << std::setw(10) << param.va[i] << "  ";
+			}
+			cout << std::endl;
+
+			cout << "vproportion:";
+			for (Size i = 0; i < 6; i++)
+			{
+				cout << std::setw(10) << vproportion[i] << "  ";
+			}
+			cout << std::endl;
+
+			cout << "vinteg:";
+			for (Size i = 0; i < 6; i++)
+			{
+				cout << std::setw(10) << vinteg[i] << "  ";
+			}
+			cout << std::endl;
+
+			cout << "ft:";
+			for (Size i = 0; i < 6; i++)
+			{
+				cout << std::setw(10) << param.ft[i] << "  ";
+			}
+			cout << std::endl;
+			cout << "friction1:";
+			for (Size i = 0; i < 6; i++)
+			{
+				cout << std::setw(10) << ft_friction1[i] << "  ";
+			}
+			cout << std::endl;
+			cout << "friction:";
+			for (Size i = 0; i < 6; i++)
+			{
+				cout << std::setw(10) << ft_friction[i] << "  ";
+			}
+			cout << std::endl;
+			cout << "ft_dynamic:";
+			for (Size i = 0; i < 6; i++)
+			{
+				cout << std::setw(10) << ft_dynamic[i] << "  ";
+			}
+			cout << std::endl;
+			cout << "ft_offset:";
+			for (Size i = 0; i < 6; i++)
+			{
+				cout << std::setw(10) << ft_offset[i] << "  ";
+			}
+			cout << std::endl;
+			cout << "------------------------------------------------" << std::endl;
+		}
+
+		//log//
+		auto &lout = controller->lout();
+		for (Size i = 0; i < param.ft.size(); i++)
+		{
+			lout << param.pt[i] << ",";
+			lout << controller->motionAtAbs(i).actualPos() << ",";
+			lout << param.vt[i] << ",";
+			lout << controller->motionAtAbs(i).actualVel() << ",";
+			lout << ft_offset[i] << ",";
+			lout << controller->motionAtAbs(i).actualCur() << ",";
+			lout << vproportion[i] << ",";
+			lout << vinteg[i] << ",";
+			lout << param.ft[i] << ",";
+			lout << ft_friction1[i] << ",";
+			lout << ft_friction[i] << ",";
+			lout << ft_dynamic[i] << ",";
+		}
+		lout << std::endl;
+
+		return (!is_running&&ds_is_all_finished&&md_is_all_finished) ? 0 : 1;
+	}
+	auto MoveJFB::collectNrt(PlanTarget &target)->void {}
+	MoveJFB::MoveJFB(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<moveJFB>"
+			"	<group type=\"GroupParam\" default_child_type=\"Param\">"
+			"		<pqt default=\"{0.42,0.0,0.55,0,0,0,1}\" abbreviation=\"p\"/>"
+			"		<kp_p default=\"{10,12,20,3,4,3}\"/>"
+			"		<kp_v default=\"{200,360,120,80,40,20}\"/>"
+			"		<ki_v default=\"{2,18,20,0.4,0.3,0.4}\"/>"
+			"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_all\">"
+			"			<check_all/>"
+			"			<check_none/>"
+			"			<group type=\"GroupParam\" default_child_type=\"Param\">"
+			"				<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos\">"
+			"					<check_pos/>"
+			"					<not_check_pos/>"
+			"					<group type=\"GroupParam\" default_child_type=\"Param\">"
+			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_max\">"
+			"							<check_pos_max/>"
+			"							<not_check_pos_max/>"
+			"						</unique>"
+			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_min\">"
+			"							<check_pos_min/>"
+			"							<not_check_pos_min/>"
+			"						</unique>"
+			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous\">"
+			"							<check_pos_continuous/>"
+			"							<not_check_pos_continuous/>"
+			"						</unique>"
+			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous_at_start\">"
+			"							<check_pos_continuous_at_start/>"
+			"							<not_check_pos_continuous_at_start/>"
+			"						</unique>"
+			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous_second_order\">"
+			"							<check_pos_continuous_second_order/>"
+			"							<not_check_pos_continuous_second_order/>"
+			"						</unique>"
+			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous_second_order_at_start\">"
+			"							<check_pos_continuous_second_order_at_start/>"
+			"							<not_check_pos_continuous_second_order_at_start/>"
+			"						</unique>"
+			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_following_error\">"
+			"							<check_pos_following_error/>"
+			"							<not_check_pos_following_error />"
+			"						</unique>"
+			"					</group>"
+			"				</unique>"
+			"				<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel\">"
+			"					<check_vel/>"
+			"					<not_check_vel/>"
+			"					<group type=\"GroupParam\" default_child_type=\"Param\">"
+			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_max\">"
+			"							<check_vel_max/>"
+			"							<not_check_vel_max/>"
+			"						</unique>"
+			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_min\">"
+			"							<check_vel_min/>"
+			"							<not_check_vel_min/>"
+			"						</unique>"
+			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_continuous\">"
+			"							<check_vel_continuous/>"
+			"							<not_check_vel_continuous/>"
+			"						</unique>"
+			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_continuous_at_start\">"
+			"							<check_vel_continuous_at_start/>"
+			"							<not_check_vel_continuous_at_start/>"
+			"						</unique>"
+			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_following_error\">"
+			"							<check_vel_following_error/>"
+			"							<not_check_vel_following_error />"
+			"						</unique>"
+			"					</group>"
+			"				</unique>"
+			"			</group>"
+			"		</unique>"
+			"	</group>"
+			"</moveJFB>");
 	}
 
 
@@ -2441,6 +2929,7 @@ namespace forcecontrol
 			enable_movePQCrash = false;
 			enable_moveJCrash = false;
 			enable_moveJF = false;
+			enable_moveJFB = false;
 			enable_moveJPID = false;
 			target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
 		}
@@ -2457,12 +2946,19 @@ namespace forcecontrol
 	{
 		for (auto &p : params)
 		{
-			if (p.first == "setpqvalue")
+			if (p.first == "setpqJF")
 			{
 				auto pqarray = target.model->calculator().calculateExpression(p.second);
 				std::array<double, 7> temp;
 				std::copy(pqarray.begin(), pqarray.end(), temp.begin());
-				setpqvalue.store(temp);
+				setpqJF.store(temp);
+			}
+			else if (p.first == "setpqJFB")
+			{
+				auto pqarray = target.model->calculator().calculateExpression(p.second);
+				std::array<double, 7> temp;
+				std::copy(pqarray.begin(), pqarray.end(), temp.begin());
+				setpqJFB.store(temp);
 			}
 		}
 		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
@@ -2472,7 +2968,10 @@ namespace forcecontrol
 		command().loadXmlStr(
 			"<moveSPQ>"
 			"	<group type=\"GroupParam\" default_child_type=\"Param\">"
-			"		<setpqvalue abbreviation=\"p\" default=\"{0.42,0.0,0.55,0,0,0,1}\"/>"
+			"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"setpqJFB\">"
+			"			<setpqJF default=\"{0.42,0.0,0.55,0,0,0,1}\"/>"
+			"			<setpqJFB default=\"{0.42,0.0,0.55,0,0,0,1}\"/>"
+			"		</unique>"
 			"	</group>"
 			"</moveSPQ>");
 	}

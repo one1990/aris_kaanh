@@ -20,4 +20,10 @@ message(${aris_DIR})
 # user program started...
 set(SOURCE_FILES src/main.cpp src/kaanh.cpp src/iir.cpp src/forcecontrol.cpp src/kaanh.h src/iir.h src/forcecontrol.h)
 add_executable(kaanh ${SOURCE_FILES})
-target_link_libraries(kaanh ${aris_LIBRARIES} atomic)
+if(UNIX)
+	target_link_libraries(kaanh ${aris_LIBRARIES} atomic)
+endif(UNIX)
+IF(WIN32)
+	target_link_libraries(kaanh ${aris_LIBRARIES})
+endif(WIN32)
+
