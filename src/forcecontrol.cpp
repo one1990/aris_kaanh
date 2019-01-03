@@ -2081,7 +2081,7 @@ namespace forcecontrol
 		std::array<double, 4> q = {0.0,0.0,0.0,1.0};
 		std::copy(q.begin(), q.end(), param.pqa.begin()+3);
 		target.model->generalMotionPool().at(0).setMpq(param.pqa.data());
-		if (!target.model->solverPool().at(1).kinPos())return -1;
+        if (!target.model->solverPool().at(0).kinPos())return -1;
 		for (Size i = 3; i < param.pt.size(); ++i)
 		{
 			param.pt[i] = target.model->motionPool().at(i).mp();		//motionPool()指模型驱动器，at(0)表示第1个驱动器
@@ -2260,9 +2260,9 @@ namespace forcecontrol
 			"<moveJFB>"
 			"	<group type=\"GroupParam\" default_child_type=\"Param\">"
 			"		<pqt default=\"{0.42,0.0,0.55,0,0,0,1}\" abbreviation=\"p\"/>"
-			"		<kp_p default=\"{10,12,20,3,4,3}\"/>"
-			"		<kp_v default=\"{200,360,120,80,40,20}\"/>"
-			"		<ki_v default=\"{2,18,20,0.4,0.3,0.4}\"/>"
+            "		<kp_p default=\"{8,12,20,3,3,2}\"/>"
+            "		<kp_v default=\"{170,360,120,60,35,16}\"/>"
+            "		<ki_v default=\"{2,18,20,0.2,0.2,0.18}\"/>"
 			"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_all\">"
 			"			<check_all/>"
 			"			<check_none/>"
