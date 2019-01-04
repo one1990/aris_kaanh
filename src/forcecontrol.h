@@ -28,9 +28,9 @@ namespace forcecontrol
     constexpr double vt_limit_JFB[6] = { 0.1,0.1,0.1,0.6,0.6,0.6 };
     constexpr double ft_limit_JFB[6] = { 18,11,9,15,10,10 };
 	
-	constexpr double fi_limit_PQB[6] = { 18,11,9,10,5,5 };
+    constexpr double fi_limit_PQB[6] = { 30,30,30,15,10,10 };
 	constexpr double vt_limit_PQB[6] = { 0.1,0.1,0.1,0.6,0.6,0.6 };
-	constexpr double ft_limit_PQB[6] = { 18,11,9,15,10,10 };
+    constexpr double ft_limit_PQB[6] = { 30,30,30,15,10,10 };
 
 	//其他参数和函数声明 
 	using Size = std::size_t;

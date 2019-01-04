@@ -1217,6 +1217,13 @@ namespace forcecontrol
 			}
 			cout << std::endl;
 
+            cout << "ft:";
+            for (Size i = 0; i < 6; i++)
+            {
+                cout << std::setw(10) << param.ft[i] << "  ";
+            }
+            cout << std::endl;
+
 			cout << "ft_pid:";
 			for (Size i = 0; i < 6; i++)
 			{
@@ -1262,6 +1269,7 @@ namespace forcecontrol
 			lout << controller->motionAtAbs(i).actualCur() << ",";
 			lout << vproportion[i] << ",";
 			lout << vinteg[i] << ",";
+            lout << param.ft[i] << ",";
 			lout << param.ft_pid[i] << ",";
 			lout << ft_friction1[i] << ",";
 			lout << ft_friction[i] << ",";
@@ -1278,9 +1286,9 @@ namespace forcecontrol
 			"<movePQB>"
 			"	<group type=\"GroupParam\" default_child_type=\"Param\">"
 			"		<pqt default=\"{0.42,0.0,0.55,0,0,0,1}\" abbreviation=\"p\"/>"
-			"		<kp_p default=\"{8,12,20,3,3,2}\"/>"
-			"		<kp_v default=\"{170,360,120,60,35,16}\"/>"
-			"		<ki_v default=\"{2,18,20,0.2,0.2,0.18}\"/>"
+            "		<kp_p default=\"{1,1,1,3,3,2}\"/>"
+            "		<kp_v default=\"{900,900,900,60,30,16}\"/>"
+            "		<ki_v default=\"{5,5,5,0.2,0.2,0.18}\"/>"
 			"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_all\">"
 			"			<check_all/>"
 			"			<check_none/>"
