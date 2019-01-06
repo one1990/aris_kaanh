@@ -1,49 +1,21 @@
 cmake_minimum_required(VERSION 3.12)
 
-project(aris_luoshi)
+project(moveDELTA)
 
-# set binary and library folders
-set(EXECUTABLE_OUTPUT_PATH bin)
-set(LIBRARY_OUTPUT_PATH lib)
+# aris use c++ 17 standard
 set(CMAKE_CXX_STANDARD 17)
 
-# set install directories
+# find aris
 if(UNIX)
-	set(RELY_LINK_LIB pthread stdc++fs)#pthread is needed for concurrency
-	
-	# rely on etherlab
-	set(RELY_INCL_DIR "/opt/etherlab/include" ${RELY_INCL_DIR})
-	set(RELY_LINK_DIR "/opt/etherlab/lib" ${RELY_LINK_DIR})
-	set(RELY_LINK_LIB ethercat_rtdm ${RELY_LINK_LIB})
-	
-	# rely on xenomai
-	set(RELY_INCL_DIR "/usr/xenomai/include" ${RELY_INCL_DIR})
-	set(RELY_LINK_DIR "/usr/xenomai/lib" ${RELY_LINK_DIR})
-	set(RELY_LINK_LIB native rtdm xenomai ${RELY_LINK_LIB})
-
-	# rely on xenomai
-	set(RELY_INCL_DIR "/usr/aris/include" ${RELY_INCL_DIR})
-	set(RELY_LINK_DIR "/usr/aris/lib/release" ${RELY_LINK_DIR})
-	set(RELY_LINK_LIB aris_robot aris_server aris_sensor aris_plan aris_dynamic aris_control aris_core ${RELY_LINK_LIB})
+	add_definitions(-DUNIX)
+	find_package(aris REQUIRED PATHS /usr/aris)
 endif(UNIX)
-
-
-if(WIN32)
-	set(RELY_LINK_LIB "ws2_32")#ws2_32 is needed for socket
-	set(RELY_INCL_DIR "C:/aris/include/" ${RELY_INCL_DIR})
-	set(RELY_LINK_DIR "C:/aris/lib/debug/" ${RELY_LINK_DIR})
-	set(RELY_LINK_LIB aris_robot aris_server aris_sensor aris_plan aris_dynamic aris_control aris_core ${RELY_LINK_LIB})
-	set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
-	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
+IF(WIN32)
+	find_package(aris REQUIRED PATHS C:/aris/aris-1.5.0)
 endif(WIN32)
+include_directories(${aris_INCLUDE_DIRS})
 
-set(ALL_INCL_DIR ${RELY_INCL_DIR})
-set(ALL_LINK_DIR ${RELY_LINK_DIR})
-set(ALL_LINK_LIB ${RELY_LINK_LIB})
-
-include_directories(${ALL_INCL_DIR})
-link_directories(${ALL_LINK_DIR})
-
-set(SOURCE_FILES src/main.cpp src/rokae.h src/rokae.cpp )
-add_executable(aris_rokae ${SOURCE_FILES}) 
-target_link_libraries(aris_rokae ${ALL_LINK_LIB})
+# user program started...
+set(SOURCE_FILES src/moveDELTA.cpp)
+add_executable(moveDELTA ${SOURCE_FILES})
+target_link_libraries(moveDELTA ${aris_LIBRARIES})
