@@ -844,6 +844,9 @@ namespace forcecontrol
 
 		std::vector<double> ft;
 		std::vector<double> ft_pid;
+        std::vector<double> vinteg;
+        std::vector<double> vproportion;
+
 	};
 	static std::atomic_bool enable_movePQB = true;
 	static std::atomic<std::array<double, 7> > setpqPQB;
@@ -866,6 +869,8 @@ namespace forcecontrol
 		param.vfwd.resize(6, 0.0);
 		param.ft.resize(6, 0.0);
 		param.ft_pid.resize(6, 0.0);
+        param.vinteg.resize(6, 0.0);
+        param.vproportion.resize(6, 0.0);
 
 		for (auto &p : params)
 		{
@@ -988,8 +993,6 @@ namespace forcecontrol
 		auto &param = std::any_cast<MovePQBParam&>(target.param);
 		auto controller = dynamic_cast<aris::control::Controller *>(target.master);
 		static bool is_running{ true };
-		static double vinteg[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
-		static double vproportion[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 		bool ds_is_all_finished{ true };
 		bool md_is_all_finished{ true };
 
@@ -1101,12 +1104,19 @@ namespace forcecontrol
 			//末端空间——速度环PID+力及力矩的限制
 			for (Size i = 0; i < 3; ++i)
 			{
-				vproportion[i] = param.kp_v[i] * (param.vt[i] - param.va[i]);
-				vinteg[i] = vinteg[i] + param.ki_v[i] * (param.vt[i] - param.va[i]);
+                param.vproportion[i] = param.kp_v[i] * (param.vt[i] - param.va[i]);
+                param.vinteg[i] = param.vinteg[i] + param.ki_v[i] * (param.vt[i] - param.va[i]);
 				//vinteg[i] = std::min(vinteg[i], fi_limit_PQB[i]);
 				//vinteg[i] = std::max(vinteg[i], -fi_limit_PQB[i]);
+            }
+            //限制末端空间ft向量的模的大小
+            double normvi = aris::dynamic::s_norm(3, param.vinteg.data());
+            double normvi_limit = std::max(std::min(normvi, fi_limit_PQB[0]), -fi_limit_PQB[0]);
+            aris::dynamic::s_vc(3, normvi_limit / normvi, param.vinteg.data(), param.vinteg.data());
 
-				param.ft[i] = vproportion[i] + vinteg[i];
+            for (Size i = 0; i < 3; ++i)
+            {
+                param.ft[i] = param.vproportion[i] + param.vinteg[i];
 				//param.ft[i] = std::min(param.ft[i], ft_limit_PQB[i]);
 				//param.ft[i] = std::max(param.ft[i], -ft_limit_PQB[i]);
 			}
@@ -1135,12 +1145,12 @@ namespace forcecontrol
 			//轴空间——速度环PID+力及力矩的限制
 			for (Size i = 3; i < param.ft_pid.size(); ++i)
 			{
-				vproportion[i] = param.kp_v[i] * (param.vt[i] - param.va[i]);
-				vinteg[i] = vinteg[i] + param.ki_v[i] * (param.vt[i] - param.va[i]);
-				vinteg[i] = std::min(vinteg[i], fi_limit_PQB[i]);
-				vinteg[i] = std::max(vinteg[i], -fi_limit_PQB[i]);
+                param.vproportion[i] = param.kp_v[i] * (param.vt[i] - param.va[i]);
+                param.vinteg[i] = param.vinteg[i] + param.ki_v[i] * (param.vt[i] - param.va[i]);
+                param.vinteg[i] = std::min(param.vinteg[i], fi_limit_PQB[i]);
+                param.vinteg[i] = std::max(param.vinteg[i], -fi_limit_PQB[i]);
 
-				param.ft_pid[i] = vproportion[i] + vinteg[i];
+                param.ft_pid[i] = param.vproportion[i] + param.vinteg[i];
 				param.ft_pid[i] = std::min(param.ft_pid[i], ft_limit_PQB[i]);
 				param.ft_pid[i] = std::max(param.ft_pid[i], -ft_limit_PQB[i]);
 			}
@@ -1216,14 +1226,14 @@ namespace forcecontrol
 			cout << "vproportion:";
 			for (Size i = 0; i < 6; i++)
 			{
-				cout << std::setw(10) << vproportion[i] << "  ";
+                cout << std::setw(10) << param.vproportion[i] << "  ";
 			}
 			cout << std::endl;
 
 			cout << "vinteg:";
 			for (Size i = 0; i < 6; i++)
 			{
-				cout << std::setw(10) << vinteg[i] << "  ";
+                cout << std::setw(10) << param.vinteg[i] << "  ";
 			}
 			cout << std::endl;
 
@@ -1277,8 +1287,8 @@ namespace forcecontrol
 			lout << controller->motionAtAbs(i).actualVel() << ",";
 			lout << ft_offset[i] << ",";
 			lout << controller->motionAtAbs(i).actualCur() << ",";
-			lout << vproportion[i] << ",";
-			lout << vinteg[i] << ",";
+            lout << param.vproportion[i] << ",";
+            lout << param.vinteg[i] << ",";
             lout << param.ft[i] << ",";
 			lout << param.ft_pid[i] << ",";
 			lout << ft_friction1[i] << ",";
@@ -1296,9 +1306,9 @@ namespace forcecontrol
 			"<movePQB>"
 			"	<group type=\"GroupParam\" default_child_type=\"Param\">"
 			"		<pqt default=\"{0.42,0.0,0.55,0,0,0,1}\" abbreviation=\"p\"/>"
-            "		<kp_p default=\"{1,1,1,3,3,2}\"/>"
-            "		<kp_v default=\"{900,900,900,60,30,16}\"/>"
-            "		<ki_v default=\"{5,5,5,0.2,0.2,0.18}\"/>"
+            "		<kp_p default=\"{4,4,4,3,3,2}\"/>"
+            "		<kp_v default=\"{800,800,800,60,30,16}\"/>"
+            "		<ki_v default=\"{4,4,4,0.2,0.2,0.18}\"/>"
 			"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_all\">"
 			"			<check_all/>"
 			"			<check_none/>"
