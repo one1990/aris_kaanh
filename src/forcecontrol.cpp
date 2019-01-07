@@ -1089,22 +1089,32 @@ namespace forcecontrol
 			for (Size i = 0; i < 3; ++i)
 			{
 				param.vt[i] = param.kp_p[i] * (param.pqt[i] - param.pqb[i]);
-				param.vt[i] = std::max(std::min(param.vt[i], vt_limit_PQB[i]), -vt_limit_PQB[i]);
 				param.vt[i] = param.vt[i] + param.vfwd[i];
+				//param.vt[i] = std::max(std::min(param.vt[i], vt_limit_PQB[i]), -vt_limit_PQB[i]);
 			}
 
+			//限制末端空间vt向量的模的大小
+			double normv = aris::dynamic::s_norm(3, param.vt.data());
+			double normv_limit = std::max(std::min(normv, vt_limit_PQB[0]), -vt_limit_PQB[0]);
+			aris::dynamic::s_vc(3, normv_limit / normv, param.vt.data(), param.vt.data());
+			
 			//末端空间——速度环PID+力及力矩的限制
 			for (Size i = 0; i < 3; ++i)
 			{
 				vproportion[i] = param.kp_v[i] * (param.vt[i] - param.va[i]);
 				vinteg[i] = vinteg[i] + param.ki_v[i] * (param.vt[i] - param.va[i]);
-				vinteg[i] = std::min(vinteg[i], fi_limit_PQB[i]);
-				vinteg[i] = std::max(vinteg[i], -fi_limit_PQB[i]);
+				//vinteg[i] = std::min(vinteg[i], fi_limit_PQB[i]);
+				//vinteg[i] = std::max(vinteg[i], -fi_limit_PQB[i]);
 
 				param.ft[i] = vproportion[i] + vinteg[i];
-				param.ft[i] = std::min(param.ft[i], ft_limit_PQB[i]);
-				param.ft[i] = std::max(param.ft[i], -ft_limit_PQB[i]);
+				//param.ft[i] = std::min(param.ft[i], ft_limit_PQB[i]);
+				//param.ft[i] = std::max(param.ft[i], -ft_limit_PQB[i]);
 			}
+
+			//限制末端空间ft向量的模的大小
+			double normf = aris::dynamic::s_norm(3, param.ft.data());
+			double normf_limit = std::max(std::min(normf, ft_limit_PQB[0]), -ft_limit_PQB[0]);
+			aris::dynamic::s_vc(3, normf_limit / normf, param.ft.data(), param.ft.data());
 
 			//末端力向量平移到大地坐标系
 			s_c3(param.pqb.data(), param.ft.data(), param.ft.data() + 3);
