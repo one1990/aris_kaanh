@@ -1177,9 +1177,6 @@ namespace forcecontrol
 
 				ft_friction[i] = ft_friction1[i] + f_vel[i] * controller->motionAtAbs(i).actualVel();
 
-				//auto real_vel = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
-				//ft_friction = (f_vel[i] * controller->motionAtAbs(i).actualVel() + f_static_index[i] * f_static[i] * real_vel / max_static_vel[i])*f2c_index[i];
-
 				ft_friction[i] = std::max(-500.0, ft_friction[i]);
 				ft_friction[i] = std::min(500.0, ft_friction[i]);
 
