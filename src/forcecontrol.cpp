@@ -1,4 +1,4 @@
-#include"forcecontrol.h"
+ï»¿#include"forcecontrol.h"
 #include <atomic>
 
 
@@ -7,7 +7,7 @@ using namespace aris::plan;
 
 namespace forcecontrol
 {
-	// Á¦¿ØÍÏ¶¯¡ª¡ªµ¥¹Ø½Ú»òÕß6¸ö¹ì¼£Ïà¶ÔÔË¶¯¹ì¼£--ÊäÈëµ¥¸ö¹Ø½Ú£¬½Ç¶ÈÎ»ÖÃ£»¹Ø½Ú°´ÕÕÌİĞÎËÙ¶È¹ì¼£Ö´ĞĞ£»ËÙ¶ÈÇ°À¡£»µçÁ÷¿ØÖÆ //
+	// åŠ›æ§æ‹–åŠ¨â€”â€”å•å…³èŠ‚æˆ–è€…6ä¸ªè½¨è¿¹ç›¸å¯¹è¿åŠ¨è½¨è¿¹--è¾“å…¥å•ä¸ªå…³èŠ‚ï¼Œè§’åº¦ä½ç½®ï¼›å…³èŠ‚æŒ‰ç…§æ¢¯å½¢é€Ÿåº¦è½¨è¿¹æ‰§è¡Œï¼›é€Ÿåº¦å‰é¦ˆï¼›ç”µæµæ§åˆ¶ //
 	struct MoveJRCParam
 	{
 		double kp_p, kp_v, ki_v;
@@ -114,7 +114,7 @@ namespace forcecontrol
 		bool ds_is_all_finished{ true };
 		bool md_is_all_finished{ true };
 
-		//µÚÒ»¸öÖÜÆÚ£¬½«Ä¿±êµç»úµÄ¿ØÖÆÄ£Ê½ÇĞ»»µ½µçÁ÷¿ØÖÆÄ£Ê½
+		//ç¬¬ä¸€ä¸ªå‘¨æœŸï¼Œå°†ç›®æ ‡ç”µæœºçš„æ§åˆ¶æ¨¡å¼åˆ‡æ¢åˆ°ç”µæµæ§åˆ¶æ¨¡å¼
 		if (target.count == 1)
 		{
 
@@ -124,12 +124,12 @@ namespace forcecontrol
 				if (param.joint_active_vec[i])
 				{
 					param.begin_joint_pos_vec[i] = target.model->motionPool()[i].mp();
-					controller->motionPool().at(i).setModeOfOperation(10);	//ÇĞ»»µ½µçÁ÷¿ØÖÆ
+					controller->motionPool().at(i).setModeOfOperation(10);	//åˆ‡æ¢åˆ°ç”µæµæ§åˆ¶
 				}
 			}
 		}
 
-		//×îºóÒ»¸öÖÜÆÚ½«Ä¿±êµç»úÈ¥Ê¹ÄÜ
+		//æœ€åä¸€ä¸ªå‘¨æœŸå°†ç›®æ ‡ç”µæœºå»ä½¿èƒ½
 		if (!enable_moveJRC)
 		{
 			is_running = false;
@@ -152,7 +152,7 @@ namespace forcecontrol
 			}
 		}
 
-		//½«Ä¿±êµç»úÓÉµçÁ÷Ä£Ê½ÇĞ»»µ½Î»ÖÃÄ£Ê½
+		//å°†ç›®æ ‡ç”µæœºç”±ç”µæµæ¨¡å¼åˆ‡æ¢åˆ°ä½ç½®æ¨¡å¼
 		if (!is_running&&ds_is_all_finished)
 		{
 			for (Size i = 0; i < param.joint_active_vec.size(); ++i)
@@ -169,7 +169,7 @@ namespace forcecontrol
 			}
 		}
 
-		//¶¯Á¦Ñ§
+		//åŠ¨åŠ›å­¦
 		for (int i = 0; i < 6; ++i)
 		{
 			target.model->motionPool()[i].setMp(controller->motionPool()[i].actualPos());
@@ -195,17 +195,17 @@ namespace forcecontrol
 					voff = v * 1000;
 					foff = 0.0;
 					vt = param.kp_p*(p - pa) + voff;
-					//ÏŞÖÆËÙ¶ÈµÄ·¶Î§ÔÚ-1.0~1.0Ö®¼ä
+					//é™åˆ¶é€Ÿåº¦çš„èŒƒå›´åœ¨-1.0~1.0ä¹‹é—´
 					vt = std::max(-1.0, vt);
 					vt = std::min(1.0, vt);
 
 					vinteg[i] = vinteg[i] + vt - va;
 					ft = param.kp_v*(vt - va) + param.ki_v*vinteg[i] + foff;
-					//ÏŞÖÆµçÁ÷µÄ·¶Î§ÔÚ-400~400(Ç§·ÖÊı£º¶î¶¨µçÁ÷ÊÇ1000)Ö®¼ä
+					//é™åˆ¶ç”µæµçš„èŒƒå›´åœ¨-400~400(åƒåˆ†æ•°ï¼šé¢å®šç”µæµæ˜¯1000)ä¹‹é—´
 					ft = std::max(-400.0, ft);
 					ft = std::min(400.0, ft);
 
-					//ÍÏ¶¯Ê¾½Ì
+					//æ‹–åŠ¨ç¤ºæ•™
 					//constexpr double f_static[6] = { 9.349947583,11.64080253,4.770140543,3.631416685,2.58310847,1.783739862 };
 					//constexpr double f_vel[6] = { 7.80825641,13.26518528,7.856443575,3.354615249,1.419632126,0.319206404 };
 					//constexpr double f_acc[6] = { 0,3.555679326,0.344454603,0.148247716,0.048552673,0.033815455 };
@@ -221,7 +221,7 @@ namespace forcecontrol
 
 					controller->motionAtAbs(i).setTargetCur(ft_offset + target.model->motionPool()[i].mfDyn()*f2c_index[i]);
 
-					//´òÓ¡PID¿ØÖÆ½á¹û
+					//æ‰“å°PIDæ§åˆ¶ç»“æœ
 					auto &cout = controller->mout();
 					if (target.count % 100 == 0)
 					{
@@ -238,7 +238,7 @@ namespace forcecontrol
 
 		if (!target.model->solverPool().at(1).kinPos())return -1;
 
-		// ´òÓ¡µçÁ÷ //
+		// æ‰“å°ç”µæµ //
 		/*
 		auto &cout = controller->mout();
 		if (target.count % 100 == 0)
@@ -257,7 +257,7 @@ namespace forcecontrol
 		}
 		*/
 
-		// log µçÁ÷ //
+		// log ç”µæµ //
 		auto &lout = controller->lout();
 		for (Size i = 0; i < param.joint_active_vec.size(); i++)
 		{
@@ -361,7 +361,7 @@ namespace forcecontrol
 	}
 
 
-	// Á¦¿ØÄ©¶Ë¿Õ¼ä¡ª¡ªÊäÈëÄ©¶Ëpq×ËÌ¬£»ÏÈÄ©¶ËPIDËã·¨£¬ÔÙÄ©¶ËÁ¦·´½âµ½Öá¿Õ¼ä£¬È»ºó¿ØÖÆÃ¿¸öµç»ú¡ª¡ªÓÅµãÊÇÄÜ¹»¿ØÖÆÄ©¶ËÁ¦£»ËÙ¶ÈÇ°À¡£»µçÁ÷¿ØÖÆ //
+	// åŠ›æ§æœ«ç«¯ç©ºé—´â€”â€”è¾“å…¥æœ«ç«¯pqå§¿æ€ï¼›å…ˆæœ«ç«¯PIDç®—æ³•ï¼Œå†æœ«ç«¯åŠ›åè§£åˆ°è½´ç©ºé—´ï¼Œç„¶åæ§åˆ¶æ¯ä¸ªç”µæœºâ€”â€”ä¼˜ç‚¹æ˜¯èƒ½å¤Ÿæ§åˆ¶æœ«ç«¯åŠ›ï¼›é€Ÿåº¦å‰é¦ˆï¼›ç”µæµæ§åˆ¶ //
 	struct MovePQCrashParam
 	{
 		std::vector<double> kp_p;
@@ -516,18 +516,18 @@ namespace forcecontrol
 			bool ds_is_all_finished{ true };
 			bool md_is_all_finished{ true };
 
-			//µÚÒ»¸öÖÜÆÚ£¬½«Ä¿±êµç»úµÄ¿ØÖÆÄ£Ê½ÇĞ»»µ½µçÁ÷¿ØÖÆÄ£Ê½
+			//ç¬¬ä¸€ä¸ªå‘¨æœŸï¼Œå°†ç›®æ ‡ç”µæœºçš„æ§åˆ¶æ¨¡å¼åˆ‡æ¢åˆ°ç”µæµæ§åˆ¶æ¨¡å¼
 			if (target.count == 1)
 			{
 				is_running = true;
 
 				for (Size i = 0; i < param.ft.size(); ++i)
 				{
-					controller->motionPool().at(i).setModeOfOperation(10);	//ÇĞ»»µ½µçÁ÷¿ØÖÆ
+					controller->motionPool().at(i).setModeOfOperation(10);	//åˆ‡æ¢åˆ°ç”µæµæ§åˆ¶
 				}
 			}
 
-			//×îºóÒ»¸öÖÜÆÚ½«Ä¿±êµç»úÈ¥Ê¹ÄÜ
+			//æœ€åä¸€ä¸ªå‘¨æœŸå°†ç›®æ ‡ç”µæœºå»ä½¿èƒ½
 			if (!enable_movePQCrash)
 			{
 				is_running = false;
@@ -544,7 +544,7 @@ namespace forcecontrol
 				}
 			}
 
-			//½«Ä¿±êµç»úÓÉµçÁ÷Ä£Ê½ÇĞ»»µ½Î»ÖÃÄ£Ê½
+			//å°†ç›®æ ‡ç”µæœºç”±ç”µæµæ¨¡å¼åˆ‡æ¢åˆ°ä½ç½®æ¨¡å¼
 			if (!is_running&&ds_is_all_finished)
 			{
 				for (Size i = 0; i < param.ft.size(); ++i)
@@ -559,7 +559,7 @@ namespace forcecontrol
 				}
 			}
 
-			//ÔË¶¯Ñ§¡¢¶¯Á¦Ñ§Õı½â
+			//è¿åŠ¨å­¦ã€åŠ¨åŠ›å­¦æ­£è§£
 			for (int i = 0; i < param.ft.size(); ++i)
 			{
 				target.model->motionPool()[i].setMp(controller->motionPool()[i].actualPos());
@@ -581,7 +581,7 @@ namespace forcecontrol
 			static double ft_friction2_index[6] = { 3.0, 3.0, 3.0, 3.0, 3.0, 3.0 };
 			if (is_running)
 			{
-				//Î»ÖÃ»·PID+ËÙ¶ÈÏŞÖÆ
+				//ä½ç½®ç¯PID+é€Ÿåº¦é™åˆ¶
 				target.model->generalMotionPool().at(0).getMpq(param.pqa.data());
 				for (Size i = 0; i < param.kp_p.size(); ++i)
 				{
@@ -589,7 +589,7 @@ namespace forcecontrol
 					param.vt[i] = std::max(std::min(param.vt[i], vt_limit[i]), -vt_limit[i]);
 				}
 
-				//ËÙ¶È»·PID+Á¦¼°Á¦¾ØµÄÏŞÖÆ
+				//é€Ÿåº¦ç¯PID+åŠ›åŠåŠ›çŸ©çš„é™åˆ¶
 				target.model->generalMotionPool().at(0).getMvq(param.va.data());
 				for (Size i = 0; i < param.ft.size(); ++i)
 				{
@@ -601,12 +601,12 @@ namespace forcecontrol
 					vinteg[i] = std::min(vinteg_limit, std::max(-vinteg_limit, vinteg[i] + param.ki_v[i] * (param.vt[i] - param.va[i])));
 
 					param.ft[i] = vproportion[i] + vinteg[i];
-					//Á¦µÄÏŞÖÆ
+					//åŠ›çš„é™åˆ¶
 					//if (i < 3)
 					//{
 					//	param.ft[i] = std::max(std::min(param.ft[i], ft_limit), -ft_limit);
 					//}
-					//Á¦¾ØµÄÏŞÖÆ
+					//åŠ›çŸ©çš„é™åˆ¶
 					//else
 					//{
 					//	param.ft[i] = std::max(std::min(param.ft[i], Mt_limit), -Mt_limit);
@@ -615,7 +615,7 @@ namespace forcecontrol
 
 				s_c3a(param.pqa.data(), param.ft.data(), param.ft.data() + 3);
 
-				//Í¨¹ıÑÅ¿Ë±È¾ØÕó½«param.ft×ª»»µ½¹Ø½Úparam.ft_pid
+				//é€šè¿‡é›…å…‹æ¯”çŸ©é˜µå°†param.ftè½¬æ¢åˆ°å…³èŠ‚param.ft_pid
 				auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(target.model->solverPool()[1]);
 
 				fwd.cptJacobi();
@@ -626,19 +626,19 @@ namespace forcecontrol
 						s_householder_utp2pinv(6, 6, rank, U, tau, p, J_fce, tau2);*/
 				s_mm(6, 1, 6, fwd.Jf(), aris::dynamic::ColMajor{ 6 }, param.ft.data(), 1, param.ft_pid.data(), 1);
 
-				//¶¯Á¦Ñ§ÔØºÉ
+				//åŠ¨åŠ›å­¦è½½è·
 				for (Size i = 0; i < param.ft.size(); ++i)
 				{
 					//double ft_friction1, ft_friction2, ft_dynamic, ft_pid;
 
-					//¶¯Á¦Ñ§²ÎÊı
+					//åŠ¨åŠ›å­¦å‚æ•°
 					//constexpr double f_static[6] = { 9.349947583,11.64080253,4.770140543,3.631416685,2.58310847,1.783739862 };
 					//constexpr double f_vel[6] = { 7.80825641,13.26518528,7.856443575,3.354615249,1.419632126,0.319206404 };
 					//constexpr double f_acc[6] = { 0,3.555679326,0.344454603,0.148247716,0.048552673,0.033815455 };
 					//constexpr double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
 					//constexpr double f_static_index[6] = {0.5, 0.5, 0.5, 0.85, 0.95, 0.8};
 
-					//¾²Ä¦²ÁÁ¦+¶¯Ä¦²ÁÁ¦=ft_friction
+					//é™æ‘©æ“¦åŠ›+åŠ¨æ‘©æ“¦åŠ›=ft_friction
 
 					real_vel[i] = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
 					ft_friction1[i] = 0.8*(f_static[i] * real_vel[i] / max_static_vel[i]);
@@ -656,10 +656,10 @@ namespace forcecontrol
 					ft_friction[i] = std::max(-500.0, ft_friction[i]);
 					ft_friction[i] = std::min(500.0, ft_friction[i]);
 
-					//¶¯Á¦Ñ§ÔØºÉ=ft_dynamic
+					//åŠ¨åŠ›å­¦è½½è·=ft_dynamic
 					ft_dynamic[i] = target.model->motionPool()[i].mfDyn();
 
-					//PIDÊäÈë=ft_pid
+					//PIDè¾“å…¥=ft_pid
 					ft_pid[i] = param.ft_pid[i];
 					//ft_pid = 0.0;
 
@@ -668,7 +668,7 @@ namespace forcecontrol
 				}
 			}
 
-			//´òÓ¡//
+			//æ‰“å°//
 			auto &cout = controller->mout();
 			if (target.count % 1000 == 0)
 			{
@@ -826,7 +826,7 @@ namespace forcecontrol
 		}
 
 
-	// Á¦¿ØÄ©¶Ë¸úËæ¡ª¡ªÄ©¶ËpqÓÉMoveSetPQ¸ø¶¨£¬Ç°Èı¸ùÖáÖ´ĞĞÄ©¶ËPID¿ØÖÆ£¬±£Ö¤Ä©¶ËÖ´ĞĞµ½Ö¸¶¨Î»ÖÃ£»×îºóÈı¸ùÖáÍ¨¹ıÖá¿Õ¼äPID¿ØÖÆ£¬²¢±£³ÖÄ©¶Ë×ËÌ¬²»±ä¡ª¡ªËÙ¶ÈÇ°À¡£»µçÁ÷¿ØÖÆ //
+	// åŠ›æ§æœ«ç«¯è·Ÿéšâ€”â€”æœ«ç«¯pqç”±MoveSetPQç»™å®šï¼Œå‰ä¸‰æ ¹è½´æ‰§è¡Œæœ«ç«¯PIDæ§åˆ¶ï¼Œä¿è¯æœ«ç«¯æ‰§è¡Œåˆ°æŒ‡å®šä½ç½®ï¼›æœ€åä¸‰æ ¹è½´é€šè¿‡è½´ç©ºé—´PIDæ§åˆ¶ï¼Œå¹¶ä¿æŒæœ«ç«¯å§¿æ€ä¸å˜â€”â€”é€Ÿåº¦å‰é¦ˆï¼›ç”µæµæ§åˆ¶ //
 	struct MovePQBParam
 	{
 		std::vector<double> kp_p;
@@ -993,18 +993,18 @@ namespace forcecontrol
 		bool ds_is_all_finished{ true };
 		bool md_is_all_finished{ true };
 
-		//µÚÒ»¸öÖÜÆÚ£¬½«Ä¿±êµç»úµÄ¿ØÖÆÄ£Ê½ÇĞ»»µ½µçÁ÷¿ØÖÆÄ£Ê½		
+		//ç¬¬ä¸€ä¸ªå‘¨æœŸï¼Œå°†ç›®æ ‡ç”µæœºçš„æ§åˆ¶æ¨¡å¼åˆ‡æ¢åˆ°ç”µæµæ§åˆ¶æ¨¡å¼		
 		if (target.count == 1)
 		{
 			is_running = true;
 
 			for (Size i = 0; i < param.ft.size(); ++i)
 			{
-				controller->motionPool().at(i).setModeOfOperation(10);	//ÇĞ»»µ½µçÁ÷¿ØÖÆ
+				controller->motionPool().at(i).setModeOfOperation(10);	//åˆ‡æ¢åˆ°ç”µæµæ§åˆ¶
 			}
 		}
 
-		//×îºóÒ»¸öÖÜÆÚ½«Ä¿±êµç»úÈ¥Ê¹ÄÜ
+		//æœ€åä¸€ä¸ªå‘¨æœŸå°†ç›®æ ‡ç”µæœºå»ä½¿èƒ½
 		if (!enable_movePQB)
 		{
 			is_running = false;
@@ -1021,7 +1021,7 @@ namespace forcecontrol
 			}
 		}
 
-		//½«Ä¿±êµç»úÓÉµçÁ÷Ä£Ê½ÇĞ»»µ½Î»ÖÃÄ£Ê½
+		//å°†ç›®æ ‡ç”µæœºç”±ç”µæµæ¨¡å¼åˆ‡æ¢åˆ°ä½ç½®æ¨¡å¼
 		if (!is_running&&ds_is_all_finished)
 		{
 			for (Size i = 0; i < param.ft.size(); ++i)
@@ -1035,22 +1035,22 @@ namespace forcecontrol
 			}
 		}
 
-		//Í¨¹ımoveSPQÉèÖÃÊµÊ±Ä¿±êPQÎ»ÖÃ
+		//é€šè¿‡moveSPQè®¾ç½®å®æ—¶ç›®æ ‡PQä½ç½®
 		std::array<double, 7> temp;
 		temp = setpqPQB.load();
 		std::copy(temp.begin(), temp.end(), param.pqt.begin());
 
-		//ÇóÄ¿±êÎ»ÖÃpqµÄÔË¶¯Ñ§·´½â£¬»ñÈ¡µç»úÊµ¼ÊÎ»ÖÃ¡¢Êµ¼ÊËÙ¶È
+		//æ±‚ç›®æ ‡ä½ç½®pqçš„è¿åŠ¨å­¦åè§£ï¼Œè·å–ç”µæœºå®é™…ä½ç½®ã€å®é™…é€Ÿåº¦
 		target.model->generalMotionPool().at(0).setMpq(param.pqt.data());
 		if (!target.model->solverPool().at(0).kinPos())return -1;
 		for (Size i = 0; i < param.pt.size(); ++i)
 		{
-			param.pt[i] = target.model->motionPool().at(i).mp();		//motionPool()Ö¸Ä£ĞÍÇı¶¯Æ÷£¬at(0)±íÊ¾µÚ1¸öÇı¶¯Æ÷
+			param.pt[i] = target.model->motionPool().at(i).mp();		//motionPool()æŒ‡æ¨¡å‹é©±åŠ¨å™¨ï¼Œat(0)è¡¨ç¤ºç¬¬1ä¸ªé©±åŠ¨å™¨
 			param.pa[i] = controller->motionPool().at(i).actualPos();
 			param.va[i] = controller->motionPool().at(i).actualVel();
 		}
 
-		//Ä£ĞÍÔË¶¯Ñ§Õı½â¡¢¶¯Á¦Ñ§Õı½â
+		//æ¨¡å‹è¿åŠ¨å­¦æ­£è§£ã€åŠ¨åŠ›å­¦æ­£è§£
 		for (int i = 0; i < param.ft.size(); ++i)
 		{
 			target.model->motionPool()[i].setMp(controller->motionPool()[i].actualPos());
@@ -1061,11 +1061,11 @@ namespace forcecontrol
 		target.model->solverPool()[1].kinVel();
 		target.model->solverPool()[2].dynAccAndFce();
 
-		//Ä©¶Ë¿Õ¼äPID¿ªÊ¼Î»ÖÃ
+		//æœ«ç«¯ç©ºé—´PIDå¼€å§‹ä½ç½®
 		target.model->generalMotionPool().at(0).getMpq(param.pqb.data());
 		target.model->generalMotionPool().at(0).getMvq(param.va.data());
 		
-		//½Ç¶È²»±ä£¬Î»ÖÃ±ä»¯
+		//è§’åº¦ä¸å˜ï¼Œä½ç½®å˜åŒ–
 		target.model->generalMotionPool().at(0).getMpq(param.pqa.data());
 		std::array<double, 4> q = { 0.0,0.0,0.0,1.0 };
 		std::copy(q.begin(), q.end(), param.pqa.begin() + 3);
@@ -1073,7 +1073,7 @@ namespace forcecontrol
 		if (!target.model->solverPool().at(0).kinPos())return -1;
 		for (Size i = 3; i < param.pt.size(); ++i)
 		{
-			param.pt[i] = target.model->motionPool().at(i).mp();		//motionPool()Ö¸Ä£ĞÍÇı¶¯Æ÷£¬at(0)±íÊ¾µÚ1¸öÇı¶¯Æ÷
+			param.pt[i] = target.model->motionPool().at(i).mp();		//motionPool()æŒ‡æ¨¡å‹é©±åŠ¨å™¨ï¼Œat(0)è¡¨ç¤ºç¬¬1ä¸ªé©±åŠ¨å™¨
 			param.pa[i] = controller->motionPool().at(i).actualPos();
 			param.va[i] = controller->motionPool().at(i).actualVel();
 		}
@@ -1085,7 +1085,7 @@ namespace forcecontrol
 		static double ft_friction2_index[6] = { 5.0, 5.0, 5.0, 5.0, 5.0, 3.0 };
 		if (is_running)
 		{
-			//Ä©¶Ë¿Õ¼ä¡ª¡ªÎ»ÖÃ»·PID+ËÙ¶ÈÏŞÖÆ
+			//æœ«ç«¯ç©ºé—´â€”â€”ä½ç½®ç¯PID+é€Ÿåº¦é™åˆ¶
 			for (Size i = 0; i < 3; ++i)
 			{
 				param.vt[i] = param.kp_p[i] * (param.pqt[i] - param.pqb[i]);
@@ -1093,12 +1093,12 @@ namespace forcecontrol
 				//param.vt[i] = std::max(std::min(param.vt[i], vt_limit_PQB[i]), -vt_limit_PQB[i]);
 			}
 
-			//ÏŞÖÆÄ©¶Ë¿Õ¼ävtÏòÁ¿µÄÄ£µÄ´óĞ¡
+			//é™åˆ¶æœ«ç«¯ç©ºé—´vtå‘é‡çš„æ¨¡çš„å¤§å°
 			double normv = aris::dynamic::s_norm(3, param.vt.data());
 			double normv_limit = std::max(std::min(normv, vt_limit_PQB[0]), -vt_limit_PQB[0]);
 			aris::dynamic::s_vc(3, normv_limit / normv, param.vt.data(), param.vt.data());
 			
-			//Ä©¶Ë¿Õ¼ä¡ª¡ªËÙ¶È»·PID+Á¦¼°Á¦¾ØµÄÏŞÖÆ
+			//æœ«ç«¯ç©ºé—´â€”â€”é€Ÿåº¦ç¯PID+åŠ›åŠåŠ›çŸ©çš„é™åˆ¶
 			for (Size i = 0; i < 3; ++i)
 			{
 				vproportion[i] = param.kp_v[i] * (param.vt[i] - param.va[i]);
@@ -1111,20 +1111,20 @@ namespace forcecontrol
 				//param.ft[i] = std::max(param.ft[i], -ft_limit_PQB[i]);
 			}
 
-			//ÏŞÖÆÄ©¶Ë¿Õ¼äftÏòÁ¿µÄÄ£µÄ´óĞ¡
+			//é™åˆ¶æœ«ç«¯ç©ºé—´ftå‘é‡çš„æ¨¡çš„å¤§å°
 			double normf = aris::dynamic::s_norm(3, param.ft.data());
 			double normf_limit = std::max(std::min(normf, ft_limit_PQB[0]), -ft_limit_PQB[0]);
 			aris::dynamic::s_vc(3, normf_limit / normf, param.ft.data(), param.ft.data());
 
-			//Ä©¶ËÁ¦ÏòÁ¿Æ½ÒÆµ½´óµØ×ø±êÏµ
+			//æœ«ç«¯åŠ›å‘é‡å¹³ç§»åˆ°å¤§åœ°åæ ‡ç³»
 			s_c3(param.pqb.data(), param.ft.data(), param.ft.data() + 3);
 
-			//Í¨¹ıÁ¦ÑÅ¿Ë±È¾ØÕó½«param.ft×ª»»µ½¹Ø½Úparam.ft_pid
+			//é€šè¿‡åŠ›é›…å…‹æ¯”çŸ©é˜µå°†param.ftè½¬æ¢åˆ°å…³èŠ‚param.ft_pid
 			auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(target.model->solverPool()[1]);
 			fwd.cptJacobi();
 			s_mm(6, 1, 6, fwd.Jf(), aris::dynamic::ColMajor{ 6 }, param.ft.data(), 1, param.ft_pid.data(), 1);
 
-			//Öá¿Õ¼ä¡ª¡ªÎ»ÖÃ»·PID+ËÙ¶ÈÏŞÖÆ
+			//è½´ç©ºé—´â€”â€”ä½ç½®ç¯PID+é€Ÿåº¦é™åˆ¶
 			for (Size i = 3; i < param.ft_pid.size(); ++i)
 			{
 				param.vt[i] = param.kp_p[i] * (param.pt[i] - param.pa[i]);
@@ -1132,7 +1132,7 @@ namespace forcecontrol
 				param.vt[i] = param.vt[i] + param.vfwd[i];
 			}
 
-			//Öá¿Õ¼ä¡ª¡ªËÙ¶È»·PID+Á¦¼°Á¦¾ØµÄÏŞÖÆ
+			//è½´ç©ºé—´â€”â€”é€Ÿåº¦ç¯PID+åŠ›åŠåŠ›çŸ©çš„é™åˆ¶
 			for (Size i = 3; i < param.ft_pid.size(); ++i)
 			{
 				vproportion[i] = param.kp_v[i] * (param.vt[i] - param.va[i]);
@@ -1145,17 +1145,17 @@ namespace forcecontrol
 				param.ft_pid[i] = std::max(param.ft_pid[i], -ft_limit_PQB[i]);
 			}
 
-			//¶¯Á¦Ñ§ÔØºÉ
+			//åŠ¨åŠ›å­¦è½½è·
 			for (Size i = 0; i < param.ft_pid.size(); ++i)
 			{
-				//¶¯Á¦Ñ§²ÎÊı
+				//åŠ¨åŠ›å­¦å‚æ•°
 				//constexpr double f_static[6] = { 9.349947583,11.64080253,4.770140543,3.631416685,2.58310847,1.783739862 };
 				//constexpr double f_vel[6] = { 7.80825641,13.26518528,7.856443575,3.354615249,1.419632126,0.319206404 };
 				//constexpr double f_acc[6] = { 0,3.555679326,0.344454603,0.148247716,0.048552673,0.033815455 };
 				//constexpr double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
 				//constexpr double f_static_index[6] = {0.5, 0.5, 0.5, 0.85, 0.95, 0.8};
 
-				//¾²Ä¦²ÁÁ¦+¶¯Ä¦²ÁÁ¦=ft_friction
+				//é™æ‘©æ“¦åŠ›+åŠ¨æ‘©æ“¦åŠ›=ft_friction
 
 				real_vel[i] = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
 				ft_friction1[i] = 0.8*(f_static[i] * real_vel[i] / max_static_vel[i]);
@@ -1170,7 +1170,7 @@ namespace forcecontrol
 				ft_friction[i] = std::max(-500.0, ft_friction[i]);
 				ft_friction[i] = std::min(500.0, ft_friction[i]);
 
-				//¶¯Á¦Ñ§ÔØºÉ=ft_dynamic
+				//åŠ¨åŠ›å­¦è½½è·=ft_dynamic
 				ft_dynamic[i] = target.model->motionPool()[i].mfDyn();
 
 				ft_offset[i] = (ft_friction[i] + ft_dynamic[i] + param.ft_pid[i])*f2c_index[i];
@@ -1367,7 +1367,7 @@ namespace forcecontrol
 	}
 
 
-	// Á¦¿ØÖá¿Õ¼ä¡ª¡ªÊäÈëÄ©¶Ëpq×ËÌ¬£»ÏÈ¶ÔÄ©¶Ëpq½øĞĞÌİĞÎ¹ì¼£¹æ»®£¬È»ºó¹æ»®ºÃµÄÄ©¶Ëpq·´½âµ½Öá¿Õ¼ä£¬×îºóÍ¨¹ıÖá¿Õ¼äPIDËã·¨¿ØÖÆÃ¿¸öµç»ú¡ª¡ªºÃÊµÏÖ£¬¶¶¶¯Ğ¡£»ËÙ¶ÈÇ°À¡£»µçÁ÷¿ØÖÆ //
+	// åŠ›æ§è½´ç©ºé—´â€”â€”è¾“å…¥æœ«ç«¯pqå§¿æ€ï¼›å…ˆå¯¹æœ«ç«¯pqè¿›è¡Œæ¢¯å½¢è½¨è¿¹è§„åˆ’ï¼Œç„¶åè§„åˆ’å¥½çš„æœ«ç«¯pqåè§£åˆ°è½´ç©ºé—´ï¼Œæœ€åé€šè¿‡è½´ç©ºé—´PIDç®—æ³•æ§åˆ¶æ¯ä¸ªç”µæœºâ€”â€”å¥½å®ç°ï¼ŒæŠ–åŠ¨å°ï¼›é€Ÿåº¦å‰é¦ˆï¼›ç”µæµæ§åˆ¶ //
 	struct MoveJCrashParam
 	{
 		std::vector<double> kp_p;
@@ -1552,7 +1552,7 @@ namespace forcecontrol
 			bool ds_is_all_finished{ true };
 			bool md_is_all_finished{ true };
 
-			//µÚÒ»¸öÖÜÆÚ£¬½«Ä¿±êµç»úµÄ¿ØÖÆÄ£Ê½ÇĞ»»µ½µçÁ÷¿ØÖÆÄ£Ê½		
+			//ç¬¬ä¸€ä¸ªå‘¨æœŸï¼Œå°†ç›®æ ‡ç”µæœºçš„æ§åˆ¶æ¨¡å¼åˆ‡æ¢åˆ°ç”µæµæ§åˆ¶æ¨¡å¼		
 			if (target.count == 1)
 			{
 				is_running = true;
@@ -1568,11 +1568,11 @@ namespace forcecontrol
 
 				for (Size i = 0; i < param.ft.size(); ++i)
 				{
-					controller->motionPool().at(i).setModeOfOperation(10);	//ÇĞ»»µ½µçÁ÷¿ØÖÆ
+					controller->motionPool().at(i).setModeOfOperation(10);	//åˆ‡æ¢åˆ°ç”µæµæ§åˆ¶
 				}
 			}
 
-			//×îºóÒ»¸öÖÜÆÚ½«Ä¿±êµç»úÈ¥Ê¹ÄÜ
+			//æœ€åä¸€ä¸ªå‘¨æœŸå°†ç›®æ ‡ç”µæœºå»ä½¿èƒ½
 			if (!enable_moveJCrash)
 			{
 				is_running = false;
@@ -1589,7 +1589,7 @@ namespace forcecontrol
 				}
 			}
 
-			//½«Ä¿±êµç»úÓÉµçÁ÷Ä£Ê½ÇĞ»»µ½Î»ÖÃÄ£Ê½
+			//å°†ç›®æ ‡ç”µæœºç”±ç”µæµæ¨¡å¼åˆ‡æ¢åˆ°ä½ç½®æ¨¡å¼//
 			if (!is_running&&ds_is_all_finished)
 			{
 				for (Size i = 0; i < param.ft.size(); ++i)
@@ -1603,23 +1603,23 @@ namespace forcecontrol
 				}
 			}
 
-			//¹ì¼£¹æ»®
+			//è½¨è¿¹è§„åˆ’
 			aris::Size total_count{ 1 };
 			if (param.which_dir == 0)
 			{
-				//ÇóÄ¿±êÎ»ÖÃpqµÄÔË¶¯Ñ§·´½â£¬»ñÈ¡µç»úÊµ¼ÊÎ»ÖÃ¡¢Êµ¼ÊËÙ¶È
+				//æ±‚ç›®æ ‡ä½ç½®pqçš„è¿åŠ¨å­¦åè§£ï¼Œè·å–ç”µæœºå®é™…ä½ç½®ã€å®é™…é€Ÿåº¦
 				target.model->generalMotionPool().at(0).setMpq(param.pqt.data());
 				if (!target.model->solverPool().at(0).kinPos())return -1;
 				for (Size i = 0; i < param.pt.size(); ++i)
 				{
-					param.pt[i] = target.model->motionPool().at(i).mp();		//motionPool()Ö¸Ä£ĞÍÇı¶¯Æ÷£¬at(0)±íÊ¾µÚ1¸öÇı¶¯Æ÷
+					param.pt[i] = target.model->motionPool().at(i).mp();		//motionPool()æŒ‡æ¨¡å‹é©±åŠ¨å™¨ï¼Œat(0)è¡¨ç¤ºç¬¬1ä¸ªé©±åŠ¨å™¨
 					param.pa[i] = controller->motionPool().at(i).actualPos();
 					param.va[i] = controller->motionPool().at(i).actualVel();
 				}
 			}
 			else
 			{
-				//x,y,z·½ÏòÌİĞÎ¹ì¼£¹æ»®
+				//x,y,zæ–¹å‘æ¢¯å½¢è½¨è¿¹è§„åˆ’
 				double norm, p, v, a;
 				norm = std::sqrt(param.xyz[0] * param.xyz[0] + param.xyz[1] * param.xyz[1] + param.xyz[2] * param.xyz[2]);
 				aris::plan::moveAbsolute(target.count, 0.0, norm, param.vel / 1000, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, total_count);
@@ -1641,14 +1641,14 @@ namespace forcecontrol
 
 				for (Size i = 0; i < param.pt.size(); ++i)
 				{
-					param.pt[i] = target.model->motionPool().at(i).mp();		//motionPool()Ö¸Ä£ĞÍÇı¶¯Æ÷£¬at(0)±íÊ¾µÚ1¸öÇı¶¯Æ÷
+					param.pt[i] = target.model->motionPool().at(i).mp();		//motionPool()æŒ‡æ¨¡å‹é©±åŠ¨å™¨ï¼Œat(0)è¡¨ç¤ºç¬¬1ä¸ªé©±åŠ¨å™¨
 					param.vfwd[i] = target.model->motionPool().at(i).mv();
 					param.pa[i] = controller->motionPool().at(i).actualPos();
 					param.va[i] = controller->motionPool().at(i).actualVel();
 				}
 			}
 
-			//Ä£ĞÍÕı½â
+			//æ¨¡å‹æ­£è§£//
 			for (int i = 0; i < param.ft.size(); ++i)
 			{
 				target.model->motionPool()[i].setMp(controller->motionPool()[i].actualPos());
@@ -1666,7 +1666,7 @@ namespace forcecontrol
 			static double ft_friction2_index[6] = { 5.0, 5.0, 5.0, 5.0, 5.0, 3.0 };
 			if (is_running)
 			{
-				//Î»ÖÃ»·PID+ËÙ¶ÈÏŞÖÆ
+				//ä½ç½®ç¯PID+é€Ÿåº¦é™åˆ¶
 				for (Size i = 0; i < param.kp_p.size(); ++i)
 				{
 					param.vt[i] = param.kp_p[i] * (param.pt[i] - param.pa[i]);
@@ -1674,7 +1674,7 @@ namespace forcecontrol
 					param.vt[i] = param.vt[i] + param.vfwd[i];
 				}
 
-				//ËÙ¶È»·PID+Á¦¼°Á¦¾ØµÄÏŞÖÆ
+				//é€Ÿåº¦ç¯PID+åŠ›åŠåŠ›çŸ©çš„é™åˆ¶
 				for (Size i = 0; i < param.ft.size(); ++i)
 				{
 					vproportion[i] = param.kp_v[i] * (param.vt[i] - param.va[i]);
@@ -1687,17 +1687,17 @@ namespace forcecontrol
 					param.ft[i] = std::max(param.ft[i], -ft_limit[i]);
 				}
 
-				//¶¯Á¦Ñ§ÔØºÉ
+				//åŠ¨åŠ›å­¦è½½è·
 				for (Size i = 0; i < param.ft.size(); ++i)
 				{
-					//¶¯Á¦Ñ§²ÎÊı
+					//åŠ¨åŠ›å­¦å‚æ•°
 					//constexpr double f_static[6] = { 9.349947583,11.64080253,4.770140543,3.631416685,2.58310847,1.783739862 };
 					//constexpr double f_vel[6] = { 7.80825641,13.26518528,7.856443575,3.354615249,1.419632126,0.319206404 };
 					//constexpr double f_acc[6] = { 0,3.555679326,0.344454603,0.148247716,0.048552673,0.033815455 };
 					//constexpr double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
 					//constexpr double f_static_index[6] = {0.5, 0.5, 0.5, 0.85, 0.95, 0.8};
 
-					//¾²Ä¦²ÁÁ¦+¶¯Ä¦²ÁÁ¦=ft_friction
+					//é™æ‘©æ“¦åŠ›+åŠ¨æ‘©æ“¦åŠ›=ft_friction
 
 					real_vel[i] = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
 					ft_friction1[i] = 0.8*(f_static[i] * real_vel[i] / max_static_vel[i]);
@@ -1715,7 +1715,7 @@ namespace forcecontrol
 					ft_friction[i] = std::max(-500.0, ft_friction[i]);
 					ft_friction[i] = std::min(500.0, ft_friction[i]);
 
-					//¶¯Á¦Ñ§ÔØºÉ=ft_dynamic
+					//åŠ¨åŠ›å­¦è½½è·=ft_dynamic
 					ft_dynamic[i] = target.model->motionPool()[i].mfDyn();
 
 					ft_offset[i] = (ft_friction[i] + ft_dynamic[i] + param.ft[i])*f2c_index[i];
@@ -1802,7 +1802,7 @@ namespace forcecontrol
 				cout << "------------------------------------------------" << std::endl;
 			}
 
-			// log //
+			//log//
 			auto &lout = controller->lout();
 			for (Size i = 0; i < param.ft.size(); i++)
 			{
@@ -1910,7 +1910,7 @@ namespace forcecontrol
 		}
 
 
-	// Á¦¿Ø¸úËæ¡ª¡ªÄ©¶ËpqÓÉMoveSetPQ¸ø¶¨£¬È»ºó£¬Ä©¶Ëpq·´½âµ½Öá¿Õ¼ä£¬Í¨¹ıÖá¿Õ¼äPID¿ØÖÆµç»ú¶¯×÷¡ª¡ªËÙ¶ÈÇ°À¡£»µçÁ÷¿ØÖÆ //
+	// åŠ›æ§è·Ÿéšâ€”â€”æœ«ç«¯pqç”±MoveSetPQç»™å®šï¼Œç„¶åï¼Œæœ«ç«¯pqåè§£åˆ°è½´ç©ºé—´ï¼Œé€šè¿‡è½´ç©ºé—´PIDæ§åˆ¶ç”µæœºåŠ¨ä½œâ€”â€”é€Ÿåº¦å‰é¦ˆï¼›ç”µæµæ§åˆ¶ //
 	struct MoveJFParam
 	{
 		std::vector<double> kp_p;
@@ -2071,18 +2071,18 @@ namespace forcecontrol
 		bool ds_is_all_finished{ true };
 		bool md_is_all_finished{ true };
 
-		//µÚÒ»¸öÖÜÆÚ£¬½«Ä¿±êµç»úµÄ¿ØÖÆÄ£Ê½ÇĞ»»µ½µçÁ÷¿ØÖÆÄ£Ê½		
+		//ç¬¬ä¸€ä¸ªå‘¨æœŸï¼Œå°†ç›®æ ‡ç”µæœºçš„æ§åˆ¶æ¨¡å¼åˆ‡æ¢åˆ°ç”µæµæ§åˆ¶æ¨¡å¼		
 		if (target.count == 1)
 		{
 			is_running = true;
 
 			for (Size i = 0; i < param.ft.size(); ++i)
 			{
-				controller->motionPool().at(i).setModeOfOperation(10);	//ÇĞ»»µ½µçÁ÷¿ØÖÆ
+				controller->motionPool().at(i).setModeOfOperation(10);	//åˆ‡æ¢åˆ°ç”µæµæ§åˆ¶
 			}
 		}
 
-		//×îºóÒ»¸öÖÜÆÚ½«Ä¿±êµç»úÈ¥Ê¹ÄÜ
+		//æœ€åä¸€ä¸ªå‘¨æœŸå°†ç›®æ ‡ç”µæœºå»ä½¿èƒ½
 		if (!enable_moveJF)
 		{
 			is_running = false;
@@ -2099,7 +2099,7 @@ namespace forcecontrol
 			}
 		}
 
-		//½«Ä¿±êµç»úÓÉµçÁ÷Ä£Ê½ÇĞ»»µ½Î»ÖÃÄ£Ê½
+		//å°†ç›®æ ‡ç”µæœºç”±ç”µæµæ¨¡å¼åˆ‡æ¢åˆ°ä½ç½®æ¨¡å¼
 		if (!is_running&&ds_is_all_finished)
 		{
 			for (Size i = 0; i < param.ft.size(); ++i)
@@ -2113,22 +2113,22 @@ namespace forcecontrol
 			}
 		}
 
-		//Í¨¹ımoveSPQÉèÖÃÊµÊ±Ä¿±êPQÎ»ÖÃ
+		//é€šè¿‡moveSPQè®¾ç½®å®æ—¶ç›®æ ‡PQä½ç½®
 		std::array<double, 7> temp;
 		temp = setpqJF.load();
 		std::copy(temp.begin(), temp.end(), param.pqt.begin());
 		
-		//ÇóÄ¿±êÎ»ÖÃpqµÄÔË¶¯Ñ§·´½â£¬»ñÈ¡µç»úÊµ¼ÊÎ»ÖÃ¡¢Êµ¼ÊËÙ¶È
+		//æ±‚ç›®æ ‡ä½ç½®pqçš„è¿åŠ¨å­¦åè§£ï¼Œè·å–ç”µæœºå®é™…ä½ç½®ã€å®é™…é€Ÿåº¦
 		target.model->generalMotionPool().at(0).setMpq(param.pqt.data());
 		if (!target.model->solverPool().at(0).kinPos())return -1;
 		for (Size i = 0; i < param.pt.size(); ++i)
 		{
-			param.pt[i] = target.model->motionPool().at(i).mp();		//motionPool()Ö¸Ä£ĞÍÇı¶¯Æ÷£¬at(0)±íÊ¾µÚ1¸öÇı¶¯Æ÷
+			param.pt[i] = target.model->motionPool().at(i).mp();		//motionPool()æŒ‡æ¨¡å‹é©±åŠ¨å™¨ï¼Œat(0)è¡¨ç¤ºç¬¬1ä¸ªé©±åŠ¨å™¨
 			param.pa[i] = controller->motionPool().at(i).actualPos();
 			param.va[i] = controller->motionPool().at(i).actualVel();
 		}
 		
-		//Ä£ĞÍÕı½â
+		//æ¨¡å‹æ­£è§£
 		for (int i = 0; i < param.ft.size(); ++i)
 		{
 			target.model->motionPool()[i].setMp(controller->motionPool()[i].actualPos());
@@ -2146,7 +2146,7 @@ namespace forcecontrol
 		static double ft_friction2_index[6] = { 5.0, 5.0, 5.0, 5.0, 5.0, 3.0 };
 		if (is_running)
 		{
-			//Î»ÖÃ»·PID+ËÙ¶ÈÏŞÖÆ
+			//ä½ç½®ç¯PID+é€Ÿåº¦é™åˆ¶
 			for (Size i = 0; i < param.kp_p.size(); ++i)
 			{
 				param.vt[i] = param.kp_p[i] * (param.pt[i] - param.pa[i]);
@@ -2154,7 +2154,7 @@ namespace forcecontrol
 				param.vt[i] = param.vt[i] + param.vfwd[i];
 			}
 
-			//ËÙ¶È»·PID+Á¦¼°Á¦¾ØµÄÏŞÖÆ
+			//é€Ÿåº¦ç¯PID+åŠ›åŠåŠ›çŸ©çš„é™åˆ¶
 			for (Size i = 0; i < param.ft.size(); ++i)
 			{
 				vproportion[i] = param.kp_v[i] * (param.vt[i] - param.va[i]);
@@ -2167,17 +2167,17 @@ namespace forcecontrol
 				param.ft[i] = std::max(param.ft[i], -ft_limit[i]);
 			}
 
-			//¶¯Á¦Ñ§ÔØºÉ
+			//åŠ¨åŠ›å­¦è½½è·
 			for (Size i = 0; i < param.ft.size(); ++i)
 			{
-				//¶¯Á¦Ñ§²ÎÊı
+				//åŠ¨åŠ›å­¦å‚æ•°
 				//constexpr double f_static[6] = { 9.349947583,11.64080253,4.770140543,3.631416685,2.58310847,1.783739862 };
 				//constexpr double f_vel[6] = { 7.80825641,13.26518528,7.856443575,3.354615249,1.419632126,0.319206404 };
 				//constexpr double f_acc[6] = { 0,3.555679326,0.344454603,0.148247716,0.048552673,0.033815455 };
 				//constexpr double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
 				//constexpr double f_static_index[6] = {0.5, 0.5, 0.5, 0.85, 0.95, 0.8};
 
-				//¾²Ä¦²ÁÁ¦+¶¯Ä¦²ÁÁ¦=ft_friction
+				//é™æ‘©æ“¦åŠ›+åŠ¨æ‘©æ“¦åŠ›=ft_friction
 
 				real_vel[i] = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
 				ft_friction1[i] = 0.8*(f_static[i] * real_vel[i] / max_static_vel[i]);
@@ -2195,7 +2195,7 @@ namespace forcecontrol
 				ft_friction[i] = std::max(-500.0, ft_friction[i]);
 				ft_friction[i] = std::min(500.0, ft_friction[i]);
 
-				//¶¯Á¦Ñ§ÔØºÉ=ft_dynamic
+				//åŠ¨åŠ›å­¦è½½è·=ft_dynamic
 				ft_dynamic[i] = target.model->motionPool()[i].mfDyn();
 
 				ft_offset[i] = (ft_friction[i] + ft_dynamic[i] + param.ft[i])*f2c_index[i];
@@ -2384,7 +2384,7 @@ namespace forcecontrol
 	}
 
 
-	// Á¦¿Ø¸úËæ¡ª¡ªÄ©¶ËpqÓÉMoveSetPQ¸ø¶¨£¬×îºóÈı¸öÖá±£³Ö²»¶¯¡ª¡ªËÙ¶ÈÇ°À¡£»µçÁ÷¿ØÖÆ //
+	// åŠ›æ§è·Ÿéšâ€”â€”æœ«ç«¯pqç”±MoveSetPQç»™å®šï¼Œæœ€åä¸‰ä¸ªè½´ä¿æŒä¸åŠ¨â€”â€”é€Ÿåº¦å‰é¦ˆï¼›ç”µæµæ§åˆ¶ //
 	struct MoveJFBParam
 	{
 		std::vector<double> kp_p;
@@ -2547,18 +2547,18 @@ namespace forcecontrol
 		bool ds_is_all_finished{ true };
 		bool md_is_all_finished{ true };
 
-		//µÚÒ»¸öÖÜÆÚ£¬½«Ä¿±êµç»úµÄ¿ØÖÆÄ£Ê½ÇĞ»»µ½µçÁ÷¿ØÖÆÄ£Ê½		
+		//ç¬¬ä¸€ä¸ªå‘¨æœŸï¼Œå°†ç›®æ ‡ç”µæœºçš„æ§åˆ¶æ¨¡å¼åˆ‡æ¢åˆ°ç”µæµæ§åˆ¶æ¨¡å¼		
 		if (target.count == 1)
 		{
 			is_running = true;
 
 			for (Size i = 0; i < param.ft.size(); ++i)
 			{
-				controller->motionPool().at(i).setModeOfOperation(10);	//ÇĞ»»µ½µçÁ÷¿ØÖÆ
+				controller->motionPool().at(i).setModeOfOperation(10);	//åˆ‡æ¢åˆ°ç”µæµæ§åˆ¶
 			}
 		}
 
-		//×îºóÒ»¸öÖÜÆÚ½«Ä¿±êµç»úÈ¥Ê¹ÄÜ
+		//æœ€åä¸€ä¸ªå‘¨æœŸå°†ç›®æ ‡ç”µæœºå»ä½¿èƒ½
 		if (!enable_moveJFB)
 		{
 			is_running = false;
@@ -2575,7 +2575,7 @@ namespace forcecontrol
 			}
 		}
 
-		//½«Ä¿±êµç»úÓÉµçÁ÷Ä£Ê½ÇĞ»»µ½Î»ÖÃÄ£Ê½
+		//å°†ç›®æ ‡ç”µæœºç”±ç”µæµæ¨¡å¼åˆ‡æ¢åˆ°ä½ç½®æ¨¡å¼
 		if (!is_running&&ds_is_all_finished)
 		{
 			for (Size i = 0; i < param.ft.size(); ++i)
@@ -2589,22 +2589,22 @@ namespace forcecontrol
 			}
 		}
 
-		//Í¨¹ımoveSPQÉèÖÃÊµÊ±Ä¿±êPQÎ»ÖÃ
+		//é€šè¿‡moveSPQè®¾ç½®å®æ—¶ç›®æ ‡PQä½ç½®
 		std::array<double, 7> temp;
 		temp = setpqJFB.load();
 		std::copy(temp.begin(), temp.end(), param.pqt.begin());
 
-		//ÇóÄ¿±êÎ»ÖÃpqµÄÔË¶¯Ñ§·´½â£¬»ñÈ¡µç»úÊµ¼ÊÎ»ÖÃ¡¢Êµ¼ÊËÙ¶È
+		//æ±‚ç›®æ ‡ä½ç½®pqçš„è¿åŠ¨å­¦åè§£ï¼Œè·å–ç”µæœºå®é™…ä½ç½®ã€å®é™…é€Ÿåº¦
 		target.model->generalMotionPool().at(0).setMpq(param.pqt.data());
 		if (!target.model->solverPool().at(0).kinPos())return -1;
 		for (Size i = 0; i < param.pt.size(); ++i)
 		{
-			param.pt[i] = target.model->motionPool().at(i).mp();		//motionPool()Ö¸Ä£ĞÍÇı¶¯Æ÷£¬at(0)±íÊ¾µÚ1¸öÇı¶¯Æ÷
+			param.pt[i] = target.model->motionPool().at(i).mp();		//motionPool()æŒ‡æ¨¡å‹é©±åŠ¨å™¨ï¼Œat(0)è¡¨ç¤ºç¬¬1ä¸ªé©±åŠ¨å™¨
 			param.pa[i] = controller->motionPool().at(i).actualPos();
 			param.va[i] = controller->motionPool().at(i).actualVel();
 		}
 
-		//Ä£ĞÍÔË¶¯Ñ§Õı½â¡¢¶¯Á¦Ñ§Õı½â
+		//æ¨¡å‹è¿åŠ¨å­¦æ­£è§£ã€åŠ¨åŠ›å­¦æ­£è§£
 		for (int i = 0; i < param.ft.size(); ++i)
 		{
 			target.model->motionPool()[i].setMp(controller->motionPool()[i].actualPos());
@@ -2615,7 +2615,7 @@ namespace forcecontrol
 		target.model->solverPool()[1].kinVel();
 		target.model->solverPool()[2].dynAccAndFce();
 
-		//½Ç¶È²»±ä£¬Î»ÖÃ±ä»¯
+		//è§’åº¦ä¸å˜ï¼Œä½ç½®å˜åŒ–
 		target.model->generalMotionPool().at(0).getMpq(param.pqa.data());
 		std::array<double, 4> q = {0.0,0.0,0.0,1.0};
 		std::copy(q.begin(), q.end(), param.pqa.begin()+3);
@@ -2623,7 +2623,7 @@ namespace forcecontrol
         if (!target.model->solverPool().at(0).kinPos())return -1;
 		for (Size i = 3; i < param.pt.size(); ++i)
 		{
-			param.pt[i] = target.model->motionPool().at(i).mp();		//motionPool()Ö¸Ä£ĞÍÇı¶¯Æ÷£¬at(0)±íÊ¾µÚ1¸öÇı¶¯Æ÷
+			param.pt[i] = target.model->motionPool().at(i).mp();		//motionPool()æŒ‡æ¨¡å‹é©±åŠ¨å™¨ï¼Œat(0)è¡¨ç¤ºç¬¬1ä¸ªé©±åŠ¨å™¨
 			param.pa[i] = controller->motionPool().at(i).actualPos();
 			param.va[i] = controller->motionPool().at(i).actualVel();
 		}
@@ -2635,7 +2635,7 @@ namespace forcecontrol
 		static double ft_friction2_index[6] = { 5.0, 5.0, 5.0, 5.0, 5.0, 3.0 };
 		if (is_running)
 		{
-			//Î»ÖÃ»·PID+ËÙ¶ÈÏŞÖÆ
+			//ä½ç½®ç¯PID+é€Ÿåº¦é™åˆ¶
 			for (Size i = 0; i < param.kp_p.size(); ++i)
 			{
 				param.vt[i] = param.kp_p[i] * (param.pt[i] - param.pa[i]);
@@ -2643,7 +2643,7 @@ namespace forcecontrol
 				param.vt[i] = param.vt[i] + param.vfwd[i];
 			}
 
-			//ËÙ¶È»·PID+Á¦¼°Á¦¾ØµÄÏŞÖÆ
+			//é€Ÿåº¦ç¯PID+åŠ›åŠåŠ›çŸ©çš„é™åˆ¶
 			for (Size i = 0; i < param.ft.size(); ++i)
 			{
 				vproportion[i] = param.kp_v[i] * (param.vt[i] - param.va[i]);
@@ -2656,17 +2656,17 @@ namespace forcecontrol
 				param.ft[i] = std::max(param.ft[i], -ft_limit_JFB[i]);
 			}
 
-			//¶¯Á¦Ñ§ÔØºÉ
+			//åŠ¨åŠ›å­¦è½½è·
 			for (Size i = 0; i < param.ft.size(); ++i)
 			{
-				//¶¯Á¦Ñ§²ÎÊı
+				//åŠ¨åŠ›å­¦å‚æ•°
 				//constexpr double f_static[6] = { 9.349947583,11.64080253,4.770140543,3.631416685,2.58310847,1.783739862 };
 				//constexpr double f_vel[6] = { 7.80825641,13.26518528,7.856443575,3.354615249,1.419632126,0.319206404 };
 				//constexpr double f_acc[6] = { 0,3.555679326,0.344454603,0.148247716,0.048552673,0.033815455 };
 				//constexpr double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
 				//constexpr double f_static_index[6] = {0.5, 0.5, 0.5, 0.85, 0.95, 0.8};
 
-				//¾²Ä¦²ÁÁ¦+¶¯Ä¦²ÁÁ¦=ft_friction
+				//é™æ‘©æ“¦åŠ›+åŠ¨æ‘©æ“¦åŠ›=ft_friction
 
 				real_vel[i] = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
 				ft_friction1[i] = 0.8*(f_static[i] * real_vel[i] / max_static_vel[i]);
@@ -2684,7 +2684,7 @@ namespace forcecontrol
 				ft_friction[i] = std::max(-500.0, ft_friction[i]);
 				ft_friction[i] = std::min(500.0, ft_friction[i]);
 
-				//¶¯Á¦Ñ§ÔØºÉ=ft_dynamic
+				//åŠ¨åŠ›å­¦è½½è·=ft_dynamic
 				ft_dynamic[i] = target.model->motionPool()[i].mfDyn();
 
 				ft_offset[i] = (ft_friction[i] + ft_dynamic[i] + param.ft[i])*f2c_index[i];
@@ -2873,7 +2873,7 @@ namespace forcecontrol
 	}
 
 
-	// Á¦¿ØPID²ÎÊıÕû¶¨¡ª¡ªÊäÈëµ¥¸ö»òÕßÈ«²¿Öá¿Õ¼äÎ»ÖÃ£¬È»ºó·Ö±ğ¶Ô¸÷¸öÖá¿Õ¼ä½øĞĞPIDÕû¶¨£»ËÙ¶ÈÇ°À¡£»µçÁ÷¿ØÖÆ //
+	// åŠ›æ§PIDå‚æ•°æ•´å®šâ€”â€”è¾“å…¥å•ä¸ªæˆ–è€…å…¨éƒ¨è½´ç©ºé—´ä½ç½®ï¼Œç„¶ååˆ†åˆ«å¯¹å„ä¸ªè½´ç©ºé—´è¿›è¡ŒPIDæ•´å®šï¼›é€Ÿåº¦å‰é¦ˆï¼›ç”µæµæ§åˆ¶ //
 	struct MoveJPIDParam
 	{
 		std::vector<bool> joint_active_vec;
@@ -3086,7 +3086,7 @@ namespace forcecontrol
 			bool ds_is_all_finished{ true };
 			bool md_is_all_finished{ true };
 
-			//µÚÒ»¸öÖÜÆÚ£¬½«Ä¿±êµç»úµÄ¿ØÖÆÄ£Ê½ÇĞ»»µ½µçÁ÷¿ØÖÆÄ£Ê½		
+			//ç¬¬ä¸€ä¸ªå‘¨æœŸï¼Œå°†ç›®æ ‡ç”µæœºçš„æ§åˆ¶æ¨¡å¼åˆ‡æ¢åˆ°ç”µæµæ§åˆ¶æ¨¡å¼		
 			if (target.count == 1)
 			{
 				is_running = true;
@@ -3094,12 +3094,12 @@ namespace forcecontrol
 				{
 					if (param.joint_active_vec[i])
 					{
-						controller->motionPool().at(i).setModeOfOperation(10);	//ÇĞ»»µ½µçÁ÷¿ØÖÆ
+						controller->motionPool().at(i).setModeOfOperation(10);	//åˆ‡æ¢åˆ°ç”µæµæ§åˆ¶
 					}
 				}
 			}
 
-			//×îºóÒ»¸öÖÜÆÚ½«Ä¿±êµç»úÈ¥Ê¹ÄÜ
+			//æœ€åä¸€ä¸ªå‘¨æœŸå°†ç›®æ ‡ç”µæœºå»ä½¿èƒ½
 			if (!enable_moveJPID)
 			{
 				is_running = false;
@@ -3116,7 +3116,7 @@ namespace forcecontrol
 				}
 			}
 
-			//½«Ä¿±êµç»úÓÉµçÁ÷Ä£Ê½ÇĞ»»µ½Î»ÖÃÄ£Ê½
+			//å°†ç›®æ ‡ç”µæœºç”±ç”µæµæ¨¡å¼åˆ‡æ¢åˆ°ä½ç½®æ¨¡å¼
 			if (!is_running&&ds_is_all_finished)
 			{
 				for (Size i = 0; i < param.ft.size(); ++i)
@@ -3130,17 +3130,17 @@ namespace forcecontrol
 				}
 			}
 
-			//»ñÈ¡µç»úÊµ¼ÊÎ»ÖÃ¡¢Êµ¼ÊËÙ¶È
+			//è·å–ç”µæœºå®é™…ä½ç½®ã€å®é™…é€Ÿåº¦
 			for (Size i = 0; i < param.joint_active_vec.size(); ++i)
 			{
 				if (param.joint_active_vec[i])
 				{
-					param.pa[i] = controller->motionPool().at(i).actualPos();	//motionPool()Ö¸Ä£ĞÍÇı¶¯Æ÷£¬at(0)±íÊ¾µÚ1¸öÇı¶¯Æ÷
+					param.pa[i] = controller->motionPool().at(i).actualPos();	//motionPool()æŒ‡æ¨¡å‹é©±åŠ¨å™¨ï¼Œat(0)è¡¨ç¤ºç¬¬1ä¸ªé©±åŠ¨å™¨
 					param.va[i] = controller->motionPool().at(i).actualVel();
 				}
 			}
 
-			//Ä£ĞÍÕı½â
+			//æ¨¡å‹æ­£è§£
 			for (int i = 0; i < param.ft.size(); ++i)
 			{
 				target.model->motionPool()[i].setMp(controller->motionPool()[i].actualPos());
@@ -3158,7 +3158,7 @@ namespace forcecontrol
 			static double ft_friction2_index[6] = { 5.0, 5.0, 5.0, 5.0, 5.0, 3.0 };
 			if (is_running)
 			{
-				//Î»ÖÃ»·PID+ËÙ¶ÈÏŞÖÆ
+				//ä½ç½®ç¯PID+é€Ÿåº¦é™åˆ¶
 				for (Size i = 0; i < param.joint_active_vec.size(); ++i)
 				{
 					if (param.joint_active_vec[i])
@@ -3168,7 +3168,7 @@ namespace forcecontrol
 					}
 				}
 
-				//ËÙ¶È»·PID+Á¦¼°Á¦¾ØµÄÏŞÖÆ
+				//é€Ÿåº¦ç¯PID+åŠ›åŠåŠ›çŸ©çš„é™åˆ¶
 				for (Size i = 0; i < param.joint_active_vec.size(); ++i)
 				{
 					if (param.joint_active_vec[i])
@@ -3187,19 +3187,19 @@ namespace forcecontrol
 					}
 				}
 
-				//¶¯Á¦Ñ§ÔØºÉ
+				//åŠ¨åŠ›å­¦è½½è·
 				for (Size i = 0; i < param.joint_active_vec.size(); ++i)
 				{
 					if (param.joint_active_vec[i])
 					{
-						//¶¯Á¦Ñ§²ÎÊı
+						//åŠ¨åŠ›å­¦å‚æ•°
 						//constexpr double f_static[6] = { 9.349947583,11.64080253,4.770140543,3.631416685,2.58310847,1.783739862 };
 						//constexpr double f_vel[6] = { 7.80825641,13.26518528,7.856443575,3.354615249,1.419632126,0.319206404 };
 						//constexpr double f_acc[6] = { 0,3.555679326,0.344454603,0.148247716,0.048552673,0.033815455 };
 						//constexpr double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
 						//constexpr double f_static_index[6] = {0.5, 0.5, 0.5, 0.85, 0.95, 0.8};
 
-						//¾²Ä¦²ÁÁ¦+¶¯Ä¦²ÁÁ¦=ft_friction
+						//é™æ‘©æ“¦åŠ›+åŠ¨æ‘©æ“¦åŠ›=ft_friction
 
 						real_vel[i] = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
 						ft_friction1[i] = 0.8*(f_static[i] * real_vel[i] / max_static_vel[i]);
@@ -3217,7 +3217,7 @@ namespace forcecontrol
 						ft_friction[i] = std::max(-500.0, ft_friction[i]);
 						ft_friction[i] = std::min(500.0, ft_friction[i]);
 
-						//¶¯Á¦Ñ§ÔØºÉ=ft_dynamic
+						//åŠ¨åŠ›å­¦è½½è·=ft_dynamic
 						ft_dynamic[i] = target.model->motionPool()[i].mfDyn();
 
 						ft_offset[i] = (ft_friction[i] + ft_dynamic[i] + param.ft[i])*f2c_index[i];
@@ -3461,7 +3461,7 @@ namespace forcecontrol
 		}
 
 
-	// Á¦¿ØÍ£Ö¹Ö¸Áî¡ª¡ªÍ£Ö¹MoveStop£¬È¥Ê¹ÄÜµç»ú //
+	// åŠ›æ§åœæ­¢æŒ‡ä»¤â€”â€”åœæ­¢MoveStopï¼Œå»ä½¿èƒ½ç”µæœº //
 	auto MoveStop::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 		{
 			enable_moveJRC = false;
@@ -3481,7 +3481,7 @@ namespace forcecontrol
 		}
 	
 
-	// Á¦¿Ø¸úËæÖ¸Áî¡ª¡ªÊµÊ±¸ø¶¨Ä©¶ËpqÖµ //
+	// åŠ›æ§è·ŸéšæŒ‡ä»¤â€”â€”å®æ—¶ç»™å®šæœ«ç«¯pqå€¼ //
 	auto MoveSPQ::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
 		for (auto &p : params)

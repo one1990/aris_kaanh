@@ -1,4 +1,4 @@
-#include <iostream>
+ï»¿#include <iostream>
 #include <aris.h>
 #include "kaanh.h"
 #include<atomic>
@@ -29,12 +29,12 @@ int main(int argc, char *argv[])
 	cs.resetPlanRoot(kaanh::createPlanRootRokaeXB4().release());
 	cs.resetSensorRoot(new aris::sensor::SensorRoot);
 
-	aris::core::WebSocket socket;
+	aris::core::Socket socket;
 	
-	//´´½¨Ò»¸ödiĞÅºÅ¼à¿ØÏß³Ì//
+	//åˆ›å»ºä¸€ä¸ªdiä¿¡å·ç›‘æ§çº¿ç¨‹//
 	std::thread watch_di_thread;
 
-	socket.setOnReceivedMsg([&](aris::core::WebSocket *socket, aris::core::Msg &msg)->int
+	socket.setOnReceivedMsg([&](aris::core::Socket *socket, aris::core::Msg &msg)->int
 	{
 		std::string msg_data = msg.toString();
 
@@ -119,7 +119,7 @@ int main(int argc, char *argv[])
 			try
 			{
 				socket->sendMsg(msg);
-				//µ÷ÊÔ´òÓ¡//
+				//è°ƒè¯•æ‰“å°//
 				//std::string msg_data = msg.toString();
 				//std::cout <<"rt data length:"<< msg_data.length() << std::endl;
 			}
@@ -182,7 +182,7 @@ int main(int argc, char *argv[])
 
 			std::cout << "A_RUN id:" << msg.header().msg_id_ << std::endl;
 
-			//¶ÁÈ¡×Ö·û´®²¢½«Æä´æ´¢ÔÚxmlpathÖ¸¶¨µÄÂ·¾¶ÏÂ//	
+			//è¯»å–å­—ç¬¦ä¸²å¹¶å°†å…¶å­˜å‚¨åœ¨xmlpathæŒ‡å®šçš„è·¯å¾„ä¸‹//	
 			try
 			{
 				try
@@ -207,7 +207,7 @@ int main(int argc, char *argv[])
 			}
 
 			std::cout << "save xml successed:" << std::endl;
-			//¼ÓÔØÖ¸¶¨Â·¾¶ÏÂµÄxmlÎÄ¼ş//
+			//åŠ è½½æŒ‡å®šè·¯å¾„ä¸‹çš„xmlæ–‡ä»¶//
 			tinyxml2::XMLDocument doc;
 			tinyxml2::XMLError errXml = doc.LoadFile(xmlpath.string().c_str());
 			if (errXml != tinyxml2::XML_SUCCESS)
@@ -282,10 +282,10 @@ int main(int argc, char *argv[])
 			}
 			std::cout << "load xml successed:" << std::endl;
 
-			//×Ô¶¯Ä£Ê½ÅĞ¶Ï±êÖ¾Î»£¬trueÎª×Ô¶¯£¬falseÇĞ³ö×Ô¶¯//
+			//è‡ªåŠ¨æ¨¡å¼åˆ¤æ–­æ ‡å¿—ä½ï¼Œtrueä¸ºè‡ªåŠ¨ï¼Œfalseåˆ‡å‡ºè‡ªåŠ¨//
 			is_automatic = true;
 
-			//diĞÅºÅ¼à¿ØÏß³ÌÊµÏÖ//
+			//diä¿¡å·ç›‘æ§çº¿ç¨‹å®ç°//
 			watch_di_thread = std::thread([&]()->void {
 				
 				while (is_automatic)
@@ -420,12 +420,12 @@ int main(int argc, char *argv[])
 						;
 					}
 					
-					//ÊµÊ±Ïß³ÌĞİÏ¢1ms//
+					//å®æ—¶çº¿ç¨‹ä¼‘æ¯1ms//
 					std::this_thread::sleep_for(std::chrono::milliseconds(1));
 				}
 			});
 			
-			//¿ªÆôdiĞÅºÅÊµÊ±¼à¿Ø//
+			//å¼€å¯diä¿¡å·å®æ—¶ç›‘æ§//
 			try
 			{
 				std::cout << "start listening DI signal" << std::endl;
@@ -446,7 +446,7 @@ int main(int argc, char *argv[])
 
 			std::cout << "A_QUIT id:" << msg.header().msg_id_ << std::endl;
 			
-			//»ØÊÕÕ»×ÊÔ´//
+			//å›æ”¶æ ˆèµ„æº//
 			if (is_automatic)
 			{
 				is_automatic = false;
@@ -489,7 +489,7 @@ int main(int argc, char *argv[])
 		}
 		return 0;
 	});
-	socket.setOnReceivedConnection([](aris::core::WebSocket *sock, const char *ip, int port)->int
+	socket.setOnReceivedConnection([](aris::core::Socket *sock, const char *ip, int port)->int
 	{
 		std::cout << "socket receive connection" << std::endl;
 		LOG_INFO << "socket receive connection:\n"
@@ -497,7 +497,7 @@ int main(int argc, char *argv[])
 			<< std::setw(aris::core::LOG_SPACE_WIDTH) << "|" << "port:" << port << std::endl;
 		return 0;
 	});
-	socket.setOnLoseConnection([](aris::core::WebSocket *socket)
+	socket.setOnLoseConnection([](aris::core::Socket *socket)
 	{
 		std::cout << "socket lose connection" << std::endl;
 		LOG_INFO << "socket lose connection" << std::endl;
@@ -508,7 +508,7 @@ int main(int argc, char *argv[])
 				socket->startServer("5866");
 				break;
 			}
-			catch (aris::core::Socket::StartServerError &e)
+			catch (std::runtime_error &e)
 			{
 				std::cout << e.what() << std::endl << "will try to restart server socket in 1s" << std::endl;
 				LOG_ERROR << e.what() << std::endl << "will try to restart server socket in 1s" << std::endl;
@@ -534,7 +534,7 @@ int main(int argc, char *argv[])
 	//}
 	
 
-	// ½ÓÊÕÃüÁî //
+	// æ¥æ”¶å‘½ä»¤ //
 	for (std::string command_in; std::getline(std::cin, command_in);)
 	{
 		try
