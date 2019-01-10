@@ -1188,8 +1188,6 @@ namespace kaanh
 			target.param = param;
 
 			target.option |=
-				Plan::USE_TARGET_POS |
-				Plan::USE_VEL_OFFSET |
 #ifdef WIN32
 				Plan::NOT_CHECK_POS_MIN |
 				Plan::NOT_CHECK_POS_MAX |
@@ -1231,7 +1229,8 @@ namespace kaanh
 					aris::Size t_count;
 					auto result = aris::plan::moveAbsolute2(param.begin_joint_pos_vec[i], param.begin_axis_vel_vec[i], param.begin_axis_acc_vec[i], param.joint_pos_vec[i], param.axis_vel_vec[i], param.axis_acc_vec[i], controller->motionPool()[i].maxVel(), controller->motionPool()[i].maxAcc(), controller->motionPool()[i].maxAcc(), 1e-3, 1e-10, p, v, a, t_count);
 					controller->motionAtAbs(i).setTargetPos(p);
-					total_count = std::max(total_count, t_count);
+                    total_count = result;
+                    //total_count = std::max(total_count, t_count);
 
 					param.begin_joint_pos_vec[i] = p;
 					param.begin_axis_vel_vec[i] = v;
@@ -1239,17 +1238,31 @@ namespace kaanh
 				}
 			}
 
-			//if (!target.model->solverPool().at(1).kinPos())return -1;
+            //if (!target.model->solverPool().at(1).kinPos())return -1;
 
 			// 打印电流 //
 			auto &cout = controller->mout();
-			if (target.count % 100 == 0)
+
+            for (Size i = 0; i < 6; i++)
+            {
+                if (param.joint_active_vec[i])
+                {
+                    cout << "pos" << i + 1 << ":" << param.joint_pos_vec[i] << "  ";
+                    cout << "vel" << i + 1 << ":" << param.axis_vel_vec[i] << "  ";
+                    cout << "cur" << i + 1 << ":" << param.axis_acc_vec[i] << "  ";
+                }
+            }
+            cout << std::endl;
+            if (target.count % 1000 == 0)
 			{
 				for (Size i = 0; i < 6; i++)
 				{
-					cout << "pos" << i + 1 << ":" << controller->motionAtAbs(i).actualPos() << "  ";
-					cout << "vel" << i + 1 << ":" << controller->motionAtAbs(i).actualVel() << "  ";
-					cout << "cur" << i + 1 << ":" << controller->motionAtAbs(i).actualCur() << "  ";
+                    if (param.joint_active_vec[i])
+                    {
+                        cout << "pos" << i + 1 << ":" << controller->motionAtAbs(i).actualPos() << "  ";
+                        cout << "vel" << i + 1 << ":" << controller->motionAtAbs(i).actualVel() << "  ";
+                        cout << "cur" << i + 1 << ":" << controller->motionAtAbs(i).actualCur() << "  ";
+                    }
 				}
 				cout << std::endl;
 			}
@@ -1265,14 +1278,15 @@ namespace kaanh
 			}
 			lout << std::endl;
 
-			return total_count - target.count;
+            //return total_count - target.count;
+            return total_count;
 		}
 		auto virtual collectNrt(PlanTarget &target)->void {}
 
 		explicit MoveTTT(const std::string &name = "MoveTTT_plan") :Plan(name)
 		{
 			command().loadXmlStr(
-				"<moveTTT default_child_type=\"Param\">"
+                "<moveTTT default_child_type=\"Param\">"
 				"	<group type=\"GroupParam\" default_child_type=\"Param\">"
 				"		<limit_time default=\"5000\"/>"
 				"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"all\">"
@@ -1282,9 +1296,9 @@ namespace kaanh
 				"			<slave_id abbreviation=\"s\" default=\"0\"/>"
 				"		</unique>"
 				"		<pos default=\"0\"/>"
-				"		<vel default=\"0.1\"/>"
-				"		<acc default=\"0.2\"/>"
-				"		<dec default=\"0.2\"/>"
+                "		<vel default=\"0.02\"/>"
+                "		<acc default=\"0.01\"/>"
+                "		<dec default=\"0.01\"/>"
 				"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_all\">"
 				"			<check_all/>"
 				"			<check_none/>"
