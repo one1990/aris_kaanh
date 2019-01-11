@@ -1227,7 +1227,7 @@ namespace kaanh
 				{
 					double p, v, a;
 					aris::Size t_count;
-					auto result = aris::plan::moveAbsolute2(param.begin_joint_pos_vec[i], param.begin_axis_vel_vec[i], param.begin_axis_acc_vec[i], param.joint_pos_vec[i], param.axis_vel_vec[i], param.axis_acc_vec[i], controller->motionPool()[i].maxVel(), controller->motionPool()[i].maxAcc(), controller->motionPool()[i].maxAcc(), 1e-3, 1e-10, p, v, a, t_count);
+					auto result = aris::plan::moveAbsolute2(param.begin_joint_pos_vec[i], param.begin_axis_vel_vec[i], param.begin_axis_acc_vec[i], param.joint_pos_vec[i], 0.0, 0.0, param.axis_vel_vec[i], param.axis_acc_vec[i], param.axis_acc_vec[i], 1e-3, 1e-10, p, v, a, t_count);
 					controller->motionAtAbs(i).setTargetPos(p);
                     total_count = result;
                     //total_count = std::max(total_count, t_count);
@@ -1242,17 +1242,20 @@ namespace kaanh
 
 			// 打印电流 //
 			auto &cout = controller->mout();
+			if (target.count % 1000 == 0)
+			{
+				for (Size i = 0; i < 6; i++)
+				{
+					if (param.joint_active_vec[i])
+					{
+						cout << "joint_pos_vec" << i + 1 << ":" << param.joint_pos_vec[i] << "  ";
+						cout << "axis_vel_vec" << i + 1 << ":" << param.axis_vel_vec[i] << "  ";
+						cout << "axis_acc_vec" << i + 1 << ":" << param.axis_acc_vec[i] << "  ";
+					}
+				}
+				cout << std::endl;
+			}
 
-            for (Size i = 0; i < 6; i++)
-            {
-                if (param.joint_active_vec[i])
-                {
-                    cout << "pos" << i + 1 << ":" << param.joint_pos_vec[i] << "  ";
-                    cout << "vel" << i + 1 << ":" << param.axis_vel_vec[i] << "  ";
-                    cout << "cur" << i + 1 << ":" << param.axis_acc_vec[i] << "  ";
-                }
-            }
-            cout << std::endl;
             if (target.count % 1000 == 0)
 			{
 				for (Size i = 0; i < 6; i++)

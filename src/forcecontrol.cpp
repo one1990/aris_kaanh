@@ -1109,7 +1109,7 @@ namespace forcecontrol
 				//vinteg[i] = std::min(vinteg[i], fi_limit_PQB[i]);
 				//vinteg[i] = std::max(vinteg[i], -fi_limit_PQB[i]);
             }
-            //ÏÞÖÆÄ©¶Ë¿Õ¼äftÏòÁ¿µÄÄ£µÄ´óÐ¡
+            //ï¿½ï¿½ï¿½ï¿½Ä©ï¿½Ë¿Õ¼ï¿½ftï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä£ï¿½Ä´ï¿½Ð¡
             double normvi = aris::dynamic::s_norm(3, param.vinteg.data());
             double normvi_limit = std::max(std::min(normvi, fi_limit_PQB[0]), -fi_limit_PQB[0]);
             aris::dynamic::s_vc(3, normvi_limit / normvi, param.vinteg.data(), param.vinteg.data());
