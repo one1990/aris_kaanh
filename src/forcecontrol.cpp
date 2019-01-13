@@ -261,10 +261,14 @@ namespace forcecontrol
 		auto &lout = controller->lout();
 		for (Size i = 0; i < param.joint_active_vec.size(); i++)
 		{
-			lout << std::setw(10) << controller->motionAtAbs(i).targetCur() << ",";
-			lout << std::setw(10) << controller->motionAtAbs(i).actualPos() << ",";
-			lout << std::setw(10) << controller->motionAtAbs(i).actualVel() << ",";
-			lout << std::setw(10) << controller->motionAtAbs(i).actualCur() << " | ";
+            //lout << std::setw(10) << controller->motionAtAbs(i).targetCur() << ",";
+            //lout << std::setw(10) << controller->motionAtAbs(i).actualPos() << ",";
+            //lout << std::setw(10) << controller->motionAtAbs(i).actualVel() << ",";
+            //lout << std::setw(10) << controller->motionAtAbs(i).actualCur() << " | ";
+
+            lout << controller->motionAtAbs(i).actualPos() << " ";
+            lout << controller->motionAtAbs(i).actualVel() << " ";
+            lout << controller->motionAtAbs(i).actualCur() << " ";
 		}
 		lout << std::endl;
 

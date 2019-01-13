@@ -257,7 +257,7 @@ namespace kaanh
 			target.option |=
 				//用于使用模型轨迹驱动电机//
 				Plan::USE_TARGET_POS |
-				Plan::USE_VEL_OFFSET |
+                //Plan::USE_VEL_OFFSET |
 #ifdef WIN32
 				Plan::NOT_CHECK_POS_MIN |
 				Plan::NOT_CHECK_POS_MAX |
@@ -293,13 +293,13 @@ namespace kaanh
 			pq2[2] = begin_pq[2] + param.z*(1 - std::cos(2 * PI*target.count / time)) / 2;
 			ee.setMpq(pq2);
 			//速度前馈//
-			pqv[0] = 1000 * param.x*(PI / time)*std::sin(2 * PI*target.count / time);
-			pqv[1] = 1000 * param.y*(PI / time)*std::sin(2 * PI*target.count / time);
-			pqv[2] = 1000 * param.z*(PI / time)*std::sin(2 * PI*target.count / time);
-			ee.setMvq(pqv);
+            pqv[0] = 1000 * param.x*(PI / time)*std::sin(2 * PI*target.count / time);
+            pqv[1] = 1000 * param.y*(PI / time)*std::sin(2 * PI*target.count / time);
+            pqv[2] = 1000 * param.z*(PI / time)*std::sin(2 * PI*target.count / time);
+            ee.setMvq(pqv);
 
 			if (!target.model->solverPool().at(0).kinPos())return -1;
-			target.model->solverPool().at(0).kinVel();
+            target.model->solverPool().at(0).kinVel();
 
 			// 访问主站 //
 			auto controller = dynamic_cast<aris::control::Controller*>(target.master);
@@ -1232,6 +1232,18 @@ namespace kaanh
                     total_count = result;
                     //total_count = std::max(total_count, t_count);
 
+                    auto &lout = controller->lout();
+                    lout << param.begin_joint_pos_vec[i] << ",";
+                    lout << param.begin_axis_vel_vec[i] << ",";
+                    lout << param.begin_axis_acc_vec[i] << ",";
+                    lout << param.joint_pos_vec[i] << ",";
+                    lout << param.axis_vel_vec[i] << ",";
+                    lout << param.axis_acc_vec[i] << ",";
+                    lout << p << ",";
+                    lout << v << ",";
+                    lout << a << ",";
+                    lout << t_count << std::endl;
+
 					param.begin_joint_pos_vec[i] = p;
 					param.begin_axis_vel_vec[i] = v;
 					param.begin_axis_acc_vec[i] = a;
@@ -1242,20 +1254,6 @@ namespace kaanh
 
 			// 打印电流 //
 			auto &cout = controller->mout();
-			if (target.count % 1000 == 0)
-			{
-				for (Size i = 0; i < 6; i++)
-				{
-					if (param.joint_active_vec[i])
-					{
-						cout << "joint_pos_vec" << i + 1 << ":" << param.joint_pos_vec[i] << "  ";
-						cout << "axis_vel_vec" << i + 1 << ":" << param.axis_vel_vec[i] << "  ";
-						cout << "axis_acc_vec" << i + 1 << ":" << param.axis_acc_vec[i] << "  ";
-					}
-				}
-				cout << std::endl;
-			}
-
             if (target.count % 1000 == 0)
 			{
 				for (Size i = 0; i < 6; i++)
@@ -1271,15 +1269,15 @@ namespace kaanh
 			}
 
 			// log 电流 //
-			auto &lout = controller->lout();
-			for (Size i = 0; i < 6; i++)
-			{
-				lout << controller->motionAtAbs(i).targetPos() << ",";
-				lout << controller->motionAtAbs(i).actualPos() << ",";
-				lout << controller->motionAtAbs(i).actualVel() << ",";
-				lout << controller->motionAtAbs(i).actualCur() << ",";
-			}
-			lout << std::endl;
+            //auto &lout = controller->lout();
+            //for (Size i = 0; i < 6; i++)
+            //{
+                //lout << controller->motionAtAbs(i).targetPos() << ",";
+                //lout << controller->motionAtAbs(i).actualPos() << ",";
+                //lout << controller->motionAtAbs(i).actualVel() << ",";
+                //lout << controller->motionAtAbs(i).actualCur() << ",";
+            //}
+            //lout << std::endl;
 
             //return total_count - target.count;
             return total_count;
@@ -1299,9 +1297,9 @@ namespace kaanh
 				"			<slave_id abbreviation=\"s\" default=\"0\"/>"
 				"		</unique>"
 				"		<pos default=\"0\"/>"
-                "		<vel default=\"0.02\"/>"
-                "		<acc default=\"0.01\"/>"
-                "		<dec default=\"0.01\"/>"
+                "		<vel default=\"0.04\"/>"
+                "		<acc default=\"0.1\"/>"
+                "		<dec default=\"0.1\"/>"
 				"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_all\">"
 				"			<check_all/>"
 				"			<check_none/>"
@@ -1538,7 +1536,7 @@ namespace kaanh
 			target.param = param;
 
 			target.option |=
-				Plan::USE_VEL_OFFSET |
+                //Plan::USE_VEL_OFFSET |
 #ifdef WIN32
 				Plan::NOT_CHECK_POS_MIN |
 				Plan::NOT_CHECK_POS_MAX |
