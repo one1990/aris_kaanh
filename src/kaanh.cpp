@@ -1,6 +1,7 @@
-#include <algorithm>
-#include"rokae.h"
+ï»¿#include <algorithm>
+#include"kaanh.h"
 #include"iir.h"
+#include"forcecontrol.h"
 
 
 using namespace aris::dynamic;
@@ -11,11 +12,11 @@ extern int data_num, data_num_send;
 extern std::atomic_int which_di;
 extern std::atomic_bool is_automatic;
 
-namespace rokae
+namespace kaanh
 {
-	auto createControllerRokaeXB4()->std::unique_ptr<aris::control::Controller>	/*º¯Êı·µ»ØµÄÊÇÒ»¸öÀàÖ¸Õë£¬Ö¸ÕëÖ¸ÏòController,controllerµÄÀàĞÍÊÇÖÇÄÜÖ¸Õëstd::unique_ptr*/
+	auto createControllerRokaeXB4()->std::unique_ptr<aris::control::Controller>	/*å‡½æ•°è¿”å›çš„æ˜¯ä¸€ä¸ªç±»æŒ‡é’ˆï¼ŒæŒ‡é’ˆæŒ‡å‘Controller,controllerçš„ç±»å‹æ˜¯æ™ºèƒ½æŒ‡é’ˆstd::unique_ptr*/
 	{
-		std::unique_ptr<aris::control::Controller> controller(new aris::control::EthercatController);/*´´½¨std::unique_ptrÊµÀı*/
+		std::unique_ptr<aris::control::Controller> controller(new aris::control::EthercatController);/*åˆ›å»ºstd::unique_ptrå®ä¾‹*/
 
 		for (aris::Size i = 0; i < 6; ++i)
 		{
@@ -29,12 +30,12 @@ namespace rokae
 #ifdef UNIX
 			double pos_offset[6]
 			{
-				0.00293480352126769,0.317555328381088,-0.292382537944081,0.0582675097338009,1.53363576057128,-17.1269434336436
+				0.00293480352126769,0.317555328381088,-0.292382537944081,0.0582675097338009,1.53363576057128,17.1269434336436
 			};
 #endif
 			double pos_factor[6]
 			{
-				131072.0 * 81 / 2 / PI, 131072.0 * 81 / 2 / PI, 131072.0 * 81 / 2 / PI, 131072.0 * 72.857 / 2 / PI, 131072.0 * 81 / 2 / PI, -131072.0 * 50 / 2 / PI
+				131072.0 * 81 / 2 / PI, 131072.0 * 81 / 2 / PI, 131072.0 * 81 / 2 / PI, 131072.0 * 72.857 / 2 / PI, 131072.0 * 81 / 2 / PI, 131072.0 * 50 / 2 / PI
 			};
 			double max_pos[6]
 			{
@@ -54,7 +55,7 @@ namespace rokae
 			};
 			
 			std::string xml_str =
-				"<m" + std::to_string(i) + " type=\"EthercatMotion\" phy_id=\"" + std::to_string(i + 2) + "\" product_code=\"0x0\""
+                "<m" + std::to_string(i) + " type=\"EthercatMotion\" phy_id=\"" + std::to_string(i) + "\" product_code=\"0x0\""
 				" vendor_id=\"0x000002E1\" revision_num=\"0x29001\" dc_assign_activate=\"0x0300\""
 				" min_pos=\"" + std::to_string(min_pos[i]) + "\" max_pos=\"" + std::to_string(max_pos[i]) + "\" max_vel=\"" + std::to_string(max_vel[i]) + "\" min_vel=\"" + std::to_string(-max_vel[i]) + "\""
 				" max_acc=\"" + std::to_string(max_acc[i]) + "\" min_acc=\"" + std::to_string(-max_acc[i]) + "\" max_pos_following_error=\"0.1\" max_vel_following_error=\"0.5\""
@@ -89,80 +90,17 @@ namespace rokae
 			controller->slavePool().add<aris::control::EthercatMotion>().loadXmlStr(xml_str);
 		}
 
-		std::string xml_str =
-			"<m_servo_press type=\"EthercatMotion\" phy_id=\"0\" product_code=\"0x60380007\""
-			" vendor_id=\"0x0000066F\" revision_num=\"0x00010000\" dc_assign_activate=\"0x0300\""
-			" min_pos=\"0.01\" max_pos=\"0.26\" max_vel=\"0.125\" min_vel=\"-0.125\""
-			" max_acc=\"2.0\" min_acc=\"-2.0\" max_pos_following_error=\"0.005\" max_vel_following_error=\"0.005\""
-			" home_pos=\"0\" pos_factor=\"-3355443200\" pos_offset=\"0.0\">"
-			"	<sm_pool type=\"SyncManagerPoolObject\">"
-			"		<sm type=\"SyncManager\" is_tx=\"false\"/>"
-			"		<sm type=\"SyncManager\" is_tx=\"true\"/>"
-			"		<sm type=\"SyncManager\" is_tx=\"false\">"
-			"			<index_1600 type=\"Pdo\" default_child_type=\"PdoEntry\" index=\"0x1600\" is_tx=\"false\">"
-			"				<control_word index=\"0x6040\" subindex=\"0x00\" size=\"16\"/>"
-			"				<mode_of_operation index=\"0x6060\" subindex=\"0x00\" size=\"8\"/>"
-			"				<target_pos index=\"0x607A\" subindex=\"0x00\" size=\"32\"/>"
-			"				<target_vel index=\"0x60FF\" subindex=\"0x00\" size=\"32\"/>"
-			"				<offset_vel index=\"0x60B1\" subindex=\"0x00\" size=\"32\"/>"
-			"				<targer_tor index=\"0x6071\" subindex=\"0x00\" size=\"16\"/>"
-			"				<offset_tor index=\"0x60B2\" subindex=\"0x00\" size=\"16\"/>"
-			"			</index_1600>"
-			"		</sm>"
-			"		<sm type=\"SyncManager\" is_tx=\"true\">"
-			"			<index_1a00 type=\"Pdo\" default_child_type=\"PdoEntry\" index=\"0x1A00\" is_tx=\"true\">"
-			"				<status_word index=\"0x6041\" subindex=\"0x00\" size=\"16\"/>"
-			"				<mode_of_display index=\"0x6061\" subindex=\"0x00\" size=\"8\"/>"
-			"				<pos_actual_value index=\"0x6064\" subindex=\"0x00\" size=\"32\"/>"
-			"				<vel_actual_value index=\"0x606c\" subindex=\"0x00\" size=\"32\"/>"
-			"				<cur_actual_value index=\"0x6078\" subindex=\"0x00\" size=\"16\"/>"
-			"			</index_1a00>"
-			"		</sm>"
-			"	</sm_pool>"
-			"	<sdo_pool type=\"SdoPoolObject\" default_child_type=\"Sdo\">"
-			"	</sdo_pool>"
-			"</m_servo_press>";
-		controller->slavePool().add<aris::control::EthercatMotion>().loadXmlStr(xml_str);
-
-		xml_str =
-			"<ethercatIO type=\"EthercatSlave\" phy_id=\"1\" product_code=\"0x00201\""
-			" vendor_id=\"0x00000A09\" revision_num=\"0x64\" dc_assign_activate=\"0x00\">"
-			"	<sm_pool type=\"SyncManagerPoolObject\">"
-			"		<sm type=\"SyncManager\" is_tx=\"false\">"
-			"			<index_1600 type=\"Pdo\" default_child_type=\"PdoEntry\" index=\"0x1600\" is_tx=\"false\">"
-			"				<Dout_0_7 index=\"0x7001\" subindex=\"0x01\" size=\"8\"/>"
-			"			</index_1600>"
-			"		</sm>"
-			"		<sm type=\"SyncManager\" is_tx=\"false\">"
-			"			<index_1601 type=\"Pdo\" default_child_type=\"PdoEntry\" index=\"0x1601\" is_tx=\"false\">"
-			"				<Dout_8_15 index=\"0x7001\" subindex=\"0x02\" size=\"8\"/>"
-			"			</index_1601>"
-			"		</sm>"
-			"		<sm type=\"SyncManager\" is_tx=\"true\">"
-			"			<index_1a00 type=\"Pdo\" default_child_type=\"PdoEntry\" index=\"0x1a00\" is_tx=\"true\">"
-			"				<Din_0_7 index=\"0x6001\" subindex=\"0x01\" size=\"8\"/>"
-			"			</index_1a00>"
-			"			<index_1a01 type=\"Pdo\" default_child_type=\"PdoEntry\" index=\"0x1a01\" is_tx=\"true\">"
-			"				<Din_8_15 index=\"0x6001\" subindex=\"0x02\" size=\"8\"/>"
-			"			</index_1a01>"
-			"		</sm>"
-			"	</sm_pool>"
-			"	<sdo_pool type=\"SdoPoolObject\" default_child_type=\"Sdo\">"
-			"	</sdo_pool>"
-			"</ethercatIO>";
-		controller->slavePool().add<aris::control::EthercatSlave>().loadXmlStr(xml_str);
-
 		return controller;
 	};
 	auto createModelRokaeXB4(const double *robot_pm)->std::unique_ptr<aris::dynamic::Model>
 	{
 		std::unique_ptr<aris::dynamic::Model> model = std::make_unique<aris::dynamic::Model>("model");
 
-		// ÉèÖÃÖØÁ¦ //
+		// è®¾ç½®é‡åŠ› //
 		const double gravity[6]{ 0.0,0.0,-9.8,0.0,0.0,0.0 };
 		model->environment().setGravity(gravity);
 
-		// Ìí¼Ó±äÁ¿ //
+		// æ·»åŠ å˜é‡ //
 		model->calculator().addVariable("PI", aris::core::Matrix(PI));
 
 		// add part //
@@ -186,7 +124,7 @@ namespace rokae
 		const double j3_axis[6]{ 0.0, 1.0, 0.0 };
 		const double j4_axis[6]{ 1.0, 0.0, 0.0 };
 		const double j5_axis[6]{ 0.0, 1.0, 0.0 };
-		const double j6_axis[6]{ -1.0, 0.0, 0.0 };
+		const double j6_axis[6]{ 1.0, 0.0, 0.0 };
 
 		auto &j1 = model->addRevoluteJoint(p1, model->ground(), j1_pos, j1_axis);
 		auto &j2 = model->addRevoluteJoint(p2, p1, j2_pos, j2_axis);
@@ -237,7 +175,7 @@ namespace rokae
 
 		return model;
 	}
-	// »ñÈ¡Çı¶¯Æ÷µ±Ç°Î»ÖÃ£¬²¢ÉèÖÃÎªÆğÊ¼Î»ÖÃ //
+	// è·å–é©±åŠ¨å™¨å½“å‰ä½ç½®ï¼Œå¹¶è®¾ç½®ä¸ºèµ·å§‹ä½ç½® //
 	class MoveInit : public aris::plan::Plan
 	{
 	public:
@@ -263,7 +201,7 @@ namespace rokae
 		}
 		auto virtual executeRT(PlanTarget &target)->int
 		{
-			// ·ÃÎÊÖ÷Õ¾ //
+			// è®¿é—®ä¸»ç«™ //
 			auto controller = dynamic_cast<aris::control::EthercatController*>(target.master);
 
 			for (Size i = 0; i < 6; ++i)
@@ -283,7 +221,7 @@ namespace rokae
 		}
 	};
 
-	// Ä©¶ËËÄÔªÊıxyz·½ÏòÓàÏÒ¹ì¼£ //
+	// æœ«ç«¯å››å…ƒæ•°xyzæ–¹å‘ä½™å¼¦è½¨è¿¹ï¼›é€Ÿåº¦å‰é¦ˆ//
 	struct MoveXParam
 	{
 		double x, y, z;
@@ -317,9 +255,9 @@ namespace rokae
 			target.param = param;
 
 			target.option |=
-				//ÓÃÓÚÊ¹ÓÃÄ£ĞÍ¹ì¼£Çı¶¯µç»ú//
+				//ç”¨äºä½¿ç”¨æ¨¡å‹è½¨è¿¹é©±åŠ¨ç”µæœº//
 				Plan::USE_TARGET_POS |
-				Plan::USE_VEL_OFFSET |
+                //Plan::USE_VEL_OFFSET |
 #ifdef WIN32
 				Plan::NOT_CHECK_POS_MIN |
 				Plan::NOT_CHECK_POS_MAX |
@@ -354,26 +292,26 @@ namespace rokae
 			pq2[1] = begin_pq[1] + param.y*(1 - std::cos(2 * PI*target.count / time)) / 2;
 			pq2[2] = begin_pq[2] + param.z*(1 - std::cos(2 * PI*target.count / time)) / 2;
 			ee.setMpq(pq2);
-			//ËÙ¶ÈÇ°À¡//
-			pqv[0] = 1000 * param.x*(PI / time)*std::sin(2 * PI*target.count / time);
-			pqv[1] = 1000 * param.y*(PI / time)*std::sin(2 * PI*target.count / time);
-			pqv[2] = 1000 * param.z*(PI / time)*std::sin(2 * PI*target.count / time);
-			ee.setMvq(pqv);
+			//é€Ÿåº¦å‰é¦ˆ//
+            pqv[0] = 1000 * param.x*(PI / time)*std::sin(2 * PI*target.count / time);
+            pqv[1] = 1000 * param.y*(PI / time)*std::sin(2 * PI*target.count / time);
+            pqv[2] = 1000 * param.z*(PI / time)*std::sin(2 * PI*target.count / time);
+            ee.setMvq(pqv);
 
 			if (!target.model->solverPool().at(0).kinPos())return -1;
-			target.model->solverPool().at(0).kinVel();
+            target.model->solverPool().at(0).kinVel();
 
-			// ·ÃÎÊÖ÷Õ¾ //
+			// è®¿é—®ä¸»ç«™ //
 			auto controller = dynamic_cast<aris::control::Controller*>(target.master);
 
-			// ´òÓ¡µçÁ÷ //
+			// æ‰“å°ç”µæµ //
 			auto &cout = controller->mout();
 			if (target.count % 100 == 0)
 			{
 				 cout <<"cur:"<< controller->motionAtAbs(0).actualCur() <<"  "<< controller->motionAtAbs(1).actualCur() << std::endl;
 			}
 			
-			// log µçÁ÷ //
+			// log ç”µæµ //
 			auto &lout = controller->lout();
 			lout << controller->motionAtAbs(0).actualCur() << "  " << controller->motionAtAbs(1).actualCur() << std::endl;
 
@@ -398,7 +336,7 @@ namespace rokae
 
 	};
 
-	// µ¥¹Ø½ÚÕıÏÒÍù¸´¹ì¼£ //
+	// å•å…³èŠ‚æ­£å¼¦å¾€å¤è½¨è¿¹ //
 	struct MoveJSParam
 	{
 		double j[6];
@@ -536,14 +474,14 @@ namespace rokae
 		auto virtual executeRT(PlanTarget &target)->int
 		{
 			auto &param = std::any_cast<MoveJSParam&>(target.param);
-			auto time = static_cast<uint32_t>(param.time * 1000);
-			auto totaltime = static_cast<uint32_t>(param.timenum * time);
+			auto time = static_cast<int32_t>(param.time * 1000);
+			auto totaltime = static_cast<int32_t>(param.timenum * time);
 			static double begin_pjs[6];
 			static double step_pjs[6];
 			
 			if ((1 <= target.count) && (target.count <= time / 2))
 			{
-				// »ñÈ¡µ±Ç°ÆğÊ¼µãÎ»ÖÃ //
+				// è·å–å½“å‰èµ·å§‹ç‚¹ä½ç½® //
 				if (target.count == 1)
 				{
 					for (Size i = 0; i < param.joint_active_vec.size(); ++i)
@@ -560,7 +498,7 @@ namespace rokae
 			}
 			else if ((time / 2 < target.count) && (target.count <= totaltime - time/2))
 			{
-				// »ñÈ¡µ±Ç°ÆğÊ¼µãÎ»ÖÃ //
+				// è·å–å½“å‰èµ·å§‹ç‚¹ä½ç½® //
 				if (target.count == time / 2+1)
 				{
 					for (Size i = 0; i < param.joint_active_vec.size(); ++i)
@@ -578,7 +516,7 @@ namespace rokae
 			}
 			else if ((totaltime - time / 2 < target.count) && (target.count <= totaltime))
 			{
-				// »ñÈ¡µ±Ç°ÆğÊ¼µãÎ»ÖÃ //
+				// è·å–å½“å‰èµ·å§‹ç‚¹ä½ç½® //
 				if (target.count == totaltime - time / 2 + 1)
 				{
 					for (Size i = 0; i < param.joint_active_vec.size(); ++i)
@@ -596,10 +534,10 @@ namespace rokae
 
 			if (!target.model->solverPool().at(1).kinPos())return -1;
 
-			// ·ÃÎÊÖ÷Õ¾ //
+			// è®¿é—®ä¸»ç«™ //
 			auto controller = dynamic_cast<aris::control::Controller*>(target.master);
 
-			// ´òÓ¡µçÁ÷ //
+			// æ‰“å°ç”µæµ //
 			auto &cout = controller->mout();
 			if (target.count % 100 == 0)
 			{
@@ -612,7 +550,7 @@ namespace rokae
 				cout << std::endl;
 			}
 
-			// log µçÁ÷ //
+			// log ç”µæµ //
 			auto &lout = controller->lout();
 			for (Size i = 0; i < 6; i++)
 			{
@@ -645,7 +583,7 @@ namespace rokae
 		}
 	};
 
-	// ÈÎÒâ¹Ø½ÚÕıÏÒÍù¸´¹ì¼£ //
+	// ä»»æ„å…³èŠ‚æ­£å¼¦å¾€å¤è½¨è¿¹ //
 	struct MoveJSNParam
 	{
 		std::vector<double> axis_pos_vec;
@@ -690,7 +628,7 @@ namespace rokae
 
 					for (Size i = 0; i < param.axis_pos_vec.size(); ++i)
 					{
-						//³¬ãĞÖµ±£»¤//
+						//è¶…é˜ˆå€¼ä¿æŠ¤//
 						if (param.axis_pos_vec[i] > 1.0)
 						{
 							param.axis_pos_vec[i] = 1.0;
@@ -708,7 +646,7 @@ namespace rokae
 							param.axis_pos_vec[i] = param.axis_pos_vec[i] * c->motionPool()[i].minPos();
 						}
 					}
-					
+
 				}
 				else if (p.first == "time")
 				{
@@ -728,7 +666,7 @@ namespace rokae
 
 					for (Size i = 0; i < param.axis_time_vec.size(); ++i)
 					{
-						//³¬ãĞÖµ±£»¤£¬»úÆ÷ÈËµ¥¹Ø½ÚÔË¶¯ÆµÂÊ²»³¬¹ı5Hz//
+						//è¶…é˜ˆå€¼ä¿æŠ¤ï¼Œæœºå™¨äººå•å…³èŠ‚è¿åŠ¨é¢‘ç‡ä¸è¶…è¿‡5Hz//
 						if (param.axis_time_vec[i] < 0.2)
 						{
 							param.axis_time_vec[i] = 0.2;
@@ -763,12 +701,12 @@ namespace rokae
 		auto virtual executeRT(PlanTarget &target)->int
 		{
 			auto &param = std::any_cast<MoveJSNParam&>(target.param);
-			static uint32_t time[6];
-			static uint32_t totaltime[6];
-			static uint32_t totaltime_max=0;
+			static int32_t time[6];
+			static int32_t totaltime[6];
+			static int32_t totaltime_max = 0;
 			for (Size i = 0; i < 6; i++)
 			{
-				time[i]= static_cast<uint32_t>(param.axis_time_vec[i] * 1000);
+				time[i] = static_cast<uint32_t>(param.axis_time_vec[i] * 1000);
 				totaltime[i] = static_cast<uint32_t>(param.timenum * time[i]);
 				if (totaltime[i] > totaltime_max)
 				{
@@ -783,7 +721,7 @@ namespace rokae
 			{
 				if ((1 <= target.count) && (target.count <= time[i] / 2))
 				{
-					// »ñÈ¡µ±Ç°ÆğÊ¼µãÎ»ÖÃ //
+					// è·å–å½“å‰èµ·å§‹ç‚¹ä½ç½® //
 					if (target.count == 1)
 					{
 						begin_pjs[i] = target.model->motionPool()[i].mp();
@@ -794,19 +732,19 @@ namespace rokae
 				}
 				else if ((time[i] / 2 < target.count) && (target.count <= totaltime[i] - time[i] / 2))
 				{
-					// »ñÈ¡µ±Ç°ÆğÊ¼µãÎ»ÖÃ //
+					// è·å–å½“å‰èµ·å§‹ç‚¹ä½ç½® //
 					if (target.count == time[i] / 2 + 1)
 					{
 						begin_pjs[i] = target.model->motionPool()[i].mp();
-						step_pjs[i] = target.model->motionPool()[i].mp();				
+						step_pjs[i] = target.model->motionPool()[i].mp();
 					}
-						step_pjs[i] = begin_pjs[i] - 2 * param.axis_pos_vec[i] * (1 - std::cos(2 * PI*(target.count - time[i] / 2) / time[i])) / 2;
-						target.model->motionPool().at(i).setMp(step_pjs[i]);
+					step_pjs[i] = begin_pjs[i] - 2 * param.axis_pos_vec[i] * (1 - std::cos(2 * PI*(target.count - time[i] / 2) / time[i])) / 2;
+					target.model->motionPool().at(i).setMp(step_pjs[i]);
 
 				}
 				else if ((totaltime[i] - time[i] / 2 < target.count) && (target.count <= totaltime[i]))
 				{
-					// »ñÈ¡µ±Ç°ÆğÊ¼µãÎ»ÖÃ //
+					// è·å–å½“å‰èµ·å§‹ç‚¹ä½ç½® //
 					if (target.count == totaltime[i] - time[i] / 2 + 1)
 					{
 						begin_pjs[i] = target.model->motionPool()[i].mp();
@@ -819,10 +757,10 @@ namespace rokae
 
 			if (!target.model->solverPool().at(1).kinPos())return -1;
 
-			// ·ÃÎÊÖ÷Õ¾ //
+			// è®¿é—®ä¸»ç«™ //
 			auto controller = dynamic_cast<aris::control::Controller*>(target.master);
 
-			// ´òÓ¡µçÁ÷ //
+			// æ‰“å°ç”µæµ //
 			auto &cout = controller->mout();
 			if (target.count % 100 == 0)
 			{
@@ -835,7 +773,7 @@ namespace rokae
 				cout << std::endl;
 			}
 
-			// log µçÁ÷ //
+			// log ç”µæµ //
 			auto &lout = controller->lout();
 			for (Size i = 0; i < 6; i++)
 			{
@@ -863,7 +801,7 @@ namespace rokae
 		}
 	};
 
-	// µ¥¹Ø½ÚÏà¶ÔÔË¶¯¹ì¼£--ÊäÈëµ¥¸ö¹Ø½Ú£¬½Ç¶ÈÎ»ÖÃ£»¹Ø½Ú°´ÕÕÌİĞÎËÙ¶È¹ì¼£Ö´ĞĞ //
+	// å•å…³èŠ‚ç›¸å¯¹è¿åŠ¨è½¨è¿¹--è¾“å…¥å•ä¸ªå…³èŠ‚ï¼Œè§’åº¦ä½ç½®ï¼›å…³èŠ‚æŒ‰ç…§æ¢¯å½¢é€Ÿåº¦è½¨è¿¹æ‰§è¡Œï¼›é€Ÿåº¦å‰é¦ˆ//
 	struct MoveJRParam
 	{
 		double vel, acc, dec;
@@ -982,7 +920,7 @@ namespace rokae
 
 			if (!target.model->solverPool().at(1).kinPos())return -1;
 
-			// ´òÓ¡µçÁ÷ //
+			// æ‰“å°ç”µæµ //
 			auto &cout = controller->mout();
 			if (target.count % 100 == 0)
 			{
@@ -995,7 +933,7 @@ namespace rokae
 				cout << std::endl;
 			}
 
-			// log µçÁ÷ //
+			// log ç”µæµ //
 			auto &lout = controller->lout();
 			for (Size i = 0; i < 6; i++)
 			{
@@ -1097,7 +1035,353 @@ namespace rokae
 		}
 	};
 
-	// ¶à¹Ø½Ú»ìºÏ²åÖµÌİĞÎ¹ì¼£ //
+	// æ¢¯å½¢è½¨è¿¹2æµ‹è¯•--è¾“å…¥å•ä¸ªå…³èŠ‚ï¼Œè§’åº¦ä½ç½®ï¼›å…³èŠ‚æŒ‰ç…§æ¢¯å½¢é€Ÿåº¦è½¨è¿¹æ‰§è¡Œï¼›é€Ÿåº¦å‰é¦ˆ//
+	struct MoveTTTParam
+	{
+		std::vector<double> axis_vel_vec;
+		std::vector<double> axis_acc_vec;
+		std::vector<double> axis_dec_vec;
+		std::vector<double> begin_axis_vel_vec;
+		std::vector<double> begin_axis_acc_vec;
+		std::vector<double> begin_axis_dec_vec;
+		std::vector<double> joint_pos_vec, begin_joint_pos_vec;
+		std::vector<bool> joint_active_vec;
+	};
+	class MoveTTT : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+		{
+			auto c = dynamic_cast<aris::control::Controller*>(target.master);
+			MoveTTTParam param;
+
+			for (auto cmd_param : params)
+			{
+				if (cmd_param.first == "all")
+				{
+					param.joint_active_vec.resize(c->motionPool().size(), true);
+				}
+				else if (cmd_param.first == "none")
+				{
+					param.joint_active_vec.resize(c->motionPool().size(), false);
+				}
+				else if (cmd_param.first == "motion_id")
+				{
+					param.joint_active_vec.resize(c->motionPool().size(), false);
+					param.joint_active_vec.at(std::stoi(cmd_param.second)) = true;
+				}
+				else if (cmd_param.first == "physical_id")
+				{
+					param.joint_active_vec.resize(c->motionPool().size(), false);
+					param.joint_active_vec.at(c->motionAtPhy(std::stoi(cmd_param.second)).phyId()) = true;
+				}
+				else if (cmd_param.first == "slave_id")
+				{
+					param.joint_active_vec.resize(c->motionPool().size(), false);
+					param.joint_active_vec.at(c->motionAtPhy(std::stoi(cmd_param.second)).slaId()) = true;
+				}
+				else if (cmd_param.first == "pos")
+				{
+					aris::core::Matrix mat = target.model->calculator().calculateExpression(cmd_param.second);
+					if (mat.size() == 1)param.joint_pos_vec.resize(c->motionPool().size(), mat.toDouble());
+					else
+					{
+						param.joint_pos_vec.resize(mat.size());
+						std::copy(mat.begin(), mat.end(), param.joint_pos_vec.begin());
+					}
+				}
+				else if (cmd_param.first == "vel")
+				{
+					auto v = target.model->calculator().calculateExpression(cmd_param.second);
+					if (v.size() == 1)
+					{
+						param.axis_vel_vec.resize(c->motionPool().size(), v.toDouble());
+					}
+					else if (v.size() == c->motionPool().size())
+					{
+						param.axis_vel_vec.assign(v.begin(), v.end());
+					}
+					else
+					{
+						throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+					}
+
+					for (Size i = 0; i < c->motionPool().size(); ++i)
+					{
+						if (param.axis_vel_vec[i] > 1.0)
+						{
+							param.axis_vel_vec[i] = 1.0;
+						}
+						if (param.axis_vel_vec[i] < 0.0)
+						{
+							param.axis_vel_vec[i] = 0.0;
+						}
+						param.axis_vel_vec[i] = param.axis_vel_vec[i] * c->motionPool()[i].maxVel();
+					}
+				}
+				else if (cmd_param.first == "acc")
+				{
+					auto a = target.model->calculator().calculateExpression(cmd_param.second);
+					if (a.size() == 1)
+					{
+						param.axis_acc_vec.resize(c->motionPool().size(), a.toDouble());
+					}
+					else if (a.size() == c->motionPool().size())
+					{
+						param.axis_acc_vec.assign(a.begin(), a.end());
+					}
+					else
+					{
+						throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+					}
+
+					for (Size i = 0; i < c->motionPool().size(); ++i)
+					{
+						if (param.axis_acc_vec[i] > 1.0)
+						{
+							param.axis_acc_vec[i] = 1.0;
+						}
+						if (param.axis_acc_vec[i] < 0.0)
+						{
+							param.axis_acc_vec[i] = 0.0;
+						}
+						param.axis_acc_vec[i] = param.axis_acc_vec[i] * c->motionPool()[i].maxAcc();
+					}
+				}
+				else if (cmd_param.first == "dec")
+				{
+					auto d = target.model->calculator().calculateExpression(cmd_param.second);
+					if (d.size() == 1)
+					{
+						param.axis_dec_vec.resize(c->motionPool().size(), d.toDouble());
+					}
+					else if (d.size() == c->motionPool().size())
+					{
+						param.axis_dec_vec.assign(d.begin(), d.end());
+					}
+					else
+					{
+						throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+					}
+
+					for (Size i = 0; i < c->motionPool().size(); ++i)
+					{
+						if (param.axis_dec_vec[i] > 1.0)
+						{
+							param.axis_dec_vec[i] = 1.0;
+						}
+						if (param.axis_dec_vec[i] < 0.0)
+						{
+							param.axis_dec_vec[i] = 0.0;
+						}
+						param.axis_dec_vec[i] = param.axis_dec_vec[i] * c->motionPool()[i].minAcc();
+					}
+				}
+			}
+
+			param.begin_joint_pos_vec.resize(c->motionPool().size(), 0.0);
+			param.begin_axis_vel_vec.resize(c->motionPool().size(), 0.0);
+			param.begin_axis_acc_vec.resize(c->motionPool().size(), 0.0);
+			param.begin_axis_dec_vec.resize(c->motionPool().size(), 0.0);
+
+
+			target.param = param;
+
+			target.option |=
+#ifdef WIN32
+				Plan::NOT_CHECK_POS_MIN |
+				Plan::NOT_CHECK_POS_MAX |
+				Plan::NOT_CHECK_POS_CONTINUOUS |
+				Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
+				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
+				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
+				Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
+#endif
+				Plan::NOT_CHECK_VEL_MIN |
+				Plan::NOT_CHECK_VEL_MAX |
+				Plan::NOT_CHECK_VEL_CONTINUOUS |
+				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
+				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+
+		}
+		auto virtual executeRT(PlanTarget &target)->int
+		{
+			auto &param = std::any_cast<MoveTTTParam&>(target.param);
+			auto controller = dynamic_cast<aris::control::Controller *>(target.master);
+
+			if (target.count == 1)
+			{
+				for (Size i = 0; i < param.joint_active_vec.size(); ++i)
+				{
+					if (param.joint_active_vec[i])
+					{
+						param.begin_joint_pos_vec[i] = controller->motionPool()[i].actualPos();
+					}
+				}
+			}
+
+			aris::Size total_count{ 1 };
+			for (Size i = 0; i < param.joint_active_vec.size(); ++i)
+			{
+				if (param.joint_active_vec[i])
+				{
+					double p, v, a;
+					aris::Size t_count;
+					auto result = aris::plan::moveAbsolute2(param.begin_joint_pos_vec[i], param.begin_axis_vel_vec[i], param.begin_axis_acc_vec[i], param.joint_pos_vec[i], 0.0, 0.0, param.axis_vel_vec[i], param.axis_acc_vec[i], param.axis_acc_vec[i], 1e-3, 1e-10, p, v, a, t_count);
+					controller->motionAtAbs(i).setTargetPos(p);
+                    total_count = result;
+                    //total_count = std::max(total_count, t_count);
+
+					param.begin_joint_pos_vec[i] = p;
+					param.begin_axis_vel_vec[i] = v;
+					param.begin_axis_acc_vec[i] = a;
+				}
+			}
+
+            //if (!target.model->solverPool().at(1).kinPos())return -1;
+
+			// æ‰“å°ç”µæµ //
+			auto &cout = controller->mout();
+            if (target.count % 1000 == 0)
+			{
+				for (Size i = 0; i < 6; i++)
+				{
+                    if (param.joint_active_vec[i])
+                    {
+                        cout << "pos" << i + 1 << ":" << controller->motionAtAbs(i).actualPos() << "  ";
+                        cout << "vel" << i + 1 << ":" << controller->motionAtAbs(i).actualVel() << "  ";
+                        cout << "cur" << i + 1 << ":" << controller->motionAtAbs(i).actualCur() << "  ";
+                    }
+				}
+				cout << std::endl;
+			}
+
+			auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(target.model->solverPool()[1]);
+			fwd.cptJacobi();
+
+			auto &lout = controller->lout();
+			for (Size i = 0; i < 36; ++i)
+			{
+				lout <<fwd.Jf()[i] << ",";
+			}
+			for (Size i = 0; i < param.joint_active_vec.size(); ++i)
+			{
+				if (param.joint_active_vec[i])
+				{
+					lout << param.begin_joint_pos_vec[i] << ",";
+					lout << param.begin_axis_vel_vec[i] << ",";
+					lout << param.begin_axis_acc_vec[i] << ",";
+					lout << param.joint_pos_vec[i] << ",";
+					lout << param.axis_vel_vec[i] << ",";
+					lout << param.axis_acc_vec[i] << ",";
+					lout << std::endl;
+				}
+			}
+
+			// log ç”µæµ //
+            //auto &lout = controller->lout();
+            //for (Size i = 0; i < 6; i++)
+            //{
+                //lout << controller->motionAtAbs(i).targetPos() << ",";
+                //lout << controller->motionAtAbs(i).actualPos() << ",";
+                //lout << controller->motionAtAbs(i).actualVel() << ",";
+                //lout << controller->motionAtAbs(i).actualCur() << ",";
+            //}
+            //lout << std::endl;
+
+            //return total_count - target.count;
+            return total_count;
+		}
+		auto virtual collectNrt(PlanTarget &target)->void {}
+
+		explicit MoveTTT(const std::string &name = "MoveTTT_plan") :Plan(name)
+		{
+			command().loadXmlStr(
+                "<moveTTT default_child_type=\"Param\">"
+				"	<group type=\"GroupParam\" default_child_type=\"Param\">"
+				"		<limit_time default=\"5000\"/>"
+				"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"all\">"
+				"			<all abbreviation=\"a\"/>"
+				"			<motion_id abbreviation=\"m\" default=\"0\"/>"
+				"			<physical_id abbreviation=\"p\" default=\"0\"/>"
+				"			<slave_id abbreviation=\"s\" default=\"0\"/>"
+				"		</unique>"
+				"		<pos default=\"0\"/>"
+                "		<vel default=\"0.04\"/>"
+                "		<acc default=\"0.1\"/>"
+                "		<dec default=\"0.1\"/>"
+				"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_all\">"
+				"			<check_all/>"
+				"			<check_none/>"
+				"			<group type=\"GroupParam\" default_child_type=\"Param\">"
+				"				<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos\">"
+				"					<check_pos/>"
+				"					<not_check_pos/>"
+				"					<group type=\"GroupParam\" default_child_type=\"Param\">"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_max\">"
+				"							<check_pos_max/>"
+				"							<not_check_pos_max/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_min\">"
+				"							<check_pos_min/>"
+				"							<not_check_pos_min/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous\">"
+				"							<check_pos_continuous/>"
+				"							<not_check_pos_continuous/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous_at_start\">"
+				"							<check_pos_continuous_at_start/>"
+				"							<not_check_pos_continuous_at_start/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous_second_order\">"
+				"							<check_pos_continuous_second_order/>"
+				"							<not_check_pos_continuous_second_order/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous_second_order_at_start\">"
+				"							<check_pos_continuous_second_order_at_start/>"
+				"							<not_check_pos_continuous_second_order_at_start/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_following_error\">"
+				"							<check_pos_following_error/>"
+				"							<not_check_pos_following_error />"
+				"						</unique>"
+				"					</group>"
+				"				</unique>"
+				"				<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel\">"
+				"					<check_vel/>"
+				"					<not_check_vel/>"
+				"					<group type=\"GroupParam\" default_child_type=\"Param\">"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_max\">"
+				"							<check_vel_max/>"
+				"							<not_check_vel_max/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_min\">"
+				"							<check_vel_min/>"
+				"							<not_check_vel_min/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_continuous\">"
+				"							<check_vel_continuous/>"
+				"							<not_check_vel_continuous/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_continuous_at_start\">"
+				"							<check_vel_continuous_at_start/>"
+				"							<not_check_vel_continuous_at_start/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_following_error\">"
+				"							<check_vel_following_error/>"
+				"							<not_check_vel_following_error />"
+				"						</unique>"
+				"					</group>"
+				"				</unique>"
+				"			</group>"
+				"		</unique>"
+				"	</group>"
+				"</moveTTT>");
+		}
+	};
+
+	// å¤šå…³èŠ‚æ··åˆæ’å€¼æ¢¯å½¢è½¨è¿¹ï¼›é€Ÿåº¦å‰é¦ˆ //
 	struct MoveJMParam
 	{
 		std::vector<Size> total_count_vec;
@@ -1145,7 +1429,7 @@ namespace rokae
 
 						for (Size i = 0; i < param.axis_begin_pos_vec.size(); ++i)
 						{
-							//³¬ãĞÖµ±£»¤//
+							//è¶…é˜ˆå€¼ä¿æŠ¤//
 							if (param.axis_pos_vec[i] > 1.0)
 							{
 								param.axis_pos_vec[i] = 1.0;
@@ -1262,7 +1546,7 @@ namespace rokae
 			target.param = param;
 
 			target.option |=
-				Plan::USE_VEL_OFFSET |
+                //Plan::USE_VEL_OFFSET |
 #ifdef WIN32
 				Plan::NOT_CHECK_POS_MIN |
 				Plan::NOT_CHECK_POS_MAX |
@@ -1281,12 +1565,12 @@ namespace rokae
 		}
 		auto virtual executeRT(PlanTarget &target)->int
 		{
-			//»ñÈ¡Çı¶¯//
+			//è·å–é©±åŠ¨//
 			auto controller = dynamic_cast<aris::control::Controller*>(target.master);
 			auto &param = std::any_cast<MoveJMParam&>(target.param);
 			static double begin_pos[6];
 			static double pos[6];
-			// È¡µÃÆğÊ¼Î»ÖÃ //
+			// å–å¾—èµ·å§‹ä½ç½® //
 			if (target.count == 1)
 			{
 				for (Size i = 0; i < param.axis_begin_pos_vec.size(); ++i)
@@ -1294,7 +1578,7 @@ namespace rokae
 					param.axis_begin_pos_vec[i] = controller->motionPool().at(i).targetPos();
 				}
 			}
-			// ÉèÖÃÇı¶¯Æ÷µÄÎ»ÖÃ //
+			// è®¾ç½®é©±åŠ¨å™¨çš„ä½ç½® //
 			if (param.ab)
 			{
 				for (Size i = 0; i < param.axis_begin_pos_vec.size(); ++i)
@@ -1303,7 +1587,7 @@ namespace rokae
 					aris::plan::moveAbsolute(target.count, param.axis_begin_pos_vec[i], param.axis_pos_vec[i], param.axis_vel_vec[i] / 1000
 						, param.axis_acc_vec[i] / 1000 / 1000, param.axis_dec_vec[i] / 1000 / 1000, p, v, a, param.total_count_vec[i]);
 					controller->motionAtAbs(i).setTargetPos(p);
-					//ËÙ¶ÈÇ°À¡//
+					//é€Ÿåº¦å‰é¦ˆ//
 					controller->motionAtAbs(i).setOffsetVel(v * 1000);
 					target.model->motionPool().at(i).setMp(p);
 				}
@@ -1316,7 +1600,7 @@ namespace rokae
 					aris::plan::moveAbsolute(target.count, param.axis_begin_pos_vec[i], param.axis_begin_pos_vec[i] + param.axis_pos_vec[i], param.axis_vel_vec[i] / 1000
 						, param.axis_acc_vec[i] / 1000 / 1000, param.axis_dec_vec[i] / 1000 / 1000, p, v, a, param.total_count_vec[i]);
 					controller->motionAtAbs(i).setTargetPos(p);
-					//ËÙ¶ÈÇ°À¡//
+					//é€Ÿåº¦å‰é¦ˆ//
 					controller->motionAtAbs(i).setOffsetVel(v * 1000);
 					target.model->motionPool().at(i).setMp(p);
 				}
@@ -1324,7 +1608,7 @@ namespace rokae
 				
 			if (!target.model->solverPool().at(1).kinPos())return -1;
 
-			// ´òÓ¡µçÁ÷ //
+			// æ‰“å°ç”µæµ //
 			auto &cout = controller->mout();
 			if (target.count % 100 == 0)
 			{
@@ -1337,7 +1621,7 @@ namespace rokae
 				cout << std::endl;
 			}
 
-			// log µçÁ÷ //
+			// log ç”µæµ //
 			auto &lout = controller->lout();
 			for (Size i = 0; i < 6; i++)
 			{
@@ -1433,7 +1717,7 @@ namespace rokae
 		}
 	};
 
-	// ¹Ø½Ú²åÖµÔË¶¯¹ì¼£--ÊäÈëÄ©¶Ëpq×ËÌ¬£¬¸÷¸ö¹Ø½ÚµÄËÙ¶È¡¢¼ÓËÙ¶È£»¸÷¹Ø½Ú°´ÕÕÌİĞÎËÙ¶È¹ì¼£Ö´ĞĞ //
+	// å…³èŠ‚æ’å€¼è¿åŠ¨è½¨è¿¹--è¾“å…¥æœ«ç«¯pqå§¿æ€ï¼Œå„ä¸ªå…³èŠ‚çš„é€Ÿåº¦ã€åŠ é€Ÿåº¦ï¼›å„å…³èŠ‚æŒ‰ç…§æ¢¯å½¢é€Ÿåº¦è½¨è¿¹æ‰§è¡Œï¼›é€Ÿåº¦å‰é¦ˆ //
 	struct MoveJIParam
 	{
 		std::vector<double> pq;
@@ -1583,36 +1867,36 @@ namespace rokae
 		}
 		auto virtual executeRT(PlanTarget &target)->int
 		{
-			//»ñÈ¡Çı¶¯//
+			//è·å–é©±åŠ¨//
 			auto controller = dynamic_cast<aris::control::Controller*>(target.master);
 			auto &param = std::any_cast<MoveJIParam&>(target.param);
 			static double begin_pos[6];
 			static double pos[6];
-			// È¡µÃÆğÊ¼Î»ÖÃ //
+			// å–å¾—èµ·å§‹ä½ç½® //
 			if (target.count == 1)
 			{
-				target.model->generalMotionPool().at(0).setMpq(param.pq.data());	//generalMotionPool()Ö¸Ä£ĞÍÄ©¶Ë£¬at(0)±íÊ¾µÚ1¸öÄ©¶Ë£¬¶ÔÓÚ6×ã¾ÍÓĞ6¸öÄ©¶Ë£¬¶ÔÓÚ»úÆ÷ÈËÖ»ÓĞ1¸öÄ©¶Ë
+				target.model->generalMotionPool().at(0).setMpq(param.pq.data());	//generalMotionPool()æŒ‡æ¨¡å‹æœ«ç«¯ï¼Œat(0)è¡¨ç¤ºç¬¬1ä¸ªæœ«ç«¯ï¼Œå¯¹äº6è¶³å°±æœ‰6ä¸ªæœ«ç«¯ï¼Œå¯¹äºæœºå™¨äººåªæœ‰1ä¸ªæœ«ç«¯
 				if (!target.model->solverPool().at(0).kinPos())return -1;
 				for (Size i = 0; i < param.axis_pos_vec.size(); ++i)
 				{
 					param.axis_begin_pos_vec[i] = controller->motionPool().at(i).targetPos();
-					param.axis_pos_vec[i] = target.model->motionPool().at(i).mp();		//motionPool()Ö¸Ä£ĞÍÇı¶¯Æ÷£¬at(0)±íÊ¾µÚ1¸öÇı¶¯Æ÷
+					param.axis_pos_vec[i] = target.model->motionPool().at(i).mp();		//motionPool()æŒ‡æ¨¡å‹é©±åŠ¨å™¨ï¼Œat(0)è¡¨ç¤ºç¬¬1ä¸ªé©±åŠ¨å™¨
 				}
 			}
-			// ÉèÖÃÇı¶¯Æ÷µÄÎ»ÖÃ //
+			// è®¾ç½®é©±åŠ¨å™¨çš„ä½ç½® //
 			for (Size i = 0; i < param.axis_pos_vec.size(); ++i)
 			{
 				double p, v, a;
 				aris::plan::moveAbsolute(target.count, param.axis_begin_pos_vec[i], param.axis_pos_vec[i], param.axis_vel_vec[i] / 1000
 					, param.axis_acc_vec[i] / 1000 / 1000, param.axis_dec_vec[i] / 1000 / 1000, p, v, a, param.total_count_vec[i]);
 				controller->motionAtAbs(i).setTargetPos(p);
-				//ËÙ¶ÈÇ°À¡//
+				//é€Ÿåº¦å‰é¦ˆ//
 				controller->motionAtAbs(i).setOffsetVel(v*1000);
 				target.model->motionPool().at(i).setMp(p);
 			}		
 			if (!target.model->solverPool().at(1).kinPos())return -1;
 
-			// ´òÓ¡µçÁ÷ //
+			// æ‰“å°ç”µæµ //
 			auto &cout = controller->mout();
 			if (target.count % 100 == 0)
 			{
@@ -1625,7 +1909,7 @@ namespace rokae
 				cout << std::endl;
 			}
 
-			// log µçÁ÷ //
+			// log ç”µæµ //
 			auto &lout = controller->lout();
 			for (Size i = 0; i < 6; i++)
 			{
@@ -1720,7 +2004,7 @@ namespace rokae
 		}
 	};
 	
-	// ¼Ğ×¦¿ØÖÆ //
+	// å¤¹çˆªæ§åˆ¶ //
 	struct GraspParam
 	{
 		bool status;
@@ -1761,7 +2045,7 @@ namespace rokae
 		auto virtual executeRT(PlanTarget &target)->int
 		{
 			auto &param = std::any_cast<GraspParam&>(target.param);
-			// ·ÃÎÊÖ÷Õ¾ //
+			// è®¿é—®ä¸»ç«™ //
 			auto controller = dynamic_cast<aris::control::EthercatController*>(target.master);
 			static std::uint8_t dq = 0x01;
 			if (param.status)
@@ -1790,7 +2074,7 @@ namespace rokae
 		}
 	};
 
-	// ¼àÌıDIĞÅºÅ //
+	// ç›‘å¬DIä¿¡å· //
 	class ListenDI : public aris::plan::Plan
 	{
 	public:
@@ -1816,17 +2100,17 @@ namespace rokae
 		{
 			if (is_automatic)
 			{
-				// ·ÃÎÊÖ÷Õ¾ //
+				// è®¿é—®ä¸»ç«™ //
 				auto controller = dynamic_cast<aris::control::EthercatController*>(target.master);
 				static std::uint8_t di = 0x00;
 				static std::int16_t di_delay[6] = { 0,0,0,0,0,0 };
 				controller->ecSlavePool().at(7).readPdo(0x6001, 0x01, di);
-				//Ä£ÄâDIĞÅºÅÎª1//
+				//æ¨¡æ‹ŸDIä¿¡å·ä¸º1//
 				//di = 0x01;
 
 				auto &lout = controller->lout();
 				auto &cout = controller->mout();
-				//diĞÅºÅ³ÖĞø100ms²Å»áÓĞĞ§£¬ÆäËûÇé¿ö»á½«diĞÅºÅÈ«²¿ÖÃÎª0//
+				//diä¿¡å·æŒç»­100msæ‰ä¼šæœ‰æ•ˆï¼Œå…¶ä»–æƒ…å†µä¼šå°†diä¿¡å·å…¨éƒ¨ç½®ä¸º0//
 				switch (di)
 				{
 				case 0x00:
@@ -1992,7 +2276,7 @@ namespace rokae
 		}
 	};
 
-	// µç¸×ÓàÏÒÍù¸´¹ì¼£ //
+	// ç”µç¼¸ä½™å¼¦å¾€å¤è½¨è¿¹ //
 	struct MoveEAParam
 	{
 		double s;
@@ -2001,7 +2285,7 @@ namespace rokae
 	class MoveEA : public aris::plan::Plan
 	{
 	public:
-		//Æ½¾ùÖµËÙ¶ÈÂË²¨¡¢Ä¦²ÁÁ¦ÂË²¨Æ÷³õÊ¼»¯//
+		//å¹³å‡å€¼é€Ÿåº¦æ»¤æ³¢ã€æ‘©æ“¦åŠ›æ»¤æ³¢å™¨åˆå§‹åŒ–//
 		std::vector<double> fore_vel;
 		IIR_FILTER::IIR iir;
 		double tempforce;
@@ -2052,7 +2336,7 @@ namespace rokae
 			auto time = static_cast<int>(param.time * 1000);
 			static double begin_p;
 
-			// ·ÃÎÊÖ÷Õ¾ //
+			// è®¿é—®ä¸»ç«™ //
 			auto controller = dynamic_cast<aris::control::Controller*>(target.master);
 
 			static double median_filter[MEDIAN_LENGTH] = { 0.0 };
@@ -2066,8 +2350,8 @@ namespace rokae
 			end_p = begin_p + param.s*(1 - std::cos(2 * PI*target.count / time)) / 2;
 			controller->motionAtAbs(6).setTargetPos(end_p);
 			
-			//¸ù¾İµçÁ÷Öµ»»ËãÑ¹Á¦Öµ//
-			int phase;	//±ê¼Ç²ÉÓÃÄÇÒ»¶Î¹«Ê½¼ÆËãÑ¹Á¦Öµ//
+			//æ ¹æ®ç”µæµå€¼æ¢ç®—å‹åŠ›å€¼//
+			int phase;	//æ ‡è®°é‡‡ç”¨é‚£ä¸€æ®µå…¬å¼è®¡ç®—å‹åŠ›å€¼//
 			double force = 0, ff = 0, fc = controller->motionAtAbs(6).actualCur() * ea_index, fg = ea_gra, fs = std::abs(ea_c * ea_index);
 			if (std::abs(controller->motionAtAbs(6).actualVel()) > 0.001)
 			{
@@ -2106,7 +2390,7 @@ namespace rokae
 				}
 			}
 
-			//¶ÔËÙ¶È½øĞĞ¾ùÖµÂË²¨, ¶ÔÄ¦²ÁÁ¦½øĞĞÂË²¨//
+			//å¯¹é€Ÿåº¦è¿›è¡Œå‡å€¼æ»¤æ³¢, å¯¹æ‘©æ“¦åŠ›è¿›è¡Œæ»¤æ³¢//
 			double mean_vel, fe, filteredforce;
 
 			for (Size i = 0; i < FORE_VEL_LENGTH; i++)
@@ -2128,7 +2412,7 @@ namespace rokae
 				fe = -filteredforce + 1810 * mean_vel;
 			}
 
-			//ÖĞÖµÂË²¨//
+			//ä¸­å€¼æ»¤æ³¢//
 			for (Size i = 0; i < MEDIAN_LENGTH - 1; i++)
 			{
 				median_filter[i] = median_filter[i + 1];
@@ -2142,7 +2426,7 @@ namespace rokae
 			std::sort(tem, tem + MEDIAN_LENGTH);
 			fe = tem[(MEDIAN_LENGTH - 1) / 2];
 
-			//·¢ËÍÊı¾İbuffer//
+			//å‘é€æ•°æ®buffer//
 			if (data_num >= buffer_length)
 			{
 				std::copy_n(&fce_data[4], buffer_length - 4, fce_data);
@@ -2160,13 +2444,13 @@ namespace rokae
 				fce_data[data_num++] = fe;
 			}
 
-			// ´òÓ¡ Ä¿±êÎ»ÖÃ¡¢Êµ¼ÊÎ»ÖÃ¡¢Êµ¼ÊËÙ¶È¡¢Êµ¼ÊµçÁ÷¡¢Ñ¹Á¦ //
+			// æ‰“å° ç›®æ ‡ä½ç½®ã€å®é™…ä½ç½®ã€å®é™…é€Ÿåº¦ã€å®é™…ç”µæµã€å‹åŠ› //
 			auto &cout = controller->mout();
 			if (target.count % 100 == 0)
 			{
 				cout << controller->motionAtAbs(6).targetPos() << "  " << controller->motionAtAbs(6).actualPos() << "  " << controller->motionAtAbs(6).actualVel() << "  " << controller->motionAtAbs(6).actualCur() << "  " << force << "  " << phase << "  " << fe << std::endl;
 			}
-			// log Ä¿±êÎ»ÖÃ¡¢Êµ¼ÊÎ»ÖÃ¡¢Êµ¼ÊËÙ¶È¡¢Êµ¼ÊµçÁ÷¡¢Ñ¹Á¦ //
+			// log ç›®æ ‡ä½ç½®ã€å®é™…ä½ç½®ã€å®é™…é€Ÿåº¦ã€å®é™…ç”µæµã€å‹åŠ› //
 			auto &lout = controller->lout();
 			lout << controller->motionAtAbs(6).targetPos() << "  " << controller->motionAtAbs(6).actualPos() << "  " << controller->motionAtAbs(6).actualVel() << "  " << controller->motionAtAbs(6).actualCur() << "  " << force << "  " << filteredforce << "  " << phase << "  " << fe << std::endl;
 
@@ -2191,7 +2475,7 @@ namespace rokae
 		}
 	};
 
-	// µç¸×ÔË¶¯¹ì¼£ //
+	// ç”µç¼¸è¿åŠ¨è½¨è¿¹ï¼›é€Ÿåº¦å‰é¦ˆ //
 	struct MoveEAPParam
 	{
 		double begin_pos, pos, vel, acc, dec;
@@ -2200,7 +2484,7 @@ namespace rokae
 	class MoveEAP : public aris::plan::Plan
 	{
 	public:
-		//Æ½¾ùÖµËÙ¶ÈÂË²¨¡¢Ä¦²ÁÁ¦ÂË²¨Æ÷³õÊ¼»¯//
+		//å¹³å‡å€¼é€Ÿåº¦æ»¤æ³¢ã€æ‘©æ“¦åŠ›æ»¤æ³¢å™¨åˆå§‹åŒ–//
 		std::vector<double> fore_vel;
 		IIR_FILTER::IIR iir;
 		double tempforce;
@@ -2259,7 +2543,7 @@ namespace rokae
 		auto virtual executeRT(PlanTarget &target)->int
 		{
 			auto &param = std::any_cast<MoveEAPParam&>(target.param);
-			// ·ÃÎÊÖ÷Õ¾ //
+			// è®¿é—®ä¸»ç«™ //
 			auto controller = dynamic_cast<aris::control::Controller*>(target.master);
 
 			static double median_filter[MEDIAN_LENGTH] = {0.0};
@@ -2270,29 +2554,29 @@ namespace rokae
 				
 				/*iir.m_px.assign(iir.m_num_order, 0.0);
 				iir.m_py.assign(iir.m_den_order, 0.0);*/
-				//Ä¦²ÁÁ¦ÂË²¨Æ÷³õÊ¼»¯//		
+				//æ‘©æ“¦åŠ›æ»¤æ³¢å™¨åˆå§‹åŒ–//		
 			}
 			aris::Size total_count{ 1 };
 			double p, v, a;
 			aris::Size t_count;
-			//¾ø¶Ô¹ì¼£//
+			//ç»å¯¹è½¨è¿¹//
 			if(param.ab)
 			{ 
 				aris::plan::moveAbsolute(target.count, param.begin_pos, param.pos, param.vel / 1000, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
 			}
-			//Ïà¶Ô¹ì¼£//
+			//ç›¸å¯¹è½¨è¿¹//
 			else
 			{
 				aris::plan::moveAbsolute(target.count, param.begin_pos, param.begin_pos + param.pos, param.vel / 1000, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
 			}
 			controller->motionAtAbs(6).setTargetPos(p);
-			//ËÙ¶ÈÇ°À¡//
+			//é€Ÿåº¦å‰é¦ˆ//
 			controller->motionAtAbs(6).setOffsetVel(v*1000);
 
 			total_count = std::max(total_count, t_count);
 
-			//¸ù¾İµçÁ÷Öµ»»ËãÑ¹Á¦Öµ//
-			int phase;	//±ê¼Ç²ÉÓÃÄÇÒ»¶Î¹«Ê½¼ÆËãÑ¹Á¦Öµ//
+			//æ ¹æ®ç”µæµå€¼æ¢ç®—å‹åŠ›å€¼//
+			int phase;	//æ ‡è®°é‡‡ç”¨é‚£ä¸€æ®µå…¬å¼è®¡ç®—å‹åŠ›å€¼//
 			double fore_cur = 0, force = 0, ff = 0, fc, fg, fs;
 			fc = controller->motionAtAbs(6).actualCur() * ea_index;
 			fg = ea_gra;
@@ -2340,10 +2624,10 @@ namespace rokae
 				}
 			}
 
-			//µçÁ÷Ç°À¡//
+			//ç”µæµå‰é¦ˆ//
 			controller->motionAtAbs(6).setOffsetCur(fore_cur);
 
-			//¶ÔËÙ¶È½øĞĞ¾ùÖµÂË²¨, ¶ÔÄ¦²ÁÁ¦½øĞĞÂË²¨//
+			//å¯¹é€Ÿåº¦è¿›è¡Œå‡å€¼æ»¤æ³¢, å¯¹æ‘©æ“¦åŠ›è¿›è¡Œæ»¤æ³¢//
 			double mean_vel, fe, filteredforce;
 			
 			for(Size i=0;i< FORE_VEL_LENGTH;i++)
@@ -2365,7 +2649,7 @@ namespace rokae
 				fe = -filteredforce + 1810 * mean_vel;
 			}
 
-			//ÖĞÖµÂË²¨//
+			//ä¸­å€¼æ»¤æ³¢//
 			for (Size i = 0; i < MEDIAN_LENGTH-1; i++)
 			{
 				median_filter[i] = median_filter[i + 1];
@@ -2379,7 +2663,7 @@ namespace rokae
 			std::sort(tem, tem + MEDIAN_LENGTH);
 			fe = tem[(MEDIAN_LENGTH-1)/2];
 			
-			//·¢ËÍÊı¾İbuffer//
+			//å‘é€æ•°æ®buffer//
 			if (data_num >= buffer_length)
 			{
 				std::copy_n(&fce_data[4], buffer_length-4, fce_data);
@@ -2397,14 +2681,14 @@ namespace rokae
 				fce_data[data_num++] = fe;
 			}
 
-			// ´òÓ¡ Ä¿±êÎ»ÖÃ¡¢Êµ¼ÊÎ»ÖÃ¡¢Êµ¼ÊËÙ¶È¡¢Êµ¼ÊµçÁ÷¡¢Ñ¹Á¦ //
+			// æ‰“å° ç›®æ ‡ä½ç½®ã€å®é™…ä½ç½®ã€å®é™…é€Ÿåº¦ã€å®é™…ç”µæµã€å‹åŠ› //
 			auto &cout = controller->mout();
 			if (target.count % 100 == 0)
 			{
 				cout << controller->motionAtAbs(6).targetPos() << "  " << controller->motionAtAbs(6).actualPos() << "  " << v << "  " << controller->motionAtAbs(6).actualVel() << "  "
 					<< a << "  " << fore_cur << "  " << controller->motionAtAbs(6).actualCur() << "  " << ff << "  " << fg << "  " << fc << "  " << force << "  " << filteredforce << "  " << phase << "  " << fe << std::endl;
 			}
-			// log Ä¿±êÎ»ÖÃ¡¢Êµ¼ÊÎ»ÖÃ¡¢Êµ¼ÊËÙ¶È¡¢Êµ¼ÊµçÁ÷¡¢Ñ¹Á¦ //
+			// log ç›®æ ‡ä½ç½®ã€å®é™…ä½ç½®ã€å®é™…é€Ÿåº¦ã€å®é™…ç”µæµã€å‹åŠ› //
 			auto &lout = controller->lout();
 			lout << controller->motionAtAbs(6).targetPos() << "  " << controller->motionAtAbs(6).actualPos() << "  " << v << "  " << controller->motionAtAbs(6).actualVel() << "  " 
 				<< a << "  " << fore_cur << "  " << controller->motionAtAbs(6).actualCur() << "  " << ff << "  " << fg << "  " << fc << "  " << force << "  " << filteredforce << "  " << phase << "  " << fe << std::endl;
@@ -2445,22 +2729,32 @@ namespace rokae
 		plan_root->planPool().add<aris::plan::RecoverPlan>();
 		plan_root->planPool().add<aris::plan::SleepPlan>();
 		auto &rs = plan_root->planPool().add<aris::plan::ResetPlan>();
-		rs.command().findByName("group")->findByName("pos")->loadXmlStr("<pos default=\"{0.5,0.392523364485981,0.789915966386555,0.5,0.5,0.5,0.01}\" abbreviation=\"p\"/>");
+		rs.command().findByName("group")->findByName("pos")->loadXmlStr("<pos default=\"{0.5,0.392523364485981,0.789915966386555,0.5,0.5,0.5}\" abbreviation=\"p\"/>");
 
 		plan_root->planPool().add<aris::plan::MovePlan>();
 		plan_root->planPool().add<aris::plan::MoveJ>();
 		plan_root->planPool().add<aris::plan::Show>();
-		plan_root->planPool().add<rokae::MoveInit>();
+		plan_root->planPool().add<kaanh::MoveInit>();
 		plan_root->planPool().add<MoveX>();
-		plan_root->planPool().add<rokae::MoveJS>();
-		plan_root->planPool().add<rokae::MoveJSN>();
-		plan_root->planPool().add<rokae::MoveJR>();
-		plan_root->planPool().add<rokae::MoveJM>();
-		plan_root->planPool().add<rokae::MoveJI>();
-		plan_root->planPool().add<rokae::Grasp>();
-		plan_root->planPool().add<rokae::ListenDI>();
-		plan_root->planPool().add<rokae::MoveEA>();
-		plan_root->planPool().add<rokae::MoveEAP>();
+		plan_root->planPool().add<kaanh::MoveJS>();
+		plan_root->planPool().add<kaanh::MoveJSN>();
+		plan_root->planPool().add<kaanh::MoveJR>();
+		plan_root->planPool().add<kaanh::MoveTTT>();
+		plan_root->planPool().add<forcecontrol::MoveJRC>();
+		plan_root->planPool().add<forcecontrol::MovePQCrash>();
+		plan_root->planPool().add<forcecontrol::MovePQB>();
+		plan_root->planPool().add<forcecontrol::MoveJCrash>();
+		plan_root->planPool().add<forcecontrol::MoveJF>();
+		plan_root->planPool().add<forcecontrol::MoveJFB>();
+		plan_root->planPool().add<forcecontrol::MoveJPID>();
+		plan_root->planPool().add<forcecontrol::MoveStop>();
+		plan_root->planPool().add<forcecontrol::MoveSPQ>();
+		plan_root->planPool().add<kaanh::MoveJM>();
+		plan_root->planPool().add<kaanh::MoveJI>();
+		plan_root->planPool().add<kaanh::Grasp>();
+		plan_root->planPool().add<kaanh::ListenDI>();
+		plan_root->planPool().add<kaanh::MoveEA>();
+		plan_root->planPool().add<kaanh::MoveEAP>();
 
 	/*	auto &dm1 = plan_root->planPool().add<aris::plan::MoveJ>();
 		dm1.command().findByName("group")->findByName("unique_pos")->findByName("pq")->loadXmlStr("<pq default=\"{0.444,-0,0.562,0.642890516,0.000011540,0.765958083,-0.000008196}\"/>");
