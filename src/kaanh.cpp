@@ -1232,18 +1232,6 @@ namespace kaanh
                     total_count = result;
                     //total_count = std::max(total_count, t_count);
 
-                    auto &lout = controller->lout();
-                    lout << param.begin_joint_pos_vec[i] << ",";
-                    lout << param.begin_axis_vel_vec[i] << ",";
-                    lout << param.begin_axis_acc_vec[i] << ",";
-                    lout << param.joint_pos_vec[i] << ",";
-                    lout << param.axis_vel_vec[i] << ",";
-                    lout << param.axis_acc_vec[i] << ",";
-                    lout << p << ",";
-                    lout << v << ",";
-                    lout << a << ",";
-                    lout << t_count << std::endl;
-
 					param.begin_joint_pos_vec[i] = p;
 					param.begin_axis_vel_vec[i] = v;
 					param.begin_axis_acc_vec[i] = a;
@@ -1266,6 +1254,28 @@ namespace kaanh
                     }
 				}
 				cout << std::endl;
+			}
+
+			auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(target.model->solverPool()[1]);
+			fwd.cptJacobi();
+
+			auto &lout = controller->lout();
+			for (Size i = 0; i < 36; ++i)
+			{
+				lout <<fwd.Jf()[i] << ",";
+			}
+			for (Size i = 0; i < param.joint_active_vec.size(); ++i)
+			{
+				if (param.joint_active_vec[i])
+				{
+					lout << param.begin_joint_pos_vec[i] << ",";
+					lout << param.begin_axis_vel_vec[i] << ",";
+					lout << param.begin_axis_acc_vec[i] << ",";
+					lout << param.joint_pos_vec[i] << ",";
+					lout << param.axis_vel_vec[i] << ",";
+					lout << param.axis_acc_vec[i] << ",";
+					lout << std::endl;
+				}
 			}
 
 			// log 电流 //

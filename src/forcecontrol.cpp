@@ -628,6 +628,7 @@ namespace forcecontrol
 
 						s_householder_utp(6, 6, inv.Jf(), U, tau, p, rank);
 						s_householder_utp2pinv(6, 6, rank, U, tau, p, J_fce, tau2);*/
+	
 				s_mm(6, 1, 6, fwd.Jf(), aris::dynamic::ColMajor{ 6 }, param.ft.data(), 1, param.ft_pid.data(), 1);
 
 				//动力学载荷
