@@ -841,6 +841,7 @@ namespace forcecontrol
 		std::vector<double> pqt;
 		std::vector<double> pqa;
 		std::vector<double> pqb;
+		std::vector<double> vqb;
 		std::vector<double> pt;
 		std::vector<double> pa;
 		std::vector<double> vt;
@@ -867,6 +868,7 @@ namespace forcecontrol
 		param.pqt.resize(7, 0.0);
 		param.pqa.resize(7, 0.0);
 		param.pqb.resize(7, 0.0);
+		param.vqb.resize(7, 0.0);
 		param.pt.resize(6, 0.0);
 		param.pa.resize(6, 0.0);
 		param.vt.resize(6, 0.0);
@@ -1071,7 +1073,7 @@ namespace forcecontrol
 
 		//末端空间PID开始位置
 		target.model->generalMotionPool().at(0).getMpq(param.pqb.data());
-		target.model->generalMotionPool().at(0).getMvq(param.va.data());
+		target.model->generalMotionPool().at(0).getMvq(param.vqb.data());
 		
 		//角度不变，位置变化
 		target.model->generalMotionPool().at(0).getMpq(param.pqa.data());
@@ -1100,21 +1102,29 @@ namespace forcecontrol
 				param.vt[i] = param.vt[i] + param.vfwd[i];
 				//param.vt[i] = std::max(std::min(param.vt[i], vt_limit_PQB[i]), -vt_limit_PQB[i]);
 			}
-
 			//限制末端空间vt向量的模的大小
 			double normv = aris::dynamic::s_norm(3, param.vt.data());
 			double normv_limit = std::max(std::min(normv, vt_limit_PQB[0]), -vt_limit_PQB[0]);
 			aris::dynamic::s_vc(3, normv_limit / normv, param.vt.data(), param.vt.data());
 			
+			/*
+			for (int i = 0; i < param.ft.size(); ++i)
+			{
+				target.model->motionPool().at(i).setMv(param.vt[i]);
+			}
+			target.model->solverPool()[0].kinVel();
+			*/
+
+			//末端空间速度环--------start
 			//末端空间——速度环PID+力及力矩的限制
 			for (Size i = 0; i < 3; ++i)
 			{
-                param.vproportion[i] = param.kp_v[i] * (param.vt[i] - param.va[i]);
-                param.vinteg[i] = param.vinteg[i] + param.ki_v[i] * (param.vt[i] - param.va[i]);
+                param.vproportion[i] = param.kp_v[i] * (param.vt[i] - param.vqb[i]);
+                param.vinteg[i] = param.vinteg[i] + param.ki_v[i] * (param.vt[i] - param.vqb[i]);
 				//vinteg[i] = std::min(vinteg[i], fi_limit_PQB[i]);
 				//vinteg[i] = std::max(vinteg[i], -fi_limit_PQB[i]);
             }
-            //����ĩ�˿ռ�ft������ģ�Ĵ�С
+            //限制末端空间vinteg向量的模的大小
             double normvi = aris::dynamic::s_norm(3, param.vinteg.data());
             double normvi_limit = std::max(std::min(normvi, fi_limit_PQB[0]), -fi_limit_PQB[0]);
             aris::dynamic::s_vc(3, normvi_limit / normvi, param.vinteg.data(), param.vinteg.data());
@@ -1138,6 +1148,8 @@ namespace forcecontrol
 			auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(target.model->solverPool()[1]);
 			fwd.cptJacobi();
 			s_mm(6, 1, 6, fwd.Jf(), aris::dynamic::ColMajor{ 6 }, param.ft.data(), 1, param.ft_pid.data(), 1);
+			//末端空间PID---------end */
+
 
 			//轴空间——位置环PID+速度限制
 			for (Size i = 3; i < param.ft_pid.size(); ++i)
