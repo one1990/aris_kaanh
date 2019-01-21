@@ -1171,12 +1171,12 @@ namespace forcecontrol
 			{
                 param.vproportion[i] = param.kp_v[i] * (param.vt[i] - param.va[i]);
                 param.vinteg[i] = param.vinteg[i] + param.ki_v[i] * (param.vt[i] - param.va[i]);
-                param.vinteg[i] = std::min(param.vinteg[i], fi_limit_PQB[i]);
-                param.vinteg[i] = std::max(param.vinteg[i], -fi_limit_PQB[i]);
+                param.vinteg[i] = std::min(param.vinteg[i], fi_limit_JFB[i]);
+                param.vinteg[i] = std::max(param.vinteg[i], -fi_limit_JFB[i]);
 
                 param.ft_pid[i] = param.vproportion[i] + param.vinteg[i];
-				param.ft_pid[i] = std::min(param.ft_pid[i], ft_limit_PQB[i]);
-				param.ft_pid[i] = std::max(param.ft_pid[i], -ft_limit_PQB[i]);
+                param.ft_pid[i] = std::min(param.ft_pid[i], ft_limit_JFB[i]);
+                param.ft_pid[i] = std::max(param.ft_pid[i], -ft_limit_JFB[i]);
 			}
 
 			//动力学载荷
@@ -1327,9 +1327,9 @@ namespace forcecontrol
 			"<movePQB>"
 			"	<group type=\"GroupParam\" default_child_type=\"Param\">"
 			"		<pqt default=\"{0.42,0.0,0.55,0,0,0,1}\" abbreviation=\"p\"/>"
-            "		<kp_p default=\"{4,4,4,3,3,2}\"/>"
-            "		<kp_v default=\"{800,800,800,60,30,16}\"/>"
-            "		<ki_v default=\"{4,4,4,0.2,0.2,0.18}\"/>"
+            "		<kp_p default=\"{4,6,4,3,3,2}\"/>"
+            "		<kp_v default=\"{170,270,90,60,35,16}\"/>"
+            "		<ki_v default=\"{2,15,10,0.2,0.2,0.18}\"/>"
 			"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_all\">"
 			"			<check_all/>"
 			"			<check_none/>"
