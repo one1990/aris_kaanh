@@ -111,6 +111,7 @@ namespace forcecontrol
 		auto controller = dynamic_cast<aris::control::Controller *>(target.master);
 		static bool is_running{ true };
 		static double vinteg[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+		double pqa[7] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 		bool ds_is_all_finished{ true };
 		bool md_is_all_finished{ true };
 
@@ -222,24 +223,26 @@ namespace forcecontrol
 					controller->motionAtAbs(i).setTargetCur(ft_offset + target.model->motionPool()[i].mfDyn()*f2c_index[i]);
 
 					//打印PID控制结果
+					/*
 					auto &cout = controller->mout();
 					if (target.count % 100 == 0)
 					{
 						//cout << "ft:" << ft << "  " << "vt:" << vt << "  " << "va:" << va << "  " << "param.kp_v*(vt - va):" << param.kp_v*(vt - va) << "  " << "param.ki_v*vinteg[i]:" << param.ki_v*vinteg[i] << "    ";
 						cout << "feedbackf:" << std::setw(10) << controller->motionAtAbs(i).actualCur()
-							<< "f:" << std::setw(10) << ft_offset
-							<< "p:" << std::setw(10) << p
-							<< "pa:" << std::setw(10) << pa
-							<< "va:" << std::setw(10) << va << std::endl;
+							 << "f:" << std::setw(10) << ft_offset
+							 << "p:" << std::setw(10) << p
+							 << "pa:" << std::setw(10) << pa
+							 << "va:" << std::setw(10) << va << std::endl;
 					}
+					*/
 				}
 			}
 		}
 
 		if (!target.model->solverPool().at(1).kinPos())return -1;
+		target.model->generalMotionPool().at(0).getMpq(pqa);
 
 		// 打印电流 //
-		/*
 		auto &cout = controller->mout();
 		if (target.count % 100 == 0)
 		{
@@ -247,17 +250,20 @@ namespace forcecontrol
 			{
 				if (param.joint_active_vec[i])
 				{
-					cout << "target_cur" << i + 1 << ":" << controller->motionAtAbs(i).targetCur() << "  ";
-					cout << "pos" << i + 1 << ":" << controller->motionAtAbs(i).actualPos() << "  ";
-					cout << "vel" << i + 1 << ":" << controller->motionAtAbs(i).actualVel() << "  ";
-					cout << "cur" << i + 1 << ":" << controller->motionAtAbs(i).actualCur() << "  ";
+					cout << "pos" << i + 1 << ":" << std::setw(6) << controller->motionAtAbs(i).actualPos() << "  ";
+					cout << "vel" << i + 1 << ":" << std::setw(6) << controller->motionAtAbs(i).actualVel() << "  ";
+					cout << "cur" << i + 1 << ":" << std::setw(6) << controller->motionAtAbs(i).actualCur() << "  ";
 				}
+			}
+			cout << "pq: ";
+			for (Size i = 0; i < 7; i++)
+			{
+				cout << std::setw(6) << pqa[i] << " ";
 			}
 			cout << std::endl;
 		}
-		*/
 
-		// log 电流 //
+		// log 位置、速度、电流 //
 		auto &lout = controller->lout();
 		for (Size i = 0; i < param.joint_active_vec.size(); i++)
 		{
@@ -268,7 +274,13 @@ namespace forcecontrol
 
             lout << controller->motionAtAbs(i).actualPos() << " ";
             lout << controller->motionAtAbs(i).actualVel() << " ";
-            lout << controller->motionAtAbs(i).actualCur() << " ";
+            lout << controller->motionAtAbs(i).actualCur() << " ";	
+		}
+		
+		// log 末端pq值 //
+		for (Size i = 0; i < 7; i++)
+		{
+			lout << pqa[i] << " ";
 		}
 		lout << std::endl;
 
@@ -1001,6 +1013,7 @@ namespace forcecontrol
 	{
 		auto &param = std::any_cast<MovePQBParam&>(target.param);
 		auto controller = dynamic_cast<aris::control::Controller *>(target.master);
+		controller->logFile("movePQB.txt");
 		static bool is_running{ true };
 		bool ds_is_all_finished{ true };
 		bool md_is_all_finished{ true };
