@@ -1,9 +1,4 @@
-#include <aris.h>
-#include <iostream>
-#include <fstream>
-#include <typeinfo>
-#include <vector>
-#include "cplan.h"
+ï»¿#include "cplan.h"
 using namespace std;
 using namespace aris::plan;
 
@@ -12,9 +7,9 @@ struct MoveCParam
 {
     int total_time;
     int left_time;
-    double radius; //Ô²ĞÎ¹æ»®°ë¾¶
-    double detal;//Ô²»¡¹ì¼£ÔöÁ¿
-    double theta;//¼ÆËãµÄÖĞ¼ä±äÁ¿
+    double radius; //åœ†å½¢è§„åˆ’åŠå¾„
+    double detal;//åœ†å¼§è½¨è¿¹å¢é‡
+    double theta;//è®¡ç®—çš„ä¸­é—´å˜é‡
 };
 
 auto MoveCircle::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
@@ -22,11 +17,11 @@ auto MoveCircle::prepairNrt(const std::map<std::string, std::string> &params, Pl
     MoveCParam p;
     p.total_time = std::stoi(params.at("total_time"));
     p.radius = std::stod(params.at("radius"));
-    p.detal = target.model->calculator().calculateExpression(params.at("detal")).toDouble();//Èç¹ûÖ±½ÓÓÃstod£¬ÔòdetalÖĞ³ıÒÔ5000µÄ·ÖÄ¸Ö±½Ó±»ºöÂÔÁË
+    p.detal = target.model->calculator().calculateExpression(params.at("detal")).toDouble();//å¦‚æœç›´æ¥ç”¨stodï¼Œåˆ™detalä¸­é™¤ä»¥5000çš„åˆ†æ¯ç›´æ¥è¢«å¿½ç•¥äº†
     p.left_time = 0;
     target.param = p;
     target.option =
-        //ÓÃÕâ¶Î»°¿ÉÒÔ²»ÓÃ½«modelµÄ¹ì¼£¸³Öµµ½controllerÀïÃæ£¬ÏµÍ³Ö±½Óµ÷ÓÃmodelÖĞµÄ·´½â¼ÆËã½á¹û
+        //ç”¨è¿™æ®µè¯å¯ä»¥ä¸ç”¨å°†modelçš„è½¨è¿¹èµ‹å€¼åˆ°controlleré‡Œé¢ï¼Œç³»ç»Ÿç›´æ¥è°ƒç”¨modelä¸­çš„åè§£è®¡ç®—ç»“æœ
         aris::plan::Plan::USE_TARGET_POS |
         aris::plan::Plan::NOT_CHECK_VEL_FOLLOWING_ERROR |
         aris::plan::Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
@@ -40,21 +35,21 @@ auto MoveCircle::executeRT(PlanTarget &target)->int
     static double beginpq[7];
     if (target.count == 1)
     {
-        //»ñÈ¡µ±Ç°Ä£ĞÍµÄÎ»ÖÃ
-        target.model->generalMotionPool()[0].getMpq(beginpq);//generalMotionPool()[0]Ò»¸öÄ©¶Ë
+        //è·å–å½“å‰æ¨¡å‹çš„ä½ç½®
+        target.model->generalMotionPool()[0].getMpq(beginpq);//generalMotionPool()[0]ä¸€ä¸ªæœ«ç«¯
     }
-    //¶¨ÒåÒ»¸ö±äÁ¿£¬ËÄÔªÊı£¬Ç°Èı¸ö´ú±íÎ»ÖÃ
+    //å®šä¹‰ä¸€ä¸ªå˜é‡ï¼Œå››å…ƒæ•°ï¼Œå‰ä¸‰ä¸ªä»£è¡¨ä½ç½®
     double pq[7];
-    //½«»ñÈ¡µÄ»úÆ÷ÈËÎ»ÖÃ¸³Öµ¸ø±äÁ¿
+    //å°†è·å–çš„æœºå™¨äººä½ç½®èµ‹å€¼ç»™å˜é‡
     std::copy_n(beginpq, 7, pq);
-    //¶Ô±äÁ¿µÄµÚÒ»¸ö²ÎÊı½øĞĞÔË¶¯¹æ»®
+    //å¯¹å˜é‡çš„ç¬¬ä¸€ä¸ªå‚æ•°è¿›è¡Œè¿åŠ¨è§„åˆ’
     double theta = 1.0*(1 - std::cos(1.0*target.count / p.total_time * 1 * aris::PI));
-    pq[1] = beginpq[1] + p.radius*(std::cos(-aris::PI/2+1.0* theta * 5 * 2 * aris::PI)) + p.detal * theta * 5000;//YÖá£¬Ë®Æ½Öá,×ßÍê5¸öÔ²
-    pq[2] = beginpq[2] + p.radius*(std::sin(-aris::PI/2+1.0*theta * 5 * 2 * aris::PI)) + p.radius;//ZÖáÊúÖ±Öá
+    pq[1] = beginpq[1] + p.radius*(std::cos(-aris::PI/2+1.0* theta * 5 * 2 * aris::PI)) + p.detal * theta * 5000;//Yè½´ï¼Œæ°´å¹³è½´,èµ°å®Œ5ä¸ªåœ†
+    pq[2] = beginpq[2] + p.radius*(std::sin(-aris::PI/2+1.0*theta * 5 * 2 * aris::PI)) + p.radius;//Zè½´ç«–ç›´è½´
     if(target.count %500 ==0)target.master->mout()<< pq[1] <<"  "<<pq[2]<< std::endl;
-    //½«±äÁ¿µÄÖµ¸³Öµ¸ømodelÖĞÄ£ĞÍµÄÄ©¶ËÎ»ÖÃ
+    //å°†å˜é‡çš„å€¼èµ‹å€¼ç»™modelä¸­æ¨¡å‹çš„æœ«ç«¯ä½ç½®
     target.model->generalMotionPool()[0].setMpq(pq);
-    //ÇóÔË¶¯Ñ§·´½âĞèÒªµ÷ÓÃÇó½âÆ÷solverpool£¬0ÊÇ·´½â£¬1ÊÇÕı½â£¬kinPosÊÇÎ»ÖÃ·´½â£¬kinVelÊÇËÙ¶È·´½â
+    //æ±‚è¿åŠ¨å­¦åè§£éœ€è¦è°ƒç”¨æ±‚è§£å™¨solverpoolï¼Œ0æ˜¯åè§£ï¼Œ1æ˜¯æ­£è§£ï¼ŒkinPosæ˜¯ä½ç½®åè§£ï¼ŒkinVelæ˜¯é€Ÿåº¦åè§£
     if(target.model->solverPool()[0].kinPos() == 0 && target.count %500 ==0)target.master->mout()<< "kin failed"<<std::endl;
     return p.total_time - target.count;
 }
@@ -64,15 +59,15 @@ MoveCircle::MoveCircle(const std::string &name) :Plan(name)
         command().loadXmlStr(
             "<mvEE>"
             "	<group type=\"GroupParam\">"
-            "	    <total_time type=\"Param\" default=\"5000\"/>" //Ä¬ÈÏ5000
+            "	    <total_time type=\"Param\" default=\"5000\"/>" //é»˜è®¤5000
             "       <radius type=\"Param\" default=\"0.01\"/>"
-            "       <detal type=\"Param\" default=\"0.1/5000\"/>"//5Ãë×ß10cm
+            "       <detal type=\"Param\" default=\"0.1/5000\"/>"//5ç§’èµ°10cm
             "   </group>"
             "</mvEE>");
     }
 
 
-//Ä©¶Ë¿Õ¼äµÄÌİĞÎ¹ì¼£¿ØÖÆ
+//æœ«ç«¯ç©ºé—´çš„æ¢¯å½¢è½¨è¿¹æ§åˆ¶
 struct MoveTParam
 {
     int total_time;
@@ -93,11 +88,11 @@ auto MoveTroute::prepairNrt(const std::map<std::string, std::string> &params, Pl
 
 	target.param = p;
 	target.option =
-		//ÓÃÕâ¶Î»°¿ÉÒÔ²»ÓÃ½«modelµÄ¹ì¼£¸³Öµµ½controllerÀïÃæ£¬ÏµÍ³Ö±½Óµ÷ÓÃmodelÖĞµÄ·´½â¼ÆËã½á¹û£¬Èç¹û
-		//²»ÓÃÕâ¸öÃüÁî£¬ÄÇÃ´ĞèÒªÓÃforÑ­»·½«modelÖĞµÄ·´½â¼ÆËã½á¹û¸³Öµµ½controllerÀïÃæ
+		//ç”¨è¿™æ®µè¯å¯ä»¥ä¸ç”¨å°†modelçš„è½¨è¿¹èµ‹å€¼åˆ°controlleré‡Œé¢ï¼Œç³»ç»Ÿç›´æ¥è°ƒç”¨modelä¸­çš„åè§£è®¡ç®—ç»“æœï¼Œå¦‚æœ
+		//ä¸ç”¨è¿™ä¸ªå‘½ä»¤ï¼Œé‚£ä¹ˆéœ€è¦ç”¨forå¾ªç¯å°†modelä¸­çš„åè§£è®¡ç®—ç»“æœèµ‹å€¼åˆ°controlleré‡Œé¢
 		aris::plan::Plan::USE_TARGET_POS |
 		aris::plan::Plan::NOT_CHECK_VEL_FOLLOWING_ERROR |
-		aris::plan::Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START | //¿ªÊ¼²»¼ì²éËÙ¶ÈÁ¬Ğø
+		aris::plan::Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START | //å¼€å§‹ä¸æ£€æŸ¥é€Ÿåº¦è¿ç»­
 		aris::plan::Plan::NOT_CHECK_VEL_CONTINUOUS;
 }
 auto MoveTroute::executeRT(PlanTarget &target)->int
@@ -107,7 +102,7 @@ auto MoveTroute::executeRT(PlanTarget &target)->int
 	double pt, v, a;
 	aris::Size t_count;
 	aris::Size total_count = 1;
-	double begin_pos = 0.0;//¾Ö²¿±äÁ¿×îºÃ¸³Ò»¸ö³õÊ¼Öµ
+	double begin_pos = 0.0;//å±€éƒ¨å˜é‡æœ€å¥½èµ‹ä¸€ä¸ªåˆå§‹å€¼
 	if (target.count == 1)
 	{
 		begin_pos = controller->motionAtAbs(5).targetPos();
@@ -122,7 +117,7 @@ MoveTroute::MoveTroute(const std::string &name) :Plan(name)
 	command().loadXmlStr(
 		"<mvTT>"
 		"	<group type=\"GroupParam\" default_child_type=\"Param\">"
-		"	    <total_time type=\"Param\" default=\"5000\"/>" //Ä¬ÈÏ5000
+		"	    <total_time type=\"Param\" default=\"5000\"/>" //é»˜è®¤5000
 		"		<pt type=\"Param\" default=\"0.1\"/>"
 		"		<vel type=\"Param\" default=\"0.04\"/>"
 		"		<acc type=\"Param\" default=\"0.08\"/>"
@@ -132,8 +127,8 @@ MoveTroute::MoveTroute(const std::string &name) :Plan(name)
 }
 
 
-/// \brief ½á¹¹ÌåÉêÃ÷
-///½á¹¹ÌåMoveFileParam£¬ ÓÃÓÚ¶ÁÈ¡.txtÎÄ¼şµÄµãÎ»ÖÃĞÅÏ¢£¬²¢¿ØÖÆ»úÆ÷ÈË°´ÕÕÎÄ¼şÖĞµÄÎ»ÖÃÔË¶¯
+/// \brief ç»“æ„ä½“ç”³æ˜
+///ç»“æ„ä½“MoveFileParamï¼Œ ç”¨äºè¯»å–.txtæ–‡ä»¶çš„ç‚¹ä½ç½®ä¿¡æ¯ï¼Œå¹¶æ§åˆ¶æœºå™¨äººæŒ‰ç…§æ–‡ä»¶ä¸­çš„ä½ç½®è¿åŠ¨
 struct MoveFileParam
 {
     int total_time;
@@ -146,19 +141,19 @@ struct MoveFileParam
 	string file;
 };
 
-int n = 24; // n´ú±ítxtÎÄµµÖĞÊı¾İµÄÁĞÊı
+int n = 24; // nä»£è¡¨txtæ–‡æ¡£ä¸­æ•°æ®çš„åˆ—æ•°
 vector<vector<double>  > POS(n);
-/// \brief ÀàMoveFileÉêÃ÷
-/// ÔÚÀàMoveFileÖĞ,Íê³É¶ÔÏÖÓĞµÄ.txtÎÄ¼şÖĞµÄÎ»ÖÃÊı¾İµÄÌáÈ¡£¬Í¨¹ı³ÌĞò¿ØÖÆ»úÆ÷ÈËµÄ¸÷¹Ø½Ú°´ÕÕÊı¾İÎ»ÖÃ±ä»¯À´ÔË¶¯
-/// ### ÀàMoveFile
-/// + ÊµÊ±ºËµÄ×¼±¸º¯ÊıprepairNrt
-/// + ÊµÊ±ºËº¯ÊıexecuteRT
-/// + Àà¹¹Ôìº¯ÊıMoveFileÊµÊ±¶ÁÈ¡xmlÎÄ¼şĞÅÏ¢
+/// \brief ç±»MoveFileç”³æ˜
+/// åœ¨ç±»MoveFileä¸­,å®Œæˆå¯¹ç°æœ‰çš„.txtæ–‡ä»¶ä¸­çš„ä½ç½®æ•°æ®çš„æå–ï¼Œé€šè¿‡ç¨‹åºæ§åˆ¶æœºå™¨äººçš„å„å…³èŠ‚æŒ‰ç…§æ•°æ®ä½ç½®å˜åŒ–æ¥è¿åŠ¨
+/// ### ç±»MoveFile
+/// + å®æ—¶æ ¸çš„å‡†å¤‡å‡½æ•°prepairNrt
+/// + å®æ—¶æ ¸å‡½æ•°executeRT
+/// + ç±»æ„é€ å‡½æ•°MoveFileå®æ—¶è¯»å–xmlæ–‡ä»¶ä¿¡æ¯
 
-/// \brief ÊµÊ±ºËµÄ×¼±¸º¯ÊıprepairNrt
-/// @param &params Í·ÎÄ¼şstdÖĞµÄÀàmap£¬¼üµÄÀàĞÍÊÇstring£¬ÖµµÄÀàĞÍÒ²ÊÇstring
-/// @param PlanTarget ÃüÃû¿Õ¼äaris::planÖĞ¶¨ÒåµÄ½á¹¹Ìå£¬targetÊÇËüµÄÒıÓÃ
-/// @return ·µ»ØÖµÎª¿Õ
+/// \brief å®æ—¶æ ¸çš„å‡†å¤‡å‡½æ•°prepairNrt
+/// @param &params å¤´æ–‡ä»¶stdä¸­çš„ç±»mapï¼Œé”®çš„ç±»å‹æ˜¯stringï¼Œå€¼çš„ç±»å‹ä¹Ÿæ˜¯string
+/// @param PlanTarget å‘½åç©ºé—´aris::planä¸­å®šä¹‰çš„ç»“æ„ä½“ï¼Œtargetæ˜¯å®ƒçš„å¼•ç”¨
+/// @return è¿”å›å€¼ä¸ºç©º
 auto MoveFile::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 {
     MoveFileParam p;
@@ -175,23 +170,24 @@ auto MoveFile::prepairNrt(const std::map<std::string, std::string> &params, Plan
 		throw std::runtime_error("The value of mat.size() is not 6");
 	}
     p.pt.resize(mat.size());
-    std::copy(mat.begin(), mat.end(), p.pt.begin());//beginºÍend¶¼ÊÇ±ê×¼µÄvectorµÄµü´úÆ÷
+    std::copy(mat.begin(), mat.end(), p.pt.begin());//beginå’Œendéƒ½æ˜¯æ ‡å‡†çš„vectorçš„è¿­ä»£å™¨
 
     for (int j = 0; j < n; j++)
     {
         POS[j].clear();
     }
-	string site = "C:/Users/qianch_kaanh_cn/Desktop/myplan/src/rokae/" + p.file;
-	//ÒÔÏÂ¶¨Òå¶ÁÈ¡logÎÄ¼şµÄÊäÈëÁ÷oplog;
+	//string site = "C:/Users/qianch_kaanh_cn/Desktop/myplan/src/rokae/" + p.file;
+	string site = "/home/kaanh/Desktop/myplan/src/rokae/" + p.file;
+	//ä»¥ä¸‹å®šä¹‰è¯»å–logæ–‡ä»¶çš„è¾“å…¥æµoplog;
     ifstream oplog;
     int cal = 0;
 	oplog.open(site);
-	//ÒÔÏÂ¼ì²éÊÇ·ñ³É¹¦¶ÁÈ¡ÎÄ¼ş£»
+	//ä»¥ä¸‹æ£€æŸ¥æ˜¯å¦æˆåŠŸè¯»å–æ–‡ä»¶ï¼›
 	if (!oplog)
 	{
 		cout << "fail to open the file" << endl;
 		throw std::runtime_error("fail to open the file");
-		//return -1;//»òÕßÅ×³öÒì³£¡£
+		//return -1;//æˆ–è€…æŠ›å‡ºå¼‚å¸¸ã€‚
 	}
     while (!oplog.eof())
     {
@@ -216,12 +212,12 @@ auto MoveFile::prepairNrt(const std::map<std::string, std::string> &params, Plan
         aris::plan::Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
         aris::plan::Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
         aris::plan::Plan::NOT_CHECK_VEL_FOLLOWING_ERROR |
-        aris::plan::Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START | // ¿ªÊ¼²»¼ì²éËÙ¶ÈÁ¬Ğø
+        aris::plan::Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START | // å¼€å§‹ä¸æ£€æŸ¥é€Ÿåº¦è¿ç»­
         aris::plan::Plan::NOT_CHECK_VEL_CONTINUOUS;
 }
-/// \brief ÊµÊ±ºËº¯ÊıexecuteRT
-/// @param PlanTarget ÃüÃû¿Õ¼äaris::planÖĞ¶¨ÒåµÄ½á¹¹Ìå£¬targetÊÇËüµÄÒıÓÃ
-/// @return ·µ»ØÖµÎª¿Õ
+/// \brief å®æ—¶æ ¸å‡½æ•°executeRT
+/// @param PlanTarget å‘½åç©ºé—´aris::planä¸­å®šä¹‰çš„ç»“æ„ä½“ï¼Œtargetæ˜¯å®ƒçš„å¼•ç”¨
+/// @return è¿”å›å€¼ä¸ºç©º
 auto MoveFile::executeRT(PlanTarget &target)->int
 {
 	auto controller = dynamic_cast<aris::control::EthercatController *>(target.master);
@@ -230,58 +226,58 @@ auto MoveFile::executeRT(PlanTarget &target)->int
 	aris::Size t_count;
 	aris::Size total_count = 1;
 	aris::Size return_value = 0;
-	static double begin_pos[6] = { 0.0,0.0,0.0,0.0,0.0,0.0 }; // ¾Ö²¿±äÁ¿×îºÃ¸³Ò»¸ö³õÊ¼Öµ;
+	static double begin_pos[6] = { 0.0,0.0,0.0,0.0,0.0,0.0 }; // å±€éƒ¨å˜é‡æœ€å¥½èµ‹ä¸€ä¸ªåˆå§‹å€¼;
 
 	if (target.count == 1)
 	{
 		for (int i = 0; i < 6; i++)
 		{
-			// ÔÚµÚÒ»¸öÖÜÆÚ×ßÌİĞÎ¹æ»®¸´Î»£¬»ñÈ¡6¸öµç»ú³õÊ¼Î»ÖÃ£»
+			// åœ¨ç¬¬ä¸€ä¸ªå‘¨æœŸèµ°æ¢¯å½¢è§„åˆ’å¤ä½ï¼Œè·å–6ä¸ªç”µæœºåˆå§‹ä½ç½®ï¼›
 			begin_pos[i] = controller->motionAtAbs(i).actualPos();
 		}
 	}
-	//choose==0µÄÇé¿öÏÂ»úÆ÷ÈË±¾Ìå¸´Î»
+	//choose==0çš„æƒ…å†µä¸‹æœºå™¨äººæœ¬ä½“å¤ä½
 	if (p.choose == 0)
 	{
 		for (int i = 0; i < 6; i++)
 		{
-			// ÔÚµÚÒ»¸öÖÜÆÚ×ßÌİĞÎ¹æ»®¸´Î»
+			// åœ¨ç¬¬ä¸€ä¸ªå‘¨æœŸèµ°æ¢¯å½¢è§„åˆ’å¤ä½
 			aris::plan::moveAbsolute(target.count, begin_pos[i], p.pt[i], p.vel / 1000, p.acc / 1000 / 1000, p.dec / 1000 / 1000, ptt, v, a, t_count);
 			controller->motionAtAbs(i).setTargetPos(ptt);
 			total_count = std::max(total_count, t_count);
 		}
 		return_value = target.count > total_count ? 0 : 1;
 	}
-	//choose==1µÄÇé¿öÏÂ»úÆ÷ÈË×ßµ½Êı¾İÎÄ¼şµÄµÚÒ»¸öÎ»ÖÃ
+	//choose==1çš„æƒ…å†µä¸‹æœºå™¨äººèµ°åˆ°æ•°æ®æ–‡ä»¶çš„ç¬¬ä¸€ä¸ªä½ç½®
 	else if (p.choose == 1)
 	{
 		for (int i = 0; i < 6; i++)
 		{
-			// ÔÚµÚÒ»¸öÖÜÆÚ×ßÌİĞÎ¹æ»®¸´Î»
+			// åœ¨ç¬¬ä¸€ä¸ªå‘¨æœŸèµ°æ¢¯å½¢è§„åˆ’å¤ä½
 			aris::plan::moveAbsolute(target.count, begin_pos[i], POS[n * i / 6][0], p.vel / 1000, p.acc / 1000 / 1000, p.dec / 1000 / 1000, ptt, v, a, t_count);
 			controller->motionAtAbs(i).setTargetPos(ptt);
 			total_count = std::max(total_count, t_count);
 		}
 		return_value = target.count > total_count ? 0 : 1;
 	}
-	//choose==2µÄÇé¿öÏÂ»úÆ÷ÈË±¾Ìå°´ÕÕÊ¾½Ì¹ì¼£À´×ß
+	//choose==2çš„æƒ…å†µä¸‹æœºå™¨äººæœ¬ä½“æŒ‰ç…§ç¤ºæ•™è½¨è¿¹æ¥èµ°
 	else if (p.choose == 2)
 	{
-		//ÕıÊ½×ßÊ¾½ÌµÄ¹ì¼£
+		//æ­£å¼èµ°ç¤ºæ•™çš„è½¨è¿¹
 		for (int i = 0; i < 6; i++)
 		{
-			controller->motionAtAbs(i).setTargetPos(POS[n * i / 6][target.count]);//´ÓÁĞ±íµÄµÚ¶şĞĞ¿ªÊ¼×ßÆğ£¬µÚÒ»ĞĞÔÚchoose=1ÒÑ¾­µ½´ïÁË
+			controller->motionAtAbs(i).setTargetPos(POS[n * i / 6][target.count]);//ä»åˆ—è¡¨çš„ç¬¬äºŒè¡Œå¼€å§‹èµ°èµ·ï¼Œç¬¬ä¸€è¡Œåœ¨choose=1å·²ç»åˆ°è¾¾äº†
 		}
-		return_value = target.count > POS[0].size() - 2 ? 0 : 1;  //-2µÄÔ­ÒòÔÚÓÚa³ÌĞò´ÓÎÄ¼şÊı¾İµÚ¶şĞĞ¿ªÊ¼×ßbÊµÊ±ºË³ÌĞòÅĞ¶Ï½áÊøÊÇ¡°ÏÈÕ¶ºó×à¡±£¬ËùÒÔÒª¼õ1£»
+		return_value = target.count > POS[0].size() - 2 ? 0 : 1;  //-2çš„åŸå› åœ¨äºaç¨‹åºä»æ–‡ä»¶æ•°æ®ç¬¬äºŒè¡Œå¼€å§‹èµ°bå®æ—¶æ ¸ç¨‹åºåˆ¤æ–­ç»“æŸæ˜¯â€œå…ˆæ–©åå¥â€ï¼Œæ‰€ä»¥è¦å‡1ï¼›
 	}
-	//Êä³ö6¸öÖáµÄÊµÊ±Î»ÖÃlogÎÄ¼ş
+	//è¾“å‡º6ä¸ªè½´çš„å®æ—¶ä½ç½®logæ–‡ä»¶
 	auto &lout = controller->lout();
 	for (int i = 0; i < 6; i++)
 	{
-		lout << POS[n*i / 6][target.count - 1] << endl;//µÚÒ»ÁĞÊı×Ö±ØĞëÊÇÎ»ÖÃ
+		lout << POS[n*i / 6][target.count - 1] << endl;//ç¬¬ä¸€åˆ—æ•°å­—å¿…é¡»æ˜¯ä½ç½®
 	}
 	auto &cout = controller->mout();
-	//ÒÔÏÂÑéÖ¤¶ÁÈ¡ÎÄ¼şµÄÕıÈ·ĞÔ£»
+	//ä»¥ä¸‹éªŒè¯è¯»å–æ–‡ä»¶çš„æ­£ç¡®æ€§ï¼›
 	if (target.count % 500 == 0)
 	{
 		for (int i = 0; i < 6; i++)
@@ -293,15 +289,15 @@ auto MoveFile::executeRT(PlanTarget &target)->int
 	return return_value;
 }
 
-/// + Àà¹¹Ôìº¯ÊıMoveFileÊµÊ±¶ÁÈ¡xmlÎÄ¼şĞÅÏ¢
+/// + ç±»æ„é€ å‡½æ•°MoveFileå®æ—¶è¯»å–xmlæ–‡ä»¶ä¿¡æ¯
 ///
 MoveFile::MoveFile(const std::string &name) :Plan(name)
     {
         command().loadXmlStr(
             "<mvFi>"
             "	<group type=\"GroupParam\" default_child_type=\"Param\">"
-            "	    <total_time type=\"Param\" default=\"5000\"/>" // Ä¬ÈÏ5000
-           // "		<m type=\"Param\" default=\"59815\"/>"  // ĞĞÊı
+            "	    <total_time type=\"Param\" default=\"5000\"/>" // é»˜è®¤5000
+           // "		<m type=\"Param\" default=\"59815\"/>"  // è¡Œæ•°
             //"		<n type=\"Param\" default=\"24\"/>"
             "		<vel type=\"Param\" default=\"0.04\"/>"
             "		<acc type=\"Param\" default=\"0.08\"/>"
