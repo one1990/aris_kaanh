@@ -1930,7 +1930,7 @@ namespace kaanh
 				"<moveJI>"
 				"	<group type=\"GroupParam\" default_child_type=\"Param\">"
 				"		<pq default=\"current_pos\"/>"
-        "		<vel default=\"{0.05,0.05,0.05,0.05,0.05,0.05}\" abbreviation=\"v\"/>"
+                "		<vel default=\"{0.05,0.05,0.05,0.05,0.05,0.05}\" abbreviation=\"v\"/>"
 				"		<acc default=\"{0.1,0.1,0.1,0.1,0.1,0.1}\" abbreviation=\"a\"/>"
 				"		<dec default=\"{0.1,0.1,0.1,0.1,0.1,0.1}\" abbreviation=\"d\"/>"
 				"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_all\">"
