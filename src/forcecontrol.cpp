@@ -1092,8 +1092,9 @@ namespace forcecontrol
 		
 		//角度不变，位置变化
 		target.model->generalMotionPool().at(0).getMpq(param.pqa.data());
-        //std::array<double, 4> q = { 0.0,0.0,0.0,1.0 };
-        std::copy(param.pqt.begin() + 3, param.pqt.end(), param.pqa.begin() + 3);
+    //std::array<double, 4> q = { 0.0,0.0,0.0,1.0 };
+    std::copy(param.pqt.begin() + 3, param.pqt.end(), param.pqa.begin() + 3);
+
 		target.model->generalMotionPool().at(0).setMpq(param.pqa.data());
 		if (!target.model->solverPool().at(0).kinPos())return -1;
 		for (Size i = 3; i < param.pt.size(); ++i)
