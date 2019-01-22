@@ -25,7 +25,6 @@ public:
 };
 
 
-
 class MoveTroute : public aris::plan::Plan
 {
 public:
@@ -46,6 +45,7 @@ public:
 
     explicit MoveFile(const std::string &name = "MoveFile");
 };
+
 
 
 #endif
