@@ -1092,8 +1092,8 @@ namespace forcecontrol
 		
 		//角度不变，位置变化
 		target.model->generalMotionPool().at(0).getMpq(param.pqa.data());
-    //std::array<double, 4> q = { 0.0,0.0,0.0,1.0 };
-    std::copy(param.pqt.begin() + 3, param.pqt.end(), param.pqa.begin() + 3);
+        //std::array<double, 4> q = { 0.0,0.0,0.0,1.0 };
+        std::copy(param.pqt.begin() + 3, param.pqt.end(), param.pqa.begin() + 3);
 
 		target.model->generalMotionPool().at(0).setMpq(param.pqa.data());
 		if (!target.model->solverPool().at(0).kinPos())return -1;
@@ -1118,11 +1118,17 @@ namespace forcecontrol
 			}
 			//前三轴，限制末端空间vt向量的模的大小
 			double normv = aris::dynamic::s_norm(3, param.vt.data());
-			double normv_limit = std::max(std::min(normv, vt_limit_PQB[0]), -vt_limit_PQB[0]);
+            double normv_limit = std::max(std::min(normv, vt_normv_limit), -vt_normv_limit);
 			aris::dynamic::s_vc(3, normv_limit / normv, param.vt.data(), param.vt.data());
 			std::array<double, 4> vq = { 0.0,0.0,0.0,0.0 };
 			std::copy(param.vt.begin(), param.vt.begin() + 3, param.vqt.begin());
 			std::copy(vq.begin(), vq.end(), param.vqt.begin() + 3);
+
+            //前三轴，限制末端空间vqt向量的大小
+            for (Size i = 0; i < 3; ++i)
+            {
+                param.vqt[i] = std::max(std::min(param.vt[i], vt_limit_PQB[i]), -vt_limit_PQB[i]);
+            }
 
 			target.model->generalMotionPool().at(0).setMvq(param.vqt.data());
 			target.model->solverPool()[0].kinVel();
