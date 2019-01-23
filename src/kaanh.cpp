@@ -2,7 +2,7 @@
 #include"kaanh.h"
 #include"iir.h"
 #include"forcecontrol.h"
-
+#include"cplan.h"
 
 using namespace aris::dynamic;
 using namespace aris::plan;
@@ -1930,7 +1930,7 @@ namespace kaanh
 				"<moveJI>"
 				"	<group type=\"GroupParam\" default_child_type=\"Param\">"
 				"		<pq default=\"current_pos\"/>"
-				"		<vel default=\"{0.2,0.2,0.2,0.2,0.2,0.2}\" abbreviation=\"v\"/>"
+                "		<vel default=\"{0.05,0.05,0.05,0.05,0.05,0.05}\" abbreviation=\"v\"/>"
 				"		<acc default=\"{0.1,0.1,0.1,0.1,0.1,0.1}\" abbreviation=\"a\"/>"
 				"		<dec default=\"{0.1,0.1,0.1,0.1,0.1,0.1}\" abbreviation=\"d\"/>"
 				"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_all\">"
@@ -2755,6 +2755,9 @@ namespace kaanh
 		plan_root->planPool().add<kaanh::ListenDI>();
 		plan_root->planPool().add<kaanh::MoveEA>();
 		plan_root->planPool().add<kaanh::MoveEAP>();
+		plan_root->planPool().add<MoveCircle>();
+		plan_root->planPool().add<MoveTroute>();
+		plan_root->planPool().add<MoveFile>();
 
 	/*	auto &dm1 = plan_root->planPool().add<aris::plan::MoveJ>();
 		dm1.command().findByName("group")->findByName("unique_pos")->findByName("pq")->loadXmlStr("<pq default=\"{0.444,-0,0.562,0.642890516,0.000011540,0.765958083,-0.000008196}\"/>");
