@@ -1,8 +1,3 @@
-#include <aris.h>
-#include <iostream>
-#include <fstream>
-#include <typeinfo>
-#include <vector>
 #include "cplan.h"
 using namespace std;
 using namespace aris::plan;
@@ -146,7 +141,7 @@ struct MoveFileParam
 	string file;
 };
 
-int n = 24; // n代表txt文档中数据的列数
+int n = 25; // n代表txt文档中数据的列数
 vector<vector<double>  > POS(n);
 /// \brief 类MoveFile申明
 /// 在类MoveFile中,完成对现有的.txt文件中的位置数据的提取，通过程序控制机器人的各关节按照数据位置变化来运动
@@ -181,7 +176,8 @@ auto MoveFile::prepairNrt(const std::map<std::string, std::string> &params, Plan
     {
         POS[j].clear();
     }
-	string site = "C:/Users/qianch_kaanh_cn/Desktop/myplan/src/rokae/" + p.file;
+	//string site = "C:/Users/qianch_kaanh_cn/Desktop/myplan/src/rokae/" + p.file;
+    string site = "/home/kaanh/Desktop/build-kaanh-Desktop_Qt_5_11_2_GCC_64bit-Default/log/" + p.file;
 	//以下定义读取log文件的输入流oplog;
     ifstream oplog;
     int cal = 0;
@@ -258,7 +254,7 @@ auto MoveFile::executeRT(PlanTarget &target)->int
 		for (int i = 0; i < 6; i++)
 		{
 			// 在第一个周期走梯形规划复位
-			aris::plan::moveAbsolute(target.count, begin_pos[i], POS[n * i / 6][0], p.vel / 1000, p.acc / 1000 / 1000, p.dec / 1000 / 1000, ptt, v, a, t_count);
+            aris::plan::moveAbsolute(target.count, begin_pos[i], POS[3 * i ][0], p.vel / 1000, p.acc / 1000 / 1000, p.dec / 1000 / 1000, ptt, v, a, t_count);
 			controller->motionAtAbs(i).setTargetPos(ptt);
 			total_count = std::max(total_count, t_count);
 		}
@@ -270,7 +266,7 @@ auto MoveFile::executeRT(PlanTarget &target)->int
 		//正式走示教的轨迹
 		for (int i = 0; i < 6; i++)
 		{
-			controller->motionAtAbs(i).setTargetPos(POS[n * i / 6][target.count]);//从列表的第二行开始走起，第一行在choose=1已经到达了
+            controller->motionAtAbs(i).setTargetPos(POS[3 * i][target.count]);//从列表的第二行开始走起，第一行在choose=1已经到达了
 		}
 		return_value = target.count > POS[0].size() - 2 ? 0 : 1;  //-2的原因在于a程序从文件数据第二行开始走b实时核程序判断结束是“先斩后奏”，所以要减1；
 	}
@@ -278,7 +274,7 @@ auto MoveFile::executeRT(PlanTarget &target)->int
 	auto &lout = controller->lout();
 	for (int i = 0; i < 6; i++)
 	{
-		lout << POS[n*i / 6][target.count - 1] << endl;//第一列数字必须是位置
+        lout << POS[3*i][target.count - 1] << endl;//第一列数字必须是位置
 	}
 	auto &cout = controller->mout();
 	//以下验证读取文件的正确性；
