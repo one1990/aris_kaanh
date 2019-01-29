@@ -842,7 +842,7 @@ namespace forcecontrol
 				"</movePQCrash>");
 		}
 
-
+	
 	// 力控末端跟随——末端pq由MoveSetPQ给定，前三根轴执行末端PID控制，保证末端执行到指定位置；最后三根轴通过轴空间PID控制，并保持末端姿态不变——速度前馈；电流控制 //
 	struct MovePQBParam
 	{
@@ -866,13 +866,299 @@ namespace forcecontrol
         std::vector<double> vinteg;
         std::vector<double> vproportion;
 
+		std::function<std::array<double, 7>(void)> func;
+
 	};
 	static std::atomic_bool enable_movePQB = true;
 	static std::atomic<std::array<double, 7> > setpqPQB;
+	auto load_pq1()->std::array<double, 7>{return setpqPQB.load();}
+	auto load_pq2()->std::array<double, 7>;
+	
+	//力控算法
+	auto force_control_algorithm(PlanTarget &target, bool is_running)->int
+	{
+		auto &param = std::any_cast<MovePQBParam&>(target.param);
+		auto controller = dynamic_cast<aris::control::Controller *>(target.master);
+
+		//求目标位置pq的运动学反解，获取电机实际位置、实际速度
+		target.model->generalMotionPool().at(0).setMpq(param.pqt.data());
+		if (!target.model->solverPool().at(0).kinPos())return -1;
+		for (Size i = 0; i < param.pt.size(); ++i)
+		{
+			param.pt[i] = target.model->motionPool().at(i).mp();		//motionPool()指模型驱动器，at(0)表示第1个驱动器
+			param.pa[i] = controller->motionPool().at(i).actualPos();
+			param.va[i] = controller->motionPool().at(i).actualVel();
+		}
+
+		//模型运动学正解、动力学正解
+		for (int i = 0; i < param.ft.size(); ++i)
+		{
+			target.model->motionPool()[i].setMp(controller->motionPool()[i].actualPos());
+			target.model->motionPool().at(i).setMv(controller->motionAtAbs(i).actualVel());
+			target.model->motionPool().at(i).setMa(0.0);
+		}
+		target.model->solverPool()[1].kinPos();
+		target.model->solverPool()[1].kinVel();
+		target.model->solverPool()[2].dynAccAndFce();
+
+		//末端空间PID开始位置
+		target.model->generalMotionPool().at(0).getMpq(param.pqb.data());
+		target.model->generalMotionPool().at(0).getMvq(param.vqb.data());
+
+		//角度不变，位置变化
+		target.model->generalMotionPool().at(0).getMpq(param.pqa.data());
+		//std::array<double, 4> q = { 0.0,0.0,0.0,1.0 };
+		std::copy(param.pqt.begin() + 3, param.pqt.end(), param.pqa.begin() + 3);
+
+		target.model->generalMotionPool().at(0).setMpq(param.pqa.data());
+		if (!target.model->solverPool().at(0).kinPos())return -1;
+		for (Size i = 3; i < param.pt.size(); ++i)
+		{
+			param.pt[i] = target.model->motionPool().at(i).mp();		//motionPool()指模型驱动器，at(0)表示第1个驱动器
+		}
+
+		double ft_friction[6];
+		double ft_offset[6];
+		double real_vel[6];
+		double ft_friction1[6], ft_friction2[6], ft_dynamic[6];
+		static double ft_friction2_index[6] = { 5.0, 5.0, 5.0, 5.0, 5.0, 3.0 };
+		if (is_running)
+		{
+			//前三轴，末端空间——位置环PID+速度限制
+			for (Size i = 0; i < 3; ++i)
+			{
+				param.vt[i] = param.kp_p[i] * (param.pqt[i] - param.pqb[i]);
+				param.vt[i] = param.vt[i] + param.vfwd[i];
+				//param.vt[i] = std::max(std::min(param.vt[i], vt_limit_PQB[i]), -vt_limit_PQB[i]);
+			}
+			//前三轴，限制末端空间vt向量的模的大小
+			double normv = aris::dynamic::s_norm(3, param.vt.data());
+			double normv_limit = std::max(std::min(normv, vt_normv_limit), -vt_normv_limit);
+			aris::dynamic::s_vc(3, normv_limit / normv, param.vt.data(), param.vt.data());
+			std::array<double, 4> vq = { 0.0,0.0,0.0,0.0 };
+			std::copy(param.vt.begin(), param.vt.begin() + 3, param.vqt.begin());
+			std::copy(vq.begin(), vq.end(), param.vqt.begin() + 3);
+
+			//前三轴，限制末端空间vqt向量的大小
+			for (Size i = 0; i < 3; ++i)
+			{
+				param.vqt[i] = std::max(std::min(param.vt[i], vt_limit_PQB[i]), -vt_limit_PQB[i]);
+			}
+
+			target.model->generalMotionPool().at(0).setMvq(param.vqt.data());
+			target.model->solverPool()[0].kinVel();
+			for (int i = 0; i < 3; ++i)
+			{
+				param.vt[i] = target.model->motionPool()[i].mv();	//motionPool()指模型驱动器，at(0)表示第1个驱动器
+			}
+
+			/*前三轴，末端空间速度环----------------------------------------------------------------------------------------start
+			//前三轴，末端空间——速度环PID+力及力矩的限制
+			for (Size i = 0; i < 3; ++i)
+			{
+				param.vproportion[i] = param.kp_v[i] * (param.vt[i] - param.vqb[i]);
+				param.vinteg[i] = param.vinteg[i] + param.ki_v[i] * (param.vt[i] - param.vqb[i]);
+				//vinteg[i] = std::min(vinteg[i], fi_limit_PQB[i]);
+				//vinteg[i] = std::max(vinteg[i], -fi_limit_PQB[i]);
+			}
+			//前三轴，限制末端空间vinteg向量的模的大小
+			double normvi = aris::dynamic::s_norm(3, param.vinteg.data());
+			double normvi_limit = std::max(std::min(normvi, fi_limit_PQB[0]), -fi_limit_PQB[0]);
+			aris::dynamic::s_vc(3, normvi_limit / normvi, param.vinteg.data(), param.vinteg.data());
+
+			for (Size i = 0; i < 3; ++i)
+			{
+				param.ft[i] = param.vproportion[i] + param.vinteg[i];
+				//param.ft[i] = std::min(param.ft[i], ft_limit_PQB[i]);
+				//param.ft[i] = std::max(param.ft[i], -ft_limit_PQB[i]);
+			}
+
+			//前三轴，限制末端空间ft向量的模的大小
+			double normf = aris::dynamic::s_norm(3, param.ft.data());
+			double normf_limit = std::max(std::min(normf, ft_limit_PQB[0]), -ft_limit_PQB[0]);
+			aris::dynamic::s_vc(3, normf_limit / normf, param.ft.data(), param.ft.data());
+
+			//前三轴，末端力向量平移到大地坐标系
+			s_c3(param.pqb.data(), param.ft.data(), param.ft.data() + 3);
+
+			//前三轴，通过力雅克比矩阵将param.ft转换到关节param.ft_pid
+			auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(target.model->solverPool()[1]);
+			fwd.cptJacobi();
+			s_mm(6, 1, 6, fwd.Jf(), aris::dynamic::ColMajor{ 6 }, param.ft.data(), 1, param.ft_pid.data(), 1);
+			前三轴，末端空间PID----------------------------------------------------------------------------------------------end */
+
+
+			//后三轴，轴空间——位置环PID+速度限制
+			for (Size i = 3; i < param.ft_pid.size(); ++i)
+			{
+				param.vt[i] = param.kp_p[i] * (param.pt[i] - param.pa[i]);
+				param.vt[i] = std::max(std::min(param.vt[i], vt_limit_PQB[i]), -vt_limit_PQB[i]);
+				param.vt[i] = param.vt[i] + param.vfwd[i];
+			}
+
+			////后三轴，轴空间——速度环PID+力及力矩的限制
+			//for (Size i = 3; i < param.ft_pid.size(); ++i)
+
+			//6根轴，轴空间——速度环PID+力及力矩的限制
+			for (Size i = 0; i < param.ft_pid.size(); ++i)
+			{
+				param.vproportion[i] = param.kp_v[i] * (param.vt[i] - param.va[i]);
+				param.vinteg[i] = param.vinteg[i] + param.ki_v[i] * (param.vt[i] - param.va[i]);
+				param.vinteg[i] = std::min(param.vinteg[i], fi_limit_JFB[i]);
+				param.vinteg[i] = std::max(param.vinteg[i], -fi_limit_JFB[i]);
+
+				param.ft_pid[i] = param.vproportion[i] + param.vinteg[i];
+				param.ft_pid[i] = std::min(param.ft_pid[i], ft_limit_JFB[i]);
+				param.ft_pid[i] = std::max(param.ft_pid[i], -ft_limit_JFB[i]);
+			}
+
+			//动力学载荷
+			for (Size i = 0; i < param.ft_pid.size(); ++i)
+			{
+				//动力学参数
+				//constexpr double f_static[6] = { 9.349947583,11.64080253,4.770140543,3.631416685,2.58310847,1.783739862 };
+				//constexpr double f_vel[6] = { 7.80825641,13.26518528,7.856443575,3.354615249,1.419632126,0.319206404 };
+				//constexpr double f_acc[6] = { 0,3.555679326,0.344454603,0.148247716,0.048552673,0.033815455 };
+				//constexpr double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
+				//constexpr double f_static_index[6] = {0.5, 0.5, 0.5, 0.85, 0.95, 0.8};
+
+				//静摩擦力+动摩擦力=ft_friction
+
+				real_vel[i] = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
+				ft_friction1[i] = 0.8*(f_static[i] * real_vel[i] / max_static_vel[i]);
+
+				//double ft_friction2_max = std::max(0.0, controller->motionAtAbs(i).actualVel() >= 0 ? f_static[i] - ft_friction1[i] : f_static[i] + ft_friction1[i]);
+				//double ft_friction2_min = std::min(0.0, controller->motionAtAbs(i).actualVel() >= 0 ? -f_static[i] + ft_friction1[i] : -f_static[i] - ft_friction1[i]);
+				//ft_friction2[i] = std::max(ft_friction2_min, std::min(ft_friction2_max, ft_friction2_index[i] * param.ft[i]));
+				//ft_friction[i] = ft_friction1[i] + ft_friction2[i] + f_vel[i] * controller->motionAtAbs(i).actualVel();
+
+				ft_friction[i] = ft_friction1[i] + f_vel[i] * controller->motionAtAbs(i).actualVel();
+
+				ft_friction[i] = std::max(-500.0, ft_friction[i]);
+				ft_friction[i] = std::min(500.0, ft_friction[i]);
+
+				//动力学载荷=ft_dynamic
+				ft_dynamic[i] = target.model->motionPool()[i].mfDyn();
+
+				ft_offset[i] = (ft_friction[i] + ft_dynamic[i] + param.ft_pid[i])*f2c_index[i];
+				controller->motionAtAbs(i).setTargetCur(ft_offset[i]);
+			}
+		}
+
+		//print//
+		auto &cout = controller->mout();
+		if (target.count % 1000 == 0)
+		{
+			cout << "pt:";
+			for (Size i = 0; i < 6; i++)
+			{
+				cout << std::setw(10) << param.pt[i] << "  ";
+			}
+			cout << std::endl;
+
+			cout << "pa:";
+			for (Size i = 0; i < 6; i++)
+			{
+				cout << std::setw(10) << param.pa[i] << "  ";
+			}
+			cout << std::endl;
+
+			cout << "vt:";
+			for (Size i = 0; i < 6; i++)
+			{
+				cout << std::setw(10) << param.vt[i] << "  ";
+			}
+			cout << std::endl;
+
+			cout << "va:";
+			for (Size i = 0; i < 6; i++)
+			{
+				cout << std::setw(10) << param.va[i] << "  ";
+			}
+			cout << std::endl;
+
+			cout << "vproportion:";
+			for (Size i = 0; i < 6; i++)
+			{
+				cout << std::setw(10) << param.vproportion[i] << "  ";
+			}
+			cout << std::endl;
+
+			cout << "vinteg:";
+			for (Size i = 0; i < 6; i++)
+			{
+				cout << std::setw(10) << param.vinteg[i] << "  ";
+			}
+			cout << std::endl;
+
+			cout << "ft:";
+			for (Size i = 0; i < 6; i++)
+			{
+				cout << std::setw(10) << param.ft[i] << "  ";
+			}
+			cout << std::endl;
+
+			cout << "ft_pid:";
+			for (Size i = 0; i < 6; i++)
+			{
+				cout << std::setw(10) << param.ft_pid[i] << "  ";
+			}
+			cout << std::endl;
+			cout << "friction1:";
+			for (Size i = 0; i < 6; i++)
+			{
+				cout << std::setw(10) << ft_friction1[i] << "  ";
+			}
+			cout << std::endl;
+			cout << "friction:";
+			for (Size i = 0; i < 6; i++)
+			{
+				cout << std::setw(10) << ft_friction[i] << "  ";
+			}
+			cout << std::endl;
+			cout << "ft_dynamic:";
+			for (Size i = 0; i < 6; i++)
+			{
+				cout << std::setw(10) << ft_dynamic[i] << "  ";
+			}
+			cout << std::endl;
+			cout << "ft_offset:";
+			for (Size i = 0; i < 6; i++)
+			{
+				cout << std::setw(10) << ft_offset[i] << "  ";
+			}
+			cout << std::endl;
+			cout << "------------------------------------------------" << std::endl;
+		}
+
+		//log//
+		auto &lout = controller->lout();
+		for (Size i = 0; i < param.ft_pid.size(); i++)
+		{
+			lout << param.pt[i] << ",";
+			lout << controller->motionAtAbs(i).actualPos() << ",";
+			lout << param.vt[i] << ",";
+			lout << controller->motionAtAbs(i).actualVel() << ",";
+			lout << ft_offset[i] << ",";
+			lout << controller->motionAtAbs(i).actualCur() << ",";
+			lout << param.vproportion[i] << ",";
+			lout << param.vinteg[i] << ",";
+			lout << param.ft[i] << ",";
+			lout << param.ft_pid[i] << ",";
+			lout << ft_friction1[i] << ",";
+			lout << ft_friction[i] << ",";
+			lout << ft_dynamic[i] << ",";
+		}
+		lout << std::endl;
+	}
+
+	//MovePQB成员函数实现
 	auto MovePQB::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
 		auto c = dynamic_cast<aris::control::Controller*>(target.master);
 		MovePQBParam param;
+		param.func = load_pq1;
+
 		enable_movePQB = true;
 		param.kp_p.resize(6, 0.0);
 		param.kp_v.resize(6, 0.0);
@@ -1062,280 +1348,12 @@ namespace forcecontrol
 
 		//通过moveSPQ设置实时目标PQ位置
 		std::array<double, 7> temp;
-		temp = setpqPQB.load();
+		//temp = setpqPQB.load();
+		//通过外部函数load_pq1，load_pq2来加载数据
+		temp = param.func();
 		std::copy(temp.begin(), temp.end(), param.pqt.begin());
 
-		//求目标位置pq的运动学反解，获取电机实际位置、实际速度
-		target.model->generalMotionPool().at(0).setMpq(param.pqt.data());
-		if (!target.model->solverPool().at(0).kinPos())return -1;
-		for (Size i = 0; i < param.pt.size(); ++i)
-		{
-			param.pt[i] = target.model->motionPool().at(i).mp();		//motionPool()指模型驱动器，at(0)表示第1个驱动器
-			param.pa[i] = controller->motionPool().at(i).actualPos();
-			param.va[i] = controller->motionPool().at(i).actualVel();
-		}
-
-		//模型运动学正解、动力学正解
-		for (int i = 0; i < param.ft.size(); ++i)
-		{
-			target.model->motionPool()[i].setMp(controller->motionPool()[i].actualPos());
-			target.model->motionPool().at(i).setMv(controller->motionAtAbs(i).actualVel());
-			target.model->motionPool().at(i).setMa(0.0);
-		}
-		target.model->solverPool()[1].kinPos();
-		target.model->solverPool()[1].kinVel();
-		target.model->solverPool()[2].dynAccAndFce();
-
-		//末端空间PID开始位置
-		target.model->generalMotionPool().at(0).getMpq(param.pqb.data());
-		target.model->generalMotionPool().at(0).getMvq(param.vqb.data());
-		
-		//角度不变，位置变化
-		target.model->generalMotionPool().at(0).getMpq(param.pqa.data());
-        //std::array<double, 4> q = { 0.0,0.0,0.0,1.0 };
-        std::copy(param.pqt.begin() + 3, param.pqt.end(), param.pqa.begin() + 3);
-
-		target.model->generalMotionPool().at(0).setMpq(param.pqa.data());
-		if (!target.model->solverPool().at(0).kinPos())return -1;
-		for (Size i = 3; i < param.pt.size(); ++i)
-		{
-			param.pt[i] = target.model->motionPool().at(i).mp();		//motionPool()指模型驱动器，at(0)表示第1个驱动器
-		}
-
-		double ft_friction[6];
-		double ft_offset[6];
-		double real_vel[6];
-		double ft_friction1[6], ft_friction2[6], ft_dynamic[6];
-		static double ft_friction2_index[6] = { 5.0, 5.0, 5.0, 5.0, 5.0, 3.0 };
-		if (is_running)
-		{
-			//前三轴，末端空间——位置环PID+速度限制
-			for (Size i = 0; i < 3; ++i)
-			{
-				param.vt[i] = param.kp_p[i] * (param.pqt[i] - param.pqb[i]);
-				param.vt[i] = param.vt[i] + param.vfwd[i];
-				//param.vt[i] = std::max(std::min(param.vt[i], vt_limit_PQB[i]), -vt_limit_PQB[i]);
-			}
-			//前三轴，限制末端空间vt向量的模的大小
-			double normv = aris::dynamic::s_norm(3, param.vt.data());
-            double normv_limit = std::max(std::min(normv, vt_normv_limit), -vt_normv_limit);
-			aris::dynamic::s_vc(3, normv_limit / normv, param.vt.data(), param.vt.data());
-			std::array<double, 4> vq = { 0.0,0.0,0.0,0.0 };
-			std::copy(param.vt.begin(), param.vt.begin() + 3, param.vqt.begin());
-			std::copy(vq.begin(), vq.end(), param.vqt.begin() + 3);
-
-            //前三轴，限制末端空间vqt向量的大小
-            for (Size i = 0; i < 3; ++i)
-            {
-                param.vqt[i] = std::max(std::min(param.vt[i], vt_limit_PQB[i]), -vt_limit_PQB[i]);
-            }
-
-			target.model->generalMotionPool().at(0).setMvq(param.vqt.data());
-			target.model->solverPool()[0].kinVel();
-			for (int i = 0; i < 3; ++i)
-			{
-				param.vt[i] = target.model->motionPool()[i].mv();	//motionPool()指模型驱动器，at(0)表示第1个驱动器
-			}
-
-			/*前三轴，末端空间速度环----------------------------------------------------------------------------------------start
-			//前三轴，末端空间——速度环PID+力及力矩的限制
-			for (Size i = 0; i < 3; ++i)
-			{
-                param.vproportion[i] = param.kp_v[i] * (param.vt[i] - param.vqb[i]);
-                param.vinteg[i] = param.vinteg[i] + param.ki_v[i] * (param.vt[i] - param.vqb[i]);
-				//vinteg[i] = std::min(vinteg[i], fi_limit_PQB[i]);
-				//vinteg[i] = std::max(vinteg[i], -fi_limit_PQB[i]);
-            }
-            //前三轴，限制末端空间vinteg向量的模的大小
-            double normvi = aris::dynamic::s_norm(3, param.vinteg.data());
-            double normvi_limit = std::max(std::min(normvi, fi_limit_PQB[0]), -fi_limit_PQB[0]);
-            aris::dynamic::s_vc(3, normvi_limit / normvi, param.vinteg.data(), param.vinteg.data());
-
-            for (Size i = 0; i < 3; ++i)
-            {
-                param.ft[i] = param.vproportion[i] + param.vinteg[i];
-				//param.ft[i] = std::min(param.ft[i], ft_limit_PQB[i]);
-				//param.ft[i] = std::max(param.ft[i], -ft_limit_PQB[i]);
-			}
-
-			//前三轴，限制末端空间ft向量的模的大小
-			double normf = aris::dynamic::s_norm(3, param.ft.data());
-			double normf_limit = std::max(std::min(normf, ft_limit_PQB[0]), -ft_limit_PQB[0]);
-			aris::dynamic::s_vc(3, normf_limit / normf, param.ft.data(), param.ft.data());
-
-			//前三轴，末端力向量平移到大地坐标系
-			s_c3(param.pqb.data(), param.ft.data(), param.ft.data() + 3);
-
-			//前三轴，通过力雅克比矩阵将param.ft转换到关节param.ft_pid
-			auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(target.model->solverPool()[1]);
-			fwd.cptJacobi();
-			s_mm(6, 1, 6, fwd.Jf(), aris::dynamic::ColMajor{ 6 }, param.ft.data(), 1, param.ft_pid.data(), 1);
-			前三轴，末端空间PID----------------------------------------------------------------------------------------------end */
-
-
-			//后三轴，轴空间——位置环PID+速度限制
-			for (Size i = 3; i < param.ft_pid.size(); ++i)
-			{
-				param.vt[i] = param.kp_p[i] * (param.pt[i] - param.pa[i]);
-				param.vt[i] = std::max(std::min(param.vt[i], vt_limit_PQB[i]), -vt_limit_PQB[i]);
-				param.vt[i] = param.vt[i] + param.vfwd[i];
-			}
-
-			////后三轴，轴空间——速度环PID+力及力矩的限制
-			//for (Size i = 3; i < param.ft_pid.size(); ++i)
-
-			//6根轴，轴空间——速度环PID+力及力矩的限制
-			for (Size i = 0; i < param.ft_pid.size(); ++i)
-			{
-                param.vproportion[i] = param.kp_v[i] * (param.vt[i] - param.va[i]);
-                param.vinteg[i] = param.vinteg[i] + param.ki_v[i] * (param.vt[i] - param.va[i]);
-                param.vinteg[i] = std::min(param.vinteg[i], fi_limit_JFB[i]);
-                param.vinteg[i] = std::max(param.vinteg[i], -fi_limit_JFB[i]);
-
-                param.ft_pid[i] = param.vproportion[i] + param.vinteg[i];
-                param.ft_pid[i] = std::min(param.ft_pid[i], ft_limit_JFB[i]);
-                param.ft_pid[i] = std::max(param.ft_pid[i], -ft_limit_JFB[i]);
-			}
-
-			//动力学载荷
-			for (Size i = 0; i < param.ft_pid.size(); ++i)
-			{
-				//动力学参数
-				//constexpr double f_static[6] = { 9.349947583,11.64080253,4.770140543,3.631416685,2.58310847,1.783739862 };
-				//constexpr double f_vel[6] = { 7.80825641,13.26518528,7.856443575,3.354615249,1.419632126,0.319206404 };
-				//constexpr double f_acc[6] = { 0,3.555679326,0.344454603,0.148247716,0.048552673,0.033815455 };
-				//constexpr double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
-				//constexpr double f_static_index[6] = {0.5, 0.5, 0.5, 0.85, 0.95, 0.8};
-
-				//静摩擦力+动摩擦力=ft_friction
-
-				real_vel[i] = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
-				ft_friction1[i] = 0.8*(f_static[i] * real_vel[i] / max_static_vel[i]);
-
-				//double ft_friction2_max = std::max(0.0, controller->motionAtAbs(i).actualVel() >= 0 ? f_static[i] - ft_friction1[i] : f_static[i] + ft_friction1[i]);
-				//double ft_friction2_min = std::min(0.0, controller->motionAtAbs(i).actualVel() >= 0 ? -f_static[i] + ft_friction1[i] : -f_static[i] - ft_friction1[i]);
-				//ft_friction2[i] = std::max(ft_friction2_min, std::min(ft_friction2_max, ft_friction2_index[i] * param.ft[i]));
-				//ft_friction[i] = ft_friction1[i] + ft_friction2[i] + f_vel[i] * controller->motionAtAbs(i).actualVel();
-
-				ft_friction[i] = ft_friction1[i] + f_vel[i] * controller->motionAtAbs(i).actualVel();
-
-				ft_friction[i] = std::max(-500.0, ft_friction[i]);
-				ft_friction[i] = std::min(500.0, ft_friction[i]);
-
-				//动力学载荷=ft_dynamic
-				ft_dynamic[i] = target.model->motionPool()[i].mfDyn();
-
-				ft_offset[i] = (ft_friction[i] + ft_dynamic[i] + param.ft_pid[i])*f2c_index[i];
-				controller->motionAtAbs(i).setTargetCur(ft_offset[i]);
-			}
-		}
-
-		//print//
-		auto &cout = controller->mout();
-		if (target.count % 1000 == 0)
-		{
-			cout << "pt:";
-			for (Size i = 0; i < 6; i++)
-			{
-				cout << std::setw(10) << param.pt[i] << "  ";
-			}
-			cout << std::endl;
-
-			cout << "pa:";
-			for (Size i = 0; i < 6; i++)
-			{
-				cout << std::setw(10) << param.pa[i] << "  ";
-			}
-			cout << std::endl;
-
-			cout << "vt:";
-			for (Size i = 0; i < 6; i++)
-			{
-				cout << std::setw(10) << param.vt[i] << "  ";
-			}
-			cout << std::endl;
-
-			cout << "va:";
-			for (Size i = 0; i < 6; i++)
-			{
-				cout << std::setw(10) << param.va[i] << "  ";
-			}
-			cout << std::endl;
-
-			cout << "vproportion:";
-			for (Size i = 0; i < 6; i++)
-			{
-                cout << std::setw(10) << param.vproportion[i] << "  ";
-			}
-			cout << std::endl;
-
-			cout << "vinteg:";
-			for (Size i = 0; i < 6; i++)
-			{
-                cout << std::setw(10) << param.vinteg[i] << "  ";
-			}
-			cout << std::endl;
-
-            cout << "ft:";
-            for (Size i = 0; i < 6; i++)
-            {
-                cout << std::setw(10) << param.ft[i] << "  ";
-            }
-            cout << std::endl;
-
-			cout << "ft_pid:";
-			for (Size i = 0; i < 6; i++)
-			{
-				cout << std::setw(10) << param.ft_pid[i] << "  ";
-			}
-			cout << std::endl;
-			cout << "friction1:";
-			for (Size i = 0; i < 6; i++)
-			{
-				cout << std::setw(10) << ft_friction1[i] << "  ";
-			}
-			cout << std::endl;
-			cout << "friction:";
-			for (Size i = 0; i < 6; i++)
-			{
-				cout << std::setw(10) << ft_friction[i] << "  ";
-			}
-			cout << std::endl;
-			cout << "ft_dynamic:";
-			for (Size i = 0; i < 6; i++)
-			{
-				cout << std::setw(10) << ft_dynamic[i] << "  ";
-			}
-			cout << std::endl;
-			cout << "ft_offset:";
-			for (Size i = 0; i < 6; i++)
-			{
-				cout << std::setw(10) << ft_offset[i] << "  ";
-			}
-			cout << std::endl;
-			cout << "------------------------------------------------" << std::endl;
-		}
-
-		//log//
-		auto &lout = controller->lout();
-		for (Size i = 0; i < param.ft_pid.size(); i++)
-		{
-			lout << param.pt[i] << ",";
-			lout << controller->motionAtAbs(i).actualPos() << ",";
-			lout << param.vt[i] << ",";
-			lout << controller->motionAtAbs(i).actualVel() << ",";
-			lout << ft_offset[i] << ",";
-			lout << controller->motionAtAbs(i).actualCur() << ",";
-            lout << param.vproportion[i] << ",";
-            lout << param.vinteg[i] << ",";
-            lout << param.ft[i] << ",";
-			lout << param.ft_pid[i] << ",";
-			lout << ft_friction1[i] << ",";
-			lout << ft_friction[i] << ",";
-			lout << ft_dynamic[i] << ",";
-		}
-		lout << std::endl;
-
+		force_control_algorithm(target, is_running);
 		return (!is_running&&ds_is_all_finished&&md_is_all_finished) ? 0 : 1;
 	}
 	auto MovePQB::collectNrt(PlanTarget &target)->void {}
