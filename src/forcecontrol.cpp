@@ -871,10 +871,65 @@ namespace forcecontrol
 	};
 	static std::atomic_bool enable_movePQB = true;
 	static std::atomic<std::array<double, 7> > setpqPQB;
-	auto load_pq1()->std::array<double, 7>{return setpqPQB.load();}
-	auto load_pq2()->std::array<double, 7>;
-	
-	//力控算法
+	//pq接口函数
+	auto load_pq1()->std::array<double, 7>{return setpqPQB.load(); }
+	auto load_pq2()->std::array<double, 7>{std::array<double, 7> temp = { 0.42,0.0,0.55,0,0,0,1 }; return temp; }
+	//加载pq函数
+	auto load_func(PlanTarget &target, std::function<std::array<double, 7>(void)> func)->void
+	{
+		auto &param = std::any_cast<MovePQBParam&>(target.param);
+		std::array<double, 7> temp;
+		temp = func();
+		std::copy(temp.begin(), temp.end(), param.pqt.begin());
+	}
+	//电机控制模式切换函数
+	auto motor_control_mode(PlanTarget &target, bool &is_running, bool &ds_is_all_finished, bool &md_is_all_finished)
+	{
+		auto &param = std::any_cast<MovePQBParam&>(target.param);
+		auto controller = dynamic_cast<aris::control::Controller *>(target.master);
+		//第一个周期，将目标电机的控制模式切换到电流控制模式		
+		if (target.count == 1)
+		{
+			//is_running = true;
+			for (Size i = 0; i < param.ft.size(); ++i)
+			{
+				controller->motionPool().at(i).setModeOfOperation(10);	//切换到电流控制
+			}
+		}
+
+		//最后一个周期将目标电机去使能
+		if (!enable_movePQB)
+		{
+			is_running = false;
+		}
+		if (!is_running)
+		{
+			for (Size i = 0; i < param.ft.size(); ++i)
+			{
+				auto ret = controller->motionPool().at(i).disable();
+				if (ret)
+				{
+					ds_is_all_finished = false;
+				}
+			}
+		}
+
+		//将目标电机由电流模式切换到位置模式
+		if (!is_running&&ds_is_all_finished)
+		{
+			for (Size i = 0; i < param.ft.size(); ++i)
+			{
+				controller->motionPool().at(i).setModeOfOperation(8);
+				auto ret = controller->motionPool().at(i).mode(8);
+				if (ret)
+				{
+					md_is_all_finished = false;
+				}
+			}
+		}
+
+	}
+	//力控算法函数
 	auto force_control_algorithm(PlanTarget &target, bool is_running)->int
 	{
 		auto &param = std::any_cast<MovePQBParam&>(target.param);
@@ -1151,13 +1206,11 @@ namespace forcecontrol
 		}
 		lout << std::endl;
 	}
-
 	//MovePQB成员函数实现
 	auto MovePQB::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
 		auto c = dynamic_cast<aris::control::Controller*>(target.master);
 		MovePQBParam param;
-		param.func = load_pq1;
 
 		enable_movePQB = true;
 		param.kp_p.resize(6, 0.0);
@@ -1273,6 +1326,18 @@ namespace forcecontrol
 					}
 				}
 			}
+			else if (p.first == "choose_func")
+			{
+				int choose_func = std::stoi(p.second);
+				if (choose_func == 1)
+				{
+					param.func = load_pq1;
+				}
+				else if (choose_func == 2)
+				{
+					param.func = load_pq2;
+				}
+			}
 
 		}
 		target.param = param;
@@ -1304,56 +1369,15 @@ namespace forcecontrol
 		bool ds_is_all_finished{ true };
 		bool md_is_all_finished{ true };
 
-		//第一个周期，将目标电机的控制模式切换到电流控制模式		
-		if (target.count == 1)
-		{
-			is_running = true;
+		//切换电机控制模式
+		motor_control_mode(target, is_running, ds_is_all_finished, md_is_all_finished);
 
-			for (Size i = 0; i < param.ft.size(); ++i)
-			{
-				controller->motionPool().at(i).setModeOfOperation(10);	//切换到电流控制
-			}
-		}
+		//加载数据
+		load_func(target, param.func);
 
-		//最后一个周期将目标电机去使能
-		if (!enable_movePQB)
-		{
-			is_running = false;
-		}
-		if (!is_running)
-		{
-			for (Size i = 0; i < param.ft.size(); ++i)
-			{
-				auto ret = controller->motionPool().at(i).disable();
-				if (ret)
-				{
-					ds_is_all_finished = false;
-				}
-			}
-		}
-
-		//将目标电机由电流模式切换到位置模式
-		if (!is_running&&ds_is_all_finished)
-		{
-			for (Size i = 0; i < param.ft.size(); ++i)
-			{
-				controller->motionPool().at(i).setModeOfOperation(8);
-				auto ret = controller->motionPool().at(i).mode(8);
-				if (ret)
-				{
-					md_is_all_finished = false;
-				}
-			}
-		}
-
-		//通过moveSPQ设置实时目标PQ位置
-		std::array<double, 7> temp;
-		//temp = setpqPQB.load();
-		//通过外部函数load_pq1，load_pq2来加载数据
-		temp = param.func();
-		std::copy(temp.begin(), temp.end(), param.pqt.begin());
-
+		//力控算法
 		force_control_algorithm(target, is_running);
+
 		return (!is_running&&ds_is_all_finished&&md_is_all_finished) ? 0 : 1;
 	}
 	auto MovePQB::collectNrt(PlanTarget &target)->void {}
@@ -1366,6 +1390,7 @@ namespace forcecontrol
             "		<kp_p default=\"{4,6,4,3,3,2}\"/>"
             "		<kp_v default=\"{170,270,90,60,35,16}\"/>"
             "		<ki_v default=\"{2,15,10,0.2,0.2,0.18}\"/>"
+			"		<choose_func default=\"1\"/>"
 			"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_all\">"
 			"			<check_all/>"
 			"			<check_none/>"
