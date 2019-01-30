@@ -866,14 +866,14 @@ namespace forcecontrol
         std::vector<double> vinteg;
         std::vector<double> vproportion;
 
-		std::function<std::array<double, 7>(aris::Size count, aris::Size &start_count)> func;
-        aris::Size which_func;
         aris::Size start_count = 1;
 
 	};
 	static std::atomic_bool enable_movePQB = true;
-    std::atomic_bool one_time_counter = false;
 	static std::atomic<std::array<double, 7> > setpqPQB;
+	std::atomic_bool one_time_counter = false;
+	std::atomic_int16_t which_func = 1;
+	std::function<std::array<double, 7>(aris::Size count, aris::Size &start_count)> func[2];
 	//pq接口函数
 	std::array<double, 7> load_pq1(aris::Size count, aris::Size &start_count){return setpqPQB.load(); }
 	std::array<double, 7> load_pq3(aris::Size count, aris::Size &start_count)
@@ -1298,29 +1298,8 @@ namespace forcecontrol
 				std::array<double, 7> temp;
 				std::copy(pqarray.begin(), pqarray.end(), temp.begin());
 				setpqPQB.store(temp);
-				param.func = load_pq1;
-			}
-			else if (p.first == "choose_func")
-			{
-                //param.start_count = target.count;
-				auto choose_func = std::stoi(p.second);
-				if (choose_func == 1)
-				{
-					param.func = load_pq1;
-                    param.which_func = 1;
-				}
-				else if (choose_func == 2)
-				{
-					param.func = load_pq2;
-                    param.which_func = 2;
-                    one_time_counter = true;
-				}
-				else if (choose_func == 3)
-				{
-					param.func = load_pq3;
-                    param.which_func = 3;
-                    one_time_counter = true;
-				}
+				func[0] = load_pq1;
+				func[1] = load_pq1;
 			}
 			else if (p.first == "kp_p")
 			{
@@ -1439,18 +1418,19 @@ namespace forcecontrol
 		//切换电机控制模式
 		motor_control_mode(target, is_running, ds_is_all_finished, md_is_all_finished);
 
-		//加载数据
-        if(param.which_func == 2 || param.which_func == 3)
+		//函数选择判断
+        if(which_func != 1)
         {
-
+			func[0] = func[1];
             if(one_time_counter)
             {
                 param.start_count = target.count;
                 one_time_counter = false;
             }
-
         }
-		load_func(target, param.func);
+
+		//加载数据
+		load_func(target, func[0]);
 
 		//力控算法
 		force_control_algorithm(target, is_running);
@@ -1459,7 +1439,6 @@ namespace forcecontrol
         {
             cout <<"one_time_counter:  "<<one_time_counter<<std::endl;
         }
-
 
 		return (!is_running&&ds_is_all_finished&&md_is_all_finished) ? 0 : 1;
 	}
@@ -1470,7 +1449,6 @@ namespace forcecontrol
 			"<movePQB>"
 			"	<group type=\"GroupParam\" default_child_type=\"Param\">"
             "		<pqt default=\"{0.42,0.0,0.55,0,0,0,1}\" abbreviation=\"p\"/>"
-            "		<choose_func default=\"1\"/>"
             "		<kp_p default=\"{4,6,4,3,3,2}\"/>"
             "		<kp_v default=\"{170,270,90,60,35,16}\"/>"
             "		<ki_v default=\"{2,15,10,0.2,0.2,0.18}\"/>"
@@ -3685,6 +3663,25 @@ namespace forcecontrol
 				std::copy(pqarray.begin(), pqarray.end(), temp.begin());
 				setpqPQB.store(temp);
 			}
+			else if (p.first == "which_func")
+			{
+				which_func = std::stoi(p.second);
+				if (which_func == 1)
+				{
+					func[1] = load_pq1;
+					one_time_counter = false;
+				}
+				else if (which_func == 2)
+				{
+					func[1] = load_pq2;
+					one_time_counter = true;
+				}
+				else if (which_func == 3)
+				{
+					func[1] = load_pq3;
+					one_time_counter = true;
+				}
+			}
 		}
 		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
 	}
@@ -3697,6 +3694,7 @@ namespace forcecontrol
 			"			<setpqJF default=\"{0.42,0.0,0.55,0,0,0,1}\"/>"
 			"			<setpqJFB default=\"{0.42,0.0,0.55,0,0,0,1}\"/>"
 			"			<setpqPQB default=\"{0.42,0.0,0.55,0,0,0,1}\"/>"
+			"			<which_func default=\"1\"/>"
 			"		</unique>"
 			"	</group>"
 			"</moveSPQ>");
