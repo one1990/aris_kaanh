@@ -1,4 +1,4 @@
-#ifndef KAANH_H_
+ï»¿#ifndef KAANH_H_
 #define KAANH_H_
 
 #include <memory>
@@ -6,27 +6,28 @@
 #include <aris_dynamic.h>
 #include <aris_plan.h>
 #include <tinyxml2.h>  
+#include"forcecontrol.h"
 
 //statemachine//
-# define M_RUN 0	//ÊÖ¶¯µ¥²½Ö´ÐÐ
-# define READ_RT_DATA 1		//¼à¿ØÊµÊ±Êý¾Ý
-# define READ_XML 2		//¼à¿ØÊµÊ±Êý¾Ý
-# define A_RUN 3	//×Ô¶¯Ö´ÐÐ
-# define A_QUIT 4	//ÍË³ö×Ô¶¯Ö´ÐÐ£¬·µ»Øµ½ÊÖ¶¯Ä£Ê½
+# define M_RUN 0	//æ‰‹åŠ¨å•æ­¥æ‰§è¡Œ
+# define READ_RT_DATA 1		//ç›‘æŽ§å®žæ—¶æ•°æ®
+# define READ_XML 2		//ç›‘æŽ§å®žæ—¶æ•°æ®
+# define A_RUN 3	//è‡ªåŠ¨æ‰§è¡Œ
+# define A_QUIT 4	//é€€å‡ºè‡ªåŠ¨æ‰§è¡Œï¼Œè¿”å›žåˆ°æ‰‹åŠ¨æ¨¡å¼
 # define buffer_length 800
 //statemachine//
 
-// \brief »úÆ÷ÈËÃüÃû¿Õ¼ä
+// \brief æœºå™¨äººå‘½åç©ºé—´
 // \ingroup aris
 //
 
 namespace kaanh
 {
-	//µç¸×Á¦¼ì²â²ÎÊýÉùÃ÷
+	//ç”µç¼¸åŠ›æ£€æµ‹å‚æ•°å£°æ˜Ž
 	//const std::string xmlpath = "C:\\Users\\kevin\\Desktop\\aris_rokae\\ServoPressorCmdList.xml";
-	constexpr double ea_a = 3765.8, ea_b = 1334.8, ea_c = 45.624, ea_gra = 24, ea_index = -6, ea_gra_index = 36;  //µç¸×µçÁ÷»»ËãÑ¹Á¦µÄÏµÊý£¬ea_k±íÊ¾±ÈÀýÏµÊý£¬ea_b±íÊ¾½Ø¾à£¬ea_offset±íÊ¾ÖØÁ¦Ó°ÏìÁ¿£¬ea_index±íÊ¾µçÁ÷Å¤¾ØÏµÊý=¶î¶¨Å¤¾Ø*6.28*¼õËÙ±È/µ¼³Ì/1000//
+	constexpr double ea_a = 3765.8, ea_b = 1334.8, ea_c = 45.624, ea_gra = 24, ea_index = -6, ea_gra_index = 36;  //ç”µç¼¸ç”µæµæ¢ç®—åŽ‹åŠ›çš„ç³»æ•°ï¼Œea_kè¡¨ç¤ºæ¯”ä¾‹ç³»æ•°ï¼Œea_bè¡¨ç¤ºæˆªè·ï¼Œea_offsetè¡¨ç¤ºé‡åŠ›å½±å“é‡ï¼Œea_indexè¡¨ç¤ºç”µæµæ‰­çŸ©ç³»æ•°=é¢å®šæ‰­çŸ©*6.28*å‡é€Ÿæ¯”/å¯¼ç¨‹/1000//
 
-	//ÆäËû²ÎÊýºÍº¯ÊýÉùÃ÷ 
+	//å…¶ä»–å‚æ•°å’Œå‡½æ•°å£°æ˜Ž 
 	using Size = std::size_t;
 	constexpr double PI = 3.141592653589793;
 	auto createModelRokaeXB4(const double *robot_pm = nullptr)->std::unique_ptr<aris::dynamic::Model>;

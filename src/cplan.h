@@ -1,4 +1,4 @@
-#ifndef ROKAE_CPLAN_H_
+﻿#ifndef ROKAE_CPLAN_H_
 #define ROKAE_CPLAN_H_
 
 #include <aris.h>
@@ -57,6 +57,6 @@ public:
 	explicit RemoveFile(const std::string &name = "RemoveFile");
 };
 
-
+auto load_pq2(aris::Size count, aris::Size &start_count)->std::array<double, 7>;
 
 #endif

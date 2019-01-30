@@ -1,4 +1,4 @@
-#ifndef FORCECONTROL_H_
+ï»¿#ifndef FORCECONTROL_H_
 #define FORCECONTROL_H_
 
 
@@ -8,10 +8,12 @@
 #include <aris_plan.h>
 #include <tinyxml2.h>
 #include <atomic>
+#include"cplan.h"
+
 
 namespace forcecontrol
 {
-	//»úÆ÷ÈËÁ¦¿Ø²ÎÊıÉùÃ÷
+	//æœºå™¨äººåŠ›æ§å‚æ•°å£°æ˜
 	constexpr double f_static[6] = { 9.349947583,11.64080253,4.770140543,3.631416685,2.58310847,1.783739862 };
     constexpr double f_vel[6] = { 7.80825641,13.26518528,7.856443575,3.354615249,1.419632126,0.319206404 };
     //constexpr double f_vel[6] = { 7.80825641,13.26518528,7.856443575,2.7,1.419632126,0.319206404 };
@@ -33,7 +35,7 @@ namespace forcecontrol
     constexpr double vt_normv_limit = 0.13;
     constexpr double ft_limit_PQB[6] = { 35,40,40,15,10,10 };
 
-	//ÆäËû²ÎÊıºÍº¯ÊıÉùÃ÷ 
+	//å…¶ä»–å‚æ•°å’Œå‡½æ•°å£°æ˜ 
 	using Size = std::size_t;
 	constexpr double PI = 3.141592653589793;
 

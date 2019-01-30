@@ -1295,14 +1295,19 @@ namespace forcecontrol
 				std::array<double, 7> temp;
 				std::copy(pqarray.begin(), pqarray.end(), temp.begin());
 				setpqPQB.store(temp);
+				param.func = load_pq1;
 			}
 			else if (p.first == "choose_func")
 			{
 				param.start_count = target.count;
-				int choose_func = std::stoi(p.second);
+				auto choose_func = std::stoi(p.second);
 				if (choose_func == 1)
 				{
 					param.func = load_pq1;
+				}
+				else if (choose_func == 2)
+				{
+					param.func = load_pq2;
 				}
 				else if (choose_func == 3)
 				{
@@ -1443,10 +1448,10 @@ namespace forcecontrol
 			"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"pqt\">"
 			"			<pqt default=\"{0.42,0.0,0.55,0,0,0,1}\" abbreviation=\"p\"/>"
 			"			<choose_func default=\"1\"/>"
+			"		</unique>"
             "		<kp_p default=\"{4,6,4,3,3,2}\"/>"
             "		<kp_v default=\"{170,270,90,60,35,16}\"/>"
             "		<ki_v default=\"{2,15,10,0.2,0.2,0.18}\"/>"
-			"		<choose_func default=\"1\"/>"
 			"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_all\">"
 			"			<check_all/>"
 			"			<check_none/>"
