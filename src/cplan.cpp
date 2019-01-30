@@ -20,12 +20,12 @@ auto MoveCircle::prepairNrt(const std::map<std::string, std::string> &params, Pl
     p.detal = target.model->calculator().calculateExpression(params.at("detal")).toDouble();//如果直接用stod，则detal中除以5000的分母直接被忽略了
     p.left_time = 0;
     target.param = p;
-    target.option =
-        //用这段话可以不用将model的轨迹赋值到controller里面，系统直接调用model中的反解计算结果
-        aris::plan::Plan::USE_TARGET_POS |
-        aris::plan::Plan::NOT_CHECK_VEL_FOLLOWING_ERROR |
-        aris::plan::Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-        aris::plan::Plan::NOT_CHECK_VEL_CONTINUOUS;
+	target.option =
+		//用这段话可以不用将model的轨迹赋值到controller里面，系统直接调用model中的反解计算结果
+		aris::plan::Plan::USE_TARGET_POS |
+		aris::plan::Plan::NOT_CHECK_VEL_FOLLOWING_ERROR |
+		aris::plan::Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
+		aris::plan::Plan::NOT_CHECK_VEL_CONTINUOUS;
 }
 auto MoveCircle::executeRT(PlanTarget &target)->int
 {
@@ -143,6 +143,75 @@ struct MoveFileParam
 
 int n = 25; // n代表txt文档中数据的列数
 vector<vector<double>  > POS(n);
+//读取指定文件夹的所有文件名，并存储在容器vector files[]中；
+
+void getFiles2(string path, vector<string>& files)  
+{
+	std::vector<std::filesystem::path> loc_files;
+	
+	for (auto &p : std::filesystem::directory_iterator(path))  //遍历元素，p为局部变量"log"；
+	{
+		if(p.is_regular_file())loc_files.push_back(p.path());//检查p是否常规的文件，.path()是将路径输出的函数；
+		//std::cout << p.path() << "\n";
+		//p.path();
+		//files.push_back(p.path());
+	}
+	//先输出正常的文件顺序
+	//for (auto &p : loc_files)   
+	//{
+	//	std::cout << p << std::endl;  
+	//}
+	//按照修改时间排序
+	std::sort(loc_files.begin(), loc_files.end(), [](const std::filesystem::path &p1, const std::filesystem::path &p2)->bool   //lambda函数，匿名
+	{
+		//return p1.string() < p2.string();	
+		//p1和p2是指待排序的vector中的前两个对象，此处采用"冒泡排序"算法，进行挨个对比排序
+		return std::filesystem::last_write_time(p1) < std::filesystem::last_write_time(p2);//返回布尔结果，true或者false;
+	});	
+	std::cout << "---------------------------------------------------------------------------" << std::endl << std::endl;
+	//输入排序后的结果
+	for (auto &p : loc_files)
+	{
+		std::cout << p << std::endl;
+	}
+	//flies和local_files是两个类的成员，所以要重新使用local_files对files赋值；
+	files.clear();
+	for (auto &p : loc_files) files.push_back(p.string());//p是path,给path写类的人写了一个函数string()；
+	std::cout << std::endl;
+}
+
+//以下只能在C++中使用
+//void getFiles(string path, vector<string>& files)
+//{
+//	//文件句柄  
+//	long   hFile = 0;
+//	//文件信息，声明一个存储文件信息的结构体  
+//	struct _finddata_t fileinfo;
+//	string p;//字符串，存放路径
+//	if ((hFile = _findfirst(p.assign(path).append("\\*").c_str(), &fileinfo)) != -1)//若查找成功，则进入
+//	{
+//		do
+//		{
+//			//如果是目录,迭代之（即文件夹内还有文件夹）  
+//			if ((fileinfo.attrib &  _A_SUBDIR))
+//			{
+//				//文件名不等于"."&&文件名不等于".."
+//					//.表示当前目录
+//					//..表示当前目录的父目录
+//					//判断时，两者都要忽略，不然就无限递归跳不出去了！
+//				if (strcmp(fileinfo.name, ".") != 0 && strcmp(fileinfo.name, "..") != 0)
+//					getFiles(p.assign(path).append("\\").append(fileinfo.name), files);
+//			}
+//			//如果不是,加入列表  
+//			else
+//			{
+//				files.push_back(p.assign(path).append("\\").append(fileinfo.name));
+//			}
+//		} while (_findnext(hFile, &fileinfo) == 0);
+//		//_findclose函数结束查找
+//		_findclose(hFile);
+//	}
+//}
 /// \brief 类MoveFile申明
 /// 在类MoveFile中,完成对现有的.txt文件中的位置数据的提取，通过程序控制机器人的各关节按照数据位置变化来运动
 /// ### 类MoveFile
@@ -156,7 +225,9 @@ vector<vector<double>  > POS(n);
 /// @return 返回值为空
 auto MoveFile::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 {
-    MoveFileParam p;
+	
+	
+	MoveFileParam p;
     p.total_time = std::stoi(params.at("total_time"));
     p.vel = std::stod(params.at("vel"));
     p.acc = std::stod(params.at("acc"));
@@ -177,7 +248,56 @@ auto MoveFile::prepairNrt(const std::map<std::string, std::string> &params, Plan
         POS[j].clear();
     }
 	//string site = "C:/Users/qianch_kaanh_cn/Desktop/myplan/src/rokae/" + p.file;
-    string site = "/home/kaanh/Desktop/build-kaanh-Desktop_Qt_5_11_2_GCC_64bit-Default/log/" + p.file;
+    
+
+	//char * filePath = "/home/kaanh/Desktop/build-kaanh-Desktop_Qt_5_11_2_GCC_64bit-Default/log/";//自己设置目录 
+	string filePath = "C:/Users/qianch_kaanh_cn/Desktop/build_qianch/log/";
+	vector<string> files;
+	//获取该路径下的所有文件  
+	getFiles2(filePath, files);
+
+	char str[30];
+	int size = files.size();
+	for (int i = 0; i < size; i++)
+	{
+		cout << files[i].c_str() << endl;
+	}
+
+	//以下确认所读文件中是否包含字符串“movePQB”;
+	vector<int> effpos;//整形数组，记录files中有效的文件对应的位置；
+	for (int i = 0; i < files.size(); i++)
+	{
+		string a = "movePQB";
+		string::size_type idx;
+		idx = files[i].find(a); //在files[i]中查找字符串a;
+		if (idx != string::npos)
+		{
+			effpos.push_back(i);
+		}
+	}
+	p.file = files[effpos.back()].c_str();
+	cout << p.file;
+	
+
+	//清理前50个文件
+	//std::filesystem::space_info devi = std::filesystem::space("log");
+	//std::cout << ".        Capacity       Free      Available\n"
+	//	<< "/log:   " << devi.capacity << "   "
+	//	<< devi.free << "   " << devi.available << '\n';
+	////如果可用内存小于10g;
+	//if (devi.available < 10737418240)
+	//{
+	//	for (int i = 0; i < 50; i++)
+	//	{
+	//		std::filesystem::remove(files[i]);
+	//	}		
+	//}
+
+
+	//string site = "/home/kaanh/Desktop/build-kaanh-Desktop_Qt_5_11_2_GCC_64bit-Default/" + p.file;
+	//p.file=log\rt_log--2019-01-21--17-02-45--movePQB.txt,里面有log目录
+	//string site = "C:/Users/qianch_kaanh_cn/Desktop/build_qianch/" + p.file;
+	string site = p.file;
 	//以下定义读取log文件的输入流oplog;
     ifstream oplog;
     int cal = 0;
@@ -214,6 +334,7 @@ auto MoveFile::prepairNrt(const std::map<std::string, std::string> &params, Plan
         aris::plan::Plan::NOT_CHECK_VEL_FOLLOWING_ERROR |
         aris::plan::Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START | // 开始不检查速度连续
         aris::plan::Plan::NOT_CHECK_VEL_CONTINUOUS;
+	    NOT_RUN_EXECUTE_FUNCTION;
 }
 /// \brief 实时核函数executeRT
 /// @param PlanTarget 命名空间aris::plan中定义的结构体，target是它的引用
@@ -309,3 +430,153 @@ MoveFile::MoveFile(const std::string &name) :Plan(name)
             "</mvFi>");
     }
 
+
+
+
+struct RemoveFileParam
+{
+	int total_time;
+
+	double vel;
+	double acc;
+	double dec;
+	vector<double> pt;
+	int choose;
+	string file;
+};
+
+
+auto RemoveFile::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+{
+
+
+	RemoveFileParam p;
+	p.total_time = std::stoi(params.at("total_time"));
+	
+	p.file = params.at("file");
+	for (int j = 0; j < n; j++)
+	{
+		POS[j].clear();
+	}
+	//string site = "C:/Users/qianch_kaanh_cn/Desktop/myplan/src/rokae/" + p.file;
+
+
+	//char * filePath = "/home/kaanh/Desktop/build-kaanh-Desktop_Qt_5_11_2_GCC_64bit-Default/log/";//自己设置目录 
+	string filePath = "C:/Users/qianch_kaanh_cn/Desktop/build_qianch/log/";
+	vector<string> files;
+	//获取该路径下的所有文件  
+	getFiles2(filePath, files);
+
+	std::filesystem::space_info devi = std::filesystem::space("log");
+	std::cout << ".        Capacity       Free      Available\n"
+		<< "/log:   " << devi.capacity << "   "
+		<< devi.free << "   " << devi.available << '\n';
+	//如果可用内存小于10g;
+	if (devi.available < 10737418240)
+	{
+		for (int i = 0; i < 50; i++)
+		{
+			std::filesystem::remove(files[i]);
+		}
+	}
+	//std::filesystem::remove(files[0]);
+	target.param = p;
+	target.option =
+		//aris::plan::Plan::USE_TARGET_POS |
+		aris::plan::Plan::NOT_CHECK_VEL_MIN |
+		aris::plan::Plan::NOT_CHECK_VEL_MAX |
+		aris::plan::Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
+		aris::plan::Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
+		aris::plan::Plan::NOT_CHECK_VEL_FOLLOWING_ERROR |
+		aris::plan::Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START | // 开始不检查速度连续
+		aris::plan::Plan::NOT_CHECK_VEL_CONTINUOUS;
+	    NOT_RUN_EXECUTE_FUNCTION;
+}
+
+auto RemoveFile::executeRT(PlanTarget &target)->int
+{
+	auto controller = dynamic_cast<aris::control::EthercatController *>(target.master);
+	auto &p = std::any_cast<MoveFileParam&>(target.param);
+
+	return 0;
+}
+
+RemoveFile::RemoveFile(const std::string &name) :Plan(name)
+{
+	command().loadXmlStr(
+		"<rmFi>"
+		"	<group type=\"GroupParam\" default_child_type=\"Param\">"
+		"	    <total_time type=\"Param\" default=\"5000\"/>" // 默认5000	   
+		"		<file type=\"Param\" default=\"1.txt\" abbreviation=\"f\"/>"
+		"	</group>"
+		"</rmFi>");
+}
+
+
+auto load_pq2(int count, int &start_count)->std::array<double, 7>
+{
+	std::array<double, 7> temp = { 0.0,0.0,0.0,0,0,0,1 };
+	std::array<double, 7> targetpos1 = { 0.42,0.0,0.55,0,0,0,1 };
+	std::array<double, 7> targetpos2 = { 0.52,0.0,0.55,0,0,0,1 };
+	std::array<double, 7> targetpos3 = { 0.52,0.0,0.65,0,0,0,1 };
+	std::array<double, 7> targetpos4 = { 0.52,0.1,0.65,0,0,0,1 };
+	std::array<double, 7> targetpos5 = { 0.52,0.15,0.65,0,0,0,1 };
+	double vel, acc, dec, v, a;
+	aris::Size t_count;
+	aris::Size count_last = 0, count_last2 = 0, count_last3 = 0, count_last4 = 0;//上个轨迹完成共消耗的count ,每个阶段单独的时间
+	for (int i = 0; i < 3; i++)
+	{
+		aris::plan::moveAbsolute(1, targetpos1[i], targetpos2[i], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, temp[i], v, a, t_count);
+		count_last = std::max(t_count, count_last);
+	}
+	for (int i = 0; i < 3; i++)
+	{
+		aris::plan::moveAbsolute(1, targetpos2[i], targetpos3[i], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, temp[i], v, a, t_count);
+		count_last2 = std::max(t_count, count_last2);
+	}
+	for (int i = 0; i < 3; i++)
+	{
+		aris::plan::moveAbsolute(1, targetpos3[i], targetpos4[i], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, temp[i], v, a, t_count);
+		count_last3 = std::max(t_count, count_last3);
+	}
+	for (int i = 0; i < 3; i++)
+	{
+		aris::plan::moveAbsolute(1, targetpos4[i], targetpos5[i], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, temp[i], v, a, t_count);
+		count_last4 = std::max(t_count, count_last4);
+	}
+	//1
+	if (count <= count_last + start_count)
+	{
+		//aris::plan::moveAbsolute(target.count, begin_pos[i], POS[3 * i][0], p.vel / 1000, p.acc / 1000 / 1000, p.dec / 1000 / 1000, ptt, v, a, t_count);
+		for (int i = 0; i < 3; i++)
+		{
+			aris::plan::moveAbsolute(count - start_count, targetpos1[i], targetpos2[i], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, temp[i], v, a, t_count);
+		}
+	}
+	//2
+	else if (count <= count_last2 + count_last + start_count && count > count_last + start_count)
+	{
+		for (int i = 0; i < 3; i++)
+		{
+			aris::plan::moveAbsolute(count - start_count, targetpos2[i], targetpos3[i], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, temp[i], v, a, t_count);
+		}
+	}
+	//3
+	else if (count <= count_last3 + count_last2 + count_last + start_count && count >count_last2 + count_last + start_count)
+	{
+		for (int i = 0; i < 3; i++)
+		{
+			aris::plan::moveAbsolute(count - start_count, targetpos3[i], targetpos4[i], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, temp[i], v, a, t_count);
+		}
+	}
+	//4
+	else if (count < count_last4 + count_last3 + count_last2 + count_last + start_count && count >count_last3 + count_last2 + count_last + start_count)
+	{
+		for (int i = 0; i < 3; i++)
+		{
+			aris::plan::moveAbsolute(count - start_count, targetpos4[i], targetpos5[i], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, temp[i], v, a, t_count);
+		}
+	}
+	return temp;
+}
+	
