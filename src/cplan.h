@@ -12,7 +12,9 @@
 #include <aris_plan.h>
 #include <tinyxml2.h>
 #include <atomic>
-
+#include <io.h> 
+#include <string> 
+#include <algorithm>
 
 class MoveCircle : public aris::plan::Plan
 {
@@ -44,6 +46,15 @@ public:
     //auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
 
     explicit MoveFile(const std::string &name = "MoveFile");
+};
+
+class RemoveFile : public aris::plan::Plan
+{
+public:
+	auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+	auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+
+	explicit RemoveFile(const std::string &name = "RemoveFile");
 };
 
 
