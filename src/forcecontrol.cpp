@@ -867,9 +867,12 @@ namespace forcecontrol
         std::vector<double> vproportion;
 
 		std::function<std::array<double, 7>(aris::Size count, aris::Size &start_count)> func;
-		aris::Size start_count;
+        aris::Size which_func;
+        aris::Size start_count = 1;
+
 	};
 	static std::atomic_bool enable_movePQB = true;
+    std::atomic_bool one_time_counter = false;
 	static std::atomic<std::array<double, 7> > setpqPQB;
 	//pq接口函数
 	std::array<double, 7> load_pq1(aris::Size count, aris::Size &start_count){return setpqPQB.load(); }
@@ -984,14 +987,14 @@ namespace forcecontrol
 		std::copy(temp.begin(), temp.end(), param.pqt.begin());
 	}
 	//力控算法函数
-	auto force_control_algorithm(PlanTarget &target, bool is_running)->int
+    auto force_control_algorithm(PlanTarget &target, bool is_running)->void
 	{
 		auto &param = std::any_cast<MovePQBParam&>(target.param);
 		auto controller = dynamic_cast<aris::control::Controller *>(target.master);
 
 		//求目标位置pq的运动学反解，获取电机实际位置、实际速度
 		target.model->generalMotionPool().at(0).setMpq(param.pqt.data());
-		if (!target.model->solverPool().at(0).kinPos())return -1;
+        target.model->solverPool().at(0).kinPos();
 		for (Size i = 0; i < param.pt.size(); ++i)
 		{
 			param.pt[i] = target.model->motionPool().at(i).mp();		//motionPool()指模型驱动器，at(0)表示第1个驱动器
@@ -1020,7 +1023,7 @@ namespace forcecontrol
 		std::copy(param.pqt.begin() + 3, param.pqt.end(), param.pqa.begin() + 3);
 
 		target.model->generalMotionPool().at(0).setMpq(param.pqa.data());
-		if (!target.model->solverPool().at(0).kinPos())return -1;
+        target.model->solverPool().at(0).kinPos();
 		for (Size i = 3; i < param.pt.size(); ++i)
 		{
 			param.pt[i] = target.model->motionPool().at(i).mp();		//motionPool()指模型驱动器，at(0)表示第1个驱动器
@@ -1299,19 +1302,24 @@ namespace forcecontrol
 			}
 			else if (p.first == "choose_func")
 			{
-				param.start_count = target.count;
+                //param.start_count = target.count;
 				auto choose_func = std::stoi(p.second);
 				if (choose_func == 1)
 				{
 					param.func = load_pq1;
+                    param.which_func = 1;
 				}
 				else if (choose_func == 2)
 				{
 					param.func = load_pq2;
+                    param.which_func = 2;
+                    one_time_counter = true;
 				}
 				else if (choose_func == 3)
 				{
 					param.func = load_pq3;
+                    param.which_func = 3;
+                    one_time_counter = true;
 				}
 			}
 			else if (p.first == "kp_p")
@@ -1432,10 +1440,26 @@ namespace forcecontrol
 		motor_control_mode(target, is_running, ds_is_all_finished, md_is_all_finished);
 
 		//加载数据
+        if(param.which_func == 2 || param.which_func == 3)
+        {
+
+            if(one_time_counter)
+            {
+                param.start_count = target.count;
+                one_time_counter = false;
+            }
+
+        }
 		load_func(target, param.func);
 
 		//力控算法
 		force_control_algorithm(target, is_running);
+        auto &cout = controller->mout();
+        if (target.count % 1000 == 0)
+        {
+            cout <<"one_time_counter:  "<<one_time_counter<<std::endl;
+        }
+
 
 		return (!is_running&&ds_is_all_finished&&md_is_all_finished) ? 0 : 1;
 	}
@@ -1445,10 +1469,8 @@ namespace forcecontrol
 		command().loadXmlStr(
 			"<movePQB>"
 			"	<group type=\"GroupParam\" default_child_type=\"Param\">"
-			"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"pqt\">"
-			"			<pqt default=\"{0.42,0.0,0.55,0,0,0,1}\" abbreviation=\"p\"/>"
-			"			<choose_func default=\"1\"/>"
-			"		</unique>"
+            "		<pqt default=\"{0.42,0.0,0.55,0,0,0,1}\" abbreviation=\"p\"/>"
+            "		<choose_func default=\"1\"/>"
             "		<kp_p default=\"{4,6,4,3,3,2}\"/>"
             "		<kp_v default=\"{170,270,90,60,35,16}\"/>"
             "		<ki_v default=\"{2,15,10,0.2,0.2,0.18}\"/>"
