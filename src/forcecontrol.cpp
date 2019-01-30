@@ -867,6 +867,7 @@ namespace forcecontrol
         std::vector<double> vproportion;
 
         aris::Size start_count = 1;
+        aris::Size actual_count = 1;
 
 	};
 	static std::atomic_bool enable_movePQB = true;
@@ -983,7 +984,7 @@ namespace forcecontrol
 	{
 		auto &param = std::any_cast<MovePQBParam&>(target.param);
 		std::array<double, 7> temp;
-		temp = func(target.count, param.start_count);
+        temp = func(param.actual_count, param.start_count);
 		std::copy(temp.begin(), temp.end(), param.pqt.begin());
 	}
 	//力控算法函数
@@ -1419,7 +1420,11 @@ namespace forcecontrol
 		motor_control_mode(target, is_running, ds_is_all_finished, md_is_all_finished);
 
 		//函数选择判断
-        if(which_func != 1)
+        if(which_func == 1)
+        {
+            func[0] = load_pq1;
+        }
+        else if(which_func != 1)
         {
 			func[0] = func[1];
             if(one_time_counter)
@@ -1428,7 +1433,7 @@ namespace forcecontrol
                 one_time_counter = false;
             }
         }
-
+        param.actual_count = target.count;
 		//加载数据
 		load_func(target, func[0]);
 
@@ -3662,6 +3667,8 @@ namespace forcecontrol
 				std::array<double, 7> temp;
 				std::copy(pqarray.begin(), pqarray.end(), temp.begin());
 				setpqPQB.store(temp);
+                which_func == 1;
+                func[1] = load_pq1;
 			}
 			else if (p.first == "which_func")
 			{

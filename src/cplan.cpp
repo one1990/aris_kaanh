@@ -515,35 +515,39 @@ RemoveFile::RemoveFile(const std::string &name) :Plan(name)
 
 auto load_pq2(aris::Size count, aris::Size &start_count)->std::array<double, 7>
 {
-	std::array<double, 7> temp = { 0.0,0.0,0.0,0,0,0,1 };
-	std::array<double, 7> targetpos1 = { 0.42,0.0,0.55,0,0,0,1 };
-	std::array<double, 7> targetpos2 = { 0.52,0.0,0.55,0,0,0,1 };
-    std::array<double, 7> targetpos3 = { 0.52,0.0,0.45,0,0,0,1 };
-    std::array<double, 7> targetpos4 = { 0.52,0.1,0.45,0,0,0,1 };
-    std::array<double, 7> targetpos5 = { 0.52,0.15,0.45,0,0,0,1 };
-    double vel=0.01, acc=0.02, dec=0.02, v, a;
+    std::array<double, 7> temp = {-0.122203,0.386206,0.0139912,-0.492466,0.474288,0.511942,0.520041};
+    std::array<double, 7> targetpos1 = {-0.122203,0.386206,0.0139912,-0.492466,0.474288,0.511942,0.520041};
+    std::array<double, 7> targetpos2 = {-0.122203,0.466206,0.0139912,-0.492466,0.474288,0.511942,0.520041};
+    std::array<double, 7> targetpos3 = {0.162203,0.466206,0.0139912,-0.492466,0.474288,0.511942,0.520041};
+    std::array<double, 7> targetpos4 = {0.162203,0.386206,0.0139912,-0.492466,0.474288,0.511942,0.520041};
+    std::array<double, 7> targetpos5 = {-0.122203,0.386206,0.0139912,-0.492466,0.474288,0.511942,0.520041};
+    double vel=0.04, acc=0.08, dec=0.08, v, a;
 	aris::Size t_count;
-	aris::Size count_last = 0, count_last2 = 0, count_last3 = 0, count_last4 = 0;//上个轨迹完成共消耗的count ,每个阶段单独的时间
-	for (int i = 0; i < 3; i++)
-	{
-		aris::plan::moveAbsolute(1, targetpos1[i], targetpos2[i], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, temp[i], v, a, t_count);
-		count_last = std::max(t_count, count_last);
-	}
-	for (int i = 0; i < 3; i++)
-	{
-		aris::plan::moveAbsolute(1, targetpos2[i], targetpos3[i], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, temp[i], v, a, t_count);
-		count_last2 = std::max(t_count, count_last2);
-	}
-	for (int i = 0; i < 3; i++)
-	{
-		aris::plan::moveAbsolute(1, targetpos3[i], targetpos4[i], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, temp[i], v, a, t_count);
-		count_last3 = std::max(t_count, count_last3);
-	}
-	for (int i = 0; i < 3; i++)
-	{
-		aris::plan::moveAbsolute(1, targetpos4[i], targetpos5[i], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, temp[i], v, a, t_count);
-		count_last4 = std::max(t_count, count_last4);
-	}
+    static aris::Size count_last = 0, count_last2 = 0, count_last3 = 0, count_last4 = 0;//上个轨迹完成共消耗的count ,每个阶段单独的时间
+    if(count == start_count)
+    {
+        for (int i = 0; i < 3; i++)
+        {
+            aris::plan::moveAbsolute(1, targetpos1[i], targetpos2[i], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, temp[i], v, a, t_count);
+            count_last = std::max(t_count, count_last);
+        }
+        for (int i = 0; i < 3; i++)
+        {
+            aris::plan::moveAbsolute(1, targetpos2[i], targetpos3[i], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, temp[i], v, a, t_count);
+            count_last2 = std::max(t_count, count_last2);
+        }
+        for (int i = 0; i < 3; i++)
+        {
+            aris::plan::moveAbsolute(1, targetpos3[i], targetpos4[i], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, temp[i], v, a, t_count);
+            count_last3 = std::max(t_count, count_last3);
+        }
+        for (int i = 0; i < 3; i++)
+        {
+            aris::plan::moveAbsolute(1, targetpos4[i], targetpos5[i], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, temp[i], v, a, t_count);
+            count_last4 = std::max(t_count, count_last4);
+        }
+    }
+
 	//1
 	if (count <= count_last + start_count)
 	{
