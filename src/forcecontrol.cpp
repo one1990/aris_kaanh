@@ -866,21 +866,67 @@ namespace forcecontrol
         std::vector<double> vinteg;
         std::vector<double> vproportion;
 
-		std::function<std::array<double, 7>(void)> func;
-
+		std::function<std::array<double, 7>(aris::Size count, aris::Size &start_count)> func;
+		aris::Size start_count;
 	};
 	static std::atomic_bool enable_movePQB = true;
 	static std::atomic<std::array<double, 7> > setpqPQB;
 	//pq接口函数
-	auto load_pq1()->std::array<double, 7>{return setpqPQB.load(); }
-	auto load_pq2()->std::array<double, 7>{std::array<double, 7> temp = { 0.42,0.0,0.55,0,0,0,1 }; return temp; }
-	//加载pq函数
-	auto load_func(PlanTarget &target, std::function<std::array<double, 7>(void)> func)->void
+	std::array<double, 7> load_pq1(aris::Size count, aris::Size &start_count){return setpqPQB.load(); }
+	std::array<double, 7> load_pq3(aris::Size count, aris::Size &start_count)
 	{
-		auto &param = std::any_cast<MovePQBParam&>(target.param);
-		std::array<double, 7> temp;
-		temp = func();
-		std::copy(temp.begin(), temp.end(), param.pqt.begin());
+		double target_pq[5][7] = { { 0.42,0.0,0.55,0,0,0,1 },{ 0.42,0.0,0.45,0,0,0,1 },{ 0.52,0.0,0.45,0,0,0,1 },{ 0.52,0.1,0.45,0,0,0,1 },{ 0.52,0.0,0.45,0,0,0,1 } };
+		double vel = 0.01, acc = 0.02, dec = 0.02;
+		static aris::Size total_count[4] = { 1,1,1,1 };
+		
+		std::array<double, 7> temp = { 0.42,0.0,0.55,0,0,0,1 };
+		
+		//获取每段梯形轨迹的时间
+		double p, v, a;
+		aris::Size t_count;
+		if (count == start_count)
+		{
+			for (aris::Size j = 0; j < 4; j++)
+			{
+				for (aris::Size i = 0; i < 3; i++)
+				{
+					aris::plan::moveAbsolute(count - start_count + 1, target_pq[j][i], target_pq[j+1][i], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, temp[i], v, a, t_count);
+					total_count[j] = std::max(total_count[j], t_count);
+				}
+			}
+		}
+		
+		//获取根据输入的target.count选择执行哪一段梯形轨迹
+		if (count <= start_count + total_count[0])
+		{
+			for (aris::Size i = 0; i < 3; i++)
+			{
+				aris::plan::moveAbsolute(count - start_count + 1, target_pq[0][i], target_pq[1][i], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, temp[i], v, a, t_count);
+			}
+		}
+		else if (count > start_count + total_count[0] && count <= start_count + total_count[0] + total_count[1])
+		{
+			for (aris::Size i = 0; i < 3; i++)
+			{
+				aris::plan::moveAbsolute(count - start_count + 1, target_pq[1][i], target_pq[2][i], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, temp[i], v, a, t_count);
+			}
+		}
+		else if (count > start_count + total_count[0] + total_count[1] && count <= start_count + total_count[0] + total_count[1] + total_count[2])
+		{
+			for (aris::Size i = 0; i < 3; i++)
+			{
+				aris::plan::moveAbsolute(count - start_count + 1, target_pq[2][i], target_pq[3][i], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, temp[i], v, a, t_count);
+			}
+		}
+		else if (count > start_count + total_count[0] + total_count[1] + total_count[2] && count <= start_count + total_count[0] + total_count[1] + total_count[2] + total_count[3])
+		{
+			for (aris::Size i = 0; i < 3; i++)
+			{
+				aris::plan::moveAbsolute(count - start_count + 1, target_pq[3][i], target_pq[4][i], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, temp[i], v, a, t_count);
+			}
+		}	
+		
+		return temp; 
 	}
 	//电机控制模式切换函数
 	auto motor_control_mode(PlanTarget &target, bool &is_running, bool &ds_is_all_finished, bool &md_is_all_finished)
@@ -928,6 +974,14 @@ namespace forcecontrol
 			}
 		}
 
+	}
+	//加载pq函数
+	auto load_func(PlanTarget &target, std::function<std::array<double, 7>(aris::Size count, aris::Size &start_count)> func)->void
+	{
+		auto &param = std::any_cast<MovePQBParam&>(target.param);
+		std::array<double, 7> temp;
+		temp = func(target.count, param.start_count);
+		std::copy(temp.begin(), temp.end(), param.pqt.begin());
 	}
 	//力控算法函数
 	auto force_control_algorithm(PlanTarget &target, bool is_running)->int
@@ -1242,6 +1296,19 @@ namespace forcecontrol
 				std::copy(pqarray.begin(), pqarray.end(), temp.begin());
 				setpqPQB.store(temp);
 			}
+			else if (p.first == "choose_func")
+			{
+				param.start_count = target.count;
+				int choose_func = std::stoi(p.second);
+				if (choose_func == 1)
+				{
+					param.func = load_pq1;
+				}
+				else if (choose_func == 3)
+				{
+					param.func = load_pq3;
+				}
+			}
 			else if (p.first == "kp_p")
 			{
 				auto v = target.model->calculator().calculateExpression(p.second);
@@ -1326,19 +1393,6 @@ namespace forcecontrol
 					}
 				}
 			}
-			else if (p.first == "choose_func")
-			{
-				int choose_func = std::stoi(p.second);
-				if (choose_func == 1)
-				{
-					param.func = load_pq1;
-				}
-				else if (choose_func == 2)
-				{
-					param.func = load_pq2;
-				}
-			}
-
 		}
 		target.param = param;
 
@@ -1386,7 +1440,9 @@ namespace forcecontrol
 		command().loadXmlStr(
 			"<movePQB>"
 			"	<group type=\"GroupParam\" default_child_type=\"Param\">"
-			"		<pqt default=\"{0.42,0.0,0.55,0,0,0,1}\" abbreviation=\"p\"/>"
+			"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"pqt\">"
+			"			<pqt default=\"{0.42,0.0,0.55,0,0,0,1}\" abbreviation=\"p\"/>"
+			"			<choose_func default=\"1\"/>"
             "		<kp_p default=\"{4,6,4,3,3,2}\"/>"
             "		<kp_v default=\"{170,270,90,60,35,16}\"/>"
             "		<ki_v default=\"{2,15,10,0.2,0.2,0.18}\"/>"

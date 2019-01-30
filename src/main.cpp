@@ -30,7 +30,8 @@ int main(int argc, char *argv[])
 	cs.resetSensorRoot(new aris::sensor::SensorRoot);
 
 	aris::core::Socket socket;
-	
+	socket.setConnectType(aris::core::Socket::WEB);
+
 	//创建一个di信号监控线程//
 	std::thread watch_di_thread;
 
@@ -533,7 +534,6 @@ int main(int argc, char *argv[])
 	//	//1LOG_ERROR << e.what() << std::endl;
 	//}
 	
-
 	// 接收命令 //
 	for (std::string command_in; std::getline(std::cin, command_in);)
 	{
