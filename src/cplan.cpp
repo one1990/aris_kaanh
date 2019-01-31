@@ -519,8 +519,8 @@ auto load_pq2(aris::Size count, aris::Size &start_count)->std::array<double, 7>
     std::array<double, 7> targetpos1 = {-0.122203,0.386206,0.0139912,-0.492466,0.474288,0.511942,0.520041};
     std::array<double, 7> targetpos2 = {-0.122203,0.466206,0.0139912,-0.492466,0.474288,0.511942,0.520041};
     std::array<double, 7> targetpos3 = {0.162203,0.466206,0.0139912,-0.492466,0.474288,0.511942,0.520041};
-    std::array<double, 7> targetpos4 = {0.162203,0.386206,0.0139912,-0.492466,0.474288,0.511942,0.520041};
-    std::array<double, 7> targetpos5 = {-0.122203,0.386206,0.0139912,-0.492466,0.474288,0.511942,0.520041};
+    std::array<double, 7> targetpos4 = {0.162203,0.386206,0.0,-0.492466,0.474288,0.511942,0.520041};
+    std::array<double, 7> targetpos5 = {-0.122203,0.386206,0.0,-0.492466,0.474288,0.511942,0.520041};
     double vel=0.04, acc=0.08, dec=0.08, v, a;
 	aris::Size t_count;
     static aris::Size count_last = 0, count_last2 = 0, count_last3 = 0, count_last4 = 0;//上个轨迹完成共消耗的count ,每个阶段单独的时间
