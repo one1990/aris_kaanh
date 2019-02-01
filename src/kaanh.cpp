@@ -1,8 +1,8 @@
 ﻿#include <algorithm>
 #include"kaanh.h"
 #include"iir.h"
-#include"forcecontrol.h"
-#include"cplan.h"
+
+
 
 using namespace aris::dynamic;
 using namespace aris::plan;
@@ -1227,9 +1227,9 @@ namespace kaanh
 				{
 					double p, v, a;
 					aris::Size t_count;
-					auto result = aris::plan::moveAbsolute2(param.begin_joint_pos_vec[i], param.begin_axis_vel_vec[i], param.begin_axis_acc_vec[i], param.joint_pos_vec[i], 0.0, 0.0, param.axis_vel_vec[i], param.axis_acc_vec[i], param.axis_acc_vec[i], 1e-3, 1e-10, p, v, a, t_count);
+					//auto result = aris::plan::moveAbsolute2(param.begin_joint_pos_vec[i], param.begin_axis_vel_vec[i], param.begin_axis_acc_vec[i], param.joint_pos_vec[i], 0.0, 0.0, param.axis_vel_vec[i], param.axis_acc_vec[i], param.axis_acc_vec[i], 1e-3, 1e-10, p, v, a, t_count);
 					controller->motionAtAbs(i).setTargetPos(p);
-                    total_count = result;
+                   // total_count = result;
                     //total_count = std::max(total_count, t_count);
 
 					param.begin_joint_pos_vec[i] = p;
@@ -1239,7 +1239,7 @@ namespace kaanh
 			}
 
             //if (!target.model->solverPool().at(1).kinPos())return -1;
-
+			   
 			// 打印电流 //
 			auto &cout = controller->mout();
             if (target.count % 1000 == 0)
@@ -2758,6 +2758,8 @@ namespace kaanh
 		plan_root->planPool().add<MoveCircle>();
 		plan_root->planPool().add<MoveTroute>();
 		plan_root->planPool().add<MoveFile>();
+		plan_root->planPool().add<RemoveFile>();
+		//plan_root->planPool().add<plPQ>();
 
 	/*	auto &dm1 = plan_root->planPool().add<aris::plan::MoveJ>();
 		dm1.command().findByName("group")->findByName("unique_pos")->findByName("pq")->loadXmlStr("<pq default=\"{0.444,-0,0.562,0.642890516,0.000011540,0.765958083,-0.000008196}\"/>");

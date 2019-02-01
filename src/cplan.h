@@ -1,4 +1,4 @@
-#ifndef ROKAE_CPLAN_H_
+﻿#ifndef ROKAE_CPLAN_H_
 #define ROKAE_CPLAN_H_
 
 #include <aris.h>
@@ -12,7 +12,8 @@
 #include <aris_plan.h>
 #include <tinyxml2.h>
 #include <atomic>
-
+#include <string> 
+#include <algorithm>
 
 class MoveCircle : public aris::plan::Plan
 {
@@ -46,6 +47,15 @@ public:
     explicit MoveFile(const std::string &name = "MoveFile");
 };
 
+class RemoveFile : public aris::plan::Plan
+{
+public:
+	auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+	auto virtual executeRT(aris::plan::PlanTarget &target)->int;
 
+	explicit RemoveFile(const std::string &name = "RemoveFile");
+};
+
+auto load_pq2(aris::Size count, aris::Size &start_count)->std::array<double, 7>;
 
 #endif
