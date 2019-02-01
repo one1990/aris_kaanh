@@ -1,8 +1,8 @@
 ﻿#include <algorithm>
 #include"kaanh.h"
 #include"iir.h"
-#include"forcecontrol.h"
-#include"cplan.h"
+
+
 
 using namespace aris::dynamic;
 using namespace aris::plan;
