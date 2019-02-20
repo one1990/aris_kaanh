@@ -458,7 +458,7 @@ auto RemoveFile::prepairNrt(const std::map<std::string, std::string> &params, Pl
 		<< "/log:   " << devi.capacity << "   "
 		<< devi.free << "   " << devi.available << '\n';
 	//如果可用内存小于10g;
-    if (devi.available < 10737418240 * 6)
+    if (devi.available < 10737418240 * 4)
 	{
         std::cout<<files[0].size()<<"  ";
         std::cout<<files[0].substr(72)<<"  ";
