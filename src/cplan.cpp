@@ -436,35 +436,21 @@ MoveFile::MoveFile(const std::string &name) :Plan(name)
 struct RemoveFileParam
 {
 	int total_time;
-
-	double vel;
-	double acc;
-	double dec;
-	vector<double> pt;
-	int choose;
-	string file;
 };
-
 
 auto RemoveFile::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 {
-
-
 	RemoveFileParam p;
 	p.total_time = std::stoi(params.at("total_time"));
 	
-	p.file = params.at("file");
-	for (int j = 0; j < n; j++)
-	{
-		POS[j].clear();
-	}
 	//string site = "C:/Users/qianch_kaanh_cn/Desktop/myplan/src/rokae/" + p.file;
 
-
-	//char * filePath = "/home/kaanh/Desktop/build-kaanh-Desktop_Qt_5_11_2_GCC_64bit-Default/log/";//自己设置目录 
-	string filePath = "C:/Users/qianch_kaanh_cn/Desktop/build_qianch/log/";
+    string filePath = "/home/kaanh/Desktop/build-kaanh-Desktop_Qt_5_11_2_GCC_64bit-Default/log/";//自己设置目录
+    //char * filePath = "/home/kaanh/Desktop/build-kaanh-Desktop_Qt_5_11_2_GCC_64bit-Default/log/";//自己设置目录
+    //string filePath = "C:/Users/qianch_kaanh_cn/Desktop/build_qianch/log/";
 	vector<string> files;
 	//获取该路径下的所有文件  
+    files.clear();
 	getFiles2(filePath, files);
 
 	std::filesystem::space_info devi = std::filesystem::space("log");
@@ -472,11 +458,15 @@ auto RemoveFile::prepairNrt(const std::map<std::string, std::string> &params, Pl
 		<< "/log:   " << devi.capacity << "   "
 		<< devi.free << "   " << devi.available << '\n';
 	//如果可用内存小于10g;
-	if (devi.available < 10737418240)
+    if (devi.available < 10737418240 * 4)
 	{
-		for (int i = 0; i < 50; i++)
+        std::cout<<files[0].size()<<"  ";
+        std::cout<<files[0].substr(72)<<"  ";
+        for (int i = 0; i < 30; i++)
 		{
-			std::filesystem::remove(files[i]);
+            std::filesystem::remove(files[i]);
+            //std::cout<<"success123456";
+            std::cout<<files[0]<<"  ";
 		}
 	}
 	//std::filesystem::remove(files[0]);
@@ -489,14 +479,16 @@ auto RemoveFile::prepairNrt(const std::map<std::string, std::string> &params, Pl
 		aris::plan::Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
 		aris::plan::Plan::NOT_CHECK_VEL_FOLLOWING_ERROR |
 		aris::plan::Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START | // 开始不检查速度连续
-		aris::plan::Plan::NOT_CHECK_VEL_CONTINUOUS;
+        aris::plan::Plan::NOT_CHECK_VEL_CONTINUOUS |
 	    NOT_RUN_EXECUTE_FUNCTION;
 }
 
 auto RemoveFile::executeRT(PlanTarget &target)->int
 {
 	auto controller = dynamic_cast<aris::control::EthercatController *>(target.master);
-	auto &p = std::any_cast<MoveFileParam&>(target.param);
+    std::cout<<"before"<<std::endl;
+    auto &p = std::any_cast<MoveFileParam&>(target.param);
+    std::cout<<"after"<<std::endl;
 
 	return 0;
 }
@@ -507,7 +499,6 @@ RemoveFile::RemoveFile(const std::string &name) :Plan(name)
 		"<rmFi>"
 		"	<group type=\"GroupParam\" default_child_type=\"Param\">"
 		"	    <total_time type=\"Param\" default=\"5000\"/>" // 默认5000	   
-		"		<file type=\"Param\" default=\"1.txt\" abbreviation=\"f\"/>"
 		"	</group>"
 		"</rmFi>");
 }
