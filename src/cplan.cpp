@@ -624,6 +624,7 @@ auto load_pq7(aris::Size count, aris::Size &start_count)->std::array<double, 14>
 			temp[j+7] = 0;
 		}
 	}
+	//计算速度
 	else
 	{
 		for (int j = 0; j < 7; j++)
