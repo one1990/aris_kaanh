@@ -1262,6 +1262,11 @@ namespace forcecontrol
 			lout << ft_friction[i] << ",";
 			lout << ft_dynamic[i] << ",";
 		}
+		//记录当前PQ值//
+		for (Size i = 0; i < param.pqb.size(); i++)
+		{
+			lout << param.pqb[i] << ",";
+		}
 		lout << std::endl;
 	}
 	//MovePQB成员函数实现
