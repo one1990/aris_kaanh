@@ -561,6 +561,5 @@ int main(int argc, char *argv[])
 			LOG_ERROR << e.what() << std::endl;
 		}
 	}
-
 	return 0;
 }
