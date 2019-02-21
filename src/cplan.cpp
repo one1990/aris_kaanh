@@ -574,4 +574,63 @@ auto load_pq2(aris::Size count, aris::Size &start_count)->std::array<double, 7>
 	}
 	return temp;
 }
+
+
+
+auto load_pq7(aris::Size count, aris::Size &start_count)->std::array<double, 14>
+{
+	if (count == start_count)
+	{
+		//将文件中的数据读取到POS中，共25列；
+		string site = "C:/Users/qianch_kaanh_cn/Desktop/data/rt_log--2019-02-20--16-34-25--4.txt";
+		//以下定义读取log文件的输入流oplog;
+		ifstream oplog;
+		oplog.open(site);
+		//以下检查是否成功读取文件；
+		if (!oplog)
+		{
+			cout << "fail to open the file" << endl;
+			throw std::runtime_error("fail to open the file");
+			//return -1;//或者抛出异常。
+		}
+		POS.clear();
+		while (!oplog.eof())
+		{
+			for (int j = 0; j < n; j++)
+			{
+				double data;
+				oplog >> data;
+				POS[j].push_back(data);
+			}
+		}
+		oplog.close();
+		oplog.clear();
+		for (int j = 0; j < n; j++)
+		{
+			POS[j].pop_back();
+		}
+	}
+		//定义新的14列容器temp
+		std::array<double, 14> temp = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+	
+	for (int j = 0; j < 7; j++)
+	{
+		temp[j] = POS[j + 18][count-1- start_count];
+	}
+	if (count == start_count)
+	{
+		for (int j = 0; j < 7; j++)
+		{
+			temp[j+7] = 0;
+		}
+	}
+	else
+	{
+		for (int j = 0; j < 7; j++)
+		{
+			temp[j+7] = (POS[j + 18][count-1 - start_count]- POS[j + 18][count - 2 - start_count])/1000;
+		}
+	}
+	return temp;
+}
 	
