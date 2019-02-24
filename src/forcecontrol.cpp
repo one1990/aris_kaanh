@@ -1041,10 +1041,12 @@ namespace forcecontrol
 		if (is_running)
 		{
 			//速度前馈
-			s_vq2vs(param.pqb.data(), param.vqf.data(), param.vsf.data());
+
+            s_vq2vs(param.pqb.data(), param.vqf.data(), param.vsf.data());
 			auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(target.model->solverPool()[1]);
 			fwd.cptJacobi();
 			s_mm(6, 1, 6, fwd.Jf(), 6, param.va.data(), 1, param.vfwd.data(), 1);
+
 
 			//前三轴，末端空间——位置环PID+速度限制
 			for (Size i = 0; i < 3; ++i)
@@ -1247,6 +1249,11 @@ namespace forcecontrol
 			{
 				cout << std::setw(10) << ft_offset[i] << "  ";
 			}
+            cout << "vfwd:";
+            for (Size i = 0; i < 6; i++)
+            {
+                cout << std::setw(10) << param.vfwd[i] << "  ";
+            }
 			cout << std::endl;
 			cout << "------------------------------------------------" << std::endl;
 		}
