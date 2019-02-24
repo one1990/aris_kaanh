@@ -857,6 +857,7 @@ namespace forcecontrol
 		std::vector<double> vqt;
 		std::vector<double> vqf;
 		std::vector<double> vsf;
+		std::vector<double> va_Jc123;
 		std::vector<double> pt;
 		std::vector<double> pa;
 		std::vector<double> vt;
@@ -1041,12 +1042,28 @@ namespace forcecontrol
 		if (is_running)
 		{
 			//速度前馈
-
             s_vq2vs(param.pqb.data(), param.vqf.data(), param.vsf.data());
+			/*
 			auto &inv = dynamic_cast<aris::dynamic::InverseKinematicSolver&>(target.model->solverPool()[0]);
 			inv.cptJacobi();
 			s_mm(6, 1, 6, inv.Ji(), 6, param.vsf.data(), 1, param.vfwd.data(), 1);
+			*/
+			auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(target.model->solverPool()[1]);
+			fwd.cptJacobi();
 
+			s_vc(3, param.vsf.data() + 3, param.va_Jc123.data());
+			s_mms(3, 1, 3, fwd.Jf() + 18, 6, param.va.data(), 1, param.va_Jc123.data(), 1);
+			
+			//QR分解求方程的解
+			double U[9], tau[3];
+			aris::Size p[3];
+			Size rank;
+			//auto inline s_householder_utp(Size m, Size n, const double *A, AType a_t, double *U, UType u_t, double *tau, TauType tau_t, Size *p, Size &rank, double zero_check = 1e-10)noexcept->void
+			//A为输入
+			s_householder_utp(3, 3, fwd.Jf() + 21, 6, U, 3, tau, 1, p, rank, 1e-10);
+			//s_householder_utp_sov(Size m, Size n, Size rhs, Size rank, const double *U, UType u_t, const double *tau, TauType tau_t, const Size *p, const double *b, BType b_t, double *x, XType x_t, double zero_check = 1e-10)
+			//b为输入，x为所求的解
+			s_householder_utp_sov(3, 3, 1, rank, U, tau, p, param.va_Jc123.data(), param.vfwd.data() + 3, 1e-10);
 
 			//前三轴，末端空间——位置环PID+速度限制
 			for (Size i = 0; i < 3; ++i)
@@ -1302,6 +1319,7 @@ namespace forcecontrol
 		param.vqt.resize(7, 0.0);
 		param.vqf.resize(7, 0.0);
 		param.vsf.resize(6, 0.0);
+		param.va_Jc123.resize(3, 0.0);
 		param.pt.resize(6, 0.0);
 		param.pa.resize(6, 0.0);
 		param.vt.resize(6, 0.0);
