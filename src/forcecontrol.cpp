@@ -238,7 +238,7 @@ namespace forcecontrol
 				}
 			}
 		}
-
+		
 		if (!target.model->solverPool().at(1).kinPos())return -1;
 		target.model->generalMotionPool().at(0).getMpq(pqa);
 
@@ -1043,7 +1043,7 @@ namespace forcecontrol
 			//速度前馈
 
             s_vq2vs(param.pqb.data(), param.vqf.data(), param.vsf.data());
-			auto &inv = dynamic_cast<aris::dynamic::InverseKinematicSolver&>(target.model->solverPool()[1]);
+			auto &inv = dynamic_cast<aris::dynamic::InverseKinematicSolver&>(target.model->solverPool()[0]);
 			inv.cptJacobi();
 			s_mm(6, 1, 6, inv.Ji(), 6, param.vsf.data(), 1, param.vfwd.data(), 1);
 
