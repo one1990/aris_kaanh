@@ -987,8 +987,18 @@ namespace forcecontrol
 	auto load_func(PlanTarget &target, std::function<std::array<double, 14>(aris::Size count, aris::Size &start_count)> func)->void
 	{
 		auto &param = std::any_cast<MovePQBParam&>(target.param);
+        auto controller = dynamic_cast<aris::control::Controller *>(target.master);
 		std::array<double, 14> temp;
         temp = func(param.actual_count, param.start_count);
+        auto &cout = controller->mout();
+        if (target.count % 1000 == 0)
+        {
+            for(aris::Size i=0;i<14;i++)
+            {
+                cout<<temp[i]<<"  ";
+            }
+            cout<<std::endl;
+        }
 		std::copy(temp.begin(), temp.begin() + 7, param.pqt.begin());
 		std::copy(temp.begin() + 7, temp.begin() + 14, param.vqf.begin());
 	}
