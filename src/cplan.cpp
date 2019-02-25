@@ -579,7 +579,6 @@ auto load_pq2(aris::Size count, aris::Size &start_count)->std::array<double,14>
 }
 
 
-
 vector<vector<double>> pq(7);
 //在prepare函数中提前读好txt文档中的数据
 auto load_pq5()->void

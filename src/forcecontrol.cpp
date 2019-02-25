@@ -1330,6 +1330,7 @@ namespace forcecontrol
         param.vinteg.resize(6, 0.0);
         param.vproportion.resize(6, 0.0);
 
+		load_pq5();
 		for (auto &p : params)
 		{
 			if (p.first == "pqt")
