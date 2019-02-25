@@ -507,6 +507,7 @@ RemoveFile::RemoveFile(const std::string &name) :Plan(name)
 
 
 auto load_pq2(aris::Size count, aris::Size &start_count)->std::array<double,14>
+
 {
     std::array<double, 14> temp = {-0.122203,0.386206,0.0139912,-0.492466,0.474288,0.511942,0.520041,0,0,0,0,0,0,0};
     std::array<double, 7> targetpos1 = {-0.122203,0.386206,0.0139912,-0.492466,0.474288,0.511942,0.520041};
@@ -576,7 +577,6 @@ auto load_pq2(aris::Size count, aris::Size &start_count)->std::array<double,14>
 	}
 	return temp;
 }
-
 
 
 
@@ -652,7 +652,9 @@ auto load_pq5()->void
 		double pq0[7] = { 0,0,0,0,0,0,0 };
 		//输出pq
 		s_pm2pq(pm[0], pq0);
+
 		for (int j = 0; j < 7; j++)
+
 		{
 			pq[j].push_back(pq0[j]);
 		}
@@ -664,6 +666,7 @@ auto load_pq7(aris::Size count, aris::Size &start_count)->std::array<double, 14>
 	
 	//定义新的14列容器temp
 	static	std::array<double, 14> temp = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+
 	for (int j = 0; j < 7; j++)
 	{
 		temp[j] = pq[j][count- start_count];
@@ -685,4 +688,3 @@ auto load_pq7(aris::Size count, aris::Size &start_count)->std::array<double, 14>
 	}
 	return temp;
 }
-	
