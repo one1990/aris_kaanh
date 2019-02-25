@@ -5,6 +5,7 @@
 using namespace aris::dynamic;
 using namespace aris::plan;
 
+extern std::vector<std::vector<double>> pq;
 namespace forcecontrol
 {
 	// 力控拖动——单关节或者6个轨迹相对运动轨迹--输入单个关节，角度位置；关节按照梯形速度轨迹执行；速度前馈；电流控制 //
@@ -986,8 +987,18 @@ namespace forcecontrol
 	auto load_func(PlanTarget &target, std::function<std::array<double, 14>(aris::Size count, aris::Size &start_count)> func)->void
 	{
 		auto &param = std::any_cast<MovePQBParam&>(target.param);
+        auto controller = dynamic_cast<aris::control::Controller *>(target.master);
 		std::array<double, 14> temp;
         temp = func(param.actual_count, param.start_count);
+        auto &cout = controller->mout();
+        if (target.count % 1000 == 0)
+        {
+            for(aris::Size i=0;i<14;i++)
+            {
+                cout<<temp[i]<<"  ";
+            }
+            cout<<std::endl;
+        }
 		std::copy(temp.begin(), temp.begin() + 7, param.pqt.begin());
 		std::copy(temp.begin() + 7, temp.begin() + 14, param.vqf.begin());
 	}
@@ -1330,6 +1341,7 @@ namespace forcecontrol
         param.vinteg.resize(6, 0.0);
         param.vproportion.resize(6, 0.0);
 
+		load_pq5();
 		for (auto &p : params)
 		{
 			if (p.first == "pqt")
