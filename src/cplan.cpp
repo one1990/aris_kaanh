@@ -582,7 +582,7 @@ auto load_pq2(aris::Size count, aris::Size &start_count)->std::array<double,14>
 
 vector<vector<double>> pq(7);
 //在prepare函数中提前读好txt文档中的数据
-auto load_pq5(aris::Size count, aris::Size &start_count)->void
+auto load_pq5()->void
 {
 	//将文件中的数据读取到POS中，共25列；
 		//string site = "/home/kaanh/Desktop/build-kaanh-Desktop_Qt_5_11_2_GCC_64bit-Default/log/rt_log--2019-02-20--16-34-25--4.txt"
@@ -640,8 +640,9 @@ auto load_pq5(aris::Size count, aris::Size &start_count)->void
 		double dot = s_vv(3, vert0, z);
 		//注意theta的正负性,与Z轴成180度左右；
 		double theta = acos(dot);
-		//欧拉角是2pi,2pi,theta
-		double pe[6] = { POS[18][count - start_count] ,POS[19][count - start_count] ,POS[20][count - start_count],atan(1) * 2 ,atan(1) * 2,theta };
+		//欧拉角是2pi,2pi,theta		
+		double pe[6] = { POS[18][i] ,POS[19][i] ,POS[20][i],atan(1) * 2 ,atan(1) * 2,theta };		
+		
 		//vector <vector <double>>pm(4, std::vector<double>(4, 0.0));
 		double pm[4][4];
 		//double pm[16];
@@ -651,10 +652,11 @@ auto load_pq5(aris::Size count, aris::Size &start_count)->void
 		double pq0[7] = { 0,0,0,0,0,0,0 };
 		//输出pq
 		s_pm2pq(pm[0], pq0);
-		for (int i = 0; i < 7; i++)
+
+		for (int j = 0; j < 7; j++)
 
 		{
-			pq[i].push_back(pq0[i]);
+			pq[j].push_back(pq0[j]);
 		}
 	}
 }
