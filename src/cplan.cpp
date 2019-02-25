@@ -585,6 +585,7 @@ auto load_pq7(aris::Size count, aris::Size &start_count)->std::array<double, 14>
 	if (count == start_count)
 	{
 		//将文件中的数据读取到POS中，共25列；
+		//string site = "/home/kaanh/Desktop/build-kaanh-Desktop_Qt_5_11_2_GCC_64bit-Default/log/rt_log--2019-02-20--16-34-25--4.txt"
 		string site = "C:/Users/qianch_kaanh_cn/Desktop/data/rt_log--2019-02-20--16-34-25--4.txt";
 		//以下定义读取log文件的输入流oplog;
 		ifstream oplog;
@@ -617,13 +618,14 @@ auto load_pq7(aris::Size count, aris::Size &start_count)->std::array<double, 14>
 		{
 			//轨迹上切线的向量
 			double tangent[3] = { POS[18][i + 1] - POS[18][i],POS[19][i + 1] - POS[19][i] ,POS[20][i + 1] - POS[20][i] };
-			double y[3] = { 0, 1,0 };
-			double z[3] = { 0, 0,1 };
+			double x[3] = { 1, 0, 0 };
+			double y[3] = { 0, 1, 0 };
+			double z[3] = { 0, 0, 1 };
 			//求取切线与y轴的公法线向量
 			double vert[3] = { 0,0,0 };
 			s_c3(tangent, y, vert);
 			//求单位向量；
-			double sq = sqrt(vert[1] * vert[1] + vert[2] * vert[2] + vert[0] * vert[0]);
+			double sq = sqrt(vert  [1] * vert[1] + vert[2] * vert[2] + vert[0] * vert[0]);
 			double vert0[3] = { 0,0,0 };
 			for (int i = 0; i < 3; i++)
 			{

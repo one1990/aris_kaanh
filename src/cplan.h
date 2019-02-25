@@ -57,5 +57,6 @@ public:
 };
 
 auto load_pq2(aris::Size count, aris::Size &start_count)->std::array<double, 7>;
+auto load_pq7(aris::Size count, aris::Size &start_count)->std::array<double, 14>;
 
 #endif
