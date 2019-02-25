@@ -238,7 +238,7 @@ namespace forcecontrol
 				}
 			}
 		}
-
+		
 		if (!target.model->solverPool().at(1).kinPos())return -1;
 		target.model->generalMotionPool().at(0).getMpq(pqa);
 
@@ -855,6 +855,9 @@ namespace forcecontrol
 		std::vector<double> pqb;
 		std::vector<double> vqb;
 		std::vector<double> vqt;
+		std::vector<double> vqf;
+		std::vector<double> vsf;
+		std::vector<double> va_Jc123;
 		std::vector<double> pt;
 		std::vector<double> pa;
 		std::vector<double> vt;
@@ -871,19 +874,19 @@ namespace forcecontrol
 
 	};
 	static std::atomic_bool enable_movePQB = true;
-	static std::atomic<std::array<double, 7> > setpqPQB;
+	static std::atomic<std::array<double, 14> > setpqPQB;
 	std::atomic_bool one_time_counter = false;
 	std::atomic_int16_t which_func = 1;
-	std::function<std::array<double, 7>(aris::Size count, aris::Size &start_count)> func[2];
+	std::function<std::array<double, 14>(aris::Size count, aris::Size &start_count)> func[2];
 	//pq接口函数
-	std::array<double, 7> load_pq1(aris::Size count, aris::Size &start_count){return setpqPQB.load(); }
-	std::array<double, 7> load_pq3(aris::Size count, aris::Size &start_count)
+	std::array<double, 14> load_pq1(aris::Size count, aris::Size &start_count){return setpqPQB.load(); }
+	std::array<double, 14> load_pq3(aris::Size count, aris::Size &start_count)
 	{
         double target_pq[5][7] = { {-0.122203,0.386206,0.0139912,-0.492466,0.474288,0.511942,0.520041},{-0.122203,0.466206,0.0139912,-0.492466,0.474288,0.511942,0.520041},{0.162203,0.466206,0.0139912,-0.492466,0.474288,0.511942,0.520041},{0.162203,0.386206,0.0139912,-0.492466,0.474288,0.511942,0.520041},{-0.122203,0.386206,0.0139912,-0.492466,0.474288,0.511942,0.520041} };
         double vel = 0.04, acc = 0.08, dec = 0.08;
 		static aris::Size total_count[4] = { 1,1,1,1 };
 		
-        std::array<double, 7> temp = {-0.122203,0.386206,0.0139912,-0.492466,0.474288,0.511942,0.520041};
+        std::array<double, 14> temp = {-0.122203,0.386206,0.0139912,-0.492466,0.474288,0.511942,0.520041,0,0,0,0,0,0,0};
 		
 		//获取每段梯形轨迹的时间
 		double p, v, a;
@@ -980,12 +983,13 @@ namespace forcecontrol
 
 	}
 	//加载pq函数
-	auto load_func(PlanTarget &target, std::function<std::array<double, 7>(aris::Size count, aris::Size &start_count)> func)->void
+	auto load_func(PlanTarget &target, std::function<std::array<double, 14>(aris::Size count, aris::Size &start_count)> func)->void
 	{
 		auto &param = std::any_cast<MovePQBParam&>(target.param);
-		std::array<double, 7> temp;
+		std::array<double, 14> temp;
         temp = func(param.actual_count, param.start_count);
-		std::copy(temp.begin(), temp.end(), param.pqt.begin());
+		std::copy(temp.begin(), temp.begin() + 7, param.pqt.begin());
+		std::copy(temp.begin() + 7, temp.begin() + 14, param.vqf.begin());
 	}
 	//力控算法函数
     auto force_control_algorithm(PlanTarget &target, bool is_running)->void
@@ -1037,11 +1041,34 @@ namespace forcecontrol
 		static double ft_friction2_index[6] = { 5.0, 5.0, 5.0, 5.0, 5.0, 3.0 };
 		if (is_running)
 		{
+			//速度前馈
+            s_vq2vs(param.pqb.data(), param.vqf.data(), param.vsf.data());
+			/*
+			auto &inv = dynamic_cast<aris::dynamic::InverseKinematicSolver&>(target.model->solverPool()[0]);
+			inv.cptJacobi();
+			s_mm(6, 1, 6, inv.Ji(), 6, param.vsf.data(), 1, param.vfwd.data(), 1);
+			*/
+			auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(target.model->solverPool()[1]);
+			fwd.cptJacobi();
+
+			s_vc(3, param.vsf.data() + 3, param.va_Jc123.data());
+			s_mms(3, 1, 3, fwd.Jf() + 18, 6, param.va.data(), 1, param.va_Jc123.data(), 1);
+			
+			//QR分解求方程的解
+			double U[9], tau[3];
+			aris::Size p[3];
+			Size rank;
+			//auto inline s_householder_utp(Size m, Size n, const double *A, AType a_t, double *U, UType u_t, double *tau, TauType tau_t, Size *p, Size &rank, double zero_check = 1e-10)noexcept->void
+			//A为输入
+			s_householder_utp(3, 3, fwd.Jf() + 21, 6, U, 3, tau, 1, p, rank, 1e-10);
+			//s_householder_utp_sov(Size m, Size n, Size rhs, Size rank, const double *U, UType u_t, const double *tau, TauType tau_t, const Size *p, const double *b, BType b_t, double *x, XType x_t, double zero_check = 1e-10)
+			//b为输入，x为所求的解
+			s_householder_utp_sov(3, 3, 1, rank, U, tau, p, param.va_Jc123.data(), param.vfwd.data() + 3, 1e-10);
+
 			//前三轴，末端空间——位置环PID+速度限制
 			for (Size i = 0; i < 3; ++i)
 			{
 				param.vt[i] = param.kp_p[i] * (param.pqt[i] - param.pqb[i]);
-				param.vt[i] = param.vt[i] + param.vfwd[i];
 				//param.vt[i] = std::max(std::min(param.vt[i], vt_limit_PQB[i]), -vt_limit_PQB[i]);
 			}
 			//前三轴，限制末端空间vt向量的模的大小
@@ -1091,7 +1118,7 @@ namespace forcecontrol
 			double normf_limit = std::max(std::min(normf, ft_limit_PQB[0]), -ft_limit_PQB[0]);
 			aris::dynamic::s_vc(3, normf_limit / normf, param.ft.data(), param.ft.data());
 
-			//前三轴，末端力向量平移到大地坐标系
+			//前三轴，末端力向量平移到大地坐标系，叉乘
 			s_c3(param.pqb.data(), param.ft.data(), param.ft.data() + 3);
 
 			//前三轴，通过力雅克比矩阵将param.ft转换到关节param.ft_pid
@@ -1099,7 +1126,6 @@ namespace forcecontrol
 			fwd.cptJacobi();
 			s_mm(6, 1, 6, fwd.Jf(), aris::dynamic::ColMajor{ 6 }, param.ft.data(), 1, param.ft_pid.data(), 1);
 			前三轴，末端空间PID----------------------------------------------------------------------------------------------end */
-
 
 			//后三轴，轴空间——位置环PID+速度限制
 			for (Size i = 3; i < param.ft_pid.size(); ++i)
@@ -1241,6 +1267,12 @@ namespace forcecontrol
 				cout << std::setw(10) << ft_offset[i] << "  ";
 			}
 			cout << std::endl;
+			cout << "vfwd:";
+            for (Size i = 0; i < 6; i++)
+            {
+                cout << std::setw(10) << param.vfwd[i] << "  ";
+            }
+			cout << std::endl;
 			cout << "------------------------------------------------" << std::endl;
 		}
 
@@ -1285,6 +1317,9 @@ namespace forcecontrol
 		param.pqb.resize(7, 0.0);
 		param.vqb.resize(7, 0.0);
 		param.vqt.resize(7, 0.0);
+		param.vqf.resize(7, 0.0);
+		param.vsf.resize(6, 0.0);
+		param.va_Jc123.resize(3, 0.0);
 		param.pt.resize(6, 0.0);
 		param.pa.resize(6, 0.0);
 		param.vt.resize(6, 0.0);
@@ -1301,7 +1336,7 @@ namespace forcecontrol
 			{
 				auto pqarray = target.model->calculator().calculateExpression(p.second);
 				param.pqt.assign(pqarray.begin(), pqarray.end());
-				std::array<double, 7> temp;
+				std::array<double, 14> temp = {0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 				std::copy(pqarray.begin(), pqarray.end(), temp.begin());
 				setpqPQB.store(temp);
 				func[0] = load_pq1;
@@ -3625,7 +3660,7 @@ namespace forcecontrol
 				"	</group>"
 				"</moveJPID>");
 		}
-
+	
 
 	// 力控停止指令——停止MoveStop，去使能电机 //
 	auto MoveStop::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
@@ -3669,7 +3704,7 @@ namespace forcecontrol
 			else if (p.first == "setpqPQB")
 			{
 				auto pqarray = target.model->calculator().calculateExpression(p.second);
-				std::array<double, 7> temp;
+				std::array<double, 14> temp = {0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 				std::copy(pqarray.begin(), pqarray.end(), temp.begin());
 				setpqPQB.store(temp);
                 which_func == 1;
@@ -3691,6 +3726,11 @@ namespace forcecontrol
 				else if (which_func == 3)
 				{
 					func[1] = load_pq3;
+					one_time_counter = true;
+				}
+				else if (which_func == 7)
+				{
+					func[1] = load_pq7;
 					one_time_counter = true;
 				}
 			}
