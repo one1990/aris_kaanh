@@ -579,13 +579,14 @@ auto load_pq2(aris::Size count, aris::Size &start_count)->std::array<double,14>
 }
 
 
-vector<vector<double>> pq(7);
+std::vector<std::vector<double>> pq(7);
 //在prepare函数中提前读好txt文档中的数据
 auto load_pq5()->void
 {
 	//将文件中的数据读取到POS中，共25列；
 		//string site = "/home/kaanh/Desktop/build-kaanh-Desktop_Qt_5_11_2_GCC_64bit-Default/log/rt_log--2019-02-20--16-34-25--4.txt"
-	string site = "C:/Users/qianch_kaanh_cn/Desktop/data/rt_log--2019-02-20--16-34-25--4.txt";
+	std::cout << "start1" << std::endl;
+	string site = "C:/Users/kevin/Desktop/qch/rt_log--2019-02-20--16-34-25--4.txt";
 	//以下定义读取log文件的输入流oplog;
 	ifstream oplog;
 	oplog.open(site);
@@ -617,6 +618,7 @@ auto load_pq5()->void
 		POS[j].pop_back();
 	}
 	int row = POS[0].size();//总行数
+	std::cout << "POS[18][0]" << POS[18][0] << "   " << "POS[19][0]" << POS[19][0] << "   " << "POS[20][0]" << POS[20][0] << std::endl;
 	for (int i = 0; i < row - 1; i++)
 	{
 		//轨迹上切线的向量
@@ -658,6 +660,7 @@ auto load_pq5()->void
 			pq[j].push_back(pq0[j]);
 		}
 	}
+	std::cout << "pq[0][0]" << pq[0][0] << "    " << "pq[1][0]" << pq[1][0] << "    " << "pq[2][0]" << pq[2][0] << std::endl;
 }
 
 auto load_pq7(aris::Size count, aris::Size &start_count)->std::array<double, 14>

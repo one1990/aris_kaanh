@@ -5,6 +5,7 @@
 using namespace aris::dynamic;
 using namespace aris::plan;
 
+extern std::vector<std::vector<double>> pq;
 namespace forcecontrol
 {
 	// 力控拖动——单关节或者6个轨迹相对运动轨迹--输入单个关节，角度位置；关节按照梯形速度轨迹执行；速度前馈；电流控制 //
