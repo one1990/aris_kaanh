@@ -2729,7 +2729,7 @@ namespace kaanh
 		plan_root->planPool().add<aris::plan::Recover>();
 		plan_root->planPool().add<aris::plan::Sleep>();
 		auto &rs = plan_root->planPool().add<aris::plan::Reset>();
-		rs.command().findByName("group")->findByName("pos")->loadXmlStr("<pos default=\"{0.5,0.392523364485981,0.789915966386555,0.5,0.5,0.5}\" abbreviation=\"p\"/>");
+        rs.command().findByName("group")->findByName("pos")->loadXmlStr("<pos default=\"{0.5,0.392523364485981,0.789915966386555,0.5,0.5,0.5}\"/>");
 
 		plan_root->planPool().add<aris::plan::MoveL>();
 		plan_root->planPool().add<aris::plan::MoveJ>();
