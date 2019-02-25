@@ -56,8 +56,9 @@ public:
 	explicit RemoveFile(const std::string &name = "RemoveFile");
 };
 
-
 auto load_pq2(aris::Size count, aris::Size &start_count)->std::array<double, 14>;
+auto load_pq5(aris::Size count, aris::Size &start_count)->void;
+
 auto load_pq7(aris::Size count, aris::Size &start_count)->std::array<double, 14>;
 
 #endif
