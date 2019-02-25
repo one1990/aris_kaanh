@@ -579,14 +579,18 @@ auto load_pq2(aris::Size count, aris::Size &start_count)->std::array<double,14>
 }
 
 
+
+
+
 std::vector<std::vector<double>> pq(7);
 //在prepare函数中提前读好txt文档中的数据
 auto load_pq5()->void
 {
 	//将文件中的数据读取到POS中，共25列；
-    string site = "/home/kaanh/Desktop/build-kaanh-Desktop_Qt_5_11_2_GCC_64bit-Default/log/rt_log--2019-02-20--16-34-25--4.txt";
+    //string site = "/home/kaanh/Desktop/build-kaanh-Desktop_Qt_5_11_2_GCC_64bit-Default/log/rt_log--2019-02-20--16-34-25--4.txt";
 	std::cout << "start1" << std::endl;
     //string site = "C:/Users/kevin/Desktop/qch/rt_log--2019-02-20--16-34-25--4.txt";
+	string site = "C:/Users/qianch_kaanh_cn/Desktop/data/rt_log--2019-02-20--16-34-25--4.txt";
 	//以下定义读取log文件的输入流oplog;
 	ifstream oplog;
 	oplog.open(site);
@@ -619,76 +623,114 @@ auto load_pq5()->void
 	}
 	int row = POS[0].size();//总行数
 	std::cout << "POS[18][0]" << POS[18][0] << "   " << "POS[19][0]" << POS[19][0] << "   " << "POS[20][0]" << POS[20][0] << std::endl;
+	
+	
+	
 	for (int i = 0; i < row - 1; i++)
 	{
 		//轨迹上切线的向量
-		double tangent[3] = { POS[18][i + 1] - POS[18][i],POS[19][i + 1] - POS[19][i] ,POS[20][i + 1] - POS[20][i] };
-		double x[3] = { 1, 0, 0 };
-		double y[3] = { 0, 1, 0 };
-		double z[3] = { 0, 0, 1 };
-		//求取切线与y轴的公法线向量
-		double vert[3] = { 0,0,0 };
-		//叉乘
-		s_c3(tangent, y, vert);
-		//求单位向量；
-		double sq = sqrt(vert[0] * vert[0] + vert[1] * vert[1] + vert[2] * vert[2] );
-        if(i<10)
-        {
-            std::cout<<"sq"<<sq<<std::endl;
-        }
-		double vert0[3] = { 0,0,0 };
-        for (int j = 0; j < 3; j++)
-		{
-            vert0[j] = vert[j] / sq;
-		}
-		//求点乘，由于是单位向量，点乘即角度
-		double dot = s_vv(3, vert0, z);
-		//注意theta的正负性,与Z轴成180度左右；
-		double theta = acos(dot);
-		//欧拉角是2pi,2pi,theta		
-		double pe[6] = { POS[18][i] ,POS[19][i] ,POS[20][i],atan(1) * 2 ,atan(1) * 2,theta };		
-		
-		//vector <vector <double>>pm(4, std::vector<double>(4, 0.0));
-		double pm[4][4];
-		//double pm[16];
-		//输出pm
-		s_pe2pm(pe, pm[0], "323");//必须是二位数组的第一个地址
-		//s_pe2pm(pe, *pm, "323");
-		double pq0[7] = { 0,0,0,0,0,0,0 };
-		//输出pq
-		s_pm2pq(pm[0], pq0);
 
-		for (int j = 0; j < 7; j++)
+		double tangent[3] = { POS[18][i + 1] - POS[18][i],POS[19][i + 1] - POS[19][i] ,POS[20][i + 1] - POS[20][i] };
+		double tangL= sqrt(tangent[0] * tangent[0] + tangent[1] * tangent[1] + tangent[2] * tangent[2]);
+		//点距离小于5mm时
+
+
+
+
+
+
+		if (tangL < 0.001)
 		{
-			pq[j].push_back(pq0[j]);
+			POS[18][i + 1] = POS[18][i];
+			POS[19][i + 1] = POS[19][i];
+			POS[20][i + 1] = POS[20][i];
+		}
+		else
+		{
+			
+			
+			double x[3] = { 1, 0, 0 };
+			double y[3] = { 0, 1, 0 };
+			double z[3] = { 0, 0, 1 };
+			//求取切线与y轴的公法线向量
+			double vert[3] = { 0,0,0 };
+			//叉乘
+			s_c3(tangent, y, vert);
+			//求单位向量；
+			double sq = sqrt(vert[0] * vert[0] + vert[1] * vert[1] + vert[2] * vert[2]);
+
+			
+			std::cout << "sq" << sq << std::endl;
+			
+			double vert0[3] = { 0,0,0 };
+			for (int j = 0; j < 3; j++)
+			{
+				vert0[j] = vert[j] / sq;
+			}
+			//求点乘，由于是单位向量，点乘即角度
+			double dot = s_vv(3, vert0, z);
+			//注意theta的正负性,与Z轴成180度左右；
+			double theta = acos(dot);
+			//欧拉角是2pi,2pi,theta		
+			double pe[6] = { POS[18][i] ,POS[19][i] ,POS[20][i],atan(1) * 2 ,atan(1) * 2,theta };
+
+			//vector <vector <double>>pm(4, std::vector<double>(4, 0.0));
+			double pm[4][4];
+			//double pm[16];
+			//输出pm
+			s_pe2pm(pe, pm[0], "323");//必须是二位数组的第一个地址
+			//s_pe2pm(pe, *pm, "323");
+			double pq0[7] = { 0,0,0,0,0,0,0 };
+			//输出pq
+			s_pm2pq(pm[0], pq0);
+			for (int s = 0; s < i - pq[0].size() + 1; s++)
+			{
+				for (int j = 0; j < 7; j++)
+				{
+					pq[j].push_back(pq0[j]);
+				}
+			}
+			
 		}
 	}
     std::cout << "pq[0][0]" << pq[0][0] << "    " << "pq[1][0]" << pq[1][0] << "    " << "pq[2][0]" << pq[2][0] << "pq[3][0]" << pq[3][0] << "    " << "pq[4][0]" << pq[4][0] << "    " << "pq[5][0]" << pq[5][0]<< "    " << "pq[6][0]" << pq[6][0]<<std::endl;
+	std::cout << "pq size:" << pq[0].size() << std::endl;
 }
 
 auto load_pq7(aris::Size count, aris::Size &start_count)->std::array<double, 14>
-{
-	
+{	
 	//定义新的14列容器temp
-	static	std::array<double, 14> temp = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
-
-	for (int j = 0; j < 7; j++)
+	std::array<double, 14> temp = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+	int pqsize = pq[0].size();
+	if (count - start_count < pqsize - 1)
 	{
-		temp[j] = pq[j][count- start_count];
-	}
-	if (count == start_count)
-	{
+		std::cout << "count- start_count" << count - start_count << std::endl;
 		for (int j = 0; j < 7; j++)
 		{
-			temp[j+7] = 0;
+			temp[j] = pq[j][count - start_count];
+		}
+		if (count == start_count)
+		{
+			for (int j = 0; j < 7; j++)
+			{
+				temp[j + 7] = 0;
+			}
+		}
+		//计算速度
+		else
+		{
+			for (int j = 0; j < 7; j++)
+			{
+				temp[j + 7] = (pq[j][count - start_count + 1] - pq[j][count - start_count]) / 1000;
+			}
 		}
 	}
-	//计算速度
 	else
 	{
 		for (int j = 0; j < 7; j++)
 		{
-			temp[j+7] = (pq[j][count - start_count]- pq[j][count - start_count -1])/1000;
+			temp[j] = pq[j][pqsize-1];
+			temp[j + 7] = (pq[j][pqsize - 1] - pq[j][pqsize - 2]) / 1000;
 		}
 	}
 	return temp;
