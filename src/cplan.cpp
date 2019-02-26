@@ -1,5 +1,5 @@
 ﻿#include "cplan.h"
-#include<math.h>
+#include <math.h>
 using namespace std;
 using namespace aris::plan;
 using namespace aris::dynamic;
@@ -506,6 +506,9 @@ RemoveFile::RemoveFile(const std::string &name) :Plan(name)
 }
 
 
+
+
+
 auto load_pq2(aris::Size count, aris::Size &start_count)->std::array<double,14>
 
 {
@@ -590,7 +593,7 @@ auto load_pq5()->void
     //string site = "/home/kaanh/Desktop/build-kaanh-Desktop_Qt_5_11_2_GCC_64bit-Default/log/rt_log--2019-02-20--16-34-25--4.txt";
 	std::cout << "start1" << std::endl;
     //string site = "C:/Users/kevin/Desktop/qch/rt_log--2019-02-20--16-34-25--4.txt";
-	string site = "C:/Users/qianch_kaanh_cn/Desktop/data/rt_log--2019-02-20--16-34-25--4.txt";
+	string site = "C:/Users/qianch_kaanh_cn/Desktop/data/rt_log--2019-02-25--21-28-30--5.txt";
 	//以下定义读取log文件的输入流oplog;
 	ifstream oplog;
 	oplog.open(site);
@@ -639,19 +642,17 @@ auto load_pq5()->void
 
 
 
-		if (tangL < 0.001)
+		if (tangL < 0.005)
 		{
 			POS[18][i + 1] = POS[18][i];
 			POS[19][i + 1] = POS[19][i];
 			POS[20][i + 1] = POS[20][i];
 		}
 		else
-		{
-			
-			
-			double x[3] = { 1, 0, 0 };
+		{			
+  			double x[3] = { 1, 0, 0 };
 			double y[3] = { 0, 1, 0 };
-			double z[3] = { 0, 0, 1 };
+			double z[3] = { 0, 0, -1 };
 			//求取切线与y轴的公法线向量
 			double vert[3] = { 0,0,0 };
 			//叉乘
@@ -669,10 +670,13 @@ auto load_pq5()->void
 			}
 			//求点乘，由于是单位向量，点乘即角度
 			double dot = s_vv(3, vert0, z);
+			//对dot做出限制
+			dot = std::max(dot, -1.0);
+			dot = std::min(dot, 1.0);
 			//注意theta的正负性,与Z轴成180度左右；
 			double theta = acos(dot);
 			//欧拉角是2pi,2pi,theta		
-			double pe[6] = { POS[18][i] ,POS[19][i] ,POS[20][i],atan(1) * 2 ,atan(1) * 2,theta };
+			double pe[6] = { POS[18][i] ,POS[19][i] ,POS[20][i],atan(1) * 2 ,atan(1) * 2,-theta };
 
 			//vector <vector <double>>pm(4, std::vector<double>(4, 0.0));
 			double pm[4][4];
@@ -697,14 +701,17 @@ auto load_pq5()->void
 	std::cout << "pq size:" << pq[0].size() << std::endl;
 }
 
+
+
 auto load_pq7(aris::Size count, aris::Size &start_count)->std::array<double, 14>
 {	
 	//定义新的14列容器temp
 	std::array<double, 14> temp = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 	int pqsize = pq[0].size();
+	std::cout << "pqsize" << pqsize << std::endl;
 	if (count - start_count < pqsize - 1)
 	{
-		std::cout << "count- start_count" << count - start_count << std::endl;
+		std::cout << "count- start_count" << count - start_count <<"pq[0][count- start_count]"<< pq[0][count - start_count]<<"   "<<"pq[1][count- start_count]"<< pq[1][count - start_count]<< std::endl;
 		for (int j = 0; j < 7; j++)
 		{
 			temp[j] = pq[j][count - start_count];
@@ -735,3 +742,12 @@ auto load_pq7(aris::Size count, aris::Size &start_count)->std::array<double, 14>
 	}
 	return temp;
 }
+
+
+
+
+
+
+
+
+
