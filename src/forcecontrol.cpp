@@ -944,15 +944,6 @@ namespace forcecontrol
         auto controller = dynamic_cast<aris::control::Controller *>(target.master);
 		std::array<double, 14> temp;
         temp = func(param.actual_count, param.start_count);
-        auto &cout = controller->mout();
-        if (target.count % 1000 == 0)
-        {
-            for(aris::Size i=0;i<14;i++)
-            {
-                cout<<temp[i]<<"  ";
-            }
-            cout<<std::endl;
-        }
 		std::copy(temp.begin(), temp.begin() + 7, param.pqt.begin());
 		std::copy(temp.begin() + 7, temp.begin() + 14, param.vqf.begin());
 	}
@@ -1271,7 +1262,7 @@ namespace forcecontrol
         param.vinteg.resize(6, 0.0);
         param.vproportion.resize(6, 0.0);
 
-		load_pq5();
+        //load_pq5();
 		for (auto &p : params)
 		{
 			if (p.first == "pqt")
@@ -1393,7 +1384,7 @@ namespace forcecontrol
 	{
 		auto &param = std::any_cast<MovePQBParam&>(target.param);
 		auto controller = dynamic_cast<aris::control::Controller *>(target.master);
-		controller->logFile("movePQB.txt");
+        //controller->logFile("movePQB.txt");
 		static bool is_running{ true };
 		bool ds_is_all_finished{ true };
 		bool md_is_all_finished{ true };
@@ -1441,23 +1432,25 @@ namespace forcecontrol
 		}
 
 		//函数选择判断
-        if(which_func == 1)
+        if(is_running)
         {
-            func[0] = load_pq1;
-        }
-        else if(which_func != 1)
-        {
-			func[0] = func[1];
-            if(one_time_counter)
+            if(which_func == 1)
             {
-                param.start_count = target.count;
-                one_time_counter = false;
+                func[0] = load_pq1;
             }
+            else if(which_func != 1)
+            {
+                func[0] = func[1];
+                if(one_time_counter)
+                {
+                    param.start_count = target.count;
+                    one_time_counter = false;
+                }
+            }
+            param.actual_count = target.count;
+            //加载数据
+            load_func(target, func[0]);
         }
-        param.actual_count = target.count;
-		//加载数据
-		load_func(target, func[0]);
-
 		//力控算法
 		force_control_algorithm(target, is_running);
 
