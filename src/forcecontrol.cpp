@@ -936,53 +936,7 @@ namespace forcecontrol
 		
 		return temp; 
 	}
-	//电机控制模式切换函数
-	auto motor_control_mode(PlanTarget &target, bool &is_running, bool &ds_is_all_finished, bool &md_is_all_finished)
-	{
-		auto &param = std::any_cast<MovePQBParam&>(target.param);
-		auto controller = dynamic_cast<aris::control::Controller *>(target.master);
-		//第一个周期，将目标电机的控制模式切换到电流控制模式		
-		if (target.count == 1)
-		{
-			//is_running = true;
-			for (Size i = 0; i < param.ft.size(); ++i)
-			{
-				controller->motionPool().at(i).setModeOfOperation(10);	//切换到电流控制
-			}
-		}
 
-		//最后一个周期将目标电机去使能
-		if (!enable_movePQB)
-		{
-			is_running = false;
-		}
-		if (!is_running)
-		{
-			for (Size i = 0; i < param.ft.size(); ++i)
-			{
-				auto ret = controller->motionPool().at(i).disable();
-				if (ret)
-				{
-					ds_is_all_finished = false;
-				}
-			}
-		}
-
-		//将目标电机由电流模式切换到位置模式
-		if (!is_running&&ds_is_all_finished)
-		{
-			for (Size i = 0; i < param.ft.size(); ++i)
-			{
-				controller->motionPool().at(i).setModeOfOperation(8);
-				auto ret = controller->motionPool().at(i).mode(8);
-				if (ret)
-				{
-					md_is_all_finished = false;
-				}
-			}
-		}
-
-	}
 	//加载pq函数
 	auto load_func(PlanTarget &target, std::function<std::array<double, 14>(aris::Size count, aris::Size &start_count)> func)->void
 	{
@@ -1277,30 +1231,6 @@ namespace forcecontrol
 			cout << "------------------------------------------------" << std::endl;
 		}
 
-		//log//
-		auto &lout = controller->lout();
-		for (Size i = 0; i < param.ft_pid.size(); i++)
-		{
-			lout << param.pt[i] << ",";
-			lout << controller->motionAtAbs(i).actualPos() << ",";
-			lout << param.vt[i] << ",";
-			lout << controller->motionAtAbs(i).actualVel() << ",";
-			lout << ft_offset[i] << ",";
-			lout << controller->motionAtAbs(i).actualCur() << ",";
-			lout << param.vproportion[i] << ",";
-			lout << param.vinteg[i] << ",";
-			lout << param.ft[i] << ",";
-			lout << param.ft_pid[i] << ",";
-			lout << ft_friction1[i] << ",";
-			lout << ft_friction[i] << ",";
-			lout << ft_dynamic[i] << ",";
-		}
-		//记录当前PQ值//
-		for (Size i = 0; i < param.pqb.size(); i++)
-		{
-			lout << param.pqb[i] << ",";
-		}
-		lout << std::endl;
 	}
 	//MovePQB成员函数实现
 	auto MovePQB::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
@@ -1459,7 +1389,46 @@ namespace forcecontrol
 		bool md_is_all_finished{ true };
 
 		//切换电机控制模式
-		motor_control_mode(target, is_running, ds_is_all_finished, md_is_all_finished);
+		//第一个周期，将目标电机的控制模式切换到电流控制模式		
+		if (target.count == 1)
+		{
+			//is_running = true;
+			for (Size i = 0; i < param.ft.size(); ++i)
+			{
+				controller->motionPool().at(i).setModeOfOperation(10);	//切换到电流控制
+			}
+		}
+
+		//最后一个周期将目标电机去使能
+		if (!enable_movePQB)
+		{
+			is_running = false;
+		}
+		if (!is_running)
+		{
+			for (Size i = 0; i < param.ft.size(); ++i)
+			{
+				auto ret = controller->motionPool().at(i).disable();
+				if (ret)
+				{
+					ds_is_all_finished = false;
+				}
+			}
+		}
+
+		//将目标电机由电流模式切换到位置模式
+		if (!is_running&&ds_is_all_finished)
+		{
+			for (Size i = 0; i < param.ft.size(); ++i)
+			{
+				controller->motionPool().at(i).setModeOfOperation(8);
+				auto ret = controller->motionPool().at(i).mode(8);
+				if (ret)
+				{
+					md_is_all_finished = false;
+				}
+			}
+		}
 
 		//函数选择判断
         if(which_func == 1)
@@ -1481,6 +1450,22 @@ namespace forcecontrol
 
 		//力控算法
 		force_control_algorithm(target, is_running);
+
+		//log//
+		auto &lout = controller->lout();
+		for (Size i = 0; i < param.ft_pid.size(); i++)
+		{
+			lout << controller->motionAtAbs(i).actualPos() << " ";
+			lout << controller->motionAtAbs(i).actualVel() << " ";
+			lout << controller->motionAtAbs(i).actualCur() << " ";
+		}
+		//记录当前PQ值//
+		for (Size i = 0; i < param.pqb.size(); i++)
+		{
+			lout << param.pqb[i] << " ";
+		}
+		lout << std::endl;
+
         auto &cout = controller->mout();
         if (target.count % 1000 == 0)
         {
