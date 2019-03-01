@@ -145,6 +145,7 @@ struct MoveFileParam
 
 int n = 25; // n代表txt文档中数据的列数
 vector<vector<double>  > POS(n);
+vector<vector<double>  > POS2;
 //读取指定文件夹的所有文件名，并存储在容器vector files[]中；
 
 void getFiles2(string path, vector<string>& files)  
@@ -509,41 +510,152 @@ RemoveFile::RemoveFile(const std::string &name) :Plan(name)
 
 
 
-auto load_pq2(aris::Size count, aris::Size &start_count)->std::array<double,14>
+
+
+
+
+
+
+//再mod中复现pq轨迹
+struct replayParam
+{
+	std::vector<std::vector<double>> pq_convert;
+	int col;
+};
+
+auto replay::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+{
+	replayParam param;
+
+	string site = "C:/Users/qianch_kaanh_cn/Desktop/data/rt_log--2019-02-27--14-15-05--6.txt";
+	//以下定义读取log文件的输入流oplog; 
+	ifstream oplog;
+
+	oplog.open(site);
+	//以下检查是否成功读取文件；
+	if (!oplog)
+	{
+		cout << "fail to open the file" << endl;
+		throw std::runtime_error("fail to open the file");
+		//return -1;//或者抛出异常。
+	}
+	while (!oplog.eof())
+	{
+		for (int j = 0; j < 25; j++)
+		{
+			double data;
+			oplog >> data;
+			POS[j].push_back(data);
+		}
+	}
+	oplog.close();
+	oplog.clear();
+	for (int j = 0; j < n; j++)
+	{
+		POS[j].pop_back();
+	}
+	param.col = POS[0].size();
+
+	param.pq_convert = std::vector<std::vector<double>>(param.col, std::vector<double>(7, 0));
+	//直接从POS中提取pq验证是否能复现
+	for (int i = 0; i < param.col; i++)
+	{
+		for (int j = 0; j < 7; j++)
+		{
+			param.pq_convert[i][j] = POS[j + 18][i];
+		}
+	}
+
+
+
+	target.param = param;
+	target.option =
+		//aris::plan::Plan::USE_TARGET_POS |
+		aris::plan::Plan::NOT_CHECK_VEL_MIN |
+		aris::plan::Plan::NOT_CHECK_VEL_MAX |
+		aris::plan::Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
+		aris::plan::Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
+		aris::plan::Plan::NOT_CHECK_VEL_FOLLOWING_ERROR |
+		aris::plan::Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START | // 开始不检查速度连续
+		aris::plan::Plan::NOT_CHECK_VEL_CONTINUOUS;
+	NOT_RUN_EXECUTE_FUNCTION;
+}
+
+
+auto replay::executeRT(PlanTarget &target)->int
+{
+	auto controller = dynamic_cast<aris::control::EthercatController *>(target.master);
+	auto &p = std::any_cast<replayParam&>(target.param);
+
+	target.model->generalMotionPool().at(0).setMpq(p.pq_convert[target.count - 1].data());
+
+	target.model->solverPool()[0].kinPos();
+
+	//std::cout << "p.pq_convert[target.count - 1].size():" << p.pq_convert[target.count - 1].size() << std::endl;
+	std::cout << "pq_convert1_7" << p.pq_convert[target.count - 1][0] << "   " << p.pq_convert[target.count - 1][1] << "   " << p.pq_convert[target.count - 1][2] << std::endl;
+	std::cout << "pq_convert1_7:   " << p.pq_convert[target.count - 1][3] << "   " << p.pq_convert[target.count - 1][4] << "   " << p.pq_convert[target.count - 1][5] << "   " << p.pq_convert[target.count - 1][6] << std::endl;
+	//std::cout << "target.count:  " << target.count << std::endl;
+	//if(p.pq_convert[1][1]==pq[1][1] && p.pq_convert[2][2] == pq[2][2] && p.pq_convert[3][3] == pq[3][3])
+		//std::cout << "convert successfully in executeRT" << std::endl;
+	return p.col - target.count;
+
+}
+
+
+replay::replay(const std::string &name) :Plan(name)
+{
+	command().loadXmlStr(
+		"<rp>"
+		"	<group type=\"GroupParam\" default_child_type=\"Param\">"
+		//"	    <total_time type=\"Param\" default=\"5000\"/>" // 默认5000
+		//"		<vel type=\"Param\" default=\"0.04\"/>"
+		//"		<acc type=\"Param\" default=\"0.08\"/>"
+		//"		<dec type=\"Param\" default=\"0.08\"/>"
+		//"		<choose type=\"Param\" default=\"0\"/>"
+		//"		<pt type=\"Param\" default=\"{0.0,0.0,0.0,0.0,0.0,0.0}\"/>"
+		//"		<file type=\"Param\" default=\"1.txt\" abbreviation=\"f\"/>"
+		"	</group>"
+		"</rp>");
+}
+
+
+
+
+auto load_pq2(aris::Size count, aris::Size &start_count)->std::array<double, 14>
 
 {
-    std::array<double, 14> temp = {-0.122203,0.386206,0.0139912,-0.492466,0.474288,0.511942,0.520041,0,0,0,0,0,0,0};
-    std::array<double, 7> targetpos1 = {-0.122203,0.386206,0.0139912,-0.492466,0.474288,0.511942,0.520041};
-    std::array<double, 7> targetpos2 = {-0.122203,0.466206,0.0139912,-0.492466,0.474288,0.511942,0.520041};
-    std::array<double, 7> targetpos3 = {0.162203,0.466206,0.0139912,-0.492466,0.474288,0.511942,0.520041};
-    std::array<double, 7> targetpos4 = {0.162203,0.386206,0.0,-0.492466,0.474288,0.511942,0.520041};
-    std::array<double, 7> targetpos5 = {-0.122203,0.386206,0.0,-0.492466,0.474288,0.511942,0.520041};
-    double vel=0.04, acc=0.08, dec=0.08, v, a;
+	std::array<double, 14> temp = { -0.122203,0.386206,0.0139912,-0.492466,0.474288,0.511942,0.520041,0,0,0,0,0,0,0 };
+	std::array<double, 7> targetpos1 = { -0.122203,0.386206,0.0139912,-0.492466,0.474288,0.511942,0.520041 };
+	std::array<double, 7> targetpos2 = { -0.122203,0.466206,0.0139912,-0.492466,0.474288,0.511942,0.520041 };
+	std::array<double, 7> targetpos3 = { 0.162203,0.466206,0.0139912,-0.492466,0.474288,0.511942,0.520041 };
+	std::array<double, 7> targetpos4 = { 0.162203,0.386206,0.0,-0.492466,0.474288,0.511942,0.520041 };
+	std::array<double, 7> targetpos5 = { -0.122203,0.386206,0.0,-0.492466,0.474288,0.511942,0.520041 };
+	double vel = 0.04, acc = 0.08, dec = 0.08, v, a;
 	aris::Size t_count;
-    static aris::Size count_last = 0, count_last2 = 0, count_last3 = 0, count_last4 = 0;//上个轨迹完成共消耗的count ,每个阶段单独的时间
-    if(count == start_count)
-    {
-        for (int i = 0; i < 3; i++)
-        {
-            aris::plan::moveAbsolute(1, targetpos1[i], targetpos2[i], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, temp[i], v, a, t_count);
-            count_last = std::max(t_count, count_last);
-        }
-        for (int i = 0; i < 3; i++)
-        {
-            aris::plan::moveAbsolute(1, targetpos2[i], targetpos3[i], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, temp[i], v, a, t_count);
-            count_last2 = std::max(t_count, count_last2);
-        }
-        for (int i = 0; i < 3; i++)
-        {
-            aris::plan::moveAbsolute(1, targetpos3[i], targetpos4[i], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, temp[i], v, a, t_count);
-            count_last3 = std::max(t_count, count_last3);
-        }
-        for (int i = 0; i < 3; i++)
-        {
-            aris::plan::moveAbsolute(1, targetpos4[i], targetpos5[i], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, temp[i], v, a, t_count);
-            count_last4 = std::max(t_count, count_last4);
-        }
-    }
+	static aris::Size count_last = 0, count_last2 = 0, count_last3 = 0, count_last4 = 0;//上个轨迹完成共消耗的count ,每个阶段单独的时间
+	if (count == start_count)
+	{
+		for (int i = 0; i < 3; i++)
+		{
+			aris::plan::moveAbsolute(1, targetpos1[i], targetpos2[i], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, temp[i], v, a, t_count);
+			count_last = std::max(t_count, count_last);
+		}
+		for (int i = 0; i < 3; i++)
+		{
+			aris::plan::moveAbsolute(1, targetpos2[i], targetpos3[i], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, temp[i], v, a, t_count);
+			count_last2 = std::max(t_count, count_last2);
+		}
+		for (int i = 0; i < 3; i++)
+		{
+			aris::plan::moveAbsolute(1, targetpos3[i], targetpos4[i], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, temp[i], v, a, t_count);
+			count_last3 = std::max(t_count, count_last3);
+		}
+		for (int i = 0; i < 3; i++)
+		{
+			aris::plan::moveAbsolute(1, targetpos4[i], targetpos5[i], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, temp[i], v, a, t_count);
+			count_last4 = std::max(t_count, count_last4);
+		}
+	}
 
 	//1
 	if (count <= count_last + start_count)
@@ -563,7 +675,7 @@ auto load_pq2(aris::Size count, aris::Size &start_count)->std::array<double,14>
 		}
 	}
 	//3
-	else if (count <= count_last3 + count_last2 + count_last + start_count && count >count_last2 + count_last + start_count)
+	else if (count <= count_last3 + count_last2 + count_last + start_count && count > count_last2 + count_last + start_count)
 	{
 		for (int i = 0; i < 3; i++)
 		{
@@ -583,17 +695,16 @@ auto load_pq2(aris::Size count, aris::Size &start_count)->std::array<double,14>
 
 
 
-
-
 std::vector<std::vector<double>> pq(7);
 //在prepare函数中提前读好txt文档中的数据
 auto load_pq5()->void
 {
 	//将文件中的数据读取到POS中，共25列；
-    //string site = "/home/kaanh/Desktop/build-kaanh-Desktop_Qt_5_11_2_GCC_64bit-Default/log/rt_log--2019-02-20--16-34-25--4.txt";
-	std::cout << "start1" << std::endl;
-    //string site = "C:/Users/kevin/Desktop/qch/rt_log--2019-02-20--16-34-25--4.txt";
-	string site = "C:/Users/qianch_kaanh_cn/Desktop/data/rt_log--2019-02-25--21-28-30--5.txt";
+	//string site = "/home/kaanh/Desktop/build-kaanh-Desktop_Qt_5_11_2_GCC_64bit-Default/log/rt_log--2019-02-20--16-34-25--4.txt";
+	//std::cout << "start1" << std::endl;
+	//string site = "C:/Users/kevin/Desktop/qch/rt_log--2019-02-20--16-34-25--4.txt";
+	string site = "C:/Users/qianch_kaanh_cn/Desktop/data/rt_log--2019-02-27--14-15-05--6.txt";
+	//string site = "C:/Users/qianch_kaanh_cn/Desktop/data/rt_log--2019-02-27--14-13-05--7.txt";
 	//以下定义读取log文件的输入流oplog;
 	ifstream oplog;
 	oplog.open(site);
@@ -608,7 +719,12 @@ auto load_pq5()->void
 	{
 		POS[i].clear();
 	}
-	
+	//清空pq；
+	for (int i = 0; i < 7; i++)
+	{
+		pq[i].clear();
+	}
+
 	while (!oplog.eof())
 	{
 		for (int j = 0; j < n; j++)
@@ -626,20 +742,15 @@ auto load_pq5()->void
 	}
 	int row = POS[0].size();//总行数
 	std::cout << "POS[18][0]" << POS[18][0] << "   " << "POS[19][0]" << POS[19][0] << "   " << "POS[20][0]" << POS[20][0] << std::endl;
-	
-	
-	
+
+
+
 	for (int i = 0; i < row - 1; i++)
 	{
 		//轨迹上切线的向量
-
 		double tangent[3] = { POS[18][i + 1] - POS[18][i],POS[19][i + 1] - POS[19][i] ,POS[20][i + 1] - POS[20][i] };
-		double tangL= sqrt(tangent[0] * tangent[0] + tangent[1] * tangent[1] + tangent[2] * tangent[2]);
+		double tangL = sqrt(tangent[0] * tangent[0] + tangent[1] * tangent[1] + tangent[2] * tangent[2]);
 		//点距离小于5mm时
-
-
-
-
 
 
 		if (tangL < 0.005)
@@ -649,8 +760,8 @@ auto load_pq5()->void
 			POS[20][i + 1] = POS[20][i];
 		}
 		else
-		{			
-  			double x[3] = { 1, 0, 0 };
+		{
+			double x[3] = { 1, 0, 0 };
 			double y[3] = { 0, 1, 0 };
 			double z[3] = { 0, 0, -1 };
 			//求取切线与y轴的公法线向量
@@ -660,29 +771,39 @@ auto load_pq5()->void
 			//求单位向量；
 			double sq = sqrt(vert[0] * vert[0] + vert[1] * vert[1] + vert[2] * vert[2]);
 
-			
+
 			std::cout << "sq" << sq << std::endl;
-			
+
 			double vert0[3] = { 0,0,0 };
 			for (int j = 0; j < 3; j++)
 			{
 				vert0[j] = vert[j] / sq;
 			}
+			//先求叉乘，再求arcsin
+			double vertsin[3] = { 0,0,0 };
+			s_c3(vert0, z, vertsin);
+			double vsmo = sqrt(vertsin[0] * vertsin[0] + vertsin[1] * vertsin[1] + vertsin[2] * vertsin[2]);
 			//求点乘，由于是单位向量，点乘即角度
-			double dot = s_vv(3, vert0, z);
+			//double dot = s_vv(3, vert0, z);
 			//对dot做出限制
-			dot = std::max(dot, -1.0);
-			dot = std::min(dot, 1.0);
+			vsmo = std::max(vsmo, -1.0);
+			vsmo = std::min(vsmo, 1.0);
 			//注意theta的正负性,与Z轴成180度左右；
-			double theta = acos(dot);
+			double theta = asin(vsmo);
 			//欧拉角是2pi,2pi,theta		
-			double pe[6] = { POS[18][i] ,POS[19][i] ,POS[20][i],atan(1) * 2 ,atan(1) * 2,-theta };
+			//相对
+			double pe[6] = { POS[18][i] ,POS[19][i] ,POS[20][i],atan(1) * 2 ,atan(1) * 2 , -theta };
 
+			//绝对
+			//double pe[6] = { POS[18][i] ,POS[19][i] ,POS[20][i], atan(1) * 2,-atan(1) * 2 , theta };
 			//vector <vector <double>>pm(4, std::vector<double>(4, 0.0));
 			double pm[4][4];
 			//double pm[16];
 			//输出pm
+			//相对
 			s_pe2pm(pe, pm[0], "323");//必须是二位数组的第一个地址
+			//绝对
+			//s_pe2pm(pe, pm[0], "312");
 			//s_pe2pm(pe, *pm, "323");
 			double pq0[7] = { 0,0,0,0,0,0,0 };
 			//输出pq
@@ -694,41 +815,39 @@ auto load_pq5()->void
 					pq[j].push_back(pq0[j]);
 				}
 			}
-			
 		}
 	}
-    std::cout << "pq[0][0]" << pq[0][0] << "    " << "pq[1][0]" << pq[1][0] << "    " << "pq[2][0]" << pq[2][0] << "pq[3][0]" << pq[3][0] << "    " << "pq[4][0]" << pq[4][0] << "    " << "pq[5][0]" << pq[5][0]<< "    " << "pq[6][0]" << pq[6][0]<<std::endl;
+	std::cout << "pq[0][0]" << pq[0][0] << "    " << "pq[1][0]" << pq[1][0] << "    " << "pq[2][0]" << pq[2][0] << "pq[3][0]" << pq[3][0] << "    " << "pq[4][0]" << pq[4][0] << "    " << "pq[5][0]" << pq[5][0] << "    " << "pq[6][0]" << pq[6][0] << std::endl;
 	std::cout << "pq size:" << pq[0].size() << std::endl;
 }
 
 
-
 auto load_pq7(aris::Size count, aris::Size &start_count)->std::array<double, 14>
-{	
+{
 	//定义新的14列容器temp
 	std::array<double, 14> temp = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 	int pqsize = pq[0].size();
 	std::cout << "pqsize" << pqsize << std::endl;
 	if (count - start_count < pqsize - 1)
 	{
-		std::cout << "count- start_count" << count - start_count <<"pq[0][count- start_count]"<< pq[0][count - start_count]<<"   "<<"pq[1][count- start_count]"<< pq[1][count - start_count]<< std::endl;
+		std::cout << "count- start_count" << count - start_count << "pq[0][count- start_count]" << pq[0][count - start_count] << "   " << "pq[1][count- start_count]" << pq[1][count - start_count] << std::endl;
 		for (int j = 0; j < 7; j++)
 		{
 			temp[j] = pq[j][count - start_count];
 		}
 		if (count == start_count)
 		{
-			for (int j = 0; j < 7; j++)
+			for (int s = 0; s < 7; s++)
 			{
-				temp[j + 7] = 0;
+				temp[s + 7] = 0;
 			}
 		}
 		//计算速度
 		else
 		{
-			for (int j = 0; j < 7; j++)
+			for (int s = 0; s < 7; s++)
 			{
-				temp[j + 7] = (pq[j][count - start_count + 1] - pq[j][count - start_count]) / 1000;
+				temp[s + 7] = (pq[s][count - start_count + 1] - pq[s][count - start_count]) / 1000;
 			}
 		}
 	}
@@ -736,7 +855,7 @@ auto load_pq7(aris::Size count, aris::Size &start_count)->std::array<double, 14>
 	{
 		for (int j = 0; j < 7; j++)
 		{
-			temp[j] = pq[j][pqsize-1];
+			temp[j] = pq[j][pqsize - 1];
 			temp[j + 7] = (pq[j][pqsize - 1] - pq[j][pqsize - 2]) / 1000;
 		}
 	}
@@ -744,10 +863,239 @@ auto load_pq7(aris::Size count, aris::Size &start_count)->std::array<double, 14>
 }
 
 
+//第9个方程是数据不经过处理，从POS中采取间隔一定距离的点来采集数据
+auto load_pq9()->void
+{
+	//将文件中的数据读取到POS中，共25列；
+	//string site = "/home/kaanh/Desktop/build-kaanh-Desktop_Qt_5_11_2_GCC_64bit-Default/log/rt_log--2019-02-20--16-34-25--4.txt";
+	//std::cout << "start1" << std::endl;
+	//string site = "C:/Users/kevin/Desktop/qch/rt_log--2019-02-20--16-34-25--4.txt";
+	string site = "C:/Users/qianch_kaanh_cn/Desktop/data/rt_log--2019-02-28--23-25-52--5.txt";
+	//string site = "C:/Users/qianch_kaanh_cn/Desktop/data/rt_log--2019-02-27--14-13-05--7.txt";
+	//以下定义读取log文件的输入流oplog;
+	ifstream oplog;
+	oplog.open(site);
+	//以下检查是否成功读取文件；
+	if (!oplog)
+	{
+		cout << "fail to open the file" << endl;
+		throw std::runtime_error("fail to open the file");
+		//return -1;//或者抛出异常。
+	}
+	for (int i = 0; i < 25; i++)
+	{
+		POS[i].clear();
+	}
+	//清除pq，防止多次调用累积增加
+	for (int i = 0; i < 7; i++)
+	{
+		pq[i].clear();
+	}
+
+	while (!oplog.eof())
+	{
+		for (int j = 0; j < n; j++)
+		{
+			double data;
+			oplog >> data;
+			POS[j].push_back(data);
+		}
+	}
+	oplog.close();
+	oplog.clear();
+	for (int j = 0; j < n; j++)
+	{
+		POS[j].pop_back();
+	}
+	
+	///以下定义二位数组POS2，是从POS中间隔取点
+	//先定义取点的间隔p_space
+	/*
+	int p_space = 1;//间隔50个点取一次数据
+	int loop2 = (int)POS[0].size() / p_space;
+	POS2 = std::vector<std::vector<double>>(25, std::vector<double>(loop2, 0));
+	*/
+	std::vector<std::vector<double>>POS2(25);
+	for (int i = 0; i < 25; i++)
+	{
+		POS2[i].clear();
+	}
+	for (int j = 0; j < POS[0].size()-1; j++)
+	{
+		double tangent[3] = { POS[18][j + 1] - POS[18][j],POS[19][j + 1] - POS[19][j] ,POS[20][j + 1] - POS[20][j] };
+		double tangL = sqrt(tangent[0] * tangent[0] + tangent[1] * tangent[1] + tangent[2] * tangent[2]);
+		if (tangL < 5*10e-6)//-6
+			continue;
+		else
+		{
+			for (int i = 0; i < 25; i++)
+			{
+				POS2[i].push_back(POS[i][j]);
+				POS2[i].push_back(POS[i][j+1]);
+			}
+			j++;
+		}
+	}
+	
+	//POS2完成数据转换，数据没有更改
+	int row = POS2[0].size();//总行数
+	//std::cout << "POS2[18][0]" << POS2[18][0] << "   " << "POS2[19][0]" << POS2[19][0] << "   " << "POS2[20][0]" << POS2[20][0] << std::endl;
+	int step_i = 1;
+	for (int i = 0; i < row - 1; i=i+ step_i)
+	{
+		//轨迹上切线的向量
+		double tangent[3] = { POS2[18][i + step_i] - POS2[18][i],POS2[19][i + step_i] - POS2[19][i] ,POS2[20][i + step_i] - POS2[20][i] };
+		double tangL = sqrt(tangent[0] * tangent[0] + tangent[1] * tangent[1] + tangent[2] * tangent[2]);
+
+		//点距离小于5mm时
+
+			double x[3] = { 1, 0, 0 };
+			double y[3] = { 0, 1, 0 };
+			double z[3] = { 0, 0, -1 };
+			//求取切线与y轴的公法线向量
+			double vert[3] = { 0,0,0 }; 
+			//叉乘
+			s_c3(tangent, y, vert);
+			//先求出垂直向量的模，再除以模长求出单位向量；
+			
+
+			double sq = sqrt(vert[0] * vert[0] + vert[1] * vert[1] + vert[2] * vert[2]);
+
+			std::cout << "sq" << sq << std::endl;
+
+			double vert0[3] = { 0,0,0 };
+			for (int j = 0; j < 3; j++)
+			{
+				vert0[j] = vert[j] / sq;
+			}
+			//先求叉乘，再求arcsin
+			double vertsin[3] = { 0,0,0 };
+			s_c3(vert0, z, vertsin);
+			double vsmo = sqrt(vertsin[0] * vertsin[0] + vertsin[1] * vertsin[1] + vertsin[2] * vertsin[2]);
+			//求点乘，由于是单位向量，点乘即角度
+			//double dot = s_vv(3, vert0, z);
+			//对dot做出限制
+			vsmo = std::max(vsmo, -1.0);
+			vsmo = std::min(vsmo, 1.0);
+			//注意theta的正负性,与Z轴成180度左右；
+			double theta = asin(vsmo);
+			//欧拉角是2pi,2pi,theta		
+			//相对
+			double pe[6] = { POS2[18][i] ,POS2[19][i] ,POS2[20][i],atan(1) * 2 ,atan(1) * 2 , -theta };
+
+			//绝对
+			//double pe[6] = { POS[18][i] ,POS[19][i] ,POS[20][i], atan(1) * 2,-atan(1) * 2 , theta };
+			//vector <vector <double>>pm(4, std::vector<double>(4, 0.0));
+			double pm[4][4];
+			//double pm[16];
+			//输出pm
+			//相对
+			s_pe2pm(pe, pm[0], "323");//必须是二位数组的第一个地址
+			//绝对
+			//s_pe2pm(pe, pm[0], "312");
+			//s_pe2pm(pe, *pm, "323");
+			double pq0[7] = { 0,0,0,0,0,0,0 };
+			//输出pq
+			s_pm2pq(pm[0], pq0);
+			
+			for (int j = 0; j < 7; j++)
+			{
+				pq[j].push_back(pq0[j]);
+			}
+			
+		
+	}
+	std::cout << "pq[0][0]" << pq[0][0] << "    " << "pq[1][0]" << pq[1][0] << "    " << "pq[2][0]" << pq[2][0] << "pq[3][0]" << pq[3][0] << "    " << "pq[4][0]" << pq[4][0] << "    " << "pq[5][0]" << pq[5][0] << "    " << "pq[6][0]" << pq[6][0] << std::endl;
+	std::cout << "pq size:" << pq[0].size() << std::endl;
+}
 
 
 
 
+
+struct MoveinModelParam
+{
+	//int total_time;
+	std::vector<std::vector<double>> pq_convert;
+};
+//int col = pq[0].size();
+//std::vector<std::vector<double>> pq_convert(col, std::vector<double>(7, 0));
+auto MoveinModel::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+{
+	//load_pq5();
+	load_pq9();
+	//得到二维数组pq;
+	//获取行数
+	int col = pq[0].size();
+	MoveinModelParam param;
+	param.pq_convert = std::vector<std::vector<double>>(col, std::vector<double>(7, 0));
+	//将pq行与列转换
+	for (int i = 0; i < col; i++)
+	{
+		for (int j = 0; j < 7; j++)
+		{
+			param.pq_convert[i][j] = pq[j][i];
+		}
+	}
+	if (param.pq_convert[1][1] == pq[1][1] && param.pq_convert[2][2] == pq[2][2] && param.pq_convert[3][3] == pq[3][3])
+		std::cout << "convert successfully" << std::endl;
+	
+	
+
+
+
+
+
+
+
+	target.param = param;
+	target.option =
+		//aris::plan::Plan::USE_TARGET_POS |
+		aris::plan::Plan::NOT_CHECK_VEL_MIN |
+		aris::plan::Plan::NOT_CHECK_VEL_MAX |
+		aris::plan::Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
+		aris::plan::Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
+		aris::plan::Plan::NOT_CHECK_VEL_FOLLOWING_ERROR |
+		aris::plan::Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START | // 开始不检查速度连续
+		aris::plan::Plan::NOT_CHECK_VEL_CONTINUOUS;
+		NOT_RUN_EXECUTE_FUNCTION;
+}
+
+auto MoveinModel::executeRT(PlanTarget &target)->int
+{
+	auto controller = dynamic_cast<aris::control::EthercatController *>(target.master);
+	auto &p = std::any_cast<MoveinModelParam&>(target.param);
+	
+	target.model->generalMotionPool().at(0).setMpq(p.pq_convert[target.count-1].data());
+
+	target.model->solverPool()[0].kinPos();
+
+	//std::cout << "p.pq_convert[target.count - 1].size():" << p.pq_convert[target.count - 1].size() << std::endl;
+	std::cout << "pq_convert1_7" << p.pq_convert[target.count - 1][0] <<"   "<< p.pq_convert[target.count - 1][1] << "   " << p.pq_convert[target.count - 1][2] << std::endl;
+	std::cout << "pq_convert1_7:   " << p.pq_convert[target.count - 1][3] << "   " << p.pq_convert[target.count - 1][4] << "   " << p.pq_convert[target.count - 1][5] << "   " << p.pq_convert[target.count - 1][6] << std::endl;
+	//std::cout << "target.count:  " << target.count << std::endl;
+	//if(p.pq_convert[1][1]==pq[1][1] && p.pq_convert[2][2] == pq[2][2] && p.pq_convert[3][3] == pq[3][3])
+		//std::cout << "convert successfully in executeRT" << std::endl;
+	return pq[0].size()- target.count;
+	
+}
+
+
+MoveinModel::MoveinModel(const std::string &name) :Plan(name)
+{
+	command().loadXmlStr(
+		"<mvinmod>"
+		"	<group type=\"GroupParam\" default_child_type=\"Param\">"
+		//"	    <total_time type=\"Param\" default=\"5000\"/>" // 默认5000
+		//"		<vel type=\"Param\" default=\"0.04\"/>"
+		//"		<acc type=\"Param\" default=\"0.08\"/>"
+		//"		<dec type=\"Param\" default=\"0.08\"/>"
+		//"		<choose type=\"Param\" default=\"0\"/>"
+		//"		<pt type=\"Param\" default=\"{0.0,0.0,0.0,0.0,0.0,0.0}\"/>"
+		//"		<file type=\"Param\" default=\"1.txt\" abbreviation=\"f\"/>"
+		"	</group>"
+		"</mvinmod>");
+}
 
 
 
