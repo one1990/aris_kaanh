@@ -822,6 +822,10 @@ auto load_pq5()->void
 }
 
 
+
+
+
+//函数pq7是将pq转化为带速度的参数temp
 auto load_pq7(aris::Size count, aris::Size &start_count)->std::array<double, 14>
 {
 	//定义新的14列容器temp
@@ -863,6 +867,9 @@ auto load_pq7(aris::Size count, aris::Size &start_count)->std::array<double, 14>
 }
 
 
+///函数pq9是采用廖能超的方法从POS开始截取数据
+//记录上一个切线向量的z轴值
+//double tangentz_last;
 //第9个方程是数据不经过处理，从POS中采取间隔一定距离的点来采集数据
 auto load_pq9()->void
 {
@@ -946,7 +953,25 @@ auto load_pq9()->void
 		//轨迹上切线的向量
 		double tangent[3] = { POS2[18][i + step_i] - POS2[18][i],POS2[19][i + step_i] - POS2[19][i] ,POS2[20][i + step_i] - POS2[20][i] };
 		double tangL = sqrt(tangent[0] * tangent[0] + tangent[1] * tangent[1] + tangent[2] * tangent[2]);
-
+		//定义与Z轴方向的欧拉角系数coe
+		int coe;
+		/*if(std::abs(tangent[2]- tangentz_last)>10e-6 && tangent[2] > 0)
+		{
+			coe = 1;
+		}
+		else
+		{
+			coe = -1;
+		}*/
+		if (tangent[2] > 0)
+		{
+			coe = 1;
+		}
+		else
+		{
+			coe = -1;
+		}
+		//tangentz_last = tangent[2];
 		//点距离小于5mm时
 
 			double x[3] = { 1, 0, 0 };
@@ -981,7 +1006,8 @@ auto load_pq9()->void
 			double theta = asin(vsmo);
 			//欧拉角是2pi,2pi,theta		
 			//相对
-			double pe[6] = { POS2[18][i] ,POS2[19][i] ,POS2[20][i],atan(1) * 2 ,atan(1) * 2 , -theta };
+			//double pe[6] = { POS2[18][i] ,POS2[19][i] ,POS2[20][i],atan(1) * 2 ,atan(1) * 2 , -theta };
+			double pe[6] = { POS2[18][i] ,POS2[19][i] ,POS2[20][i],atan(1) * 2 ,atan(1) * 2 , coe * theta };
 
 			//绝对
 			//double pe[6] = { POS[18][i] ,POS[19][i] ,POS[20][i], atan(1) * 2,-atan(1) * 2 , theta };
