@@ -185,13 +185,15 @@ namespace forcecontrol
 		target.model->solverPool()[1].kinVel();
 		target.model->solverPool()[2].dynAccAndFce();
 
+        double ft_offset = 0;
+        static int counter=0;
 		if (is_running)
 		{
 			for (Size i = 0; i < param.joint_active_vec.size(); ++i)
 			{
 				if (param.joint_active_vec[i])
 				{
-					double p, v, pa, vt, va, voff, ft, foff, ft_offset;
+                    double p, v, pa, vt, va, voff, ft, foff;
 					p = controller->motionAtAbs(i).actualPos();
 					v = 0.0;
 					pa = controller->motionAtAbs(i).actualPos();
@@ -214,16 +216,52 @@ namespace forcecontrol
 					//constexpr double f_vel[6] = { 7.80825641,13.26518528,7.856443575,3.354615249,1.419632126,0.319206404 };
 					//constexpr double f_acc[6] = { 0,3.555679326,0.344454603,0.148247716,0.048552673,0.033815455 };
 					//constexpr double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
-					//constexpr double max_static_vel[6] = { 0.1, 0.1, 0.1, 0.05, 0.05, 0.075 };
+                    //constexpr double max_static_vel[6] = { 0.1, 0.1, 0.1, 0.05, 0.05, 0.075 };
 					//constexpr double f_static_index[6] = { 0.5, 0.5, 0.5, 0.85, 0.95, 0.8 };
 
-					auto real_vel = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
-					ft_offset = (f_vel[i] * controller->motionAtAbs(i).actualVel() + f_static_index[i] * f_static[i] * real_vel / max_static_vel[i])*f2c_index[i];
+                    auto real_vel = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
+                    ft_offset = (f_vel_JRC[i] * controller->motionAtAbs(i).actualVel() + f_static_index_JRC[i] * f_static[i] * real_vel / max_static_vel[i])*f2c_index[i];
+
+                    /*
+                    double f_col = 8.5;
+                    int sign_vel = 0;
+                    if(controller->motionAtAbs(i).actualVel()>0.05)
+                    {
+                        sign_vel = 1;
+                    }
+                    else if(controller->motionAtAbs(i).actualVel()<-0.05)
+                    {
+                        sign_vel = -1;
+                    }
+                    else
+                    {
+                        sign_vel = 0;
+                    }
+
+                    if(sign_vel == 0)
+                    {
+                        if(counter<200)
+                           ft_offset = 6;
+                        else
+                           ft_offset = -6;
+                    }
+                    else
+                    {
+                        ft_offset = f_vel[i] * controller->motionAtAbs(i).actualVel() + sign_vel*f_col;
+                        //ft_offset=0;
+                    }
+                     counter++;
+                     if(counter>400)
+                         counter=0;
+
+                    ft_offset = ft_offset * f2c_index[0];
+                    */
 
 					ft_offset = std::max(-500.0, ft_offset);
 					ft_offset = std::min(500.0, ft_offset);
 
-					controller->motionAtAbs(i).setTargetCur(ft_offset + target.model->motionPool()[i].mfDyn()*f2c_index[i]);
+                    controller->motionAtAbs(i).setTargetCur(ft_offset + target.model->motionPool()[i].mfDyn()*f2c_index[i]);
+
 
 					//打印PID控制结果
 					/*
@@ -247,23 +285,26 @@ namespace forcecontrol
 
 		// 打印电流 //
 		auto &cout = controller->mout();
-		if (target.count % 100 == 0)
+        if (target.count % 1000 == 0)
 		{
+
 			for (Size i = 0; i < param.joint_active_vec.size(); i++)
 			{
 				if (param.joint_active_vec[i])
 				{
-					cout << "pos" << i + 1 << ":" << std::setw(6) << controller->motionAtAbs(i).actualPos() << "  ";
-					cout << "vel" << i + 1 << ":" << std::setw(6) << controller->motionAtAbs(i).actualVel() << "  ";
-					cout << "cur" << i + 1 << ":" << std::setw(6) << controller->motionAtAbs(i).actualCur() << "  ";
+                    cout << "pos" << i + 1 << ":" << std::setw(6) << controller->motionAtAbs(i).actualPos() << ",";
+                    cout << "vel" << i + 1 << ":" << std::setw(6) << controller->motionAtAbs(i).actualVel() << ",";
+                    cout << "cur" << i + 1 << ":" << std::setw(6) << controller->motionAtAbs(i).actualCur() << ",";
 				}
 			}
+
 			cout << "pq: ";
 			for (Size i = 0; i < 7; i++)
 			{
 				cout << std::setw(6) << pqa[i] << " ";
 			}
-			cout << std::endl;
+
+            cout << std::endl;
 		}
 
 		// log 位置、速度、电流 //
