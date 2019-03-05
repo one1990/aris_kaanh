@@ -110,7 +110,7 @@ namespace forcecontrol
 	{
 		auto &param = std::any_cast<MoveJRCParam&>(target.param);
 		auto controller = dynamic_cast<aris::control::Controller *>(target.master);
-		static bool is_running{ true };
+        bool is_running{ true };
 		static double vinteg[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 		double pqa[7] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 		bool ds_is_all_finished{ true };
@@ -161,8 +161,10 @@ namespace forcecontrol
 			{
 				if (param.joint_active_vec[i])
 				{
-					controller->motionPool().at(i).setModeOfOperation(8);
-					auto ret = controller->motionPool().at(i).mode(8);
+                    auto &cm = controller->motionPool().at(i);
+                    controller->motionPool().at(i).setModeOfOperation(8);
+                    auto ret = cm.mode(8);
+                    cm.setTargetPos(cm.actualPos());
 					if (ret)
 					{
 						md_is_all_finished = false;
@@ -183,13 +185,15 @@ namespace forcecontrol
 		target.model->solverPool()[1].kinVel();
 		target.model->solverPool()[2].dynAccAndFce();
 
+        double ft_offset = 0;
+        static int counter=0;
 		if (is_running)
 		{
 			for (Size i = 0; i < param.joint_active_vec.size(); ++i)
 			{
 				if (param.joint_active_vec[i])
 				{
-					double p, v, pa, vt, va, voff, ft, foff, ft_offset;
+                    double p, v, pa, vt, va, voff, ft, foff;
 					p = controller->motionAtAbs(i).actualPos();
 					v = 0.0;
 					pa = controller->motionAtAbs(i).actualPos();
@@ -212,16 +216,52 @@ namespace forcecontrol
 					//constexpr double f_vel[6] = { 7.80825641,13.26518528,7.856443575,3.354615249,1.419632126,0.319206404 };
 					//constexpr double f_acc[6] = { 0,3.555679326,0.344454603,0.148247716,0.048552673,0.033815455 };
 					//constexpr double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
-					//constexpr double max_static_vel[6] = { 0.1, 0.1, 0.1, 0.05, 0.05, 0.075 };
+                    //constexpr double max_static_vel[6] = { 0.1, 0.1, 0.1, 0.05, 0.05, 0.075 };
 					//constexpr double f_static_index[6] = { 0.5, 0.5, 0.5, 0.85, 0.95, 0.8 };
 
-					auto real_vel = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
-					ft_offset = (f_vel[i] * controller->motionAtAbs(i).actualVel() + f_static_index[i] * f_static[i] * real_vel / max_static_vel[i])*f2c_index[i];
+                    auto real_vel = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
+                    ft_offset = (f_vel_JRC[i] * controller->motionAtAbs(i).actualVel() + f_static_index_JRC[i] * f_static[i] * real_vel / max_static_vel[i])*f2c_index[i];
+
+                    /*
+                    double f_col = 8.5;
+                    int sign_vel = 0;
+                    if(controller->motionAtAbs(i).actualVel()>0.05)
+                    {
+                        sign_vel = 1;
+                    }
+                    else if(controller->motionAtAbs(i).actualVel()<-0.05)
+                    {
+                        sign_vel = -1;
+                    }
+                    else
+                    {
+                        sign_vel = 0;
+                    }
+
+                    if(sign_vel == 0)
+                    {
+                        if(counter<200)
+                           ft_offset = 6;
+                        else
+                           ft_offset = -6;
+                    }
+                    else
+                    {
+                        ft_offset = f_vel[i] * controller->motionAtAbs(i).actualVel() + sign_vel*f_col;
+                        //ft_offset=0;
+                    }
+                     counter++;
+                     if(counter>400)
+                         counter=0;
+
+                    ft_offset = ft_offset * f2c_index[0];
+                    */
 
 					ft_offset = std::max(-500.0, ft_offset);
 					ft_offset = std::min(500.0, ft_offset);
 
-					controller->motionAtAbs(i).setTargetCur(ft_offset + target.model->motionPool()[i].mfDyn()*f2c_index[i]);
+                    controller->motionAtAbs(i).setTargetCur(ft_offset + target.model->motionPool()[i].mfDyn()*f2c_index[i]);
+
 
 					//打印PID控制结果
 					/*
@@ -245,23 +285,26 @@ namespace forcecontrol
 
 		// 打印电流 //
 		auto &cout = controller->mout();
-		if (target.count % 100 == 0)
+        if (target.count % 1000 == 0)
 		{
+
 			for (Size i = 0; i < param.joint_active_vec.size(); i++)
 			{
 				if (param.joint_active_vec[i])
 				{
-					cout << "pos" << i + 1 << ":" << std::setw(6) << controller->motionAtAbs(i).actualPos() << "  ";
-					cout << "vel" << i + 1 << ":" << std::setw(6) << controller->motionAtAbs(i).actualVel() << "  ";
-					cout << "cur" << i + 1 << ":" << std::setw(6) << controller->motionAtAbs(i).actualCur() << "  ";
+                    cout << "pos" << i + 1 << ":" << std::setw(6) << controller->motionAtAbs(i).actualPos() << ",";
+                    cout << "vel" << i + 1 << ":" << std::setw(6) << controller->motionAtAbs(i).actualVel() << ",";
+                    cout << "cur" << i + 1 << ":" << std::setw(6) << controller->motionAtAbs(i).actualCur() << ",";
 				}
 			}
+
 			cout << "pq: ";
 			for (Size i = 0; i < 7; i++)
 			{
 				cout << std::setw(6) << pqa[i] << " ";
 			}
-			cout << std::endl;
+
+            cout << std::endl;
 		}
 
 		// log 位置、速度、电流 //
@@ -527,7 +570,7 @@ namespace forcecontrol
 		{
 			auto &param = std::any_cast<MovePQCrashParam&>(target.param);
 			auto controller = dynamic_cast<aris::control::Controller *>(target.master);
-			static bool is_running{ true };
+            bool is_running{ true };
 			static double vinteg[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 			static double vproportion[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 			bool ds_is_all_finished{ true };
@@ -566,9 +609,10 @@ namespace forcecontrol
 			{
 				for (Size i = 0; i < param.ft.size(); ++i)
 				{
-					controller->motionPool().at(i).setModeOfOperation(8);
-					//auto ret = controller->motionPool().at(i).modeOfDisplay();
-					auto ret = controller->motionPool().at(i).mode(8);
+                    auto &cm = controller->motionPool().at(i);
+                    controller->motionPool().at(i).setModeOfOperation(8);
+                    auto ret = cm.mode(8);
+                    cm.setTargetPos(cm.actualPos());
 					if (ret)
 					{
 						md_is_all_finished = false;
@@ -936,74 +980,18 @@ namespace forcecontrol
 		
 		return temp; 
 	}
-	//电机控制模式切换函数
-	auto motor_control_mode(PlanTarget &target, bool &is_running, bool &ds_is_all_finished, bool &md_is_all_finished)
-	{
-		auto &param = std::any_cast<MovePQBParam&>(target.param);
-		auto controller = dynamic_cast<aris::control::Controller *>(target.master);
-		//第一个周期，将目标电机的控制模式切换到电流控制模式		
-		if (target.count == 1)
-		{
-			//is_running = true;
-			for (Size i = 0; i < param.ft.size(); ++i)
-			{
-				controller->motionPool().at(i).setModeOfOperation(10);	//切换到电流控制
-			}
-		}
 
-		//最后一个周期将目标电机去使能
-		if (!enable_movePQB)
-		{
-			is_running = false;
-		}
-		if (!is_running)
-		{
-			for (Size i = 0; i < param.ft.size(); ++i)
-			{
-				auto ret = controller->motionPool().at(i).disable();
-				if (ret)
-				{
-					ds_is_all_finished = false;
-				}
-			}
-		}
-
-		//将目标电机由电流模式切换到位置模式
-		if (!is_running&&ds_is_all_finished)
-		{
-			for (Size i = 0; i < param.ft.size(); ++i)
-			{
-				controller->motionPool().at(i).setModeOfOperation(8);
-				auto ret = controller->motionPool().at(i).mode(8);
-				if (ret)
-				{
-					md_is_all_finished = false;
-				}
-			}
-		}
-
-	}
 	//加载pq函数
 	auto load_func(PlanTarget &target, std::function<std::array<double, 14>(aris::Size count, aris::Size &start_count)> func)->void
 	{
 		auto &param = std::any_cast<MovePQBParam&>(target.param);
-        auto controller = dynamic_cast<aris::control::Controller *>(target.master);
 		std::array<double, 14> temp;
         temp = func(param.actual_count, param.start_count);
-        auto &cout = controller->mout();
-        if (target.count % 1000 == 0)
-        {
-            for(aris::Size i=0;i<14;i++)
-            {
-                cout<<temp[i]<<"  ";
-            }
-            cout<<std::endl;
-        }
 		std::copy(temp.begin(), temp.begin() + 7, param.pqt.begin());
 		std::copy(temp.begin() + 7, temp.begin() + 14, param.vqf.begin());
 	}
 	//力控算法函数
-    auto force_control_algorithm(PlanTarget &target, bool is_running)->void
+    auto force_control_algorithm(PlanTarget &target)->void
 	{
 		auto &param = std::any_cast<MovePQBParam&>(target.param);
 		auto controller = dynamic_cast<aris::control::Controller *>(target.master);
@@ -1050,150 +1038,149 @@ namespace forcecontrol
 		double real_vel[6];
 		double ft_friction1[6], ft_friction2[6], ft_dynamic[6];
 		static double ft_friction2_index[6] = { 5.0, 5.0, 5.0, 5.0, 5.0, 3.0 };
-		if (is_running)
-		{
-			//速度前馈
-            s_vq2vs(param.pqb.data(), param.vqf.data(), param.vsf.data());
-			/*
-			auto &inv = dynamic_cast<aris::dynamic::InverseKinematicSolver&>(target.model->solverPool()[0]);
-			inv.cptJacobi();
-			s_mm(6, 1, 6, inv.Ji(), 6, param.vsf.data(), 1, param.vfwd.data(), 1);
-			*/
-			auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(target.model->solverPool()[1]);
-			fwd.cptJacobi();
 
-			s_vc(3, param.vsf.data() + 3, param.va_Jc123.data());
-			s_mms(3, 1, 3, fwd.Jf() + 18, 6, param.va.data(), 1, param.va_Jc123.data(), 1);
-			
-			//QR分解求方程的解
-			double U[9], tau[3];
-			aris::Size p[3];
-			Size rank;
-			//auto inline s_householder_utp(Size m, Size n, const double *A, AType a_t, double *U, UType u_t, double *tau, TauType tau_t, Size *p, Size &rank, double zero_check = 1e-10)noexcept->void
-			//A为输入
-			s_householder_utp(3, 3, fwd.Jf() + 21, 6, U, 3, tau, 1, p, rank, 1e-10);
-			//s_householder_utp_sov(Size m, Size n, Size rhs, Size rank, const double *U, UType u_t, const double *tau, TauType tau_t, const Size *p, const double *b, BType b_t, double *x, XType x_t, double zero_check = 1e-10)
-			//b为输入，x为所求的解
-			s_householder_utp_sov(3, 3, 1, rank, U, tau, p, param.va_Jc123.data(), param.vfwd.data() + 3, 1e-10);
+        //速度前馈
+        s_vq2vs(param.pqb.data(), param.vqf.data(), param.vsf.data());
+        /*
+        auto &inv = dynamic_cast<aris::dynamic::InverseKinematicSolver&>(target.model->solverPool()[0]);
+        inv.cptJacobi();
+        s_mm(6, 1, 6, inv.Ji(), 6, param.vsf.data(), 1, param.vfwd.data(), 1);
+        */
+        auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(target.model->solverPool()[1]);
+        fwd.cptJacobi();
 
-			//前三轴，末端空间——位置环PID+速度限制
-			for (Size i = 0; i < 3; ++i)
-			{
-				param.vt[i] = param.kp_p[i] * (param.pqt[i] - param.pqb[i]);
-				//param.vt[i] = std::max(std::min(param.vt[i], vt_limit_PQB[i]), -vt_limit_PQB[i]);
-			}
-			//前三轴，限制末端空间vt向量的模的大小
-			double normv = aris::dynamic::s_norm(3, param.vt.data());
-			double normv_limit = std::max(std::min(normv, vt_normv_limit), -vt_normv_limit);
-			aris::dynamic::s_vc(3, normv_limit / normv, param.vt.data(), param.vt.data());
-			std::array<double, 4> vq = { 0.0,0.0,0.0,0.0 };
-			std::copy(param.vt.begin(), param.vt.begin() + 3, param.vqt.begin());
-			std::copy(vq.begin(), vq.end(), param.vqt.begin() + 3);
+        s_vc(3, param.vsf.data() + 3, param.va_Jc123.data());
+        s_mms(3, 1, 3, fwd.Jf() + 18, 6, param.va.data(), 1, param.va_Jc123.data(), 1);
 
-			//前三轴，限制末端空间vqt向量的大小
-			for (Size i = 0; i < 3; ++i)
-			{
-				param.vqt[i] = std::max(std::min(param.vt[i], vt_limit_PQB[i]), -vt_limit_PQB[i]);
-			}
+        //QR分解求方程的解
+        double U[9], tau[3];
+        aris::Size p[3];
+        Size rank;
+        //auto inline s_householder_utp(Size m, Size n, const double *A, AType a_t, double *U, UType u_t, double *tau, TauType tau_t, Size *p, Size &rank, double zero_check = 1e-10)noexcept->void
+        //A为输入
+        s_householder_utp(3, 3, fwd.Jf() + 21, 6, U, 3, tau, 1, p, rank, 1e-10);
+        //s_householder_utp_sov(Size m, Size n, Size rhs, Size rank, const double *U, UType u_t, const double *tau, TauType tau_t, const Size *p, const double *b, BType b_t, double *x, XType x_t, double zero_check = 1e-10)
+        //b为输入，x为所求的解
+        s_householder_utp_sov(3, 3, 1, rank, U, tau, p, param.va_Jc123.data(), param.vfwd.data() + 3, 1e-10);
 
-			target.model->generalMotionPool().at(0).setMvq(param.vqt.data());
-			target.model->solverPool()[0].kinVel();
-			for (int i = 0; i < 3; ++i)
-			{
-				param.vt[i] = target.model->motionPool()[i].mv();	//motionPool()指模型驱动器，at(0)表示第1个驱动器
-			}
+        //前三轴，末端空间——位置环PID+速度限制
+        for (Size i = 0; i < 3; ++i)
+        {
+            param.vt[i] = param.kp_p[i] * (param.pqt[i] - param.pqb[i]);
+            //param.vt[i] = std::max(std::min(param.vt[i], vt_limit_PQB[i]), -vt_limit_PQB[i]);
+        }
+        //前三轴，限制末端空间vt向量的模的大小
+        double normv = aris::dynamic::s_norm(3, param.vt.data());
+        double normv_limit = std::max(std::min(normv, vt_normv_limit), -vt_normv_limit);
+        aris::dynamic::s_vc(3, normv_limit / normv, param.vt.data(), param.vt.data());
+        std::array<double, 4> vq = { 0.0,0.0,0.0,0.0 };
+        std::copy(param.vt.begin(), param.vt.begin() + 3, param.vqt.begin());
+        std::copy(vq.begin(), vq.end(), param.vqt.begin() + 3);
 
-			/*前三轴，末端空间速度环----------------------------------------------------------------------------------------start
-			//前三轴，末端空间——速度环PID+力及力矩的限制
-			for (Size i = 0; i < 3; ++i)
-			{
-				param.vproportion[i] = param.kp_v[i] * (param.vt[i] - param.vqb[i]);
-				param.vinteg[i] = param.vinteg[i] + param.ki_v[i] * (param.vt[i] - param.vqb[i]);
-				//vinteg[i] = std::min(vinteg[i], fi_limit_PQB[i]);
-				//vinteg[i] = std::max(vinteg[i], -fi_limit_PQB[i]);
-			}
-			//前三轴，限制末端空间vinteg向量的模的大小
-			double normvi = aris::dynamic::s_norm(3, param.vinteg.data());
-			double normvi_limit = std::max(std::min(normvi, fi_limit_PQB[0]), -fi_limit_PQB[0]);
-			aris::dynamic::s_vc(3, normvi_limit / normvi, param.vinteg.data(), param.vinteg.data());
+        //前三轴，限制末端空间vqt向量的大小
+        for (Size i = 0; i < 3; ++i)
+        {
+            param.vqt[i] = std::max(std::min(param.vt[i], vt_limit_PQB[i]), -vt_limit_PQB[i]);
+        }
 
-			for (Size i = 0; i < 3; ++i)
-			{
-				param.ft[i] = param.vproportion[i] + param.vinteg[i];
-				//param.ft[i] = std::min(param.ft[i], ft_limit_PQB[i]);
-				//param.ft[i] = std::max(param.ft[i], -ft_limit_PQB[i]);
-			}
+        target.model->generalMotionPool().at(0).setMvq(param.vqt.data());
+        target.model->solverPool()[0].kinVel();
+        for (int i = 0; i < 3; ++i)
+        {
+            param.vt[i] = target.model->motionPool()[i].mv();	//motionPool()指模型驱动器，at(0)表示第1个驱动器
+        }
 
-			//前三轴，限制末端空间ft向量的模的大小
-			double normf = aris::dynamic::s_norm(3, param.ft.data());
-			double normf_limit = std::max(std::min(normf, ft_limit_PQB[0]), -ft_limit_PQB[0]);
-			aris::dynamic::s_vc(3, normf_limit / normf, param.ft.data(), param.ft.data());
+        /*前三轴，末端空间速度环----------------------------------------------------------------------------------------start
+        //前三轴，末端空间——速度环PID+力及力矩的限制
+        for (Size i = 0; i < 3; ++i)
+        {
+            param.vproportion[i] = param.kp_v[i] * (param.vt[i] - param.vqb[i]);
+            param.vinteg[i] = param.vinteg[i] + param.ki_v[i] * (param.vt[i] - param.vqb[i]);
+            //vinteg[i] = std::min(vinteg[i], fi_limit_PQB[i]);
+            //vinteg[i] = std::max(vinteg[i], -fi_limit_PQB[i]);
+        }
+        //前三轴，限制末端空间vinteg向量的模的大小
+        double normvi = aris::dynamic::s_norm(3, param.vinteg.data());
+        double normvi_limit = std::max(std::min(normvi, fi_limit_PQB[0]), -fi_limit_PQB[0]);
+        aris::dynamic::s_vc(3, normvi_limit / normvi, param.vinteg.data(), param.vinteg.data());
 
-			//前三轴，末端力向量平移到大地坐标系，叉乘
-			s_c3(param.pqb.data(), param.ft.data(), param.ft.data() + 3);
+        for (Size i = 0; i < 3; ++i)
+        {
+            param.ft[i] = param.vproportion[i] + param.vinteg[i];
+            //param.ft[i] = std::min(param.ft[i], ft_limit_PQB[i]);
+            //param.ft[i] = std::max(param.ft[i], -ft_limit_PQB[i]);
+        }
 
-			//前三轴，通过力雅克比矩阵将param.ft转换到关节param.ft_pid
-			auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(target.model->solverPool()[1]);
-			fwd.cptJacobi();
-			s_mm(6, 1, 6, fwd.Jf(), aris::dynamic::ColMajor{ 6 }, param.ft.data(), 1, param.ft_pid.data(), 1);
-			前三轴，末端空间PID----------------------------------------------------------------------------------------------end */
+        //前三轴，限制末端空间ft向量的模的大小
+        double normf = aris::dynamic::s_norm(3, param.ft.data());
+        double normf_limit = std::max(std::min(normf, ft_limit_PQB[0]), -ft_limit_PQB[0]);
+        aris::dynamic::s_vc(3, normf_limit / normf, param.ft.data(), param.ft.data());
 
-			//后三轴，轴空间——位置环PID+速度限制
-			for (Size i = 3; i < param.ft_pid.size(); ++i)
-			{
-				param.vt[i] = param.kp_p[i] * (param.pt[i] - param.pa[i]);
-				param.vt[i] = std::max(std::min(param.vt[i], vt_limit_PQB[i]), -vt_limit_PQB[i]);
-				param.vt[i] = param.vt[i] + param.vfwd[i];
-			}
+        //前三轴，末端力向量平移到大地坐标系，叉乘
+        s_c3(param.pqb.data(), param.ft.data(), param.ft.data() + 3);
 
-			////后三轴，轴空间——速度环PID+力及力矩的限制
-			//for (Size i = 3; i < param.ft_pid.size(); ++i)
+        //前三轴，通过力雅克比矩阵将param.ft转换到关节param.ft_pid
+        auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(target.model->solverPool()[1]);
+        fwd.cptJacobi();
+        s_mm(6, 1, 6, fwd.Jf(), aris::dynamic::ColMajor{ 6 }, param.ft.data(), 1, param.ft_pid.data(), 1);
+        前三轴，末端空间PID----------------------------------------------------------------------------------------------end */
 
-			//6根轴，轴空间——速度环PID+力及力矩的限制
-			for (Size i = 0; i < param.ft_pid.size(); ++i)
-			{
-				param.vproportion[i] = param.kp_v[i] * (param.vt[i] - param.va[i]);
-				param.vinteg[i] = param.vinteg[i] + param.ki_v[i] * (param.vt[i] - param.va[i]);
-				param.vinteg[i] = std::min(param.vinteg[i], fi_limit_JFB[i]);
-				param.vinteg[i] = std::max(param.vinteg[i], -fi_limit_JFB[i]);
+        //后三轴，轴空间——位置环PID+速度限制
+        for (Size i = 3; i < param.ft_pid.size(); ++i)
+        {
+            param.vt[i] = param.kp_p[i] * (param.pt[i] - param.pa[i]);
+            param.vt[i] = std::max(std::min(param.vt[i], vt_limit_PQB[i]), -vt_limit_PQB[i]);
+            param.vt[i] = param.vt[i] + param.vfwd[i];
+        }
 
-				param.ft_pid[i] = param.vproportion[i] + param.vinteg[i];
-				param.ft_pid[i] = std::min(param.ft_pid[i], ft_limit_JFB[i]);
-				param.ft_pid[i] = std::max(param.ft_pid[i], -ft_limit_JFB[i]);
-			}
+        ////后三轴，轴空间——速度环PID+力及力矩的限制
+        //for (Size i = 3; i < param.ft_pid.size(); ++i)
 
-			//动力学载荷
-			for (Size i = 0; i < param.ft_pid.size(); ++i)
-			{
-				//动力学参数
-				//constexpr double f_static[6] = { 9.349947583,11.64080253,4.770140543,3.631416685,2.58310847,1.783739862 };
-				//constexpr double f_vel[6] = { 7.80825641,13.26518528,7.856443575,3.354615249,1.419632126,0.319206404 };
-				//constexpr double f_acc[6] = { 0,3.555679326,0.344454603,0.148247716,0.048552673,0.033815455 };
-				//constexpr double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
-				//constexpr double f_static_index[6] = {0.5, 0.5, 0.5, 0.85, 0.95, 0.8};
+        //6根轴，轴空间——速度环PID+力及力矩的限制
+        for (Size i = 0; i < param.ft_pid.size(); ++i)
+        {
+            param.vproportion[i] = param.kp_v[i] * (param.vt[i] - param.va[i]);
+            param.vinteg[i] = param.vinteg[i] + param.ki_v[i] * (param.vt[i] - param.va[i]);
+            param.vinteg[i] = std::min(param.vinteg[i], fi_limit_JFB[i]);
+            param.vinteg[i] = std::max(param.vinteg[i], -fi_limit_JFB[i]);
 
-				//静摩擦力+动摩擦力=ft_friction
+            param.ft_pid[i] = param.vproportion[i] + param.vinteg[i];
+            param.ft_pid[i] = std::min(param.ft_pid[i], ft_limit_JFB[i]);
+            param.ft_pid[i] = std::max(param.ft_pid[i], -ft_limit_JFB[i]);
+        }
 
-				real_vel[i] = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
-				ft_friction1[i] = 0.8*(f_static[i] * real_vel[i] / max_static_vel[i]);
+        //动力学载荷
+        for (Size i = 0; i < param.ft_pid.size(); ++i)
+        {
+            //动力学参数
+            //constexpr double f_static[6] = { 9.349947583,11.64080253,4.770140543,3.631416685,2.58310847,1.783739862 };
+            //constexpr double f_vel[6] = { 7.80825641,13.26518528,7.856443575,3.354615249,1.419632126,0.319206404 };
+            //constexpr double f_acc[6] = { 0,3.555679326,0.344454603,0.148247716,0.048552673,0.033815455 };
+            //constexpr double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
+            //constexpr double f_static_index[6] = {0.5, 0.5, 0.5, 0.85, 0.95, 0.8};
 
-				//double ft_friction2_max = std::max(0.0, controller->motionAtAbs(i).actualVel() >= 0 ? f_static[i] - ft_friction1[i] : f_static[i] + ft_friction1[i]);
-				//double ft_friction2_min = std::min(0.0, controller->motionAtAbs(i).actualVel() >= 0 ? -f_static[i] + ft_friction1[i] : -f_static[i] - ft_friction1[i]);
-				//ft_friction2[i] = std::max(ft_friction2_min, std::min(ft_friction2_max, ft_friction2_index[i] * param.ft[i]));
-				//ft_friction[i] = ft_friction1[i] + ft_friction2[i] + f_vel[i] * controller->motionAtAbs(i).actualVel();
+            //静摩擦力+动摩擦力=ft_friction
 
-				ft_friction[i] = ft_friction1[i] + f_vel[i] * controller->motionAtAbs(i).actualVel();
+            real_vel[i] = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
+            ft_friction1[i] = 0.8*(f_static[i] * real_vel[i] / max_static_vel[i]);
 
-				ft_friction[i] = std::max(-500.0, ft_friction[i]);
-				ft_friction[i] = std::min(500.0, ft_friction[i]);
+            //double ft_friction2_max = std::max(0.0, controller->motionAtAbs(i).actualVel() >= 0 ? f_static[i] - ft_friction1[i] : f_static[i] + ft_friction1[i]);
+            //double ft_friction2_min = std::min(0.0, controller->motionAtAbs(i).actualVel() >= 0 ? -f_static[i] + ft_friction1[i] : -f_static[i] - ft_friction1[i]);
+            //ft_friction2[i] = std::max(ft_friction2_min, std::min(ft_friction2_max, ft_friction2_index[i] * param.ft[i]));
+            //ft_friction[i] = ft_friction1[i] + ft_friction2[i] + f_vel[i] * controller->motionAtAbs(i).actualVel();
 
-				//动力学载荷=ft_dynamic
-				ft_dynamic[i] = target.model->motionPool()[i].mfDyn();
+            ft_friction[i] = ft_friction1[i] + f_vel[i] * controller->motionAtAbs(i).actualVel();
 
-				ft_offset[i] = (ft_friction[i] + ft_dynamic[i] + param.ft_pid[i])*f2c_index[i];
-				controller->motionAtAbs(i).setTargetCur(ft_offset[i]);
-			}
-		}
+            ft_friction[i] = std::max(-500.0, ft_friction[i]);
+            ft_friction[i] = std::min(500.0, ft_friction[i]);
+
+            //动力学载荷=ft_dynamic
+            ft_dynamic[i] = target.model->motionPool()[i].mfDyn();
+
+            ft_offset[i] = (ft_friction[i] + ft_dynamic[i] + param.ft_pid[i])*f2c_index[i];
+            controller->motionAtAbs(i).setTargetCur(ft_offset[i]);
+        }
+
 
 		//print//
 		auto &cout = controller->mout();
@@ -1287,30 +1274,6 @@ namespace forcecontrol
 			cout << "------------------------------------------------" << std::endl;
 		}
 
-		//log//
-		auto &lout = controller->lout();
-		for (Size i = 0; i < param.ft_pid.size(); i++)
-		{
-			lout << param.pt[i] << ",";
-			lout << controller->motionAtAbs(i).actualPos() << ",";
-			lout << param.vt[i] << ",";
-			lout << controller->motionAtAbs(i).actualVel() << ",";
-			lout << ft_offset[i] << ",";
-			lout << controller->motionAtAbs(i).actualCur() << ",";
-			lout << param.vproportion[i] << ",";
-			lout << param.vinteg[i] << ",";
-			lout << param.ft[i] << ",";
-			lout << param.ft_pid[i] << ",";
-			lout << ft_friction1[i] << ",";
-			lout << ft_friction[i] << ",";
-			lout << ft_dynamic[i] << ",";
-		}
-		//记录当前PQ值//
-		for (Size i = 0; i < param.pqb.size(); i++)
-		{
-			lout << param.pqb[i] << ",";
-		}
-		lout << std::endl;
 	}
 	//MovePQB成员函数实现
 	auto MovePQB::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
@@ -1341,7 +1304,7 @@ namespace forcecontrol
         param.vinteg.resize(6, 0.0);
         param.vproportion.resize(6, 0.0);
 
-		load_pq5();
+        //load_pq5();
 		for (auto &p : params)
 		{
 			if (p.first == "pqt")
@@ -1463,34 +1426,94 @@ namespace forcecontrol
 	{
 		auto &param = std::any_cast<MovePQBParam&>(target.param);
 		auto controller = dynamic_cast<aris::control::Controller *>(target.master);
-		controller->logFile("movePQB.txt");
-		static bool is_running{ true };
+        //controller->logFile("movePQB");
+        bool is_running{ true };
 		bool ds_is_all_finished{ true };
 		bool md_is_all_finished{ true };
 
 		//切换电机控制模式
-		motor_control_mode(target, is_running, ds_is_all_finished, md_is_all_finished);
+		//第一个周期，将目标电机的控制模式切换到电流控制模式		
+		if (target.count == 1)
+		{
+			//is_running = true;
+			for (Size i = 0; i < param.ft.size(); ++i)
+			{
+				controller->motionPool().at(i).setModeOfOperation(10);	//切换到电流控制
+			}
+		}
+
+		//最后一个周期将目标电机去使能
+		if (!enable_movePQB)
+		{
+			is_running = false;
+		}
+		if (!is_running)
+		{
+			for (Size i = 0; i < param.ft.size(); ++i)
+			{
+				auto ret = controller->motionPool().at(i).disable();
+				if (ret)
+				{
+					ds_is_all_finished = false;
+				}
+			}
+		}
+
+		//将目标电机由电流模式切换到位置模式
+		if (!is_running&&ds_is_all_finished)
+		{
+			for (Size i = 0; i < param.ft.size(); ++i)
+			{
+                auto &cm = controller->motionPool().at(i);
+				controller->motionPool().at(i).setModeOfOperation(8);
+                auto ret = cm.mode(8);
+                cm.setTargetPos(cm.actualPos());
+				if (ret)
+				{
+					md_is_all_finished = false;
+				}
+			}
+		}
 
 		//函数选择判断
-        if(which_func == 1)
+        if(is_running)
         {
-            func[0] = load_pq1;
-        }
-        else if(which_func != 1)
-        {
-			func[0] = func[1];
-            if(one_time_counter)
+            if(which_func == 1)
             {
-                param.start_count = target.count;
-                one_time_counter = false;
+                func[0] = load_pq1;
             }
-        }
-        param.actual_count = target.count;
-		//加载数据
-		load_func(target, func[0]);
+            else if(which_func != 1)
+            {
+                func[0] = func[1];
+                if(one_time_counter)
+                {
+                    param.start_count = target.count;
+                    one_time_counter = false;
+                }
+            }
+            param.actual_count = target.count;
+            //加载数据
+            load_func(target, func[0]);
+            //力控算法
+            force_control_algorithm(target);
 
-		//力控算法
-		force_control_algorithm(target, is_running);
+        }
+
+		//log//
+		auto &lout = controller->lout();
+		for (Size i = 0; i < param.ft_pid.size(); i++)
+		{
+			lout << controller->motionAtAbs(i).actualPos() << " ";
+			lout << controller->motionAtAbs(i).actualVel() << " ";
+			lout << controller->motionAtAbs(i).actualCur() << " ";
+		}
+        //log--记录当前PQ值//
+		for (Size i = 0; i < param.pqb.size(); i++)
+		{
+			lout << param.pqb[i] << " ";
+		}
+		lout << std::endl;
+
         auto &cout = controller->mout();
         if (target.count % 1000 == 0)
         {
@@ -1759,7 +1782,7 @@ namespace forcecontrol
 		{
 			auto &param = std::any_cast<MoveJCrashParam&>(target.param);
 			auto controller = dynamic_cast<aris::control::Controller *>(target.master);
-			static bool is_running{ true };
+            bool is_running{ true };
 			static double vinteg[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 			static double vproportion[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 			bool ds_is_all_finished{ true };
@@ -1807,8 +1830,10 @@ namespace forcecontrol
 			{
 				for (Size i = 0; i < param.ft.size(); ++i)
 				{
-					controller->motionPool().at(i).setModeOfOperation(8);
-					auto ret = controller->motionPool().at(i).mode(8);
+                    auto &cm = controller->motionPool().at(i);
+                    controller->motionPool().at(i).setModeOfOperation(8);
+                    auto ret = cm.mode(8);
+                    cm.setTargetPos(cm.actualPos());
 					if (ret)
 					{
 						md_is_all_finished = false;
@@ -2278,7 +2303,7 @@ namespace forcecontrol
 	{
 		auto &param = std::any_cast<MoveJFParam&>(target.param);
 		auto controller = dynamic_cast<aris::control::Controller *>(target.master);
-		static bool is_running{ true };
+        bool is_running{ true };
 		static double vinteg[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 		static double vproportion[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 		bool ds_is_all_finished{ true };
@@ -2317,8 +2342,10 @@ namespace forcecontrol
 		{
 			for (Size i = 0; i < param.ft.size(); ++i)
 			{
-				controller->motionPool().at(i).setModeOfOperation(8);
-				auto ret = controller->motionPool().at(i).mode(8);
+                auto &cm = controller->motionPool().at(i);
+                controller->motionPool().at(i).setModeOfOperation(8);
+                auto ret = cm.mode(8);
+                cm.setTargetPos(cm.actualPos());
 				if (ret)
 				{
 					md_is_all_finished = false;
@@ -2754,7 +2781,7 @@ namespace forcecontrol
 	{
 		auto &param = std::any_cast<MoveJFBParam&>(target.param);
 		auto controller = dynamic_cast<aris::control::Controller *>(target.master);
-		static bool is_running{ true };
+        bool is_running{ true };
 		static double vinteg[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 		static double vproportion[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 		bool ds_is_all_finished{ true };
@@ -2793,8 +2820,10 @@ namespace forcecontrol
 		{
 			for (Size i = 0; i < param.ft.size(); ++i)
 			{
-				controller->motionPool().at(i).setModeOfOperation(8);
-				auto ret = controller->motionPool().at(i).mode(8);
+                auto &cm = controller->motionPool().at(i);
+                controller->motionPool().at(i).setModeOfOperation(8);
+                auto ret = cm.mode(8);
+                cm.setTargetPos(cm.actualPos());
 				if (ret)
 				{
 					md_is_all_finished = false;
@@ -3290,7 +3319,7 @@ namespace forcecontrol
 		{
 			auto &param = std::any_cast<MoveJPIDParam&>(target.param);
 			auto controller = dynamic_cast<aris::control::Controller *>(target.master);
-			static bool is_running{ true };
+            bool is_running{ true };
 			static double vproportion[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 			static double vinteg[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 			static double vdiff[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
@@ -3334,8 +3363,10 @@ namespace forcecontrol
 			{
 				for (Size i = 0; i < param.ft.size(); ++i)
 				{
-					controller->motionPool().at(i).setModeOfOperation(8);
-					auto ret = controller->motionPool().at(i).mode(8);
+                    auto &cm = controller->motionPool().at(i);
+                    controller->motionPool().at(i).setModeOfOperation(8);
+                    auto ret = cm.mode(8);
+                    cm.setTargetPos(cm.actualPos());
 					if (ret)
 					{
 						md_is_all_finished = false;
