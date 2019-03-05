@@ -877,6 +877,7 @@ auto load_pq9()->void
 	//string site = "/home/kaanh/Desktop/build-kaanh-Desktop_Qt_5_11_2_GCC_64bit-Default/log/rt_log--2019-02-20--16-34-25--4.txt";
 	//std::cout << "start1" << std::endl;
 	//string site = "C:/Users/kevin/Desktop/qch/rt_log--2019-02-20--16-34-25--4.txt";
+	std::cout << "now is on pq9" << std::endl;
 	string site = "C:/Users/qianch_kaanh_cn/Desktop/data/rt_log--2019-02-28--23-25-52--5.txt";
 	//string site = "C:/Users/qianch_kaanh_cn/Desktop/data/rt_log--2019-02-27--14-13-05--7.txt";
 	//以下定义读取log文件的输入流oplog;
@@ -922,67 +923,76 @@ auto load_pq9()->void
 	int loop2 = (int)POS[0].size() / p_space;
 	POS2 = std::vector<std::vector<double>>(25, std::vector<double>(loop2, 0));
 	*/
-	std::vector<std::vector<double>>POS2(25);
-	for (int i = 0; i < 25; i++)
+
+	//std::vector<std::vector<double>>POS2(25);
+	
+	/*for (int i = 0; i < 25; i++)
 	{
 		POS2[i].clear();
-	}
-	for (int j = 0; j < POS[0].size()-1; j++)
+	}*/
+	int step_wave = 60;//滤波间隔；
+	int row = POS[0].size();//总行数
+	for (int j = 0; j < row - step_wave; j++)
 	{
-		double tangent[3] = { POS[18][j + 1] - POS[18][j],POS[19][j + 1] - POS[19][j] ,POS[20][j + 1] - POS[20][j] };
+		double X = 0;
+		for (int i = j; i < j + step_wave; i++)
+		{
+			X = X + POS[18][i];
+		}
+		X = X / step_wave;
+		double Z = 0;
+		for (int i = j; i < j + step_wave; i++)
+		{
+			Z = Z + POS[20][i];
+		}
+		Z = Z / step_wave;
+
+		//double X = (POS2[18][j] + POS2[18][j + 1] + POS2[18][j + 2] + POS2[18][j + 3]) / step_wave;//x值；
+		//double Z = (POS2[20][j] + POS2[20][j + 1] + POS2[20][j + 2] + POS2[20][j + 3]) / step_wave;//z值；
+		//std::cout << "A" << A << std::endl;
+		POS[18][j] = X;
+		POS[20][j] = Z;
+		/*if (j == row - 4)
+		{
+			POS2[18][j+1] = X;
+
+			POS2[18][j+2] = X;
+			POS2[18][j+3] = X;
+			POS2[20][j + 1] = Z;
+			POS2[20][j + 2] = Z;
+			POS2[20][j + 3] = Z;
+		}*/
+		//std::cout << "POS2[20][j]" << POS2[20][j] << std::endl;
+	}
+
+	for (int i = 0; i< POS[0].size()- step_wave; i++)
+	{
+		double tangent[3] = { POS[18][i + step_wave] - POS[18][i],POS[19][i + step_wave] - POS[19][i] ,POS[20][i + step_wave] - POS[20][i] };
 		double tangL = sqrt(tangent[0] * tangent[0] + tangent[1] * tangent[1] + tangent[2] * tangent[2]);
-		if (tangL < 5*10e-6)//-6
+		if (tangL < 5 * 10e-6)//-6************************************************************************
 			continue;
 		else
 		{
-			for (int i = 0; i < 25; i++)
+			/*for (int i = 0; i < 25; i++)
 			{
 				POS2[i].push_back(POS[i][j]);
 				POS2[i].push_back(POS[i][j+1]);
 			}
-			j++;
-		}
-	}
-	
-	//POS2完成数据转换，数据没有更改
-	int row = POS2[0].size();//总行数
-	//std::cout << "POS2[18][0]" << POS2[18][0] << "   " << "POS2[19][0]" << POS2[19][0] << "   " << "POS2[20][0]" << POS2[20][0] << std::endl;
-	int step_i = 1;
-	for (int i = 0; i < row - 1; i=i+ step_i)
-	{
-		//轨迹上切线的向量
-		double tangent[3] = { POS2[18][i + step_i] - POS2[18][i],POS2[19][i + step_i] - POS2[19][i] ,POS2[20][i + step_i] - POS2[20][i] };
-		double tangL = sqrt(tangent[0] * tangent[0] + tangent[1] * tangent[1] + tangent[2] * tangent[2]);
-		//定义与Z轴方向的欧拉角系数coe
-		int coe;
-		/*if(std::abs(tangent[2]- tangentz_last)>10e-6 && tangent[2] > 0)
-		{
-			coe = 1;
-		}
-		else
-		{
-			coe = -1;
-		}*/
-		if (tangent[2] > 0)
-		{
-			coe = 1;
-		}
-		else
-		{
-			coe = -1;
-		}
-		//tangentz_last = tangent[2];
-		//点距离小于5mm时
-
+			j++;*/
+			//轨迹上切线的向量
+			//double tangent[3] = { POS[18][i + step_wave] - POS[18][i],POS[19][i + step_wave] - POS[19][i] ,POS[20][i + step_wave] - POS[20][i] };
+			//double tangL = sqrt(tangent[0] * tangent[0] + tangent[1] * tangent[1] + tangent[2] * tangent[2]);
+			//定义与Z轴方向的欧拉角系数coe
+			int coe;
 			double x[3] = { 1, 0, 0 };
 			double y[3] = { 0, 1, 0 };
 			double z[3] = { 0, 0, -1 };
 			//求取切线与y轴的公法线向量
-			double vert[3] = { 0,0,0 }; 
+			double vert[3] = { 0,0,0 };
 			//叉乘
 			s_c3(tangent, y, vert);
 			//先求出垂直向量的模，再除以模长求出单位向量；
-			
+
 
 			double sq = sqrt(vert[0] * vert[0] + vert[1] * vert[1] + vert[2] * vert[2]);
 
@@ -994,20 +1004,19 @@ auto load_pq9()->void
 				vert0[j] = vert[j] / sq;
 			}
 			//先求叉乘，再求arcsin
-			double vertsin[3] = { 0,0,0 };
-			s_c3(vert0, z, vertsin);
-			double vsmo = sqrt(vertsin[0] * vertsin[0] + vertsin[1] * vertsin[1] + vertsin[2] * vertsin[2]);
+
 			//求点乘，由于是单位向量，点乘即角度
 			//double dot = s_vv(3, vert0, z);
 			//对dot做出限制
-			vsmo = std::max(vsmo, -1.0);
-			vsmo = std::min(vsmo, 1.0);
+			std::cout << " vert0[2]: " << vert0[2] << "    " << "vert0[0]:  " << vert0[0] << std::endl;
 			//注意theta的正负性,与Z轴成180度左右；
-			double theta = asin(vsmo);
+
+			double theta = atan(vert0[0] / vert0[2]);
+			std::cout << "theta:  " << theta << std::endl;
 			//欧拉角是2pi,2pi,theta		
 			//相对
 			//double pe[6] = { POS2[18][i] ,POS2[19][i] ,POS2[20][i],atan(1) * 2 ,atan(1) * 2 , -theta };
-			double pe[6] = { POS2[18][i] ,POS2[19][i] ,POS2[20][i],atan(1) * 2 ,atan(1) * 2 , coe * theta };
+			double pe[6] = { POS[18][i] ,POS[19][i] ,POS[20][i],atan(1) * 2 ,atan(1) * 2 , theta };
 
 			//绝对
 			//double pe[6] = { POS[18][i] ,POS[19][i] ,POS[20][i], atan(1) * 2,-atan(1) * 2 , theta };
@@ -1023,18 +1032,48 @@ auto load_pq9()->void
 			double pq0[7] = { 0,0,0,0,0,0,0 };
 			//输出pq
 			s_pm2pq(pm[0], pq0);
-			
+
 			for (int j = 0; j < 7; j++)
 			{
 				pq[j].push_back(pq0[j]);
 			}
-			
-		
+		}
 	}
+	//POS2完成数据转换，数据没有更改
+	//int row = POS2[0].size();//总行数
+	//以下再POS2中对数值做平均化滤波
+	//for (int j = 0; j < row - 1; j++)
+	//{
+	//	//std::cout << "POS2[20][j]未转换" << POS2[20][j] << std::endl;
+	//}	
+	//for (int j = 0; j < row; )
+	//{
+	//	double A = (POS2[20][j] + POS2[20][j + 1]+ POS2[20][j + 2]+ POS2[20][j + 3]) / step_wave;//z值；
+	//	POS2[20][j] = A;
+	//	POS2[20][j + 1] = A;
+	//	POS2[20][j + 2] = A;
+	//	POS2[20][j + 3] = A;
+	//	j = j + step_wave;
+	//}
+	//std::cout << "POS2[18][0]" << POS2[18][0] << "   " << "POS2[19][0]" << POS2[19][0] << "   " << "POS2[20][0]" << POS2[20][0] << std::endl;
+	//int step_i = 1;
+	
 	std::cout << "pq[0][0]" << pq[0][0] << "    " << "pq[1][0]" << pq[1][0] << "    " << "pq[2][0]" << pq[2][0] << "pq[3][0]" << pq[3][0] << "    " << "pq[4][0]" << pq[4][0] << "    " << "pq[5][0]" << pq[5][0] << "    " << "pq[6][0]" << pq[6][0] << std::endl;
 	std::cout << "pq size:" << pq[0].size() << std::endl;
+	ofstream outfile("C:/Users/qianch_kaanh_cn/Desktop/data/outfile.txt");
+	if (!outfile)
+	{
+		cout << "Unable to open otfile";
+		exit(1); // terminate with error
+	}
+	for (int k = 0; k < POS[0].size(); k++)
+	{
+		outfile << POS[18][k] << "  " << POS[19][k] << "  " << POS[20][k] << endl;
+		cout <<  "success outfile "  << endl;
+		//cout << data[k][0] << " " << data[k][1] << endl;
+	}
+	outfile.close();
 }
-
 
 
 
@@ -1066,13 +1105,6 @@ auto MoveinModel::prepairNrt(const std::map<std::string, std::string> &params, P
 	if (param.pq_convert[1][1] == pq[1][1] && param.pq_convert[2][2] == pq[2][2] && param.pq_convert[3][3] == pq[3][3])
 		std::cout << "convert successfully" << std::endl;
 	
-	
-
-
-
-
-
-
 
 	target.param = param;
 	target.option =
@@ -1095,10 +1127,10 @@ auto MoveinModel::executeRT(PlanTarget &target)->int
 	target.model->generalMotionPool().at(0).setMpq(p.pq_convert[target.count-1].data());
 
 	target.model->solverPool()[0].kinPos();
-
+	
 	//std::cout << "p.pq_convert[target.count - 1].size():" << p.pq_convert[target.count - 1].size() << std::endl;
 	std::cout << "pq_convert1_7" << p.pq_convert[target.count - 1][0] <<"   "<< p.pq_convert[target.count - 1][1] << "   " << p.pq_convert[target.count - 1][2] << std::endl;
-	std::cout << "pq_convert1_7:   " << p.pq_convert[target.count - 1][3] << "   " << p.pq_convert[target.count - 1][4] << "   " << p.pq_convert[target.count - 1][5] << "   " << p.pq_convert[target.count - 1][6] << std::endl;
+	//std::cout << "pq_convert1_7:   " << p.pq_convert[target.count - 1][3] << "   " << p.pq_convert[target.count - 1][4] << "   " << p.pq_convert[target.count - 1][5] << "   " << p.pq_convert[target.count - 1][6] << std::endl;
 	//std::cout << "target.count:  " << target.count << std::endl;
 	//if(p.pq_convert[1][1]==pq[1][1] && p.pq_convert[2][2] == pq[2][2] && p.pq_convert[3][3] == pq[3][3])
 		//std::cout << "convert successfully in executeRT" << std::endl;
