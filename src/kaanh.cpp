@@ -91,9 +91,11 @@ namespace kaanh
 		}
 
 		std::string xml_str =
-			"<forcesensor type=\"EthercatSlave\" phy_id=\"6\" product_code=\"0x81263\""
-			" vendor_id=\"0x09\" revision_num=\"0x01\" dc_assign_activate=\"0x00\">"
+			"<forcesensor type=\"EthercatSlave\" phy_id=\"6\" product_code=\"0x00013D6F\""
+			" vendor_id=\"0x00000009\" revision_num=\"0x01\" dc_assign_activate=\"0x300\">"
 			"	<sm_pool type=\"SyncManagerPoolObject\">"
+			"		<sm type=\"SyncManager\" is_tx=\"false\"/>"
+			"		<sm type=\"SyncManager\" is_tx=\"true\"/>"
 			"		<sm type=\"SyncManager\" is_tx=\"false\">"
 			"			<index_1601 type=\"Pdo\" default_child_type=\"PdoEntry\" index=\"0x1601\" is_tx=\"false\">"
 			"				<Output_Instruction index=\"0x7010\" subindex=\"0x01\" size=\"16\"/>"
@@ -2792,7 +2794,6 @@ namespace kaanh
 			param.Mx = 0.0;
 			param.My = 0.0;
 			param.Mz = 0.0;
-			param.time = 1000;
 			target.param = param;
 
 #ifdef WIN32
@@ -2872,7 +2873,7 @@ namespace kaanh
 				"<fssignal>"
 				"	<group_switch type=\"GroupParam\" default_child_type=\"Param\">"
 				"		<real_data default=\"1\"/>"
-				"		<time default=\"1000\"/>"
+				"		<time default=\"100000\"/>"
 				"	</group_switch>"
 				"</fssignal>");
 		}
