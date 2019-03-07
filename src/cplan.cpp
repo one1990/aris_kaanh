@@ -620,7 +620,7 @@ replay::replay(const std::string &name) :Plan(name)
 
 
 
-
+//直接给14维数组
 auto load_pq2(aris::Size count, aris::Size &start_count)->std::array<double, 14>
 
 {
@@ -878,10 +878,14 @@ auto load_pq9()->void
 	//std::cout << "start1" << std::endl;
 	//string site = "C:/Users/kevin/Desktop/qch/rt_log--2019-02-20--16-34-25--4.txt";
 	std::cout << "now is on pq9" << std::endl;
-	string site = "C:/Users/qianch_kaanh_cn/Desktop/data/rt_log--2019-02-28--23-25-52--5.txt";
+	string site = "C:/Users/qianch_kaanh_cn/Desktop/data/rt_log--2019-02-28--23-25-52--11.txt";
 	//string site = "C:/Users/qianch_kaanh_cn/Desktop/data/rt_log--2019-02-27--14-13-05--7.txt";
 	//以下定义读取log文件的输入流oplog;
 	ifstream oplog;
+
+	vector<double> theta2;
+	theta2.clear();
+
 	oplog.open(site);
 	//以下检查是否成功读取文件；
 	if (!oplog)
@@ -930,7 +934,7 @@ auto load_pq9()->void
 	{
 		POS2[i].clear();
 	}*/
-	int step_wave = 60;//滤波间隔；
+	int step_wave = 2;//滤波间隔；
 	int row = POS[0].size();//总行数
 	for (int j = 0; j < row - step_wave; j++)
 	{
@@ -969,7 +973,7 @@ auto load_pq9()->void
 	{
 		double tangent[3] = { POS[18][i + step_wave] - POS[18][i],POS[19][i + step_wave] - POS[19][i] ,POS[20][i + step_wave] - POS[20][i] };
 		double tangL = sqrt(tangent[0] * tangent[0] + tangent[1] * tangent[1] + tangent[2] * tangent[2]);
-		if (tangL < 5 * 10e-6)//-6************************************************************************
+		if (tangL < 5 * 10e-17)//-6************************************************************************
 			continue;
 		else
 		{
@@ -983,7 +987,7 @@ auto load_pq9()->void
 			//double tangent[3] = { POS[18][i + step_wave] - POS[18][i],POS[19][i + step_wave] - POS[19][i] ,POS[20][i + step_wave] - POS[20][i] };
 			//double tangL = sqrt(tangent[0] * tangent[0] + tangent[1] * tangent[1] + tangent[2] * tangent[2]);
 			//定义与Z轴方向的欧拉角系数coe
-			int coe;
+			//int coe;
 			double x[3] = { 1, 0, 0 };
 			double y[3] = { 0, 1, 0 };
 			double z[3] = { 0, 0, -1 };
@@ -996,7 +1000,7 @@ auto load_pq9()->void
 
 			double sq = sqrt(vert[0] * vert[0] + vert[1] * vert[1] + vert[2] * vert[2]);
 
-			std::cout << "sq" << sq << std::endl;
+			//std::cout << "sq" << sq << std::endl;
 
 			double vert0[3] = { 0,0,0 };
 			for (int j = 0; j < 3; j++)
@@ -1008,11 +1012,12 @@ auto load_pq9()->void
 			//求点乘，由于是单位向量，点乘即角度
 			//double dot = s_vv(3, vert0, z);
 			//对dot做出限制
-			std::cout << " vert0[2]: " << vert0[2] << "    " << "vert0[0]:  " << vert0[0] << std::endl;
+			//std::cout << " vert0[2]: " << vert0[2] << "    " << "vert0[0]:  " << vert0[0] << std::endl;
 			//注意theta的正负性,与Z轴成180度左右；
 
 			double theta = atan(vert0[0] / vert0[2]);
-			std::cout << "theta:  " << theta << std::endl;
+			theta2.push_back(theta);
+			//std::cout << "theta:  " << theta << std::endl;
 			//欧拉角是2pi,2pi,theta		
 			//相对
 			//double pe[6] = { POS2[18][i] ,POS2[19][i] ,POS2[20][i],atan(1) * 2 ,atan(1) * 2 , -theta };
@@ -1059,16 +1064,17 @@ auto load_pq9()->void
 	//int step_i = 1;
 	
 	std::cout << "pq[0][0]" << pq[0][0] << "    " << "pq[1][0]" << pq[1][0] << "    " << "pq[2][0]" << pq[2][0] << "pq[3][0]" << pq[3][0] << "    " << "pq[4][0]" << pq[4][0] << "    " << "pq[5][0]" << pq[5][0] << "    " << "pq[6][0]" << pq[6][0] << std::endl;
-	std::cout << "pq size:" << pq[0].size() << std::endl;
+	//std::cout << "pq size:" << pq[0].size() << std::endl;
 	ofstream outfile("C:/Users/qianch_kaanh_cn/Desktop/data/outfile.txt");
 	if (!outfile)
 	{
 		cout << "Unable to open otfile";
 		exit(1); // terminate with error
 	}
-	for (int k = 0; k < POS[0].size(); k++)
+	for (int k = 0; k < theta2.size(); k++)
+	//for (int k = 0; k < POS[0].size(); k++)
 	{
-		outfile << POS[18][k] << "  " << POS[19][k] << "  " << POS[20][k] << endl;
+		outfile << POS[18][k] << "  " << POS[19][k] << "  " << POS[20][k] << "  " << POS[21][k]<< "  " << POS[22][k] << "  " << POS[23][k] << "  " << POS[24][k] << "theta2:   " << theta2[k] << endl;
 		cout <<  "success outfile "  << endl;
 		//cout << data[k][0] << " " << data[k][1] << endl;
 	}
@@ -1108,7 +1114,7 @@ auto MoveinModel::prepairNrt(const std::map<std::string, std::string> &params, P
 
 	target.param = param;
 	target.option =
-		//aris::plan::Plan::USE_TARGET_POS |
+		aris::plan::Plan::USE_TARGET_POS |
 		aris::plan::Plan::NOT_CHECK_VEL_MIN |
 		aris::plan::Plan::NOT_CHECK_VEL_MAX |
 		aris::plan::Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
@@ -1127,6 +1133,13 @@ auto MoveinModel::executeRT(PlanTarget &target)->int
 	target.model->generalMotionPool().at(0).setMpq(p.pq_convert[target.count-1].data());
 
 	target.model->solverPool()[0].kinPos();
+	auto &lout = controller->lout();
+	for (int i = 0; i < 6; i++)
+	{
+		lout << target.model->motionPool().at(i).mp() << " ";
+	}
+	lout << std::endl;
+	
 	
 	//std::cout << "p.pq_convert[target.count - 1].size():" << p.pq_convert[target.count - 1].size() << std::endl;
 	std::cout << "pq_convert1_7" << p.pq_convert[target.count - 1][0] <<"   "<< p.pq_convert[target.count - 1][1] << "   " << p.pq_convert[target.count - 1][2] << std::endl;
