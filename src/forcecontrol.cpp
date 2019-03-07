@@ -934,8 +934,9 @@ namespace forcecontrol
 		{-0.122203,0.386206,0.0139912,-0.492466,0.474288,0.511942,0.520041} };
         double vel = 0.04, acc = 0.08, dec = 0.08;
 		static aris::Size total_count[10] = { 1,1,1,1,1,1,1,1,1,1 };
-		
-        std::array<double, 14> temp = {-0.122203,0.386206,0.0139912,-0.492466,0.474288,0.511942,0.520041,0,0,0,0,0,0,0};
+		static aris::Size step_count[10] = { start_count,start_count,start_count,start_count,start_count,start_count,start_count,start_count,start_count,start_count };
+
+        static std::array<double, 14> temp = {-0.122203,0.386206,0.0139912,-0.492466,0.474288,0.511942,0.520041,0,0,0,0,0,0,0};
 		
 		//获取每段梯形轨迹的时间
 		double p, v, a;
@@ -952,36 +953,85 @@ namespace forcecontrol
 			}
 		}
 		
+		for (aris::Size i = 0; i < 10; i++)
+		{
+			for (aris::Size j = 0; j <= i; j++)
+			{
+				step_count[i] = step_count[i] + total_count[j];
+			}
+		}
+
 		//获取根据输入的target.count选择执行哪一段梯形轨迹
-		if (count <= start_count + total_count[0])
+		if (count <= step_count[0])
 		{
 			for (aris::Size i = 0; i < 3; i++)
 			{
 				aris::plan::moveAbsolute(count - start_count + 1, target_pq[0][i], target_pq[1][i], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, temp[i], v, a, t_count);
 			}
 		}
-		else if (count > start_count + total_count[0] && count <= start_count + total_count[0] + total_count[1])
+		else if (count > step_count[0] && count <= step_count[1])
 		{
 			for (aris::Size i = 0; i < 3; i++)
 			{
 				aris::plan::moveAbsolute(count - start_count + 1, target_pq[1][i], target_pq[2][i], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, temp[i], v, a, t_count);
 			}
 		}
-		else if (count > start_count + total_count[0] + total_count[1] && count <= start_count + total_count[0] + total_count[1] + total_count[2])
+		else if (count > step_count[1] && count <= step_count[2])
 		{
 			for (aris::Size i = 0; i < 3; i++)
 			{
 				aris::plan::moveAbsolute(count - start_count + 1, target_pq[2][i], target_pq[3][i], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, temp[i], v, a, t_count);
 			}
 		}
-		else if (count > start_count + total_count[0] + total_count[1] + total_count[2] && count <= start_count + total_count[0] + total_count[1] + total_count[2] + total_count[3])
+		else if (count > step_count[2] && count <= step_count[3])
 		{
 			for (aris::Size i = 0; i < 3; i++)
 			{
 				aris::plan::moveAbsolute(count - start_count + 1, target_pq[3][i], target_pq[4][i], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, temp[i], v, a, t_count);
 			}
 		}	
-		
+		else if (count > step_count[3] && count <= step_count[4])
+		{
+			for (aris::Size i = 0; i < 3; i++)
+			{
+				aris::plan::moveAbsolute(count - start_count + 1, target_pq[4][i], target_pq[5][i], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, temp[i], v, a, t_count);
+			}
+		}
+		else if (count > step_count[4] && count <= step_count[5])
+		{
+			for (aris::Size i = 0; i < 3; i++)
+			{
+				aris::plan::moveAbsolute(count - start_count + 1, target_pq[5][i], target_pq[6][i], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, temp[i], v, a, t_count);
+			}
+		}
+		else if (count > step_count[5] && count <= step_count[6])
+		{
+			for (aris::Size i = 0; i < 3; i++)
+			{
+				aris::plan::moveAbsolute(count - start_count + 1, target_pq[6][i], target_pq[7][i], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, temp[i], v, a, t_count);
+			}
+		}
+		else if (count > step_count[6] && count <= step_count[7])
+		{
+			for (aris::Size i = 0; i < 3; i++)
+			{
+				aris::plan::moveAbsolute(count - start_count + 1, target_pq[7][i], target_pq[8][i], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, temp[i], v, a, t_count);
+			}
+		}
+		else if (count > step_count[7] && count <= step_count[8])
+		{
+			for (aris::Size i = 0; i < 3; i++)
+			{
+				aris::plan::moveAbsolute(count - start_count + 1, target_pq[8][i], target_pq[9][i], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, temp[i], v, a, t_count);
+			}
+		}
+		else if (count > step_count[8] && count <= step_count[9])
+		{
+			for (aris::Size i = 0; i < 3; i++)
+			{
+				aris::plan::moveAbsolute(count - start_count + 1, target_pq[9][i], target_pq[10][i], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, temp[i], v, a, t_count);
+			}
+		}
 		return temp; 
 	}
 
