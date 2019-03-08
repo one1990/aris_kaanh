@@ -105,22 +105,22 @@ namespace kaanh
 			"		</sm>"
 			"		<sm type=\"SyncManager\" is_tx=\"true\">"
 			"			<index_1A02 type=\"Pdo\" default_child_type=\"PdoEntry\" index=\"0x1A02\" is_tx=\"true\">"
-			"				<Int_Input_DataNo index=\"0x6020\" subindex=\"0x01\" size=\"16\"/>"
-			"				<Int_Input_Fx index=\"0x6020\" subindex=\"0x02\" size=\"32\"/>"
-			"				<Int_Input_Fy index=\"0x6020\" subindex=\"0x03\" size=\"32\"/>"
-			"				<Int_Input_Fz index=\"0x6020\" subindex=\"0x04\" size=\"32\"/>"
-			"				<Int_Input_Mx index=\"0x6020\" subindex=\"0x05\" size=\"32\"/>"
-			"				<Int_Input_My index=\"0x6020\" subindex=\"0x06\" size=\"32\"/>"
-			"				<Int_Input_Mz index=\"0x6020\" subindex=\"0x07\" size=\"32\"/>"
+            "				<Int_Input_DataNo index=\"0x6020\" subindex=\"0x00\" size=\"16\"/>"
+            "				<Int_Input_Fx index=\"0x6020\" subindex=\"0x01\" size=\"32\"/>"
+            "				<Int_Input_Fy index=\"0x6020\" subindex=\"0x02\" size=\"32\"/>"
+            "				<Int_Input_Fz index=\"0x6020\" subindex=\"0x03\" size=\"32\"/>"
+            "				<Int_Input_Mx index=\"0x6020\" subindex=\"0x04\" size=\"32\"/>"
+            "				<Int_Input_My index=\"0x6020\" subindex=\"0x05\" size=\"32\"/>"
+            "				<Int_Input_Mz index=\"0x6020\" subindex=\"0x06\" size=\"32\"/>"
 			"			</index_1A02>"
 			"			<index_1A03 type=\"Pdo\" default_child_type=\"PdoEntry\" index=\"0x1A03\" is_tx=\"true\">"
-			"				<Real_Input_DataNo index=\"0x6030\" subindex=\"0x01\" size=\"16\"/>"
-			"				<Real_Input_Fx index=\"0x6030\" subindex=\"0x02\" size=\"32\"/>"
-			"				<Real_Input_Fy index=\"0x6030\" subindex=\"0x03\" size=\"32\"/>"
-			"				<Real_Input_Fz index=\"0x6030\" subindex=\"0x04\" size=\"32\"/>"
-			"				<Real_Input_Mx index=\"0x6030\" subindex=\"0x05\" size=\"32\"/>"
-			"				<Real_Input_My index=\"0x6030\" subindex=\"0x06\" size=\"32\"/>"
-			"				<Real_Input_Mz index=\"0x6030\" subindex=\"0x07\" size=\"32\"/>"
+            "				<Real_Input_DataNo index=\"0x6030\" subindex=\"0x00\" size=\"16\"/>"
+            "				<Real_Input_Fx index=\"0x6030\" subindex=\"0x01\" size=\"32\"/>"
+            "				<Real_Input_Fy index=\"0x6030\" subindex=\"0x02\" size=\"32\"/>"
+            "				<Real_Input_Fz index=\"0x6030\" subindex=\"0x03\" size=\"32\"/>"
+            "				<Real_Input_Mx index=\"0x6030\" subindex=\"0x04\" size=\"32\"/>"
+            "				<Real_Input_My index=\"0x6030\" subindex=\"0x05\" size=\"32\"/>"
+            "				<Real_Input_Mz index=\"0x6030\" subindex=\"0x06\" size=\"32\"/>"
 			"			</index_1A03>"
 			"			<index_1A04 type=\"Pdo\" default_child_type=\"PdoEntry\" index=\"0x1A04\" is_tx=\"true\">"
 			"				<Res_Instruction index=\"0x6040\" subindex=\"0x01\" size=\"16\"/>"
@@ -2768,8 +2768,9 @@ namespace kaanh
 	struct FSParam
 	{
 		bool real_data;
-		int time;
-		double Fx,Fy,Fz,Mx,My,Mz;
+        int time;
+        uint16_t datanum;
+        float Fx,Fy,Fz,Mx,My,Mz;
 	};
 	class FSSignal : public aris::plan::Plan
 	{
@@ -2820,27 +2821,30 @@ namespace kaanh
 			auto controller = dynamic_cast<aris::control::EthercatController*>(target.master);
 			if (param.real_data)
 			{
-				controller->ecSlavePool().at(6).readPdo(0x6030, 0x02, &param.Fx ,32);
-				controller->ecSlavePool().at(6).readPdo(0x6030, 0x03, &param.Fy, 32);
-				controller->ecSlavePool().at(6).readPdo(0x6030, 0x04, &param.Fz, 32);
-				controller->ecSlavePool().at(6).readPdo(0x6030, 0x05, &param.Mx, 32);
-				controller->ecSlavePool().at(6).readPdo(0x6030, 0x06, &param.My, 32);
-				controller->ecSlavePool().at(6).readPdo(0x6030, 0x07, &param.Mz, 32);
+                controller->ecSlavePool().at(6).readPdo(0x6030, 0x00, &param.datanum ,16);
+                controller->ecSlavePool().at(6).readPdo(0x6030, 0x01, &param.Fx ,32);
+                controller->ecSlavePool().at(6).readPdo(0x6030, 0x02, &param.Fy, 32);
+                controller->ecSlavePool().at(6).readPdo(0x6030, 0x03, &param.Fz, 32);
+                controller->ecSlavePool().at(6).readPdo(0x6030, 0x04, &param.Mx, 32);
+                controller->ecSlavePool().at(6).readPdo(0x6030, 0x05, &param.My, 32);
+                controller->ecSlavePool().at(6).readPdo(0x6030, 0x06, &param.Mz, 32);
 			}
 			else
 			{
-				controller->ecSlavePool().at(6).readPdo(0x6020, 0x02, &param.Fx, 32);
-				controller->ecSlavePool().at(6).readPdo(0x6020, 0x03, &param.Fy, 32);
-				controller->ecSlavePool().at(6).readPdo(0x6020, 0x04, &param.Fz, 32);
-				controller->ecSlavePool().at(6).readPdo(0x6020, 0x05, &param.Mx, 32);
-				controller->ecSlavePool().at(6).readPdo(0x6020, 0x06, &param.My, 32);
-				controller->ecSlavePool().at(6).readPdo(0x6020, 0x07, &param.Mz, 32);
+                controller->ecSlavePool().at(6).readPdo(0x6030, 0x00, &param.datanum ,16);
+                controller->ecSlavePool().at(6).readPdo(0x6020, 0x01, &param.Fx, 32);
+                controller->ecSlavePool().at(6).readPdo(0x6020, 0x02, &param.Fy, 32);
+                controller->ecSlavePool().at(6).readPdo(0x6020, 0x03, &param.Fz, 32);
+                controller->ecSlavePool().at(6).readPdo(0x6020, 0x04, &param.Mx, 32);
+                controller->ecSlavePool().at(6).readPdo(0x6020, 0x05, &param.My, 32);
+                controller->ecSlavePool().at(6).readPdo(0x6020, 0x06, &param.Mz, 32);
 			}
 			
 			//print//
 			auto &cout = controller->mout();
 			if (target.count % 100 == 0)
 			{
+                cout << std::setw(6) << param.datanum << "  ";
 				cout << std::setw(6) << param.Fx << "  ";
 				cout << std::setw(6) << param.Fy << "  ";
 				cout << std::setw(6) << param.Fz << "  ";
