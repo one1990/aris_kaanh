@@ -968,28 +968,86 @@ auto load_pq9()->void
 		}*/
 		//std::cout << "POS2[20][j]" << POS2[20][j] << std::endl;
 	}
-
-	for (int i = 0; i< POS[0].size()- step_wave; i++)
+	double time = 0;
+    double tangent[3] = { 0,0 ,0 };
+	for (int i = 0; i < POS[0].size() - step_wave; i++)
 	{
-		double tangent[3] = { POS[18][i + step_wave] - POS[18][i],POS[19][i + step_wave] - POS[19][i] ,POS[20][i + step_wave] - POS[20][i] };
+
+		
+		if (i <= 5000)
+		{
+			time = time + 0.001;
+			tangent[0] = 0.0001;
+			tangent[2]=0.0001*cos(time);
+		}
+		if(i>5000&&i<=10000)
+		{
+			time = time - 0.001;
+			tangent[0] = -0.0001;
+			tangent[2]=-0.0001*cos(time);
+		}
+		if (i>10000&&i <= 15000)
+		{
+			time = time + 0.001;
+			tangent[0] = 0.0001;
+			tangent[2] = 0.0001*cos(time);
+		}
+		if (i > 15000 && i <= 20000)
+		{
+			time = time - 0.001;
+			tangent[0] = -0.0001;
+			tangent[2] = -0.0001*cos(time);
+		}
+		if (i > 20000&&i <= 25000)
+		{
+			time = time + 0.001;
+			tangent[0] = 0.0001;
+			tangent[2] = 0.0001*cos(time);
+		}
+		if (i > 25000 && i <= 30000)
+		{
+			time = time - 0.001;
+			tangent[0] = -0.0001;
+			tangent[2] = -0.0001*cos(time);
+		}
+		if (i > 30000 && i <= 35000)
+		{
+			time = time + 0.001;
+			tangent[0] = 0.0001;
+			tangent[2] = 0.0001*cos(time);
+		}
+		if (i > 35000 && i <= 40000)
+		{
+			time = time - 0.001;
+			tangent[0] = -0.0001;
+			tangent[2] = -0.0001*cos(time);
+		}
+		
+
+		if (i == 0)
+		{
+
+			POS[18][i] = POS[18][0];
+			POS[19][i] = POS[19][0];
+			POS[20][i] = POS[19][0];
+		}
+		else
+		{
+			POS[18][i] = POS[18][i - 1] + tangent[0];
+			POS[19][i] = POS[19][i - 1];
+		    POS[20][i] = POS[20][i - 1] + tangent[2];
+		}
+
+	
 		double tangL = sqrt(tangent[0] * tangent[0] + tangent[1] * tangent[1] + tangent[2] * tangent[2]);
-		if (tangL < 5 * 10e-17)//-6************************************************************************
+		if (tangL < 5 * 10e-27)//-6************************************************************************
 			continue;
 		else
 		{
-			/*for (int i = 0; i < 25; i++)
-			{
-				POS2[i].push_back(POS[i][j]);
-				POS2[i].push_back(POS[i][j+1]);
-			}
-			j++;*/
-			//轨迹上切线的向量
-			//double tangent[3] = { POS[18][i + step_wave] - POS[18][i],POS[19][i + step_wave] - POS[19][i] ,POS[20][i + step_wave] - POS[20][i] };
-			//double tangL = sqrt(tangent[0] * tangent[0] + tangent[1] * tangent[1] + tangent[2] * tangent[2]);
-			//定义与Z轴方向的欧拉角系数coe
+			 
 			//int coe;
 			double x[3] = { 1, 0, 0 };
-			double y[3] = { 0, 1, 0 };
+			double y[3] = { 0, 100000, 0 };
 			double z[3] = { 0, 0, -1 };
 			//求取切线与y轴的公法线向量
 			double vert[3] = { 0,0,0 };
@@ -1003,6 +1061,7 @@ auto load_pq9()->void
 			//std::cout << "sq" << sq << std::endl;
 
 			double vert0[3] = { 0,0,0 };
+			
 			for (int j = 0; j < 3; j++)
 			{
 				vert0[j] = vert[j] / sq;
@@ -1042,6 +1101,7 @@ auto load_pq9()->void
 			{
 				pq[j].push_back(pq0[j]);
 			}
+			int xxxx = 0;
 		}
 	}
 	//POS2完成数据转换，数据没有更改
@@ -1074,7 +1134,7 @@ auto load_pq9()->void
 	for (int k = 0; k < theta2.size(); k++)
 	//for (int k = 0; k < POS[0].size(); k++)
 	{
-		outfile << POS[18][k] << "  " << POS[19][k] << "  " << POS[20][k] << "  " << POS[21][k]<< "  " << POS[22][k] << "  " << POS[23][k] << "  " << POS[24][k] << "theta2:   " << theta2[k] << endl;
+		outfile << POS[18][k] << "  " << POS[19][k] << "  " << POS[20][k] << "  " << pq[3][k]<< "  " << pq[4][k] << "  " << pq[5][k] << "  " << pq[6][k] << "  " << theta2[k] << endl;
 		cout <<  "success outfile "  << endl;
 		//cout << data[k][0] << " " << data[k][1] << endl;
 	}
