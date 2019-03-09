@@ -221,7 +221,7 @@ namespace forcecontrol
 
                     auto real_vel = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
                     ft_offset = (f_vel_JRC[i] * controller->motionAtAbs(i).actualVel() + f_static_index_JRC[i] * f_static[i] * real_vel / max_static_vel[i])*f2c_index[i];
-
+					
                     /*
                     double f_col = 8.5;
                     int sign_vel = 0;
@@ -916,6 +916,8 @@ namespace forcecontrol
 
         aris::Size start_count = 1;
         aris::Size actual_count = 1;
+		aris::Size which_fca = 1;
+
 
 	};
 	static std::atomic_bool enable_movePQB = true;
@@ -1043,8 +1045,9 @@ namespace forcecontrol
 		std::copy(temp.begin(), temp.begin() + 7, param.pqt.begin());
 		std::copy(temp.begin() + 7, temp.begin() + 14, param.vqf.begin());
 	}
+	
 	//力控算法函数
-    auto force_control_algorithm(PlanTarget &target)->void
+    auto force_control_algorithm1(PlanTarget &target)->void
 	{
 		auto &param = std::any_cast<MovePQBParam&>(target.param);
 		auto controller = dynamic_cast<aris::control::Controller *>(target.master);
@@ -1328,6 +1331,185 @@ namespace forcecontrol
 		}
 
 	}
+	//力控算法函数--纯位置环
+	auto force_control_algorithm2(PlanTarget &target)->void
+	{
+		auto &param = std::any_cast<MovePQBParam&>(target.param);
+		auto controller = dynamic_cast<aris::control::Controller *>(target.master);
+		
+		//求目标位置pqt的运动学反解，获取电机实际位置、实际速度
+		target.model->generalMotionPool().at(0).setMpq(param.pqt.data());
+		target.model->solverPool().at(0).kinPos();
+		for (Size i = 0; i < param.pt.size(); ++i)
+		{
+			param.pt[i] = target.model->motionPool().at(i).mp();		//motionPool()指模型驱动器，at(0)表示第1个驱动器
+			param.pa[i] = controller->motionPool().at(i).actualPos();
+			param.va[i] = controller->motionPool().at(i).actualVel();
+		}
+
+		//运动学、动力学正解
+		for (int i = 0; i < param.ft.size(); ++i)
+		{
+			target.model->motionPool()[i].setMp(controller->motionPool()[i].actualPos());
+			target.model->motionPool().at(i).setMv(controller->motionAtAbs(i).actualVel());
+			target.model->motionPool().at(i).setMa(0.0);
+		}
+
+		target.model->solverPool()[1].kinPos();
+		target.model->solverPool()[1].kinVel();
+		double ee_acc[6]{ 0,0,0,0,0,0 };
+		target.model->generalMotionPool()[0].setMaa(ee_acc);
+		target.model->solverPool()[0].dynAccAndFce();
+		target.model->solverPool()[2].dynAccAndFce();
+
+		double f_friction[6], fs_friction[6], fk_friction[6], f_dynamic[6], ft_pid[6];
+		double real_vel[6], f_input[6];
+
+		//速度前馈
+		{
+			s_vq2vs(param.pqb.data(), param.vqf.data(), param.vsf.data());
+			/*
+			auto &inv = dynamic_cast<aris::dynamic::InverseKinematicSolver&>(target.model->solverPool()[0]);
+			inv.cptJacobi();
+			s_mm(6, 1, 6, inv.Ji(), 6, param.vsf.data(), 1, param.vfwd.data(), 1);
+			*/
+			auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(target.model->solverPool()[1]);
+			fwd.cptJacobi();
+
+			s_vc(3, param.vsf.data() + 3, param.va_Jc123.data());
+			s_mms(3, 1, 3, fwd.Jf() + 18, 6, param.va.data(), 1, param.va_Jc123.data(), 1);
+
+			//QR分解求方程的解
+			double U[9], tau[3];
+			aris::Size p[3];
+			Size rank;
+			//auto inline s_householder_utp(Size m, Size n, const double *A, AType a_t, double *U, UType u_t, double *tau, TauType tau_t, Size *p, Size &rank, double zero_check = 1e-10)noexcept->void
+			//A为输入
+			s_householder_utp(3, 3, fwd.Jf() + 21, 6, U, 3, tau, 1, p, rank, 1e-10);
+			//s_householder_utp_sov(Size m, Size n, Size rhs, Size rank, const double *U, UType u_t, const double *tau, TauType tau_t, const Size *p, const double *b, BType b_t, double *x, XType x_t, double zero_check = 1e-10)
+			//b为输入，x为所求的解
+			s_householder_utp_sov(3, 3, 1, rank, U, tau, p, param.va_Jc123.data(), param.vfwd.data() + 3, 1e-10);
+		}
+		
+		//位置环PID+限制
+		{
+			target.model->generalMotionPool().at(0).getMpq(param.pqb.data());
+			for (Size i = 0; i < param.kp_p.size(); ++i)
+			{
+				param.ft[i] = param.kp_p[i] * (param.pqt[i] - param.pqb[i]);
+				param.ft[i] = std::max(std::min(param.ft[i], ft_limit_PQB_P[i]), -ft_limit_PQB_P[i]);
+			}
+
+			s_c3a(param.pqb.data(), param.ft.data(), param.ft.data() + 3);
+
+			//通过雅克比矩阵将param.ft转换到关节param.ft_pid
+			auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(target.model->solverPool()[1]);
+
+			fwd.cptJacobi();
+			/*		double U[36], tau[6], tau2[6], J_fce[36];
+					Size p[6], rank;
+
+					s_householder_utp(6, 6, inv.Jf(), U, tau, p, rank);
+					s_householder_utp2pinv(6, 6, rank, U, tau, p, J_fce, tau2);*/
+
+			s_mm(6, 1, 6, fwd.Jf(), aris::dynamic::ColMajor{ 6 }, param.ft.data(), 1, param.ft_pid.data(), 1);
+
+		}
+		
+		//动力学载荷
+		for (Size i = 0; i < param.ft_pid.size(); ++i)
+		{
+			//f_friction=静摩擦力+动摩擦力
+			real_vel[i] = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
+			fs_friction[i] = f_static_index[i]*(f_static[i] * real_vel[i] / max_static_vel[i]);
+			fk_friction[i] = f_vel[i] * controller->motionAtAbs(i).actualVel();
+			f_friction[i] = fs_friction[i] + fk_friction[i];
+			//限制摩擦力的大小为500以内
+			f_friction[i] = std::max(-500.0, f_friction[i]);
+			f_friction[i] = std::min(500.0, f_friction[i]);
+
+			//动力学载荷=f_dynamic
+			f_dynamic[i] = target.model->motionPool()[i].mfDyn();
+
+			//电机输入电流=力*力到电流的系数
+			f_input[i] = (f_friction[i] + f_dynamic[i] + param.ft_pid[i])*f2c_index[i];
+
+			controller->motionAtAbs(i).setTargetCur(f_input[i]);
+		}
+
+		//print//
+		auto &cout = controller->mout();
+		if (target.count % 1000 == 0)
+		{
+			cout << "pt:";
+			for (Size i = 0; i < 6; i++)
+			{
+				cout << std::setw(10) << param.pt[i] << "  ";
+			}
+			cout << std::endl;
+
+			cout << "pa:";
+			for (Size i = 0; i < 6; i++)
+			{
+				cout << std::setw(10) << param.pa[i] << "  ";
+			}
+			cout << std::endl;
+
+			cout << "va:";
+			for (Size i = 0; i < 6; i++)
+			{
+				cout << std::setw(10) << param.va[i] << "  ";
+			}
+			cout << std::endl;
+
+			cout << "ft:";
+			for (Size i = 0; i < 6; i++)
+			{
+				cout << std::setw(10) << param.ft[i] << "  ";
+			}
+			cout << std::endl;
+
+			cout << "ft_pid:";
+			for (Size i = 0; i < 6; i++)
+			{
+				cout << std::setw(10) << param.ft_pid[i] << "  ";
+			}
+			cout << std::endl;
+			cout << "fs_friction:";
+			for (Size i = 0; i < 6; i++)
+			{
+				cout << std::setw(10) << fs_friction[i] << "  ";
+			}
+			cout << std::endl;
+			cout << "fk_friction:";
+			for (Size i = 0; i < 6; i++)
+			{
+				cout << std::setw(10) << fk_friction[i] << "  ";
+			}
+			cout << std::endl;
+			cout << "f_friction:";
+			for (Size i = 0; i < 6; i++)
+			{
+				cout << std::setw(10) << f_friction[i] << "  ";
+			}
+			cout << std::endl;
+			cout << "f_input:";
+			for (Size i = 0; i < 6; i++)
+			{
+				cout << std::setw(10) << f_input[i] << "  ";
+			}
+			cout << std::endl;
+			cout << "vfwd:";
+			for (Size i = 0; i < 6; i++)
+			{
+				cout << std::setw(10) << param.vfwd[i] << "  ";
+			}
+			cout << std::endl;
+			cout << "------------------------------------------------" << std::endl;
+		}
+
+	}
+
 	//MovePQB成员函数实现
 	auto MovePQB::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
@@ -1454,6 +1636,10 @@ namespace forcecontrol
 					}
 				}
 			}
+			else if (p.first == "which_fca")
+			{
+				param.which_fca = std::stoi(p.second);
+			}
 		}
 		target.param = param;
 
@@ -1548,8 +1734,14 @@ namespace forcecontrol
             //加载数据
             load_func(target, func[0]);
             //力控算法
-            force_control_algorithm(target);
-
+			if (param.which_fca == 2)
+			{
+				force_control_algorithm2(target);
+			}
+			else
+			{
+				force_control_algorithm1(target);
+			}
         }
 
 		//log//
@@ -1585,6 +1777,7 @@ namespace forcecontrol
             "		<kp_p default=\"{4,6,4,3,3,2}\"/>"
             "		<kp_v default=\"{170,270,90,60,35,16}\"/>"
             "		<ki_v default=\"{2,15,10,0.2,0.2,0.18}\"/>"
+			"		<which_fca default=\"2\"/>"
 			"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_all\">"
 			"			<check_all/>"
 			"			<check_none/>"
