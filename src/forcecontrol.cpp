@@ -934,9 +934,9 @@ namespace forcecontrol
         {0.162203,0.466206,0.0139912,-0.492466,0.474288,0.511942,0.520041},{0.162203,0.396206,0.0139912,-0.492466,0.474288,0.511942,0.520041},
         {0.04804,0.396206,0.04334,-0.492466,0.474288,0.511942,0.520041},{-0.01902,0.396206,0.02162,-0.492466,0.474288,0.511942,0.520041},{-0.06067,0.396206,0.03139,-0.492466,0.474288,0.511942,0.520041},
         {-0.122203,0.396206,0.0139912,-0.492466,0.474288,0.511942,0.520041} };
-        double vel = 0.04, acc = 0.08, dec = 0.08;
+        double vel = 0.1, acc = 0.2, dec = 0.2;
 		static aris::Size total_count[10] = { 1,1,1,1,1,1,1,1,1,1 };
-		static aris::Size step_count[10] = { start_count,start_count,start_count,start_count,start_count,start_count,start_count,start_count,start_count,start_count };
+        aris::Size step_count[10] = { start_count,start_count,start_count,start_count,start_count,start_count,start_count,start_count,start_count,start_count };
 
         std::array<double, 14> temp = {-0.122203,0.396206,0.0139912,-0.492466,0.474288,0.511942,0.520041,0,0,0,0,0,0,0};
 		
@@ -953,14 +953,14 @@ namespace forcecontrol
 					total_count[j] = std::max(total_count[j], t_count);
 				}
 			}
-            for (aris::Size i = 0; i < 10; i++)
-            {
-                for (aris::Size j = 0; j <= i; j++)
-                {
-                    step_count[i] = step_count[i] + total_count[j];
-                }
-            }
 		}
+        for (aris::Size i = 0; i < 10; i++)
+        {
+            for (aris::Size j = 0; j <= i; j++)
+            {
+                step_count[i] = step_count[i] + total_count[j];
+            }
+        }
 
 		//获取根据输入的target.count选择执行哪一段梯形轨迹
 		if (count <= step_count[0])
@@ -1218,14 +1218,15 @@ namespace forcecontrol
             //静摩擦力+动摩擦力=ft_friction
 
             real_vel[i] = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
-            ft_friction1[i] = 0.8*(f_static[i] * real_vel[i] / max_static_vel[i]);
+            ft_friction1[i] = f_static_index_JRC[i]*(f_static[i] * real_vel[i] / max_static_vel[i]);
 
             //double ft_friction2_max = std::max(0.0, controller->motionAtAbs(i).actualVel() >= 0 ? f_static[i] - ft_friction1[i] : f_static[i] + ft_friction1[i]);
             //double ft_friction2_min = std::min(0.0, controller->motionAtAbs(i).actualVel() >= 0 ? -f_static[i] + ft_friction1[i] : -f_static[i] - ft_friction1[i]);
             //ft_friction2[i] = std::max(ft_friction2_min, std::min(ft_friction2_max, ft_friction2_index[i] * param.ft[i]));
             //ft_friction[i] = ft_friction1[i] + ft_friction2[i] + f_vel[i] * controller->motionAtAbs(i).actualVel();
 
-            ft_friction[i] = ft_friction1[i] + f_vel[i] * controller->motionAtAbs(i).actualVel();
+            //ft_friction[i] = ft_friction1[i] + f_vel[i] * controller->motionAtAbs(i).actualVel();
+            ft_friction[i] = ft_friction1[i] + f_vel_JRC[i] * controller->motionAtAbs(i).actualVel();
 
             ft_friction[i] = std::max(-500.0, ft_friction[i]);
             ft_friction[i] = std::min(500.0, ft_friction[i]);
@@ -1236,7 +1237,6 @@ namespace forcecontrol
             ft_offset[i] = (ft_friction[i] + ft_dynamic[i] + param.ft_pid[i])*f2c_index[i];
             controller->motionAtAbs(i).setTargetCur(ft_offset[i]);
         }
-
 
 		//print//
 		auto &cout = controller->mout();
@@ -1774,10 +1774,10 @@ namespace forcecontrol
 			"<movePQB>"
 			"	<group type=\"GroupParam\" default_child_type=\"Param\">"
             "		<pqt default=\"{0.42,0.0,0.55,0,0,0,1}\" abbreviation=\"p\"/>"
-            "		<kp_p default=\"{4,6,4,3,3,2}\"/>"
-            "		<kp_v default=\"{170,270,90,60,35,16}\"/>"
-            "		<ki_v default=\"{2,15,10,0.2,0.2,0.18}\"/>"
-			"		<which_fca default=\"2\"/>"
+            "		<kp_p default=\"{4,4,6,3,3,2}\"/>"
+            "		<kp_v default=\"{140,180,60,50,30,14}\"/>"
+            "		<ki_v default=\"{2,8,5,0.16,0.2,0.18}\"/>"
+            "		<which_fca default=\"1\"/>"
 			"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_all\">"
 			"			<check_all/>"
 			"			<check_none/>"
