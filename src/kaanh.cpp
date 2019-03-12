@@ -1,7 +1,7 @@
 ﻿#include <algorithm>
 #include"kaanh.h"
 #include"iir.h"
-
+#include "sixdistalfc.h"
 
 
 using namespace aris::dynamic;
@@ -2761,6 +2761,8 @@ namespace kaanh
 		plan_root->planPool().add<RemoveFile>();
 		plan_root->planPool().add<MoveinModel>();
 		plan_root->planPool().add<replay>();
+		plan_root->planPool().add<MoveXYZ>();
+		plan_root->planPool().add<MoveDistal>();
 		//plan_root->planPool().add<plPQ>();
 
 	/*	auto &dm1 = plan_root->planPool().add<aris::plan::MoveJ>();
