@@ -18,7 +18,7 @@ sixdistaldynamics::sixdistaldynamics()
             B[2] = -A[2][0];
         }
 
-double A0[6][GroupDim];
+//double A0[6][GroupDim];
 void distalMatrix(std::array<double, 6> &q, std::array<double, 6> &dq, std::array<double, 6> &ddq, std::array<double, 6> &ts)
 {
 	double t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16, t17,
@@ -65,7 +65,7 @@ void distalMatrix(std::array<double, 6> &q, std::array<double, 6> &dq, std::arra
 	ddq1 = ddq[0]; ddq2 = ddq[1]; ddq3 = ddq[2]; ddq4 = ddq[3]; ddq5 = ddq[4]; ddq6 = ddq[5];
 
 	ts1 = ts[0]; ts2 = ts[1]; ts3 = ts[2]; ts4 = ts[3]; ts5 = ts[4]; ts6 = ts[5];
-
+double A0[6][GroupDim];
 	for (int i = 0; i < 6; i++)
 		for (int j = 0; j < GroupDim; j++)
 			A0[i][j] = 0;

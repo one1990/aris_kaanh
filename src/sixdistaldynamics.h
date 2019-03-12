@@ -1,7 +1,7 @@
 ﻿#ifndef SIXDISTALDYNAMICS_H_
 #define SIXDISTALDYNAMICS_H_
 
-#include <vector>
+#include <array>
 
 # define FORE_VEL_LENGTH 20	//速度平均值滤波buffer长度
 # define PI 3.1415926	//中值滤波buffer长度

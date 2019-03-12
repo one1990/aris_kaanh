@@ -382,7 +382,7 @@ auto MoveDistal::executeRT(PlanTarget &target)->int
 	{
 		for (int i = 0; i < 6; i++)
 		{
-			PositionList[target.count][i] = step_pjs[i];
+            PositionList[target.count][i] = target.model->motionPool()[i].mp();
 			SensorList[target.count][i] = target.model->motionPool()[i].ma();
 		}
 		    lout << target.count << ",";
@@ -406,8 +406,8 @@ MoveDistal::MoveDistal(const std::string &name) :Plan(name)
 	command().loadXmlStr(
 		"<mvDistal>"
 		"	<group type=\"GroupParam\" default_child_type=\"Param\">"
-		"		<period default=\"1.0\" abbreviation=\"p\"/>"
-		"		<amplitude default=\"1.0\" abbreviation=\"a\"/>"
+        "		<period default=\"2.0\" abbreviation=\"p\"/>"
+        "		<amplitude default=\"0.1\" abbreviation=\"a\"/>"
 		"	</group>"
 		"</mvDistal>");
 }

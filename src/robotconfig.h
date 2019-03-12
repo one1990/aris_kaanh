@@ -1,7 +1,7 @@
 #ifndef ROBOTCONFIG_H_
 #define ROBOTCONFIG_H_
 
-#include <vector>
+#include <array>
 
 # define FORE_VEL_LENGTH 20	//�ٶ�ƽ��ֵ�˲�buffer����
 # define PI 3.1415926	//��ֵ�˲�buffer����
