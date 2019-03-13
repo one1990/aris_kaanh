@@ -61,6 +61,14 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 {
 			auto &param = std::any_cast<MoveXYZParam&>(target.param);
 			
+			double RobotPosition[6];
+			double RobotPositionT[6];
+			double RobotPositionJ[6];
+			double RobotVelocity[6];
+			double RobotAcceleration[6];
+			double TorqueSensor[6];
+			double X1[3];
+			double X2[3];
 			static double begin_pjs[6];
 			static double step_pjs[6];
 
@@ -69,17 +77,10 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 				{
                     for (int i = 0; i < 6; ++i)
 					{
-						begin_pjs[i] = target.model->motionPool()[i].mp();
 						step_pjs[i] = target.model->motionPool()[i].mp();
 					}
 				}
-				for (int i = 0; i < 6; i++)
-				{
-					step_pjs[i] = begin_pjs[i] + 0.0001*target.count;
-					target.model->motionPool().at(i).setMp(step_pjs[i]);
-				}
-			
-			
+	
 
 			if (!target.model->solverPool().at(1).kinPos())return -1;
 
@@ -110,19 +111,12 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 			lout << target.model->motionPool()[5].mp() << ",";
 			lout << std::endl;
 			
-			std::array<double, 6> RobotPosition;
-			std::array<double, 6> RobotPositionT;
-			std::array<double, 6> RobotPositionJ;
-			std::array<double, 6> RobotVelocity;
-			std::array<double, 6> RobotAcceleration;
-			std::array<double, 6> TorqueSensor;
-			std::array<double, 3> X1;
-			std::array<double, 3> X2;
+			
             
-			std::array<double, 6> dX = { -0.0001, -0.0001, -0.0001, -0.0000, -0.0001, -0.0000};
-			std::array<double, 6> dTheta;
-			std::array<double, 6> estTorFin;
-			std::array<double, 6> SumdTheta;
+			double dX[6] = { 0.0001, -0.0000, -0.0000, -0.0000, -0.0000, -0.0000};
+			double dTheta[6];
+			double estTorFin[6];
+			double SumdTheta[6];
             //recvs[0] = 0; recvs[1] = 30; recvs[2] = 0; recvs[3] = 20; recvs[4] = 20; recvs[5] = 0;
             //recvs0[0] = 0; recvs0[1] = 30; recvs0[2] = 0; recvs0[3] = 20; recvs0[4] = 20; recvs0[5] = 0;
             int tick = 0;
@@ -130,15 +124,7 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
                     estTorFin[i]=0;
 
   
-                for (int i = 0; i < 6; i++)
-                {
-                    RobotPosition[i]=0;
-                    RobotPositionT[i] = 0;
-                    RobotPositionJ[i] = 0;
-                    TorqueSensor[i] = 0;
-                    RobotVelocity[i] = 0;
-                    RobotAcceleration[i] = 0;
-                }
+                
 				/*
                 if (tick == 0)
                 {
@@ -221,27 +207,24 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
                 dX[4, 0] = MY.Value;
                 dX[5, 0] = MZ.Value;
 				*/
-               // dTheta = robotDemo.jointIncrement(RobotPositionJ, dX);
-               
+				for (int i = 0;i < 6;i++)
+					RobotPositionJ[i] = target.model->motionPool()[i].mp();
+
+                robotDemo.jointIncrement(RobotPositionJ, dX,dTheta);
+
+				for (int i = 0; i < 6; i++)
+				{
+					step_pjs[i] = step_pjs[i] + dTheta[i];
+					target.model->motionPool().at(i).setMp(step_pjs[i]);
+				}
+
                 for (int i = 0; i < 6; i++)
                 {
-                    dTheta[i] = dTheta[i] * ConAng * DirectionFlag[i];
+                    dTheta[i] = dTheta[i] * DirectionFlag[i];
  
                 }
-                
-                
-				double MaxdTheta = 0.03;
-                for (int i = 1; i < 6; i++)
-                {
-                    if ( dTheta[i] > dTheta[i])
-						dTheta[i] = dTheta[i];
-					if (dTheta[i] < -dTheta[i])
-						dTheta[i] = -dTheta[i];
-
-                }
-                
-
-                
+       
+     
                 for (int i = 0; i < 6; i++)
                 {
                     //if (dTheta[i] > 0.3)
@@ -274,7 +257,7 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
                     stateTor0[i, 2] = stateTor1[i, 2];
                 } */
             
-				return 5000 - target.count;
+				return 10000 - target.count;
 }
 
 MoveXYZ::MoveXYZ(const std::string &name) :Plan(name)
@@ -337,8 +320,9 @@ auto MoveDistal::executeRT(PlanTarget &target)->int
 	static double perVar = 0;
 	static double ampVar = 0;
 	int RecordNum = 1000;
-    static double PositionList[10000][6];
-    static double SensorList[10000][6];
+    static double PositionList[60000];
+    static double SensorList[60000];
+
 
 	if (target.count < 1000)
 	{
@@ -392,20 +376,20 @@ auto MoveDistal::executeRT(PlanTarget &target)->int
 	{
 		for (int i = 0; i < 6; i++)
 		{
-            PositionList[target.count][i] = target.model->motionPool()[i].mp();
-            SensorList[target.count][i] = FT[i+1];
+            PositionList[6*(target.count-1)+i] = target.model->motionPool()[i].mp();
+            SensorList[6*(target.count-1)+i] = FT[i+1];
 		}
 		    lout << target.count << ",";
-			lout << PositionList[target.count][0] << ",";lout << PositionList[target.count][1] << ",";
-			lout << PositionList[target.count][2] << ",";lout << PositionList[target.count][3] << ",";
-			lout << PositionList[target.count][4] << ",";lout << PositionList[target.count][5] << ",";
-			lout << SensorList[target.count][0] << ",";lout << SensorList[target.count][1] << ",";
-			lout << SensorList[target.count][2] << ",";lout << SensorList[target.count][3] << ",";
-			lout << SensorList[target.count][4] << ",";lout << SensorList[target.count][5] << ",";
+			lout << PositionList[6 * (target.count - 1) + 0] << ",";lout << PositionList[6 * (target.count - 1) + 1] << ",";
+			lout << PositionList[6 * (target.count - 1) + 2] << ",";lout << PositionList[6 * (target.count - 1) + 3] << ",";
+			lout << PositionList[6 * (target.count - 1) + 4] << ",";lout << PositionList[6 * (target.count - 1) + 5] << ",";
+			lout << SensorList[6 * (target.count - 1) + 0] << ",";lout << SensorList[6 * (target.count - 1) + 1] << ",";
+			lout << SensorList[6 * (target.count - 1) + 2] << ",";lout << SensorList[6 * (target.count - 1) + 3] << ",";
+			lout << SensorList[6 * (target.count - 1) + 4] << ",";lout << SensorList[6 * (target.count - 1) + 5] << ",";
 
 			lout << std::endl;
 	}
-    //if (target.count == 1000)
+    if (target.count == 1000)
 		//estParas=sixDistalMatrix.RLS(PositionList, SensorList);
 
     return 10000 - target.count;
@@ -416,7 +400,7 @@ MoveDistal::MoveDistal(const std::string &name) :Plan(name)
 	command().loadXmlStr(
 		"<mvDistal>"
 		"	<group type=\"GroupParam\" default_child_type=\"Param\">"
-        "		<period default=\"10.0\" abbreviation=\"p\"/>"
+        "		<period default=\"1.0\" abbreviation=\"p\"/>"
         "		<amplitude default=\"0.2\" abbreviation=\"a\"/>"
 		"	</group>"
 		"</mvDistal>");

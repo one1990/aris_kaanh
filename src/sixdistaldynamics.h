@@ -15,7 +15,7 @@ namespace sixDistalDynamicsInt
 		double B[3];
         sixdistaldynamics();
 		std::array<double, 6> sixDistalCollision(std::array<double, 6> &q, std::array<double, 6> &dq, std::array<double, 6> &ddq, std::array<double, 6> &ts, std::array<double, 6> &estParas);
-		std::array<double, 6> RLS(std::array<double, 6> &positionList, std::array<double, 6> &sensorList);
+		void RLS(const double *positionList, const double *sensorList, double *estParas);
 		//double[,] sixDistalMatrix(double[] q, double[] dq,double[] ddq,double[] ts);
 		
 	};

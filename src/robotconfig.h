@@ -1,10 +1,10 @@
 #ifndef ROBOTCONFIG_H_
 #define ROBOTCONFIG_H_
-
+//#include <aris.h>
 #include <array>
 
 # define FORE_VEL_LENGTH 20	//�ٶ�ƽ��ֵ�˲�buffer����
-# define PI 3.1415926	//��ֵ�˲�buffer����
+# define PII 3.1415926	//��ֵ�˲�buffer����
 
 namespace CONFIG
 { 
@@ -16,12 +16,12 @@ namespace CONFIG
                 double MC1, MC2, MC3;
 	
 		robotconfig();
-		std::array<double, 6> jointIncrement(std::array<double, 6> & q, std::array<double, 6> & dX);
+		void jointIncrement(const double* q, const double* dX, double* dTheta);
 		std::array<double, 6> forceTransform(std::array<double, 6> &q, std::array<double, 3> &f, std::array<double, 3> &m);
 	};
 
-	    const double ConRad = PI / 180;
-        const double ConAng = 180 / PI;
+	    const double ConRad = PII / 180;
+        const double ConAng = 180 / PII;
         const int GroupDim = 46;
         const int RobotAxis = 6;
         const double DT = 0.008;
@@ -30,7 +30,7 @@ namespace CONFIG
         const double EndSensor[3] = { 0, 0, 0};
         
         const double ZeroOffset[6] = { 0, 0, 0, 0, 0, 0 };
-        const double JointOffset[6] = { 0, -PI / 2, 0, 0, 0, 0 };
+        const double JointOffset[6] = { 0, -PII / 2, 0, 0, 0, 0 };
         const double DirectionFlag[6] = { 1, 1, 1, 1, 1, 1 };
 
 		//DH Paras

@@ -288,14 +288,18 @@ double A0[6][GroupDim];
 		//return A0;
 }
 
+inline int id(int m, int n, int cols) { return m * cols + n;}
 
-std::array<double, 6> sixdistaldynamics::RLS(std::array<double, 6> &positionList, std::array<double, 6> &sensorList)
+/*
+void sixdistaldynamics::RLS(const double *positionList, const double *sensorList, double *estParas)
 {
-	std::array<double, 6> q;
+	positionList[id(2, 2, 6)];
+	
+	double q[6];
 	std::array<double, 6> dq;
 	std::array<double, 6> ddq;
 	std::array<double, 6> ts;
-	std::array<double, 6> estParas;
+	//std::array<double, 6> estParas;
 	double stateMot0[6][3];
 	double stateMot1[6][3];
 	double stateTor0[6][3];
@@ -338,7 +342,7 @@ std::array<double, 6> sixdistaldynamics::RLS(std::array<double, 6> &positionList
 			ts[j] = stateTor1[j][0];
 		}
 		
-		distalMatrix(q, dq, ddq, ts);
+		//distalMatrix(q, dq, ddq, ts);
 		/*
 		for (int m = 0; m < 6; m++)
 		{
@@ -374,11 +378,11 @@ std::array<double, 6> sixdistaldynamics::RLS(std::array<double, 6> &positionList
 
 	for (int i = 0; i < common.GroupDim; i++)
 		estParas[i] = paras[i, 0];
-		*/
+		
 	}
 	return estParas;
 }
-
+*/
 
 
 std::array<double, 6> sixdistaldynamics::sixDistalCollision(std::array<double, 6> &q, std::array<double, 6> &dq, std::array<double, 6> &ddq, std::array<double, 6> &ts, std::array<double, 6> &estParas)
