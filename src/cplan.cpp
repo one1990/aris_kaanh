@@ -875,11 +875,11 @@ auto load_pq9()->void
 {
 	//将文件中的数据读取到POS中，共25列；
 	//string site = "/home/kaanh/Desktop/build-kaanh-Desktop_Qt_5_11_2_GCC_64bit-Default/log/rt_log--2019-02-20--16-34-25--4.txt";
-	//std::cout << "start1" << std::endl;
+	
 	//string site = "C:/Users/kevin/Desktop/qch/rt_log--2019-02-20--16-34-25--4.txt";
 	std::cout << "now is on pq9" << std::endl;
 	string site = "C:/Users/qianch_kaanh_cn/Desktop/data/rt_log--2019-02-28--23-25-52--11.txt";
-	//string site = "C:/Users/qianch_kaanh_cn/Desktop/data/rt_log--2019-02-27--14-13-05--7.txt";
+	
 	//以下定义读取log文件的输入流oplog;
 	ifstream oplog;
 
@@ -951,9 +951,7 @@ auto load_pq9()->void
 		}
 		Z = Z / step_wave;
 
-		//double X = (POS2[18][j] + POS2[18][j + 1] + POS2[18][j + 2] + POS2[18][j + 3]) / step_wave;//x值；
-		//double Z = (POS2[20][j] + POS2[20][j + 1] + POS2[20][j + 2] + POS2[20][j + 3]) / step_wave;//z值；
-		//std::cout << "A" << A << std::endl;
+
 		POS[18][j] = X;
 		POS[20][j] = Z;
 		/*if (j == row - 4)
@@ -969,11 +967,9 @@ auto load_pq9()->void
 		//std::cout << "POS2[20][j]" << POS2[20][j] << std::endl;
 	}
 	double time = 0;
-    double tangent[3] = { 0,0 ,0 };
+    double tangent[3] = { 0,0,0 };
 	for (int i = 0; i < POS[0].size() - step_wave; i++)
-	{
-
-		
+	{		
 		if (i <= 5000)
 		{
 			time = time + 0.001;

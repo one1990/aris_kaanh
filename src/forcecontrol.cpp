@@ -1496,7 +1496,6 @@ namespace forcecontrol
             load_func(target, func[0]);
             //力控算法
             force_control_algorithm(target);
-
         }
 
 		//log//
