@@ -67,7 +67,7 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 				// 获取当前起始点位置 //
 				if (target.count == 1)
 				{
-					for (int i = 0; i < 6; ++i)
+                    for (int i = 0; i < 6; ++i)
 					{
 						begin_pjs[i] = target.model->motionPool()[i].mp();
 						step_pjs[i] = target.model->motionPool()[i].mp();
@@ -313,7 +313,7 @@ auto MoveDistal::prepairNrt(const std::map<std::string, std::string> &params, Pl
 
 	target.option |=
 		Plan::USE_TARGET_POS |
-#ifdef WIN32
+//#ifdef WIN32
 		Plan::NOT_CHECK_POS_MIN |
 		Plan::NOT_CHECK_POS_MAX |
 		Plan::NOT_CHECK_POS_CONTINUOUS |
@@ -321,7 +321,7 @@ auto MoveDistal::prepairNrt(const std::map<std::string, std::string> &params, Pl
 		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
 		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
 		Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
-#endif
+//#endif
 		Plan::NOT_CHECK_VEL_MIN |
 		Plan::NOT_CHECK_VEL_MAX |
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
@@ -337,8 +337,8 @@ auto MoveDistal::executeRT(PlanTarget &target)->int
 	static double perVar = 0;
 	static double ampVar = 0;
 	int RecordNum = 1000;
-	static double PositionList[1000][6];
-	static double SensorList[1000][6];
+    static double PositionList[10000][6];
+    static double SensorList[10000][6];
 
 	if (target.count < 1000)
 	{
@@ -353,16 +353,26 @@ auto MoveDistal::executeRT(PlanTarget &target)->int
 				step_pjs[i] = target.model->motionPool()[i].mp();
 			}
 	}
-	for (int i = 4; i < 6; i++)
+    for (int i = 4; i < 6; i++)
 	{
 			step_pjs[i] = begin_pjs[i] + ampVar * (std::sin(2 * PI / param.period *target.count/1000));
 			target.model->motionPool().at(i).setMp(step_pjs[i]);
 	}
 	
-	if (!target.model->solverPool().at(1).kinPos())return -1;
+    //if (!target.model->solverPool().at(1).kinPos())return -1;
 
 	// 访问主站 //
 	auto controller = dynamic_cast<aris::control::Controller*>(target.master);
+
+    float FT[7];
+    auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.master);
+    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x00, &FT[0] ,16);
+    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x01, &FT[1] ,32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x02, &FT[2], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x03, &FT[3], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x04, &FT[4], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x05, &FT[5], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x06, &FT[6], 32);
 
 	// 打印电流 //
 	auto &cout = controller->mout();
@@ -378,12 +388,12 @@ auto MoveDistal::executeRT(PlanTarget &target)->int
 	}
 
     auto &lout = controller->lout();
-	if(target.count<1000)
+    //if(target.count<10000)
 	{
 		for (int i = 0; i < 6; i++)
 		{
             PositionList[target.count][i] = target.model->motionPool()[i].mp();
-			SensorList[target.count][i] = target.model->motionPool()[i].ma();
+            SensorList[target.count][i] = FT[i+1];
 		}
 		    lout << target.count << ",";
 			lout << PositionList[target.count][0] << ",";lout << PositionList[target.count][1] << ",";
@@ -395,10 +405,10 @@ auto MoveDistal::executeRT(PlanTarget &target)->int
 
 			lout << std::endl;
 	}
-	if (target.count == 1000)
+    //if (target.count == 1000)
 		//estParas=sixDistalMatrix.RLS(PositionList, SensorList);
 
-	return 5000 - target.count;
+    return 10000 - target.count;
 }
 
 MoveDistal::MoveDistal(const std::string &name) :Plan(name)
@@ -406,8 +416,8 @@ MoveDistal::MoveDistal(const std::string &name) :Plan(name)
 	command().loadXmlStr(
 		"<mvDistal>"
 		"	<group type=\"GroupParam\" default_child_type=\"Param\">"
-        "		<period default=\"2.0\" abbreviation=\"p\"/>"
-        "		<amplitude default=\"0.1\" abbreviation=\"a\"/>"
+        "		<period default=\"10.0\" abbreviation=\"p\"/>"
+        "		<amplitude default=\"0.2\" abbreviation=\"a\"/>"
 		"	</group>"
 		"</mvDistal>");
 }
