@@ -45,10 +45,12 @@ auto MoveXYZ::prepairNrt(const std::map<std::string, std::string> &params, PlanT
 		Plan::NOT_CHECK_POS_MAX |
 		Plan::NOT_CHECK_POS_CONTINUOUS |
 		Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
-		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
+        Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
 		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
 		Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
 #endif
+            Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
+            Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
 		Plan::NOT_CHECK_VEL_MIN |
 		Plan::NOT_CHECK_VEL_MAX |
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
@@ -71,7 +73,8 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 			double X2[3];
 			static double begin_pjs[6];
 			static double step_pjs[6];
-
+            static double stateTor0[6][3],stateTor1[6][3];
+            static float FT0[7];
 				// 获取当前起始点位置 //
 				if (target.count == 1)
 				{
@@ -84,37 +87,12 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 
 			if (!target.model->solverPool().at(1).kinPos())return -1;
 
-			// 访问主站 //
-			auto controller = dynamic_cast<aris::control::Controller*>(target.master);
 
-			// 打印电流 //
-			auto &cout = controller->mout();
-			if (target.count % 1000 == 0)
-			{
-				for (int i = 0; i < 6; i++)
-				{
-					cout << "pos" << i + 1 << ":" << target.model->motionPool()[i].mp() << "  ";
-					cout << "vel" << i + 1 << ":" << target.model->motionPool()[i].mv() << "  ";
-					cout << "cur" << i + 1 << ":" << target.model->motionPool()[i].ma() << "  ";
-				}
-				cout << std::endl;
-			}
-
-			// log 电流 //
-			auto &lout = controller->lout();
-
-			lout << target.model->motionPool()[0].mp() << ",";
-			lout << target.model->motionPool()[1].mp() << ",";
-			lout << target.model->motionPool()[2].mp() << ",";
-			lout << target.model->motionPool()[3].mp() << ",";
-			lout << target.model->motionPool()[4].mp() << ",";
-			lout << target.model->motionPool()[5].mp() << ",";
-			lout << std::endl;
 			
 			
             
-			double dX[6] = { 0.0001, -0.0000, -0.0000, -0.0000, -0.0000, -0.0000};
-			double dTheta[6];
+            double dX[6] = { 0.00001, -0.0000, -0.0000, -0.0000, -0.0000, -0.0000};
+            double dTheta[6]={0};
 			double estTorFin[6];
 			double SumdTheta[6];
             //recvs[0] = 0; recvs[1] = 30; recvs[2] = 0; recvs[3] = 20; recvs[4] = 20; recvs[5] = 0;
@@ -123,30 +101,107 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
             for (int i = 0; i < 6; i++)
                     estTorFin[i]=0;
 
-  
-                
-				/*
-                if (tick == 0)
+            float FT[7];
+            uint16_t FTnum;
+            auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.master);
+            conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x00, &FTnum ,16);
+            conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x01, &FT[1] ,32);
+            conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x02, &FT[2], 32);
+            conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x03, &FT[3], 32);
+            conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x04, &FT[4], 32);
+            conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x05, &FT[5], 32);
+            conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x06, &FT[6], 32);
+            // 获取当前起始点位置 //
+            if (target.count == 1)
+            {
+                for (int i = 0; i < 7; ++i)
                 {
-                    for (int j = 0; j < 6; j++)
-                        stateTor0[j, 0] = TorqueSensor[j];
-                    
+                    FT0[i] = FT[i];
                 }
-
                 for (int j = 0; j < 6; j++)
+                    stateTor0[j][0] = FT0[j+1];
+            }
+
+
+
+
+
+
+
+            for (int j = 0; j < 6; j++)
                 {
-                    double intDT = 0.008;
-                    stateTor1[j, 0] = stateTor0[j, 0] + intDT * (A[0, 0] * stateTor0[j, 0] + A[0, 1] * stateTor0[j, 1] + A[0, 2] * stateTor0[j, 2] + B[0] * TorqueSensor[j]);
-                    stateTor1[j, 1] = stateTor0[j, 1] + intDT * (A[1, 0] * stateTor0[j, 0] + A[1, 1] * stateTor0[j, 1] + A[1, 2] * stateTor0[j, 2] + B[1] * TorqueSensor[j]);
-                    stateTor1[j, 2] = stateTor0[j, 2] + intDT * (A[2, 0] * stateTor0[j, 0] + A[2, 1] * stateTor0[j, 1] + A[2, 2] * stateTor0[j, 2] + B[2] * TorqueSensor[j]);
+                double A[3][3],B[3],CutFreq=10;
+                A[0][0] = 0; A[0][1] = 1; A[0][2] = 0;
+                A[1][0] = 0; A[1][1] = 0; A[1][2] = 1;
+                A[2][0] = -CutFreq * CutFreq * CutFreq;
+                A[2][1] = -2 * CutFreq * CutFreq;
+                A[2][2] = -2 * CutFreq;
+                B[0] = 0; B[1] = 0;
+                B[2] = -A[2][0];
+                 double intDT = 0.001;
+                    stateTor1[j][0] = stateTor0[j][0] + intDT * (A[0][0] * stateTor0[j][0] + A[0][1] * stateTor0[j][1] + A[0][2] * stateTor0[j][2] + B[0] * FT[j+1]);
+                    stateTor1[j][1] = stateTor0[j][1] + intDT * (A[1][0] * stateTor0[j][0] + A[1][1] * stateTor0[j][1] + A[1][2] * stateTor0[j][2] + B[1] * FT[j+1]);
+                    stateTor1[j][2] = stateTor0[j][2] + intDT * (A[2][0] * stateTor0[j][0] + A[2][1] * stateTor0[j][1] + A[2][2] * stateTor0[j][2] + B[2] * FT[j+1]);
                 }
 
+
+               dX[0]=(stateTor1[2][0]-FT0[3])/150000;
+
+               if(dX[0]>0.00035)
+                   dX[0]=0.00035;
+               if(dX[0]<-0.00035)
+                   dX[0]=-0.00035;
+               // 访问主站 //
+               auto controller = dynamic_cast<aris::control::Controller*>(target.master);
+
+               // 打印电流 //
+               auto &cout = controller->mout();
+
+
+               // log 电流 //
+               auto &lout = controller->lout();
+/*
+               lout << target.model->motionPool()[0].mp() << ",";
+               lout << target.model->motionPool()[1].mp() << ",";
+               lout << target.model->motionPool()[2].mp() << ",";
+               lout << target.model->motionPool()[3].mp() << ",";
+               lout << target.model->motionPool()[4].mp() << ",";
+               lout << target.model->motionPool()[5].mp() << ",";
+               lout << FT[0] << ",";lout << FT[1] << ",";
+               lout << FT[2] << ",";lout << FT[3] << ",";
+               lout << FT[4] << ",";lout << FT[5] << ",";
+               lout << stateTor0[0][0] << ",";lout << stateTor0[1][0] << ",";
+               lout << stateTor0[2][0] << ",";lout << stateTor0[3][0] << ",";
+               lout << stateTor0[4][0] << ",";lout << stateTor0[5][0] << ",";
+*/
+               //lout << stateTor1[2][0] << ",";lout << FT0[3] << ",";
+              // lout << dX[0] << ",";
+
+               lout << FTnum << ",";
+               lout << FT[1] << ",";lout << FT[2] << ",";
+               lout << FT[3] << ",";lout << FT[4] << ",";
+               lout << FT[5] << ",";lout << FT[6] << ",";
+               lout << std::endl;
+
+               if (target.count % 1000 == 0)
+               {
+                   //for (int i = 0; i < 6; i++)
+                   //{
+                       //cout << "pos" << i + 1 << ":" << target.model->motionPool()[i].mp() << "  ";
+                       //cout << "vel" << i + 1 << ":" << target.model->motionPool()[i].mv() << "  ";
+                       //cout << "cur" << i + 1 << ":" << target.model->motionPool()[i].ma() << "  ";
+                   //}
+
+                   cout << "dX[0]" << FTnum<<"  ";
+                   cout << std::endl;
+
+               }
                 for (int j = 0; j < 6; j++)
                 {
                    // TorqueSensor[j] = stateTor1[j, 0];
                 }
 
-
+                /*
                 //estTor = distalDemo.distalCollision(RobotPosition, RobotVelocity, RobotAcceleration, TorqueSensor, estParas);
 
                 //estTor[0] = -estTor[0];
@@ -212,6 +267,14 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 
                 robotDemo.jointIncrement(RobotPositionJ, dX,dTheta);
 
+                for (int i = 0; i < 6; i++)
+                {
+                    if (dTheta[i] > 0.03)
+                        dTheta[i] = 0.03;
+                    if (dTheta[i] < -0.03)
+                       dTheta[i] = -0.03;
+                }
+
 				for (int i = 0; i < 6; i++)
 				{
 					step_pjs[i] = step_pjs[i] + dTheta[i];
@@ -241,10 +304,14 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
                 }
                
                
-      
-                
-                if (tick < 1000)
-                    tick++;
+                for (int i = 0; i < 6; i++)
+                {
+
+                    stateTor0[i][0] = stateTor1[i][0];
+                    stateTor0[i][1] = stateTor1[i][1];
+                    stateTor0[i][2] = stateTor1[i][2];
+                }
+
 				/*
                 for (int i = 0; i < 6; i++)
                 {
@@ -257,7 +324,7 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
                     stateTor0[i, 2] = stateTor1[i, 2];
                 } */
             
-				return 10000 - target.count;
+                return 50000 - target.count;
 }
 
 MoveXYZ::MoveXYZ(const std::string &name) :Plan(name)
@@ -340,7 +407,7 @@ auto MoveDistal::executeRT(PlanTarget &target)->int
     for (int i = 4; i < 6; i++)
 	{
 			step_pjs[i] = begin_pjs[i] + ampVar * (std::sin(2 * PI / param.period *target.count/1000));
-			target.model->motionPool().at(i).setMp(step_pjs[i]);
+            //target.model->motionPool().at(i).setMp(step_pjs[i]);
 	}
 	
     //if (!target.model->solverPool().at(1).kinPos())return -1;
@@ -349,8 +416,9 @@ auto MoveDistal::executeRT(PlanTarget &target)->int
 	auto controller = dynamic_cast<aris::control::Controller*>(target.master);
 
     float FT[7];
+    int16_t FTnum;
     auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.master);
-    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x00, &FT[0] ,16);
+    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x00, &FTnum ,16);
     conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x01, &FT[1] ,32);
     conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x02, &FT[2], 32);
     conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x03, &FT[3], 32);
@@ -358,16 +426,18 @@ auto MoveDistal::executeRT(PlanTarget &target)->int
     conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x05, &FT[5], 32);
     conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x06, &FT[6], 32);
 
+
 	// 打印电流 //
 	auto &cout = controller->mout();
-	if (target.count % 1000 == 0)
+    //if (target.count % 100 == 0)
 	{
-		for (int i = 0; i < 6; i++)
-		{
-			cout << "pos" << i + 1 << ":" << target.model->motionPool()[i].mp() << "  ";
-			cout << "vel" << i + 1 << ":" << target.model->motionPool()[i].mv() << "  ";
-			cout << "cur" << i + 1 << ":" << target.model->motionPool()[i].ma() << "  ";
-		}
+        //for (int i = 0; i < 6; i++)
+        //{
+        //	cout << "pos" << i + 1 << ":" << target.model->motionPool()[i].mp() << "  ";
+        //	cout << "vel" << i + 1 << ":" << target.model->motionPool()[i].mv() << "  ";
+        //	cout << "cur" << i + 1 << ":" << target.model->motionPool()[i].ma() << "  ";
+        //}
+        cout << FTnum << "  ";
 		cout << std::endl;
 	}
 
@@ -379,6 +449,12 @@ auto MoveDistal::executeRT(PlanTarget &target)->int
             PositionList[6*(target.count-1)+i] = target.model->motionPool()[i].mp();
             SensorList[6*(target.count-1)+i] = FT[i+1];
 		}
+
+        lout << FTnum << ",";
+        lout << FT[1] << ",";lout << FT[2] << ",";
+        lout << FT[3] << ",";lout << FT[4] << ",";
+        lout << FT[5] << ",";lout << FT[6] << ",";
+        /*
 		    lout << target.count << ",";
 			lout << PositionList[6 * (target.count - 1) + 0] << ",";lout << PositionList[6 * (target.count - 1) + 1] << ",";
 			lout << PositionList[6 * (target.count - 1) + 2] << ",";lout << PositionList[6 * (target.count - 1) + 3] << ",";
@@ -386,13 +462,13 @@ auto MoveDistal::executeRT(PlanTarget &target)->int
 			lout << SensorList[6 * (target.count - 1) + 0] << ",";lout << SensorList[6 * (target.count - 1) + 1] << ",";
 			lout << SensorList[6 * (target.count - 1) + 2] << ",";lout << SensorList[6 * (target.count - 1) + 3] << ",";
 			lout << SensorList[6 * (target.count - 1) + 4] << ",";lout << SensorList[6 * (target.count - 1) + 5] << ",";
-
+*/
 			lout << std::endl;
 	}
     if (target.count == 1000)
 		//estParas=sixDistalMatrix.RLS(PositionList, SensorList);
 
-    return 10000 - target.count;
+    return 5000 - target.count;
 }
 
 MoveDistal::MoveDistal(const std::string &name) :Plan(name)

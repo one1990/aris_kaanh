@@ -14,7 +14,7 @@ namespace CONFIG
                 double A0[6][6],B0[4][4];
                 double dTheta[6];
                 double MC1, MC2, MC3;
-	
+
 		robotconfig();
 		void jointIncrement(const double* q, const double* dX, double* dTheta);
 		std::array<double, 6> forceTransform(std::array<double, 6> &q, std::array<double, 3> &f, std::array<double, 3> &m);

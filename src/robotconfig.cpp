@@ -175,7 +175,11 @@ void robotconfig::jointIncrement(const double* q, const double* dX, double* dThe
 		   // 根据 A 求出中间变量，相当于做 QR 分解 //
 		   // 请对 U 的对角线元素做处理
 		   s_householder_utp(6, 6, JacoEnd, U, tau, p, rank, 1e-10);
-
+           for(int i=0;i<6;i++)
+               if(U[7*i]>=0)
+                     U[7*i]=U[7*i]+0.1;
+               else
+                    U[7*i]=U[7*i]-0.1;
 		   // 根据QR分解的结果求x，相当于Matlab中的 x = A\b //
 		   s_householder_utp_sov(6, 6, 1, rank, U, tau, p, dX, dTheta, 1e-10);
 
