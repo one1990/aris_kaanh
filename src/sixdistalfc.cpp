@@ -2,6 +2,7 @@
 #include <math.h>
 #include"robotconfig.h"
 #include"sixdistaldynamics.h"
+#include <vector>
 using namespace std;
 using namespace aris::plan;
 using namespace aris::dynamic;
@@ -15,7 +16,11 @@ using namespace sixDistalDynamicsInt;
 
 robotconfig robotDemo;
 sixdistaldynamics sixDistalMatrix;
-std::array<double, 6> estParas;
+double estParas[GroupDim];
+
+double PositionList[6*SampleNum];
+double SensorList[6 * SampleNum];
+
 struct MoveXYZParam
 {
 	double damp[6];
@@ -340,6 +345,8 @@ MoveXYZ::MoveXYZ(const std::string &name) :Plan(name)
     }
 
 
+int nn = 13; // n代表txt文档中数据的列数
+vector<vector<double>> POSRLS(nn);
 struct MoveDistalParam
 {
 	double period;
@@ -377,6 +384,36 @@ auto MoveDistal::prepairNrt(const std::map<std::string, std::string> &params, Pl
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
 		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+
+	for (int j = 0; j < nn; j++)
+	{
+		POSRLS[j].clear();
+	}
+	string filePath = "C:/Users/gk/Desktop/build_kaanh_gk/log/TestRLS.txt";
+
+	ifstream oplog;
+	oplog.open(filePath);
+	if (!oplog)
+	{
+		cout << "fail to open the file" << endl;
+		throw std::runtime_error("fail to open the file");
+		//return -1;//或者抛出异常。
+	}
+	while (!oplog.eof())
+	{
+		for (int j = 0; j < nn; j++)
+		{
+			double data;
+			oplog >> data;
+			POSRLS[j].push_back(data);
+		}
+	}
+	oplog.close();
+	oplog.clear();
+	for (int j = 0; j < nn; j++)
+	{
+		POSRLS[j].pop_back();
+	}
 }
 auto MoveDistal::executeRT(PlanTarget &target)->int
 {
@@ -386,10 +423,6 @@ auto MoveDistal::executeRT(PlanTarget &target)->int
 	static double step_pjs[6];
 	static double perVar = 0;
 	static double ampVar = 0;
-	int RecordNum = 1000;
-    static double PositionList[60000];
-    static double SensorList[60000];
-
 
 	if (target.count < 1000)
 	{
@@ -404,13 +437,13 @@ auto MoveDistal::executeRT(PlanTarget &target)->int
 				step_pjs[i] = target.model->motionPool()[i].mp();
 			}
 	}
-    for (int i = 4; i < 6; i++)
+    for (int i = 0; i < 6; i++)
 	{
-			step_pjs[i] = begin_pjs[i] + ampVar * (std::sin(2 * PI / param.period *target.count/1000));
-            //target.model->motionPool().at(i).setMp(step_pjs[i]);
+			step_pjs[i] = begin_pjs[i] + ampVar * (std::sin(2 * aris::PI / param.period *target.count/1000));
+            target.model->motionPool().at(i).setMp(step_pjs[i]);
 	}
 	
-    //if (!target.model->solverPool().at(1).kinPos())return -1;
+    if (!target.model->solverPool().at(1).kinPos())return -1;
 
 	// 访问主站 //
 	auto controller = dynamic_cast<aris::control::Controller*>(target.master);
@@ -429,15 +462,15 @@ auto MoveDistal::executeRT(PlanTarget &target)->int
 
 	// 打印电流 //
 	auto &cout = controller->mout();
-    //if (target.count % 100 == 0)
+    if (target.count % 10 == 0)
 	{
-        //for (int i = 0; i < 6; i++)
-        //{
-        //	cout << "pos" << i + 1 << ":" << target.model->motionPool()[i].mp() << "  ";
-        //	cout << "vel" << i + 1 << ":" << target.model->motionPool()[i].mv() << "  ";
-        //	cout << "cur" << i + 1 << ":" << target.model->motionPool()[i].ma() << "  ";
-        //}
-        cout << FTnum << "  ";
+        for (int i = 0; i < 6; i++)
+        {
+        	cout << "pos" << i + 1 << ":" << target.model->motionPool()[i].mp() << "  ";
+        	cout << "vel" << i + 1 << ":" << target.model->motionPool()[i].mv() << "  ";
+        	cout << "cur" << i + 1 << ":" << target.model->motionPool()[i].ma() << "  ";
+        }
+        //cout << FTnum << "  ";
 		cout << std::endl;
 	}
 
@@ -446,8 +479,8 @@ auto MoveDistal::executeRT(PlanTarget &target)->int
 	{
 		for (int i = 0; i < 6; i++)
 		{
-            PositionList[6*(target.count-1)+i] = target.model->motionPool()[i].mp();
-            SensorList[6*(target.count-1)+i] = FT[i+1];
+            PositionList[6*(target.count-1)+i] = POSRLS[i+1][target.count - 1];
+            SensorList[6*(target.count-1)+i] = POSRLS[i+7][target.count - 1];
 		}
 
         lout << FTnum << ",";
@@ -465,11 +498,19 @@ auto MoveDistal::executeRT(PlanTarget &target)->int
 */
 			lout << std::endl;
 	}
-    if (target.count == 1000)
-		//estParas=sixDistalMatrix.RLS(PositionList, SensorList);
+    
+		
 
-    return 5000 - target.count;
+    return SampleNum-target.count;
 }
+
+auto MoveDistal::collectNrt(aris::plan::PlanTarget &target)->void
+{
+
+	sixDistalMatrix.RLS(PositionList, SensorList, estParas);
+	double a = 3;
+}
+
 
 MoveDistal::MoveDistal(const std::string &name) :Plan(name)
 {

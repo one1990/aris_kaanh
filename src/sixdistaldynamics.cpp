@@ -3,8 +3,12 @@
 #include<math.h>
 #include<array>
 #include"robotconfig.h"
+#include <aris.h>
 using namespace sixDistalDynamicsInt;
+
 using namespace CONFIG;
+using namespace aris::plan;
+using namespace aris::dynamic;
 
 
 sixdistaldynamics::sixdistaldynamics()
@@ -18,8 +22,8 @@ sixdistaldynamics::sixdistaldynamics()
             B[2] = -A[2][0];
         }
 
-//double A0[6][GroupDim];
-void distalMatrix(std::array<double, 6> &q, std::array<double, 6> &dq, std::array<double, 6> &ddq, std::array<double, 6> &ts)
+
+void distalMatrix(const double* q, const double* dq, const double* ddq, const double* ts, double* distalVec)
 {
 	double t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16, t17,
 		t18, t19, t20, t21, t22, t23, t24, t25, t26, t27, t28, t29, t30, t31, t32,
@@ -44,16 +48,6 @@ void distalMatrix(std::array<double, 6> &q, std::array<double, 6> &dq, std::arra
 	double ts1, ts2, ts3, ts4, ts5, ts6;
 	double g = 9.81;
 
-	for (int i = 0; i < 6; i++)
-	{
-		q[i] = q[i] * ConRad * DirectionFlag[i] + JointOffset[i] + ZeroOffset[i];
-		dq[i] = dq[i] * ConRad * DirectionFlag[i];
-		ddq[i] = ddq[i] * ConRad * DirectionFlag[i];
-
-	}
-
-
-
 	q1 = q[0];
 	q2 = q[1];
 	q3 = q[2];
@@ -65,7 +59,8 @@ void distalMatrix(std::array<double, 6> &q, std::array<double, 6> &dq, std::arra
 	ddq1 = ddq[0]; ddq2 = ddq[1]; ddq3 = ddq[2]; ddq4 = ddq[3]; ddq5 = ddq[4]; ddq6 = ddq[5];
 
 	ts1 = ts[0]; ts2 = ts[1]; ts3 = ts[2]; ts4 = ts[3]; ts5 = ts[4]; ts6 = ts[5];
-double A0[6][GroupDim];
+    
+	double A0[6][GroupDim];
 	for (int i = 0; i < 6; i++)
 		for (int j = 0; j < GroupDim; j++)
 			A0[i][j] = 0;
@@ -285,45 +280,56 @@ double A0[6][GroupDim];
 	A0[5][39] = ts5;
 	A0[5][45] = 1.0;
 
-		//return A0;
+	for (int i = 0; i < 6; i++)
+	    for (int j = 0; j < 46; j++)
+		   distalVec[46 * i + j] = A0[i][j];
+		
 }
 
-inline int id(int m, int n, int cols) { return m * cols + n;}
+//inline int id(int m, int n, int cols) { return m * cols + n;}
 
-/*
-void sixdistaldynamics::RLS(const double *positionList, const double *sensorList, double *estParas)
+
+void sixdistaldynamics::RLS(const double *positionL, const double *sensorL, double *estParas)
 {
-	positionList[id(2, 2, 6)];
-	
+	//positionList[id(2, 2, 6)];
+	double stateMot0[6][3] = { 0 };
+	double stateMot1[6][3] = { 0 };
+	double stateTor0[6][3] = { 0 };
+	double stateTor1[6][3] = { 0 };
+	double positionList[SampleNum][6], sensorList[SampleNum][6];
+	for(int i=0;i< SampleNum;i++)
+		for (int j = 0;j < 6;j++)
+		{
+			positionList[i][j] = positionL[6 * i + j];
+			sensorList[i][j] = sensorL[6 * i + j];
+		}
+
 	double q[6];
-	std::array<double, 6> dq;
-	std::array<double, 6> ddq;
-	std::array<double, 6> ts;
+	double dq[6];
+	double ddq[6];
+	double ts[6];
 	//std::array<double, 6> estParas;
-	double stateMot0[6][3];
-	double stateMot1[6][3];
-	double stateTor0[6][3];
-	double stateTor1[6][3];
+	
 	double intDT = DT;
 	int length = 6;
-	double regressorMatrix [6][GroupDim];
-	double regressorForces [6];
+	double regressorMatrix [6* SampleNum][GroupDim];
+	double regressorForces [6 * SampleNum];
 	double posCur[6];
 	double torCur[6];
 	for (int j = 0; j < 6; j++)
 	{
-		stateMot0[j][0] = positionList[j];
-		stateTor0[j][0] = sensorList[j];
+		stateMot0[j][0] = positionList[0][j];
+		stateTor0[j][0] = sensorList[0][j];
 	}
 
-	for (int i = 0; i < length; i++)
+	for (int i = 0; i < SampleNum; i++)
 	{
 
 		for (int j = 0; j < 6; j++)
 		{
 
-			posCur[j] = positionList[i, j];
-			torCur[j] = sensorList[i, j];
+			posCur[j] = positionList[i][j];
+			torCur[j] = sensorList[i][j];
 
 			stateMot1[j][0] = stateMot0[j][0] + intDT * (A[0][0] * stateMot0[j][0] + A[0][1] * stateMot0[j][1] + A[0][2] * stateMot0[j][2] + B[0] * posCur[j]);
 			stateMot1[j][1] = stateMot0[j][1] + intDT * (A[1][0] * stateMot0[j][0] + A[1][1] * stateMot0[j][1] + A[1][2] * stateMot0[j][2] + B[1] * posCur[j]);
@@ -341,9 +347,21 @@ void sixdistaldynamics::RLS(const double *positionList, const double *sensorList
 			ddq[j] = stateMot1[j][2];
 			ts[j] = stateTor1[j][0];
 		}
-		
-		//distalMatrix(q, dq, ddq, ts);
-		/*
+
+		for (int k = 0; k < 6; k++)
+		{
+			q[k] = q[k] * DirectionFlag[k] + JointOffset[k] + ZeroOffset[k];
+			dq[k] = dq[k] * DirectionFlag[k];
+			ddq[k] = ddq[k] * DirectionFlag[k];
+
+		}
+		double distalVec[6 * 46];
+		distalMatrix(q, dq, ddq, ts, distalVec);
+		double Y[6][46];
+		for (int m = 0; m < 6; m++)
+			for (int n = 0; n < 46; n++)
+				Y[m][n]=distalVec[46 * m + n];
+
 		for (int m = 0; m < 6; m++)
 		{
 			for (int n = 0; n < GroupDim; n++)
@@ -351,11 +369,10 @@ void sixdistaldynamics::RLS(const double *positionList, const double *sensorList
 				regressorMatrix[i * 6 + m][n] = Y[m][n];
 
 			}
-			regressorForces[i * 6 + m][0] = ts[m];
+			regressorForces[i * 6 + m] = ts[m];
 
 		}
-		//matrixList.Add(Y);
-		//forceList.Add(ts);
+	
 		for (int j = 0; j < 6; j++)
 		{
 
@@ -367,24 +384,35 @@ void sixdistaldynamics::RLS(const double *positionList, const double *sensorList
 			stateTor0[j][1] = stateTor1[j][1];
 			stateTor0[j][2] = stateTor1[j][2];
 		}
+		std::cout << i << std::endl;
+	}
+	double regressorVector[6 * SampleNum*GroupDim];
+	for (int i = 0;i < 6 * SampleNum;i++)
+		for (int j = 0;j < GroupDim;j++)
+			regressorVector[i*GroupDim+j] = regressorMatrix[i][j];
+	// 求解 A的广义逆pinv 和 x
+	double pinv[6 * SampleNum*GroupDim];
+
+	// 所需的中间变量，请对U的对角线元素做处理
+	double U[6 * SampleNum*GroupDim], tau[GroupDim];
+	aris::Size p[GroupDim];
+	aris::Size rank;
+
+	// 根据 A 求出中间变量，相当于做 QR 分解 //
+	// 请对 U 的对角线元素做处理
+	s_householder_utp(6*SampleNum, GroupDim, regressorVector, U, tau, p, rank, 1e-10);
+	
+	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A) //
+	double tau2[GroupDim];
+	s_householder_utp2pinv( 6 * SampleNum,GroupDim, rank, U, tau, p, pinv, tau2, 1e-10);
+	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A)*b //
+	s_mm(GroupDim, 1, GroupDim, pinv, regressorForces, estParas);
+	
 
 	}
+	
 
-	Matrix regressorMatrixTrans = Matrix.Transpose(regressorMatrix);
-	Matrix t = regressorMatrixTrans * regressorMatrix;
-	Matrix invt = t.Invert();
-	Matrix paras = invt * regressorMatrixTrans * regressorForces;
-	Matrix error = regressorMatrix * paras - regressorForces;
-
-	for (int i = 0; i < common.GroupDim; i++)
-		estParas[i] = paras[i, 0];
-		
-	}
-	return estParas;
-}
-*/
-
-
+/*
 std::array<double, 6> sixdistaldynamics::sixDistalCollision(std::array<double, 6> &q, std::array<double, 6> &dq, std::array<double, 6> &ddq, std::array<double, 6> &ts, std::array<double, 6> &estParas)
         {
 	        std::array<double, 6> estTor = { 0, 0, 0, 0, 0, 0};
@@ -400,7 +428,7 @@ std::array<double, 6> sixdistaldynamics::sixDistalCollision(std::array<double, 6
 
             return estTor;
         }
-
+*/
        
        
 

@@ -20,11 +20,12 @@ namespace CONFIG
 		std::array<double, 6> forceTransform(std::array<double, 6> &q, std::array<double, 3> &f, std::array<double, 3> &m);
 	};
 
+	    const int SampleNum = 2961;
 	    const double ConRad = PII / 180;
         const double ConAng = 180 / PII;
         const int GroupDim = 46;
         const int RobotAxis = 6;
-        const double DT = 0.008;
+        const double DT = 0.001;
         const double CutoffFrequency = 5;
         const double EndPoint[3] = { 0, 0, 0.078};
         const double EndSensor[3] = { 0, 0, 0};
