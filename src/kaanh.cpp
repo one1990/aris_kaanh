@@ -2925,7 +2925,7 @@ namespace kaanh
 		plan_root->planPool().add<MoveFile>();
 		plan_root->planPool().add<RemoveFile>();
 		plan_root->planPool().add<MoveinModel>();
-		plan_root->planPool().add<replay>();
+		plan_root->planPool().add<FMovePath>();
 		//plan_root->planPool().add<plPQ>();
 
 	/*	auto &dm1 = plan_root->planPool().add<aris::plan::MoveJ>();

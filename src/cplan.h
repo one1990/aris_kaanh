@@ -73,13 +73,11 @@ public:
 };
 
 
-class replay : public aris::plan::Plan
+class FMovePath : public aris::plan::Plan
 {
 public:
 	auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-	auto virtual executeRT(aris::plan::PlanTarget &target)->int;
-
-	explicit replay(const std::string &name = "replay");
+	explicit FMovePath(const std::string &name = "FMovePath_plan");
 };
 
 
