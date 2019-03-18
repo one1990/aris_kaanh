@@ -406,7 +406,7 @@ void sixdistaldynamics::RLS(const double *positionL, const double *sensorL, doub
 	double tau2[GroupDim];
 	s_householder_utp2pinv( 6 * SampleNum,GroupDim, rank, U, tau, p, pinv, tau2, 1e-10);
 	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A)*b //
-	s_mm(GroupDim, 1, GroupDim, pinv, regressorForces, estParas);
+	s_mm(GroupDim, 1, 6 * SampleNum, pinv, regressorForces, estParas);
 	
 
 	}

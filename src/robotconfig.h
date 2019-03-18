@@ -17,7 +17,7 @@ namespace CONFIG
 
 		robotconfig();
 		void jointIncrement(const double* q, const double* dX, double* dTheta);
-		std::array<double, 6> forceTransform(std::array<double, 6> &q, std::array<double, 3> &f, std::array<double, 3> &m);
+		void forceTransform(const double* q, const float* FmInEnd, double* FmInWorld);
 	};
 
 	    const int SampleNum = 2961;

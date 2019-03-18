@@ -69,7 +69,6 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 			auto &param = std::any_cast<MoveXYZParam&>(target.param);
 			
 			double RobotPosition[6];
-			double RobotPositionT[6];
 			double RobotPositionJ[6];
 			double RobotVelocity[6];
 			double RobotAcceleration[6];
@@ -79,7 +78,7 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 			static double begin_pjs[6];
 			static double step_pjs[6];
             static double stateTor0[6][3],stateTor1[6][3];
-            static float FT0[7];
+            static float FT0[6];
 
             // 访问主站 //
             auto controller = dynamic_cast<aris::control::Controller*>(target.master);
@@ -97,69 +96,83 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 
 			if (!target.model->solverPool().at(1).kinPos())return -1;
 
-
-			
-			
             
             double dX[6] = { 0.00001, -0.0000, -0.0000, -0.0000, -0.0000, -0.0000};
             double dTheta[6]={0};
 			double estTorFin[6];
-			double SumdTheta[6];
-            //recvs[0] = 0; recvs[1] = 30; recvs[2] = 0; recvs[3] = 20; recvs[4] = 20; recvs[5] = 0;
-            //recvs0[0] = 0; recvs0[1] = 30; recvs0[2] = 0; recvs0[3] = 20; recvs0[4] = 20; recvs0[5] = 0;
+	
+           
             int tick = 0;
             for (int i = 0; i < 6; i++)
                     estTorFin[i]=0;
 
-            float FT[7];
+            float FT[6];
             uint16_t FTnum;
             auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.master);
             conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x00, &FTnum ,16);
-            conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x01, &FT[1] ,32);
-            conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x02, &FT[2], 32);
-            conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x03, &FT[3], 32);
-            conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x04, &FT[4], 32);
-            conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x05, &FT[5], 32);
-            conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x06, &FT[6], 32);
+            conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x01, &FT[0] ,32);
+            conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x02, &FT[1], 32);
+            conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x03, &FT[2], 32);
+            conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x04, &FT[3], 32);
+            conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x05, &FT[4], 32);
+            conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x06, &FT[5], 32);
+
+			for (int i = 0;i < 6;i++)
+			{
+				RobotPositionJ[i] = target.model->motionPool()[i].mp();
+				RobotPositionJ[i] = 0;
+			}
+			
+			double FmInWorld[6];
+			robotDemo.forceTransform(RobotPositionJ, FT, FmInWorld);
+
             // 获取当前起始点位置 //
             if (target.count == 1)
             {
-                for (int i = 0; i < 7; ++i)
+                for (int i = 0; i < 6; ++i)
                 {
-                    FT0[i] = FT[i];
+                    FT0[i] = FmInWorld[i];
                 }
                 for (int j = 0; j < 6; j++)
-                    stateTor0[j][0] = FT0[j+1];
+                    stateTor0[j][0] = FT0[j];
             }
 
 
 
             for (int j = 0; j < 6; j++)
                 {
-                double A[3][3],B[3],CutFreq=10;
-                A[0][0] = 0; A[0][1] = 1; A[0][2] = 0;
-                A[1][0] = 0; A[1][1] = 0; A[1][2] = 1;
-                A[2][0] = -CutFreq * CutFreq * CutFreq;
-                A[2][1] = -2 * CutFreq * CutFreq;
-                A[2][2] = -2 * CutFreq;
-                B[0] = 0; B[1] = 0;
-                B[2] = -A[2][0];
-                 double intDT = 0.001;
-                    stateTor1[j][0] = stateTor0[j][0] + intDT * (A[0][0] * stateTor0[j][0] + A[0][1] * stateTor0[j][1] + A[0][2] * stateTor0[j][2] + B[0] * FT[j+1]);
-                    stateTor1[j][1] = stateTor0[j][1] + intDT * (A[1][0] * stateTor0[j][0] + A[1][1] * stateTor0[j][1] + A[1][2] * stateTor0[j][2] + B[1] * FT[j+1]);
-                    stateTor1[j][2] = stateTor0[j][2] + intDT * (A[2][0] * stateTor0[j][0] + A[2][1] * stateTor0[j][1] + A[2][2] * stateTor0[j][2] + B[2] * FT[j+1]);
+					double A[3][3],B[3],CutFreq=10;
+					A[0][0] = 0; A[0][1] = 1; A[0][2] = 0;
+					A[1][0] = 0; A[1][1] = 0; A[1][2] = 1;
+					A[2][0] = -CutFreq * CutFreq * CutFreq;
+					A[2][1] = -2 * CutFreq * CutFreq;
+					A[2][2] = -2 * CutFreq;
+					B[0] = 0; B[1] = 0;
+					B[2] = -A[2][0];
+					double intDT = 0.001;
+                    stateTor1[j][0] = stateTor0[j][0] + intDT * (A[0][0] * stateTor0[j][0] + A[0][1] * stateTor0[j][1] + A[0][2] * stateTor0[j][2] + B[0] * FmInWorld[j]);
+                    stateTor1[j][1] = stateTor0[j][1] + intDT * (A[1][0] * stateTor0[j][0] + A[1][1] * stateTor0[j][1] + A[1][2] * stateTor0[j][2] + B[1] * FmInWorld[j]);
+                    stateTor1[j][2] = stateTor0[j][2] + intDT * (A[2][0] * stateTor0[j][0] + A[2][1] * stateTor0[j][1] + A[2][2] * stateTor0[j][2] + B[2] * FmInWorld[j]);
                 }
+			   
+               dX[0] = (stateTor1[0][0] - FT0[0]) / 160000;
+			   dX[1] = (stateTor1[1][0] - FT0[1]) / 160000;
+			   dX[2] = (stateTor1[2][0] - FT0[2]) / 160000;
+			   dX[3] = (stateTor1[3][0] - FT0[3]) / 160000;
+			   dX[4] = (stateTor1[4][0] - FT0[4]) / 160000;
+			   dX[5] = (stateTor1[5][0] - FT0[5]) / 160000;
 
 
-               dX[0]=(stateTor1[2][0]-FT0[3])/60000;
 
-               if(dX[0]>0.00025)
-                   dX[0]=0.00025;
-               if(dX[0]<-0.00025)
-                   dX[0]=-0.00025;
+			   for (int j = 0; j < 6; j++)
+			   {
+				   if (dX[j] > 0.00025)
+					   dX[j] = 0.00025;
+				   if (dX[j] < -0.00025)
+					   dX[j] = -0.00025;
+			   }
 
 
-               //dX[0] = 0;
                // 打印电流 //
                auto &cout = controller->mout();
 
@@ -264,15 +277,8 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 
                 }
 
-                //dX[0, 0] = FX.Value;
-                //dX[1, 0] = FY.Value;
-                //dX[2, 0] = FZ.Value;
-                dX[3, 0] = MX.Value;
-                dX[4, 0] = MY.Value;
-                dX[5, 0] = MZ.Value;
 				*/
-				for (int i = 0;i < 6;i++)
-					RobotPositionJ[i] = target.model->motionPool()[i].mp();
+				
 
                 robotDemo.jointIncrement(RobotPositionJ, dX,dTheta);
 
@@ -286,50 +292,12 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
                 }
 
 
-
-
-                //动力学
-                for (int i = 0; i < 6; ++i)
-                {
-                    target.model->motionPool()[i].setMp(controller->motionPool()[i].actualPos());
-                    target.model->motionPool().at(i).setMv(controller->motionAtAbs(i).actualVel());
-                    target.model->motionPool().at(i).setMa(0.0);
-                }
-
-                target.model->solverPool()[1].kinPos();
-                target.model->solverPool()[1].kinVel();
-                target.model->solverPool()[2].dynAccAndFce();
-
-
-                double TeachKp[6]={1250,2500,1500,550,650,350};
-
-                    for (aris::Size i = 0; i < 6; i++)
-                    {
-
-                            double p, v, pa, vt, va, voff, ft, foff;
-                            pa = controller->motionAtAbs(i).actualPos();
-
-                            foff=TeachKp[i]*(step_pjs[i] - pa);
-                            foff = std::max(-20.0, foff);
-                            foff = std::min(20.0, foff);
-                            ft = foff+1.2*target.model->motionPool()[i].mfDyn();
-
-                            //auto real_vel = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
-                           // ft_offset = (f_vel_JRC[i] * controller->motionAtAbs(i).actualVel() + f_static_index_JRC[i] * f_static[i] * real_vel / max_static_vel[i])*f2c_index[i];
-
-
-                           // controller->motionAtAbs(i).setTargetCur(ft*f2c_index[i]);
-                            //lout << foff << ",";
-
-                    }
-
-
                     lout << std::endl;
 
 				for (int i = 0; i < 6; i++)
 				{
 					step_pjs[i] = step_pjs[i] + dTheta[i];
-                    target.model->motionPool().at(i).setMp(step_pjs[i]);
+                    //target.model->motionPool().at(i).setMp(step_pjs[i]);
 				}
 
                 for (int i = 0; i < 6; i++)
@@ -337,19 +305,7 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
                     dTheta[i] = dTheta[i] * DirectionFlag[i];
  
                 }
-       
-     
-                for (int i = 0; i < 6; i++)
-                {
-
-                    SumdTheta[i] = SumdTheta[i] + dTheta[i];
-                    if (SumdTheta[i] > 90)
-                        SumdTheta[i] = 90;
-                    if (SumdTheta[i] < -90)
-                        SumdTheta[i] = -90;
-                    //dqJ[j, i] = dTheta[i];
-                }
-               
+                     
                
                 for (int i = 0; i < 6; i++)
                 {

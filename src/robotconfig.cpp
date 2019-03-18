@@ -13,8 +13,7 @@ double t18, t19, t20, t21, t22, t23, t24, t25, t26, t27, t28, t29, t30, t31, t32
 double t33, t34, t35, t36, t37, t38, t39, t40, t41, t42, t43, t44, t45, t46, t47;
 double t48, t49, t50, t51, t52, t53, t54, t55, t56, t57, t58, t59, t60, t61, t62;
 double t63, t64, t65, t66, t67, t68, t69, t70, t71, t72, t73, t74, t75, t76, t77;
-double B0[4][4];
-double dTheta[6];
+
 
 robotconfig::robotconfig()
     {
@@ -193,17 +192,18 @@ void robotconfig::jointIncrement(const double* q, const double* dX, double* dThe
                 
         }
 		
-		void robotTransform(std::array<double, 6> &q)
+		void robotTransform(const double* q, double* TransVector)
         {
             double q1, q2, q3, q4, q5, q6;
 
-            q1 = q[0] * ConRad * DirectionFlag[0] + JointOffset[0] + ZeroOffset[0];
-            q2 = q[1] * ConRad * DirectionFlag[1] + JointOffset[1] + ZeroOffset[1];
-            q3 = q[2] * ConRad * DirectionFlag[2] + JointOffset[2] + ZeroOffset[2];
-            q4 = q[3] * ConRad * DirectionFlag[3] + JointOffset[3] + ZeroOffset[3];
-            q5 = q[4] * ConRad * DirectionFlag[4] + JointOffset[4] + ZeroOffset[4];
-            q6 = q[5] * ConRad * DirectionFlag[5] + JointOffset[5] + ZeroOffset[5];
+            q1 = q[0] * DirectionFlag[0] + JointOffset[0] + ZeroOffset[0];
+            q2 = q[1] * DirectionFlag[1] + JointOffset[1] + ZeroOffset[1];
+            q3 = q[2] * DirectionFlag[2] + JointOffset[2] + ZeroOffset[2];
+            q4 = q[3] * DirectionFlag[3] + JointOffset[3] + ZeroOffset[3];
+            q5 = q[4] * DirectionFlag[4] + JointOffset[4] + ZeroOffset[4];
+            q6 = q[5] * DirectionFlag[5] + JointOffset[5] + ZeroOffset[5];
 
+			double B0[4][4];
             for (int i = 0; i < 4; i++)
                 for (int j = 0; j < 4; j++)
                     B0[i][j] = 0;
@@ -259,6 +259,10 @@ void robotconfig::jointIncrement(const double* q, const double* dX, double* dThe
             B0[2][2] = t38 - t5 * t12;
             B0[2][3] = -a4 * t17 - d4 * t5 - a3 * sin(q2) + DF * (t38 - t5 * t12);
             B0[3][3] = 1.0;
+
+			for (int i = 0;i < 4;i++)
+				for (int j = 0;j < 4;j++)
+					TransVector[i * 4 + j] = B0[i][j];
         }
 
 
@@ -270,30 +274,33 @@ void robotconfig::jointIncrement(const double* q, const double* dX, double* dThe
 			c[2] = a[0] * b[1] - b[0] * a[1];
 			return c;
 		}
-		std::array<double, 6> robotconfig::forceTransform(std::array<double, 6> &q, std::array<double, 3> &f, std::array<double, 3> &m)
+		void robotconfig::forceTransform(const double* q, const float* FmInEnd, double* FmInWorld)
         {
-            robotTransform(q);
-			std::array<double, 6> NewFrameF;
+			double TransVector[16];
+            robotTransform(q,TransVector);
+			double TransMatrix[4][4];
+			for (int i = 0;i < 4;i++)
+				for (int j = 0;j < 4;j++)
+					TransMatrix[i][j] = TransVector[4*i+j];
 
-			std::array<double, 3> n={ B0[0][0], B0[0][1], B0[0][2] };
-			std::array<double, 3> o={ B0[1][0], B0[1][1], B0[1][2] };
-			std::array<double, 3> a={ B0[2][0], B0[2][1], B0[2][2] };
-			std::array<double, 3> p={ B0[0][3], B0[1][3], B0[2][3] };
+			double n[3]={ TransMatrix[0][0], TransMatrix[0][1], TransMatrix[0][2] };
+			double o[3]={ TransMatrix[1][0], TransMatrix[1][1], TransMatrix[1][2] };
+			double a[3]={ TransMatrix[2][0], TransMatrix[2][1], TransMatrix[2][2] };
+			double p[3]={ TransMatrix[0][3], TransMatrix[1][3], TransMatrix[2][3] };
 
-            NewFrameF[0] = n[0] * f[0] + n[1] * f[1] + n[2] * f[2];
-            NewFrameF[1] = o[0] * f[0] + o[1] * f[1] + o[2] * f[2];
-            NewFrameF[2] = a[0] * f[0] + a[1] * f[1] + a[2] * f[2];
+			FmInWorld[0] = n[0] * FmInEnd[0] + n[1] * FmInEnd[1] + n[2] * FmInEnd[2];
+			FmInWorld[1] = o[0] * FmInEnd[0] + o[1] * FmInEnd[1] + o[2] * FmInEnd[2];
+			FmInWorld[2] = a[0] * FmInEnd[0] + a[1] * FmInEnd[1] + a[2] * FmInEnd[2];
 
-			std::array<double, 3> crossFP;
-            crossFP = crossVector(f, p);
-            for (int i = 0; i < 3; i++)
-                crossFP[i] = crossFP[i] + m[i];
+			//std::array<double, 3> crossFP;
+           // crossFP = crossVector(f, p);
+           // for (int i = 0; i < 3; i++)
+             //   crossFP[i] = crossFP[i] + m[i];
 
-            NewFrameF[3] = n[0] * crossFP[0] + n[1] * crossFP[1] + n[2] * crossFP[2];
-            NewFrameF[4] = o[0] * crossFP[0] + o[1] * crossFP[1] + o[2] * crossFP[2];
-            NewFrameF[5] = a[0] * crossFP[0] + a[1] * crossFP[1] + a[2] * crossFP[2];
+			FmInWorld[3] = n[0] * FmInEnd[3] + n[1] * FmInEnd[4] + n[2] * FmInEnd[5];
+			FmInWorld[4] = o[0] * FmInEnd[3] + o[1] * FmInEnd[4] + o[2] * FmInEnd[5];
+			FmInWorld[5] = a[0] * FmInEnd[3] + a[1] * FmInEnd[4] + a[2] * FmInEnd[5];
 
-            return NewFrameF;
 
         }
 
