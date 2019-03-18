@@ -15,8 +15,7 @@
 #include <string> 
 #include <algorithm>
 
-# define FORE_VEL_LENGTH 20	//速度平均值滤波buffer长度
-# define MEDIAN_LENGTH 41	//中值滤波buffer长度
+constexpr double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
 
 class MoveDistal : public aris::plan::Plan
 {

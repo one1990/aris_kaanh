@@ -80,13 +80,18 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 			static double step_pjs[6];
             static double stateTor0[6][3],stateTor1[6][3];
             static float FT0[7];
+
+            // 访问主站 //
+            auto controller = dynamic_cast<aris::control::Controller*>(target.master);
+
 				// 获取当前起始点位置 //
 				if (target.count == 1)
 				{
                     for (int i = 0; i < 6; ++i)
 					{
 						step_pjs[i] = target.model->motionPool()[i].mp();
-					}
+                       // controller->motionPool().at(i).setModeOfOperation(10);	//切换到电流控制
+                    }
 				}
 	
 
@@ -129,10 +134,6 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 
 
 
-
-
-
-
             for (int j = 0; j < 6; j++)
                 {
                 double A[3][3],B[3],CutFreq=10;
@@ -150,54 +151,57 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
                 }
 
 
-               dX[0]=(stateTor1[2][0]-FT0[3])/150000;
+               dX[0]=(stateTor1[2][0]-FT0[3])/60000;
 
-               if(dX[0]>0.00035)
-                   dX[0]=0.00035;
-               if(dX[0]<-0.00035)
-                   dX[0]=-0.00035;
-               // 访问主站 //
-               auto controller = dynamic_cast<aris::control::Controller*>(target.master);
+               if(dX[0]>0.00025)
+                   dX[0]=0.00025;
+               if(dX[0]<-0.00025)
+                   dX[0]=-0.00025;
 
+
+               //dX[0] = 0;
                // 打印电流 //
                auto &cout = controller->mout();
 
 
                // log 电流 //
                auto &lout = controller->lout();
-/*
+
                lout << target.model->motionPool()[0].mp() << ",";
                lout << target.model->motionPool()[1].mp() << ",";
                lout << target.model->motionPool()[2].mp() << ",";
                lout << target.model->motionPool()[3].mp() << ",";
                lout << target.model->motionPool()[4].mp() << ",";
                lout << target.model->motionPool()[5].mp() << ",";
-               lout << FT[0] << ",";lout << FT[1] << ",";
-               lout << FT[2] << ",";lout << FT[3] << ",";
-               lout << FT[4] << ",";lout << FT[5] << ",";
-               lout << stateTor0[0][0] << ",";lout << stateTor0[1][0] << ",";
-               lout << stateTor0[2][0] << ",";lout << stateTor0[3][0] << ",";
-               lout << stateTor0[4][0] << ",";lout << stateTor0[5][0] << ",";
-*/
+
+
+
+          //     lout << FT[1] << ",";lout << FT[2] << ",";
+          //     lout << FT[3] << ",";lout << FT[4] << ",";
+           //    lout << FT[5] << ",";lout << FT[6] << ",";
+           //    lout << stateTor0[0][0] << ",";lout << stateTor0[1][0] << ",";
+            //   lout << stateTor0[2][0] << ",";lout << stateTor0[3][0] << ",";
+            //   lout << stateTor0[4][0] << ",";lout << stateTor0[5][0] << ",";
+
                //lout << stateTor1[2][0] << ",";lout << FT0[3] << ",";
               // lout << dX[0] << ",";
 
-               lout << FTnum << ",";
-               lout << FT[1] << ",";lout << FT[2] << ",";
-               lout << FT[3] << ",";lout << FT[4] << ",";
-               lout << FT[5] << ",";lout << FT[6] << ",";
-               lout << std::endl;
+               lout << dX[0] << ",";
+              // lout << FT[1] << ",";lout << FT[2] << ",";
+              // lout << FT[3] << ",";lout << FT[4] << ",";
+              // lout << FT[5] << ",";lout << FT[6] << ",";
+               //lout << std::endl;
 
                if (target.count % 1000 == 0)
                {
-                   //for (int i = 0; i < 6; i++)
-                   //{
-                       //cout << "pos" << i + 1 << ":" << target.model->motionPool()[i].mp() << "  ";
+                   for (int i = 0; i < 6; i++)
+                   {
+                       cout << "pos" << i + 1 << ":" << target.model->motionPool()[i].mp() << "  ";
                        //cout << "vel" << i + 1 << ":" << target.model->motionPool()[i].mv() << "  ";
                        //cout << "cur" << i + 1 << ":" << target.model->motionPool()[i].ma() << "  ";
-                   //}
+                   }
 
-                   cout << "dX[0]" << FTnum<<"  ";
+                   cout << "dX[0]" << FT[3]<<"  ";
                    cout << std::endl;
 
                }
@@ -274,16 +278,58 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 
                 for (int i = 0; i < 6; i++)
                 {
-                    if (dTheta[i] > 0.03)
-                        dTheta[i] = 0.03;
-                    if (dTheta[i] < -0.03)
-                       dTheta[i] = -0.03;
+                    if (dTheta[i] > 0.003)
+                        dTheta[i] = 0.003;
+                    if (dTheta[i] < -0.003)
+                       dTheta[i] = -0.003;
+                     lout << dTheta[i] << ",";
                 }
+
+
+
+
+                //动力学
+                for (int i = 0; i < 6; ++i)
+                {
+                    target.model->motionPool()[i].setMp(controller->motionPool()[i].actualPos());
+                    target.model->motionPool().at(i).setMv(controller->motionAtAbs(i).actualVel());
+                    target.model->motionPool().at(i).setMa(0.0);
+                }
+
+                target.model->solverPool()[1].kinPos();
+                target.model->solverPool()[1].kinVel();
+                target.model->solverPool()[2].dynAccAndFce();
+
+
+                double TeachKp[6]={1250,2500,1500,550,650,350};
+
+                    for (aris::Size i = 0; i < 6; i++)
+                    {
+
+                            double p, v, pa, vt, va, voff, ft, foff;
+                            pa = controller->motionAtAbs(i).actualPos();
+
+                            foff=TeachKp[i]*(step_pjs[i] - pa);
+                            foff = std::max(-20.0, foff);
+                            foff = std::min(20.0, foff);
+                            ft = foff+1.2*target.model->motionPool()[i].mfDyn();
+
+                            //auto real_vel = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
+                           // ft_offset = (f_vel_JRC[i] * controller->motionAtAbs(i).actualVel() + f_static_index_JRC[i] * f_static[i] * real_vel / max_static_vel[i])*f2c_index[i];
+
+
+                           // controller->motionAtAbs(i).setTargetCur(ft*f2c_index[i]);
+                            //lout << foff << ",";
+
+                    }
+
+
+                    lout << std::endl;
 
 				for (int i = 0; i < 6; i++)
 				{
 					step_pjs[i] = step_pjs[i] + dTheta[i];
-					target.model->motionPool().at(i).setMp(step_pjs[i]);
+                    target.model->motionPool().at(i).setMp(step_pjs[i]);
 				}
 
                 for (int i = 0; i < 6; i++)
@@ -295,10 +341,6 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
      
                 for (int i = 0; i < 6; i++)
                 {
-                    //if (dTheta[i] > 0.3)
-                    //    dTheta[i] = 0.3;
-                   // if (dTheta[i] < -0.3)
-                     //   dTheta[i] = -0.3;
 
                     SumdTheta[i] = SumdTheta[i] + dTheta[i];
                     if (SumdTheta[i] > 90)
@@ -329,7 +371,7 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
                     stateTor0[i, 2] = stateTor1[i, 2];
                 } */
             
-                return 50000 - target.count;
+                return 150000000 - target.count;
 }
 
 MoveXYZ::MoveXYZ(const std::string &name) :Plan(name)
