@@ -1321,6 +1321,7 @@ vector <vector<double>> pq_real(7);
 struct FMovePathParam
 {
 	vector<vector<double>>pq;//是二位数组吗
+	double runtime;
 };
 auto FMovePath::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 {
@@ -1329,6 +1330,9 @@ auto FMovePath::prepairNrt(const std::map<std::string, std::string> &params, Pla
 	int row_n = m.m();//计算矩阵的总行数；
 	std::cout << "row_n:  " << row_n << endl;
 	std::cout << "m(1,1):  " << m(1, 1) << endl;
+
+	auto runtime = std::stoi(params.at("runtime"));
+
 	//pq1~7是对应的pq的7个数组 
 	vector<double> pq1,pq2,pq3,pq4,pq5,pq6,pq7;
 	pq1.clear();
@@ -1348,15 +1352,10 @@ auto FMovePath::prepairNrt(const std::map<std::string, std::string> &params, Pla
 		pq6.push_back(m(i, 5));
 		pq7.push_back(m(i, 6));
 	}	
-	//pqi进行归一化
-	for (int i = 0; i < row_n; i++)
-	{
-		double norm2 = sqrt(pq4[i] * pq4[i] + pq5[i] * pq5[i] + pq6[i] * pq6[i]+ pq7[i] * pq7[i]);
-		pq4[i] = pq4[i] / norm2;
-		pq5[i] = pq5[i] / norm2;
-		pq6[i] = pq6[i] / norm2;
-		pq7[i] = pq7[i] / norm2;
-	}
+	
+	cout << "pq1.size()" << pq1.size() << endl;
+
+
 	//调整四元数的方向
 	for (int i = 0; i < row_n -1; i++)
 	{
@@ -1368,24 +1367,75 @@ auto FMovePath::prepairNrt(const std::map<std::string, std::string> &params, Pla
 			pq4[i + 1] = -pq4[i + 1];
 			pq5[i + 1] = -pq5[i + 1];
 			pq6[i + 1] = -pq6[i + 1];
+			pq7[i + 1] = -pq7[i + 1];
 		}
 	}
+
+	//输出修改后的四元数
+	/*ofstream outfile("C:/Users/qianch_kaanh_cn/Desktop/data/four_elem.txt");
+	if (!outfile)
+	{
+		cout << "Unable to open otfile";
+		exit(1); // terminate with error
+	}
+	for (int k = 0; k < pq1.size(); k++)
+		//for (int k = 0; k < POS[0].size(); k++)
+	{
+		outfile << pq1[k] << "  " << pq2[k] << "  " << pq3[k] << "  " << pq4[k] << "  " << pq5[k] << "  " << pq6[k] << "  " << pq7[k] << endl;
+		cout << "success outfile four_elem " << endl;
+		//cout << data[k][0] << " " << data[k][1] << endl;
+	}
+	outfile.close();*/
+
+
+
 	//定义akima函数的参数p1,p2p3
-	std::vector<double> p1, p2, p3;	
-	p1 = std::vector<double>(pq1.size());
-	p2 = std::vector<double>(pq1.size());
-	p3 = std::vector<double>(pq1.size());
+	std::vector<double> p11, p12, p13, p21, p22, p23, p31, p32, p33, p41, p42, p43, p51, p52, p53, p61, p62, p63, p71, p72, p73;
+	p11 = std::vector<double>(pq1.size());
+	p12 = std::vector<double>(pq1.size());
+	p13 = std::vector<double>(pq1.size());
+	p21 = std::vector<double>(pq1.size());
+	p22 = std::vector<double>(pq1.size());
+	p23 = std::vector<double>(pq1.size());
+	p31 = std::vector<double>(pq1.size());
+	p32 = std::vector<double>(pq1.size());
+	p33 = std::vector<double>(pq1.size()); 
+	p41 = std::vector<double>(pq1.size());
+	p42 = std::vector<double>(pq1.size());
+	p43 = std::vector<double>(pq1.size()); 
+	p51 = std::vector<double>(pq1.size());
+	p52 = std::vector<double>(pq1.size());
+	p53 = std::vector<double>(pq1.size()); 
+	p61 = std::vector<double>(pq1.size());
+	p62 = std::vector<double>(pq1.size());
+	p63 = std::vector<double>(pq1.size()); 
+	p71 = std::vector<double>(pq1.size());
+	p72 = std::vector<double>(pq1.size());
+	p73 = std::vector<double>(pq1.size());
 	//孟给定我的点的数目
-	int numM = pq1.size();
+	double numM = pq1.size();
 	//定义和时间相关的数组
 	vector<double> time;
-	int runtime = 5;//5s内走完所有的点
+	//double runtime = 5;//5s内走完所有的点
 	for (int i = 0; i < pq1.size(); i++)
 	{
-		time.push_back((i + 1)*(runtime/numM));
+		time.push_back((i + 1) * runtime /numM);
 	}
-	s_akima(pq1.size(), time.data(), pq1.data(), p1.data(), p2.data(), p3.data());//?????????????p1.data()
+	s_akima(pq1.size(), time.data(), pq1.data(), p11.data(), p12.data(), p13.data());//?????????????p1.data()
+	s_akima(pq1.size(), time.data(), pq2.data(), p21.data(), p22.data(), p23.data());
+	s_akima(pq1.size(), time.data(), pq3.data(), p31.data(), p32.data(), p33.data());
+	s_akima(pq1.size(), time.data(), pq4.data(), p41.data(), p42.data(), p43.data());
+	s_akima(pq1.size(), time.data(), pq5.data(), p51.data(), p52.data(), p53.data());
+	s_akima(pq1.size(), time.data(), pq6.data(), p61.data(), p62.data(), p63.data());
+	s_akima(pq1.size(), time.data(), pq7.data(), p71.data(), p72.data(), p73.data());
 	//获取插值之后的pq数值
+
+
+	cout << "time[2]" << time[2] << endl;
+	cout << "p11[2]" << p11[2] <<endl;
+	
+	
+	
 	for (int i = 0; i < 7; i++)
 	{
 		pq_real[i].clear();//将pq_real先清空
@@ -1393,75 +1443,60 @@ auto FMovePath::prepairNrt(const std::map<std::string, std::string> &params, Pla
 	//注意统一单位为s，否则求导之后系数有问题
 	for (int i = 0; i < runtime * 1000; i++)
 	{
-		double x_t = 1/ runtime/ 1000 * (i+1);
-		double c1 = s_akima_at(pq1.size(), time.data(), pq1.data(), p1.data(), p2.data(), p3.data(), x_t, '0');
-		double c2 = s_akima_at(pq1.size(), time.data(), pq2.data(), p1.data(), p2.data(), p3.data(), x_t, '0');
-		double c3 = s_akima_at(pq1.size(), time.data(), pq3.data(), p1.data(), p2.data(), p3.data(), x_t, '0');
-		double c4 = s_akima_at(pq1.size(), time.data(), pq4.data(), p1.data(), p2.data(), p3.data(), x_t, '0');
-		double c5 = s_akima_at(pq1.size(), time.data(), pq5.data(), p1.data(), p2.data(), p3.data(), x_t, '0');
-		double c6 = s_akima_at(pq1.size(), time.data(), pq6.data(), p1.data(), p2.data(), p3.data(), x_t, '0');
-		double c7 = s_akima_at(pq1.size(), time.data(), pq7.data(), p1.data(), p2.data(), p3.data(), x_t, '0');
-		pq_real[0].push_back(c1);
-		pq_real[1].push_back(c2);
-		pq_real[2].push_back(c3);
-		pq_real[3].push_back(c4);
-		pq_real[4].push_back(c5);
-		pq_real[5].push_back(c6);
-		pq_real[6].push_back(c7);
+		double x_t = (i+1)/1000.0000;
+		if (x_t >= runtime / numM)
+		{
+			double c1 = s_akima_at(pq1.size(), time.data(), pq1.data(), p11.data(), p12.data(), p13.data(), x_t, '0');
+			double c2 = s_akima_at(pq1.size(), time.data(), pq2.data(), p21.data(), p22.data(), p23.data(), x_t, '0');
+			double c3 = s_akima_at(pq1.size(), time.data(), pq3.data(), p31.data(), p32.data(), p33.data(), x_t, '0');
+			double c4 = s_akima_at(pq1.size(), time.data(), pq4.data(), p41.data(), p42.data(), p43.data(), x_t, '0');
+			double c5 = s_akima_at(pq1.size(), time.data(), pq5.data(), p51.data(), p52.data(), p53.data(), x_t, '0');
+			double c6 = s_akima_at(pq1.size(), time.data(), pq6.data(), p61.data(), p62.data(), p63.data(), x_t, '0');
+			double c7 = s_akima_at(pq1.size(), time.data(), pq7.data(), p71.data(), p72.data(), p73.data(), x_t, '0');
+			pq_real[0].push_back(c1);
+			pq_real[1].push_back(c2);
+			pq_real[2].push_back(c3);
+			pq_real[3].push_back(c4);
+			pq_real[4].push_back(c5);
+			pq_real[5].push_back(c6);
+			pq_real[6].push_back(c7);
+			std::cout << "x_t: " << x_t << endl;
+			std::cout << "c1: " << c1 << "c2: " << c2 << "c3: " << c3 << "c4: " << c4 << "c5: " << c5 << "c6: " << c6 << "c7: " << c7 << endl;
+		}		
 	}
+
+	//插值后pq_real进行归一化
+	for (int i = 0; i < pq_real[0].size(); i++)
+	{
+		double norm2 = sqrt(pq_real[3][i] * pq_real[3][i] + pq_real[4][i] * pq_real[4][i] + pq_real[5][i] * pq_real[5][i] + pq_real[6][i] * pq_real[6][i]);
+		pq_real[3][i] = pq_real[3][i] / norm2;
+		pq_real[4][i] = pq_real[4][i] / norm2;
+		pq_real[5][i] = pq_real[5][i] / norm2;
+		pq_real[6][i] = pq_real[6][i] / norm2;
+		cout << "pq_real" << pq_real[3][i] << "  " << pq_real[4][i] << "  " << pq_real[5][i] << "  " << pq_real[6][i] <<endl;
+	}
+
+
+
 	std::cout << "run succssful" << std::endl;
 	std::cout << "pq_real[0].size():  "<< pq_real[0].size() << std::endl;
 
-	/*for (auto &p : params)
+	ofstream outfile("C:/Users/qianch_kaanh_cn/Desktop/data/outfile.txt");
+	if (!outfile)
 	{
-		if (p.first == "setpqJF")
-		{
-			auto pqarray = target.model->calculator().calculateExpression(p.second);
-			std::array<double, 7> temp;
-			std::copy(pqarray.begin(), pqarray.end(), temp.begin());
-			setpqJF.store(temp);
-		}
-		else if (p.first == "setpqJFB")
-		{
-			auto pqarray = target.model->calculator().calculateExpression(p.second);
-			std::array<double, 7> temp;
-			std::copy(pqarray.begin(), pqarray.end(), temp.begin());
-			setpqJFB.store(temp);
-		}
-		else if (p.first == "setpqPQB")
-		{
-			auto pqarray = target.model->calculator().calculateExpression(p.second);
-			std::array<double, 14> temp = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
-			std::copy(pqarray.begin(), pqarray.end(), temp.begin());
-			setpqPQB.store(temp);
-			which_func == 1;
-			func[1] = load_pq1;
-		}
-		else if (p.first == "which_func")
-		{
-			which_func = std::stoi(p.second);
-			if (which_func == 1)
-			{
-				func[1] = load_pq1;
-				one_time_counter = false;
-			}
-			else if (which_func == 2)
-			{
-				func[1] = load_pq2;
-				one_time_counter = true;
-			}
-			else if (which_func == 3)
-			{
-				func[1] = load_pq3;
-				one_time_counter = true;
-			}
-			else if (which_func == 7)
-			{
-				func[1] = load_pq7;
-				one_time_counter = true;
-			}
-		}
-	}*/
+		cout << "Unable to open otfile";
+		exit(1); // terminate with error
+	}
+	for (int k = 0; k < pq_real[0].size(); k++)
+		//for (int k = 0; k < POS[0].size(); k++)
+	{
+		outfile << pq_real[0][k] << "  " << pq_real[1][k] << "  " << pq_real[2][k] << "  " << pq_real[3][k] << "  " << pq_real[4][k] << "  " << pq_real[5][k] << "  " << pq_real[6][k]<< endl;
+		cout << "success outfile " << endl;
+		//cout << data[k][0] << " " << data[k][1] << endl;
+	}
+	outfile.close();
+
+
 	target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
 }
 FMovePath::FMovePath(const std::string &name):Plan(name)
@@ -1471,6 +1506,7 @@ FMovePath::FMovePath(const std::string &name):Plan(name)
 		"	<group type=\"GroupParam\" default_child_type=\"Param\">"
 		//"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"setpqJFB\">"
 		"			<pq default=\"{0.42,0.0,0.55,0,0,0,1}\"/>"
+		"			<runtime default=\"5\"/>"
 		//"			<pq default=\"{0.42,0.0,0.55,0,0,0,1}\"/>"
 		//"			<setpqJFB default=\"{0.42,0.0,0.55,0,0,0,1}\"/>"
 		//"			<setpqPQB default=\"{0.42,0.0,0.55,0,0,0,1}\"/>"
