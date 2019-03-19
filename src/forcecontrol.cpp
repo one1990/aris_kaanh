@@ -1744,10 +1744,20 @@ namespace forcecontrol
 			lout << controller->motionAtAbs(i).actualVel() << " ";
 			lout << controller->motionAtAbs(i).actualCur() << " ";
 		}
-        //log--记录当前PQ值//
+		//log--记录当前PQ值//
 		for (Size i = 0; i < param.pqb.size(); i++)
 		{
 			lout << param.pqb[i] << " ";
+			lout << param.pqt[i] << " ";
+		}
+		//log--记录f_input相关的数值//
+		for (Size i = 0; i < param.ft_pid.size(); i++)
+		{
+			lout << param.ft_pid[i] << " ";
+			lout << param.fs_friction[i] << " ";
+			lout << param.fk_friction[i] << " ";
+			lout << param.f_friction[i] << " ";
+			lout << param.f_input[i] << " ";
 		}
 		lout << std::endl;
 
