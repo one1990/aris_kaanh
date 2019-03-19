@@ -910,9 +910,14 @@ namespace forcecontrol
 		std::vector<double> vfwd;
 
 		std::vector<double> ft;
-		std::vector<double> ft_pid;
         std::vector<double> vinteg;
         std::vector<double> vproportion;
+		std::vector<double> fs_friction;
+		std::vector<double> fk_friction;
+		std::vector<double> f_friction;
+		std::vector<double> f_dynamic;
+		std::vector<double> ft_pid;
+		std::vector<double> f_input;
 
         aris::Size start_count = 1;
         aris::Size actual_count = 1;
@@ -1035,7 +1040,6 @@ namespace forcecontrol
 		}
 		return temp; 
 	}
-
 	//加载pq函数
 	auto load_func(PlanTarget &target, std::function<std::array<double, 14>(aris::Size count, aris::Size &start_count)> func)->void
 	{
@@ -1045,7 +1049,6 @@ namespace forcecontrol
 		std::copy(temp.begin(), temp.begin() + 7, param.pqt.begin());
 		std::copy(temp.begin() + 7, temp.begin() + 14, param.vqf.begin());
 	}
-	
 	//力控算法函数
     auto force_control_algorithm1(PlanTarget &target)->void
 	{
@@ -1089,10 +1092,8 @@ namespace forcecontrol
 			param.pt[i] = target.model->motionPool().at(i).mp();		//motionPool()指模型驱动器，at(0)表示第1个驱动器
 		}
 
-		double ft_friction[6];
-		double ft_offset[6];
 		double real_vel[6];
-		double ft_friction1[6], ft_friction2[6], ft_dynamic[6];
+		
 		static double ft_friction2_index[6] = { 5.0, 5.0, 5.0, 5.0, 5.0, 3.0 };
 
         //速度前馈
@@ -1208,34 +1209,22 @@ namespace forcecontrol
         //动力学载荷
         for (Size i = 0; i < param.ft_pid.size(); ++i)
         {
-            //动力学参数
-            //constexpr double f_static[6] = { 9.349947583,11.64080253,4.770140543,3.631416685,2.58310847,1.783739862 };
-            //constexpr double f_vel[6] = { 7.80825641,13.26518528,7.856443575,3.354615249,1.419632126,0.319206404 };
-            //constexpr double f_acc[6] = { 0,3.555679326,0.344454603,0.148247716,0.048552673,0.033815455 };
-            //constexpr double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
-            //constexpr double f_static_index[6] = {0.5, 0.5, 0.5, 0.85, 0.95, 0.8};
+			//f_friction=静摩擦力+动摩擦力
+			real_vel[i] = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
+			param.fs_friction[i] = f_static_index_JRC[i] * (f_static[i] * real_vel[i] / max_static_vel[i]);
+			param.fk_friction[i] = f_vel_JRC[i] * controller->motionAtAbs(i).actualVel();
+			param.f_friction[i] = param.fs_friction[i] + param.fk_friction[i];
+			//限制摩擦力的大小为500以内
+			param.f_friction[i] = std::max(-500.0, param.f_friction[i]);
+			param.f_friction[i] = std::min(500.0, param.f_friction[i]);
 
-            //静摩擦力+动摩擦力=ft_friction
+			//动力学载荷=f_dynamic
+			param.f_dynamic[i] = target.model->motionPool()[i].mfDyn();
 
-            real_vel[i] = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
-            ft_friction1[i] = f_static_index_JRC[i]*(f_static[i] * real_vel[i] / max_static_vel[i]);
+			//电机输入电流=力*力到电流的系数
+			param.f_input[i] = (param.f_friction[i] + param.f_dynamic[i] + param.ft_pid[i])*f2c_index[i];
 
-            //double ft_friction2_max = std::max(0.0, controller->motionAtAbs(i).actualVel() >= 0 ? f_static[i] - ft_friction1[i] : f_static[i] + ft_friction1[i]);
-            //double ft_friction2_min = std::min(0.0, controller->motionAtAbs(i).actualVel() >= 0 ? -f_static[i] + ft_friction1[i] : -f_static[i] - ft_friction1[i]);
-            //ft_friction2[i] = std::max(ft_friction2_min, std::min(ft_friction2_max, ft_friction2_index[i] * param.ft[i]));
-            //ft_friction[i] = ft_friction1[i] + ft_friction2[i] + f_vel[i] * controller->motionAtAbs(i).actualVel();
-
-            //ft_friction[i] = ft_friction1[i] + f_vel[i] * controller->motionAtAbs(i).actualVel();
-            ft_friction[i] = ft_friction1[i] + f_vel_JRC[i] * controller->motionAtAbs(i).actualVel();
-
-            ft_friction[i] = std::max(-500.0, ft_friction[i]);
-            ft_friction[i] = std::min(500.0, ft_friction[i]);
-
-            //动力学载荷=ft_dynamic
-            ft_dynamic[i] = target.model->motionPool()[i].mfDyn();
-
-            ft_offset[i] = (ft_friction[i] + ft_dynamic[i] + param.ft_pid[i])*f2c_index[i];
-            controller->motionAtAbs(i).setTargetCur(ft_offset[i]);
+			controller->motionAtAbs(i).setTargetCur(param.f_input[i]);
         }
 
 		//print//
@@ -1297,35 +1286,35 @@ namespace forcecontrol
 				cout << std::setw(10) << param.ft_pid[i] << "  ";
 			}
 			cout << std::endl;
-			cout << "friction1:";
+			cout << "fs_friction:";
 			for (Size i = 0; i < 6; i++)
 			{
-				cout << std::setw(10) << ft_friction1[i] << "  ";
+				cout << std::setw(10) << param.fs_friction[i] << "  ";
 			}
 			cout << std::endl;
-			cout << "friction:";
+			cout << "fk_friction:";
 			for (Size i = 0; i < 6; i++)
 			{
-				cout << std::setw(10) << ft_friction[i] << "  ";
+				cout << std::setw(10) << param.fk_friction[i] << "  ";
 			}
 			cout << std::endl;
-			cout << "ft_dynamic:";
+			cout << "f_friction:";
 			for (Size i = 0; i < 6; i++)
 			{
-				cout << std::setw(10) << ft_dynamic[i] << "  ";
+				cout << std::setw(10) << param.f_friction[i] << "  ";
 			}
 			cout << std::endl;
-			cout << "ft_offset:";
+			cout << "f_input:";
 			for (Size i = 0; i < 6; i++)
 			{
-				cout << std::setw(10) << ft_offset[i] << "  ";
+				cout << std::setw(10) << param.f_input[i] << "  ";
 			}
 			cout << std::endl;
 			cout << "vfwd:";
-            for (Size i = 0; i < 6; i++)
-            {
-                cout << std::setw(10) << param.vfwd[i] << "  ";
-            }
+			for (Size i = 0; i < 6; i++)
+			{
+				cout << std::setw(10) << param.vfwd[i] << "  ";
+			}
 			cout << std::endl;
 			cout << "------------------------------------------------" << std::endl;
 		}
@@ -1362,8 +1351,7 @@ namespace forcecontrol
 		target.model->solverPool()[0].dynAccAndFce();
 		target.model->solverPool()[2].dynAccAndFce();
 
-		double f_friction[6], fs_friction[6], fk_friction[6], f_dynamic[6], ft_pid[6];
-		double real_vel[6], f_input[6];
+		double real_vel[6];
 
 		//速度前馈
 		{
@@ -1421,20 +1409,20 @@ namespace forcecontrol
 		{
 			//f_friction=静摩擦力+动摩擦力
 			real_vel[i] = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
-			fs_friction[i] = f_static_index[i]*(f_static[i] * real_vel[i] / max_static_vel[i]);
-			fk_friction[i] = f_vel[i] * controller->motionAtAbs(i).actualVel();
-			f_friction[i] = fs_friction[i] + fk_friction[i];
+			param.fs_friction[i] = f_static_index[i]*(f_static[i] * real_vel[i] / max_static_vel[i]);
+			param.fk_friction[i] = f_vel[i] * controller->motionAtAbs(i).actualVel();
+			param.f_friction[i] = param.fs_friction[i] + param.fk_friction[i];
 			//限制摩擦力的大小为500以内
-			f_friction[i] = std::max(-500.0, f_friction[i]);
-			f_friction[i] = std::min(500.0, f_friction[i]);
+			param.f_friction[i] = std::max(-500.0, param.f_friction[i]);
+			param.f_friction[i] = std::min(500.0, param.f_friction[i]);
 
 			//动力学载荷=f_dynamic
-			f_dynamic[i] = target.model->motionPool()[i].mfDyn();
+			param.f_dynamic[i] = target.model->motionPool()[i].mfDyn();
 
 			//电机输入电流=力*力到电流的系数
-			f_input[i] = (f_friction[i] + f_dynamic[i] + param.ft_pid[i])*f2c_index[i];
+			param.f_input[i] = (param.f_friction[i] + param.f_dynamic[i] + param.ft_pid[i])*f2c_index[i];
 
-			controller->motionAtAbs(i).setTargetCur(f_input[i]);
+			controller->motionAtAbs(i).setTargetCur(param.f_input[i]);
 		}
 
 		//print//
@@ -1478,25 +1466,25 @@ namespace forcecontrol
 			cout << "fs_friction:";
 			for (Size i = 0; i < 6; i++)
 			{
-				cout << std::setw(10) << fs_friction[i] << "  ";
+				cout << std::setw(10) << param.fs_friction[i] << "  ";
 			}
 			cout << std::endl;
 			cout << "fk_friction:";
 			for (Size i = 0; i < 6; i++)
 			{
-				cout << std::setw(10) << fk_friction[i] << "  ";
+				cout << std::setw(10) << param.fk_friction[i] << "  ";
 			}
 			cout << std::endl;
 			cout << "f_friction:";
 			for (Size i = 0; i < 6; i++)
 			{
-				cout << std::setw(10) << f_friction[i] << "  ";
+				cout << std::setw(10) << param.f_friction[i] << "  ";
 			}
 			cout << std::endl;
 			cout << "f_input:";
 			for (Size i = 0; i < 6; i++)
 			{
-				cout << std::setw(10) << f_input[i] << "  ";
+				cout << std::setw(10) << param.f_input[i] << "  ";
 			}
 			cout << std::endl;
 			cout << "vfwd:";
@@ -1509,7 +1497,6 @@ namespace forcecontrol
 		}
 
 	}
-
 	//MovePQB成员函数实现
 	auto MovePQB::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
@@ -1535,9 +1522,14 @@ namespace forcecontrol
 		param.va.resize(6, 0.0);
 		param.vfwd.resize(6, 0.0);
 		param.ft.resize(6, 0.0);
-		param.ft_pid.resize(6, 0.0);
         param.vinteg.resize(6, 0.0);
         param.vproportion.resize(6, 0.0);
+		param.fs_friction.resize(6, 0.0);
+		param.fk_friction.resize(6, 0.0);
+		param.f_friction.resize(6, 0.0);
+		param.f_dynamic.resize(6, 0.0);
+		param.ft_pid.resize(6, 0.0);
+		param.f_input.resize(6, 0.0);
 
         //load_pq5();
 		for (auto &p : params)
