@@ -1051,8 +1051,8 @@ auto load_pq10()->void
 	string site = "C:/Users/qianch_kaanh_cn/Desktop/data/rt_log--2019-02-28--23-25-52--11.txt";
 	//string site = "C:/Users/qianch_kaanh_cn/Desktop/data/rt_log--2019-02-27--14-13-05--7.txt";
 	ifstream oplog;
-	vector<double> theta2;
-	theta2.clear();
+	//vector<double> theta2;
+	//theta2.clear();
 	oplog.open(site);
 	//以下检查是否成功读取文件；
 	if (!oplog)
@@ -1068,7 +1068,7 @@ auto load_pq10()->void
 	//清除pq，防止多次调用累积增加
 	for (int i = 0; i < 7; i++)
 	{
-		pq[i].clear();
+		pq[i].clear();//pq是全局变量
 	}
 
 	while (!oplog.eof())
@@ -1092,7 +1092,7 @@ auto load_pq10()->void
 	row = POS[0].size();//总行数
 	cout << "row:" << row << endl;
 	std::vector<double> p1, p2, p3;
-	p1 = std::vector<double> (row);
+	p1 = std::vector<double>(row);
 	p2 = std::vector<double>(row);
 	p3 = std::vector<double>(row);
 
@@ -1108,17 +1108,18 @@ auto load_pq10()->void
 	double Kz4 = s_akima_at(5, A, B, p1.data(), p2.data(), p3.data(), 8.5, '1');
 	double Kz5 = s_akima_at(5, A, B, p1.data(), p2.data(), p3.data(), 12, '1');
 	std::cout << "Kz1" << Kz1 << "   " << "Kz2" << Kz2 << "   " << "Kz3" << Kz3 << "Kz4" << Kz4 << "   " << "Kz5" << Kz5 << std::endl;*/
-
-	
-	for (int i = 0; i < POS[0].size() - step_wave; i++)
+	double runtime = 5.0;//5s内走完所有的轨迹
+	double zsite = POS[20][0];
+	for (int i = 0; i < runtime*1000.0000 - step_wave; i++)
 	{
 
-		double time = i * 0.001;
+		double xsite = POS[18][0] + (POS[18][row-1]-POS[18][0])/runtime/1000.0000*(i+1); 
 		//Kz是Z轴的斜率
-		double Kz = s_akima_at(row, POS[18].data(), POS[20].data(), p1.data(), p2.data(), p3.data(), POS[18][0]+i* 0.00001, '1');
-		cout <<"time:"<<time<< "  Kz:   " << Kz << endl;
-		double tangent[3] = { 0.00001,0 ,0.00001*Kz };
-		if (i <= 3000)
+		double Kz = s_akima_at(row, POS[18].data(), POS[20].data(), p1.data(), p2.data(), p3.data(), xsite, '1');
+		cout<< "  Kz:   " << Kz << endl;
+		double tangent[3] = { (POS[18][row - 1] - POS[18][0]) / runtime / 1000.0000,0 ,(POS[18][row - 1] - POS[18][0]) / runtime / 1000.0000*Kz };
+		zsite = zsite +Kz*(POS[18][row - 1] - POS[18][0]) / runtime / 1000.0000;
+		/*if (i <= 3000)
 			tangent[0] = 0.0001;
 
 		if (cos(2 * time) > 0)
@@ -1143,17 +1144,17 @@ auto load_pq10()->void
 				continue;
 			else
 			{
-				/*for (int i = 0; i < 25; i++)
+				for (int i = 0; i < 25; i++)
 				{
 					POS2[i].push_back(POS[i][j]);
 					POS2[i].push_back(POS[i][j+1]);
 				}
-				j++;*/
+				j++;
 				//轨迹上切线的向量
 				//double tangent[3] = { POS[18][i + step_wave] - POS[18][i],POS[19][i + step_wave] - POS[19][i] ,POS[20][i + step_wave] - POS[20][i] };
 				//double tangL = sqrt(tangent[0] * tangent[0] + tangent[1] * tangent[1] + tangent[2] * tangent[2]);
 				//定义与Z轴方向的欧拉角系数coe
-				//int coe;
+				int coe;*/
 				double x[3] = { 1, 0, 0 };
 				double y[3] = { 0, 1, 0 };
 				double z[3] = { 0, 0, -1 };
@@ -1178,8 +1179,8 @@ auto load_pq10()->void
 				//注意theta的正负性,与Z轴成180度左右；
 
 				double theta = atan(vert0[0] / vert0[2]);
-				theta2.push_back(theta);
-				double pe[6] = { POS[18][i] ,POS[19][i] ,POS[20][i],atan(1) * 2 ,atan(1) * 2 , theta };
+				
+				double pe[6] = { xsite ,POS[19][i] ,zsite,atan(1) * 2 ,atan(1) * 2 , theta };
 
 				//绝对
 				//double pe[6] = { POS[18][i] ,POS[19][i] ,POS[20][i], atan(1) * 2,-atan(1) * 2 , theta };
@@ -1201,8 +1202,8 @@ auto load_pq10()->void
 					pq[j].push_back(pq0[j]);
 				}
 			}
-		}
-	}
+		
+	
 		
 		//int step_i = 1;
 		std::cout << "pq[0].size():  " << pq[0].size() << endl;
@@ -1214,14 +1215,14 @@ auto load_pq10()->void
 			cout << "Unable to open otfile";
 			exit(1); // terminate with error
 		}
-		for (int k = 0; k < theta2.size(); k++)
+		/*for (int k = 0; k < theta2.size(); k++)
 			//for (int k = 0; k < POS[0].size(); k++)
 		{
 			outfile << POS[18][k] << "  " << POS[19][k] << "  " << POS[20][k] << "  " << POS[21][k] << "  " << POS[22][k] << "  " << POS[23][k] << "  " << POS[24][k] << " theta2:   " << theta2[k] << endl;
 			cout << "success outfile " << endl;
 			//cout << data[k][0] << " " << data[k][1] << endl;
 		}
-		outfile.close();		
+		outfile.close();*/		
 	}
 
 
@@ -1304,13 +1305,6 @@ MoveinModel::MoveinModel(const std::string &name) :Plan(name)
 	command().loadXmlStr(
 		"<mvinmod>"
 		"	<group type=\"GroupParam\" default_child_type=\"Param\">"
-		//"	    <total_time type=\"Param\" default=\"5000\"/>" // 默认5000
-		//"		<vel type=\"Param\" default=\"0.04\"/>"
-		//"		<acc type=\"Param\" default=\"0.08\"/>"
-		//"		<dec type=\"Param\" default=\"0.08\"/>"
-		//"		<choose type=\"Param\" default=\"0\"/>"
-		//"		<pt type=\"Param\" default=\"{0.0,0.0,0.0,0.0,0.0,0.0}\"/>"
-		//"		<file type=\"Param\" default=\"1.txt\" abbreviation=\"f\"/>"
 		"	</group>"
 		"</mvinmod>");
 }
