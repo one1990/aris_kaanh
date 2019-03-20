@@ -306,12 +306,12 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 				*/
 
 				
-				dX[0] = 0.0000;
-				dX[1] = 0.0000;
-				dX[2] = 0.0000;
+                dX[0] = 0.00000;
+                dX[1] = 0.00000;
+                dX[2] = 0.00000;
 				dX[3] = 0.0000;
 				dX[4] = 0.0000;
-				dX[5] = 0.0001;
+                dX[5] = 0.00005;
 				
 				
 				
@@ -368,9 +368,8 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 
 				// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A)*b //
 				s_mm(6, 1, 6, pinv, dX, dTheta);
-				
 
-                //robotDemo.jointIncrement(RobotPositionJ, dX,dTheta);
+
 
                 for (int i = 0; i < 6; i++)
                 {
