@@ -15,6 +15,7 @@
 #include <string> 
 #include <algorithm>
 
+
 class MoveCircle : public aris::plan::Plan
 {
 public:
@@ -56,6 +57,28 @@ public:
 	explicit RemoveFile(const std::string &name = "RemoveFile");
 };
 
-auto load_pq2(aris::Size count, aris::Size &start_count)->std::array<double, 7>;
+auto load_pq2(aris::Size count, aris::Size &start_count)->std::array<double, 14>;
+
+auto load_pq5()->void;
+
+auto load_pq7(aris::Size count, aris::Size &start_count)->std::array<double, 14>;
+
+class MoveinModel : public aris::plan::Plan
+{
+public:
+	auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+	auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+
+	explicit MoveinModel(const std::string &name = "MoveinModel");
+};
+
+
+class FMovePath : public aris::plan::Plan
+{
+public:
+	auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+	explicit FMovePath(const std::string &name = "FMovePath_plan");
+};
+
 
 #endif

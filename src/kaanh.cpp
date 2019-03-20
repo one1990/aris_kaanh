@@ -90,6 +90,51 @@ namespace kaanh
 			controller->slavePool().add<aris::control::EthercatMotion>().loadXmlStr(xml_str);
 		}
 
+		std::string xml_str =
+			"<forcesensor type=\"EthercatSlave\" phy_id=\"6\" product_code=\"0x00013D6F\""
+			" vendor_id=\"0x00000009\" revision_num=\"0x01\" dc_assign_activate=\"0x300\">"
+			"	<sm_pool type=\"SyncManagerPoolObject\">"
+			"		<sm type=\"SyncManager\" is_tx=\"false\"/>"
+			"		<sm type=\"SyncManager\" is_tx=\"true\"/>"
+			"		<sm type=\"SyncManager\" is_tx=\"false\">"
+			"			<index_1601 type=\"Pdo\" default_child_type=\"PdoEntry\" index=\"0x1601\" is_tx=\"false\">"
+			"				<Output_Instruction index=\"0x7010\" subindex=\"0x01\" size=\"16\"/>"
+			"				<Output_Para1 index=\"0x7010\" subindex=\"0x02\" size=\"16\"/>"
+			"				<Output_Para2 index=\"0x7010\" subindex=\"0x03\" size=\"16\"/>"
+			"			</index_1601>"
+			"		</sm>"
+			"		<sm type=\"SyncManager\" is_tx=\"true\">"
+			"			<index_1A02 type=\"Pdo\" default_child_type=\"PdoEntry\" index=\"0x1A02\" is_tx=\"true\">"
+            "				<Int_Input_DataNo index=\"0x6020\" subindex=\"0x00\" size=\"16\"/>"
+            "				<Int_Input_Fx index=\"0x6020\" subindex=\"0x01\" size=\"32\"/>"
+            "				<Int_Input_Fy index=\"0x6020\" subindex=\"0x02\" size=\"32\"/>"
+            "				<Int_Input_Fz index=\"0x6020\" subindex=\"0x03\" size=\"32\"/>"
+            "				<Int_Input_Mx index=\"0x6020\" subindex=\"0x04\" size=\"32\"/>"
+            "				<Int_Input_My index=\"0x6020\" subindex=\"0x05\" size=\"32\"/>"
+            "				<Int_Input_Mz index=\"0x6020\" subindex=\"0x06\" size=\"32\"/>"
+			"			</index_1A02>"
+			"			<index_1A03 type=\"Pdo\" default_child_type=\"PdoEntry\" index=\"0x1A03\" is_tx=\"true\">"
+            "				<Real_Input_DataNo index=\"0x6030\" subindex=\"0x00\" size=\"16\"/>"
+            "				<Real_Input_Fx index=\"0x6030\" subindex=\"0x01\" size=\"32\"/>"
+            "				<Real_Input_Fy index=\"0x6030\" subindex=\"0x02\" size=\"32\"/>"
+            "				<Real_Input_Fz index=\"0x6030\" subindex=\"0x03\" size=\"32\"/>"
+            "				<Real_Input_Mx index=\"0x6030\" subindex=\"0x04\" size=\"32\"/>"
+            "				<Real_Input_My index=\"0x6030\" subindex=\"0x05\" size=\"32\"/>"
+            "				<Real_Input_Mz index=\"0x6030\" subindex=\"0x06\" size=\"32\"/>"
+			"			</index_1A03>"
+			"			<index_1A04 type=\"Pdo\" default_child_type=\"PdoEntry\" index=\"0x1A04\" is_tx=\"true\">"
+			"				<Res_Instruction index=\"0x6040\" subindex=\"0x01\" size=\"16\"/>"
+			"				<Res_Para1 index=\"0x6040\" subindex=\"0x02\" size=\"16\"/>"
+			"				<Res_Para2 index=\"0x6040\" subindex=\"0x03\" size=\"16\"/>"
+			"			</index_1A04>"
+			"		</sm>"
+			"	</sm_pool>"
+			"	<sdo_pool type=\"SdoPoolObject\" default_child_type=\"Sdo\">"
+			"	</sdo_pool>"
+			"</forcesensor>";
+
+		controller->slavePool().add<aris::control::EthercatSlave>().loadXmlStr(xml_str);
+
 		return controller;
 	};
 	auto createModelRokaeXB4(const double *robot_pm)->std::unique_ptr<aris::dynamic::Model>
@@ -2719,19 +2764,138 @@ namespace kaanh
 		}
 	};
 
+	// 力传感器信号测试 //
+	struct FSParam
+	{
+		bool real_data;
+        int time;
+        uint16_t datanum;
+        float Fx,Fy,Fz,Mx,My,Mz;
+	};
+	class FSSignal : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+		{
+			FSParam param;
+			for (auto &p : params)
+			{
+				if (p.first == "real_data")
+				{
+					param.real_data = std::stod(p.second);
+				}
+				else if (p.first == "time")
+				{
+					param.time = std::stoi(p.second);
+				}
+			}
+			param.Fx = 0.0;
+			param.Fy = 0.0;
+			param.Fz = 0.0;
+			param.Mx = 0.0;
+			param.My = 0.0;
+			param.Mz = 0.0;
+			target.param = param;
+
+#ifdef WIN32
+			target.option |=
+
+				Plan::NOT_CHECK_POS_MIN |
+				Plan::NOT_CHECK_POS_MAX |
+				Plan::NOT_CHECK_POS_CONTINUOUS |
+				Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
+				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
+				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
+				Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
+				Plan::NOT_CHECK_VEL_MIN |
+				Plan::NOT_CHECK_VEL_MAX |
+				Plan::NOT_CHECK_VEL_CONTINUOUS |
+				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
+				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+#endif
+		}
+		auto virtual executeRT(PlanTarget &target)->int
+		{
+			auto &param = std::any_cast<FSParam&>(target.param);
+			// 访问主站 //
+			auto controller = dynamic_cast<aris::control::EthercatController*>(target.master);
+			if (param.real_data)
+			{
+                controller->ecSlavePool().at(6).readPdo(0x6030, 0x00, &param.datanum ,16);
+                controller->ecSlavePool().at(6).readPdo(0x6030, 0x01, &param.Fx ,32);
+                controller->ecSlavePool().at(6).readPdo(0x6030, 0x02, &param.Fy, 32);
+                controller->ecSlavePool().at(6).readPdo(0x6030, 0x03, &param.Fz, 32);
+                controller->ecSlavePool().at(6).readPdo(0x6030, 0x04, &param.Mx, 32);
+                controller->ecSlavePool().at(6).readPdo(0x6030, 0x05, &param.My, 32);
+                controller->ecSlavePool().at(6).readPdo(0x6030, 0x06, &param.Mz, 32);
+			}
+			else
+			{
+                controller->ecSlavePool().at(6).readPdo(0x6030, 0x00, &param.datanum ,16);
+                controller->ecSlavePool().at(6).readPdo(0x6020, 0x01, &param.Fx, 32);
+                controller->ecSlavePool().at(6).readPdo(0x6020, 0x02, &param.Fy, 32);
+                controller->ecSlavePool().at(6).readPdo(0x6020, 0x03, &param.Fz, 32);
+                controller->ecSlavePool().at(6).readPdo(0x6020, 0x04, &param.Mx, 32);
+                controller->ecSlavePool().at(6).readPdo(0x6020, 0x05, &param.My, 32);
+                controller->ecSlavePool().at(6).readPdo(0x6020, 0x06, &param.Mz, 32);
+			}
+			
+			//print//
+			auto &cout = controller->mout();
+			if (target.count % 100 == 0)
+			{
+                cout << std::setw(6) << param.datanum << "  ";
+				cout << std::setw(6) << param.Fx << "  ";
+				cout << std::setw(6) << param.Fy << "  ";
+				cout << std::setw(6) << param.Fz << "  ";
+				cout << std::setw(6) << param.Mx << "  ";
+				cout << std::setw(6) << param.My << "  ";
+				cout << std::setw(6) << param.Mz << "  ";
+				cout << std::endl;
+				cout << "----------------------------------------------------" << std::endl;
+			}
+			
+			//log//
+			auto &lout = controller->lout();
+			{
+				lout << param.Fx << " ";
+				lout << param.Fy << " ";
+				lout << param.Fz << " ";
+				lout << param.Mx << " ";
+				lout << param.My << " ";
+				lout << param.Mz << " ";
+				lout << std::endl;
+			}
+			param.time--;
+			return param.time;
+		}
+		auto virtual collectNrt(PlanTarget &target)->void {}
+
+		explicit FSSignal(const std::string &name = "FSSignal") :Plan(name)
+		{
+			command().loadXmlStr(
+				"<fssignal>"
+				"	<group_switch type=\"GroupParam\" default_child_type=\"Param\">"
+				"		<real_data default=\"1\"/>"
+				"		<time default=\"100000\"/>"
+				"	</group_switch>"
+				"</fssignal>");
+		}
+	};
+
 	auto createPlanRootRokaeXB4()->std::unique_ptr<aris::plan::PlanRoot>
 	{
 		std::unique_ptr<aris::plan::PlanRoot> plan_root(new aris::plan::PlanRoot);
 
-		plan_root->planPool().add<aris::plan::EnablePlan>();
-		plan_root->planPool().add<aris::plan::DisablePlan>();
-		plan_root->planPool().add<aris::plan::ModePlan>();
-		plan_root->planPool().add<aris::plan::RecoverPlan>();
-		plan_root->planPool().add<aris::plan::SleepPlan>();
-		auto &rs = plan_root->planPool().add<aris::plan::ResetPlan>();
-		rs.command().findByName("group")->findByName("pos")->loadXmlStr("<pos default=\"{0.5,0.392523364485981,0.789915966386555,0.5,0.5,0.5}\" abbreviation=\"p\"/>");
+		plan_root->planPool().add<aris::plan::Enable>();
+		plan_root->planPool().add<aris::plan::Disable>();
+		plan_root->planPool().add<aris::plan::Mode>();
+		plan_root->planPool().add<aris::plan::Recover>();
+		plan_root->planPool().add<aris::plan::Sleep>();
+		auto &rs = plan_root->planPool().add<aris::plan::Reset>();
+        rs.command().findByName("group")->findByName("pos")->loadXmlStr("<pos default=\"{0.5,0.392523364485981,0.789915966386555,0.5,0.5,0.5}\"/>");
 
-		plan_root->planPool().add<aris::plan::MovePlan>();
+		plan_root->planPool().add<aris::plan::MoveL>();
 		plan_root->planPool().add<aris::plan::MoveJ>();
 		plan_root->planPool().add<aris::plan::Show>();
 		plan_root->planPool().add<kaanh::MoveInit>();
@@ -2755,10 +2919,13 @@ namespace kaanh
 		plan_root->planPool().add<kaanh::ListenDI>();
 		plan_root->planPool().add<kaanh::MoveEA>();
 		plan_root->planPool().add<kaanh::MoveEAP>();
+		plan_root->planPool().add<kaanh::FSSignal>();
 		plan_root->planPool().add<MoveCircle>();
 		plan_root->planPool().add<MoveTroute>();
 		plan_root->planPool().add<MoveFile>();
 		plan_root->planPool().add<RemoveFile>();
+		plan_root->planPool().add<MoveinModel>();
+		plan_root->planPool().add<FMovePath>();
 		//plan_root->planPool().add<plPQ>();
 
 	/*	auto &dm1 = plan_root->planPool().add<aris::plan::MoveJ>();
