@@ -107,7 +107,13 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 
 			if (!target.model->solverPool().at(1).kinPos())return -1;
 
-            
+
+			///* Using Jacobian, TransMatrix from ARIS
+			double EndW[3], EndP[3], BaseV[3];
+			double PqEnd[7], TransVector[16];
+			target.model->generalMotionPool().at(0).getMpm(TransVector);
+            target.model->generalMotionPool().at(0).getMpq(PqEnd);
+
             double dX[6] = { 0.00001, -0.0000, -0.0000, -0.0000, -0.0000, -0.0000};
             double dTheta[6]={0};
 			double estTorFin[6];
@@ -135,7 +141,28 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 			}
 			
 			double FmInWorld[6];
+
+			double TransMatrix[4][4];
+			for (int i = 0;i < 4;i++)
+				for (int j = 0;j < 4;j++)
+					TransMatrix[i][j] = TransVector[4 * i + j];
+
+			double n[3] = { TransMatrix[0][0], TransMatrix[0][1], TransMatrix[0][2] };
+			double o[3] = { TransMatrix[1][0], TransMatrix[1][1], TransMatrix[1][2] };
+			double a[3] = { TransMatrix[2][0], TransMatrix[2][1], TransMatrix[2][2] };
+			
+			FT[0] = 0;FT[1] = 0;FT[2] = 1;FT[3] = 0;FT[4] = 0;FT[5] = 0;
+			FmInWorld[0] = n[0] * FT[0] + n[1] * FT[1] + n[2] * FT[2];
+			FmInWorld[1] = o[0] * FT[0] + o[1] * FT[1] + o[2] * FT[2];
+			FmInWorld[2] = a[0] * FT[0] + a[1] * FT[1] + a[2] * FT[2];
+			FmInWorld[3] = n[0] * FT[3] + n[1] * FT[4] + n[2] * FT[5];
+			FmInWorld[4] = o[0] * FT[3] + o[1] * FT[4] + o[2] * FT[5];
+			FmInWorld[5] = a[0] * FT[3] + a[1] * FT[4] + a[2] * FT[5];
+
 			robotDemo.forceTransform(RobotPositionJ, FT, FmInWorld);
+
+
+
 
             // 获取当前起始点位置 //
             if (target.count == 1)
@@ -247,20 +274,7 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
                     if(Math.Abs(estTor[i])<3)
                         estTor[i] = 0;
                 }
-                
-              
-                double FxListAve=0,FyListAve=0,FzListAve=0;
-                
-              
-                for (int i = 0; i < 6; i++)
-                {
-                    X1[i] = estTor[i];
-                    X2[i] = 0;
-                }
-                //RobotPosition[0] = -20; RobotPosition[1] = -8.42; RobotPosition[2] = 4.898;
-                //RobotPosition[3] = -20; RobotPosition[4] = -8.42; RobotPosition[5] = 4.898;
-                estTorFin = robotDemo.forceTransform(RobotPositionT, X1, X2);
-
+ 
                 SumdTheta[9] = estTorFin[0];
                 for (int i = 0; i < common.RobotAxis / 2; i++)
                 {
@@ -298,15 +312,11 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 				dX[3] = 0.0000;
 				dX[4] = 0.0000;
 				dX[5] = 0.0001;
-				double PqEnd[7], TransVector[16];
-				target.model->generalMotionPool().at(0).getMpq(PqEnd);
-				cout << PqEnd[2] << "  ";
+				
+				
 				
                ///* Using Jacobian, TransMatrix from ARIS
-			   double EndW[3], EndP[3],BaseV[3];
-			  
-			   target.model->generalMotionPool().at(0).getMpm(TransVector);
-			   for (int i = 0;i < 3;i++)
+		       for (int i = 0;i < 3;i++)
 				   EndW[i] = dX[i+3];
 
 			   for (int i = 0;i < 3;i++)
