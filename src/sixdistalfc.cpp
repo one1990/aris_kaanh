@@ -64,6 +64,17 @@ auto MoveXYZ::prepairNrt(const std::map<std::string, std::string> &params, PlanT
 	
    
 }
+
+
+void crossVector(const double* a, const double* b, double* c)
+{
+	
+	c[0] = a[1] * b[2] - b[1] * a[2];
+	c[1] = -(a[0] * b[2] - b[0] * a[2]);
+	c[2] = a[0] * b[1] - b[0] * a[1];
+
+}
+
 auto MoveXYZ::executeRT(PlanTarget &target)->int
 {
 			auto &param = std::any_cast<MoveXYZParam&>(target.param);
@@ -92,7 +103,7 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
                        // controller->motionPool().at(i).setModeOfOperation(10);	//切换到电流控制
                     }
 				}
-	
+				
 
 			if (!target.model->solverPool().at(1).kinPos())return -1;
 
@@ -101,7 +112,7 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
             double dTheta[6]={0};
 			double estTorFin[6];
 	
-           
+          
             int tick = 0;
             for (int i = 0; i < 6; i++)
                     estTorFin[i]=0;
@@ -120,7 +131,7 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 			for (int i = 0;i < 6;i++)
 			{
 				RobotPositionJ[i] = target.model->motionPool()[i].mp();
-				RobotPositionJ[i] = 0;
+				//RobotPositionJ[i] = 0;
 			}
 			
 			double FmInWorld[6];
@@ -187,6 +198,7 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
                lout << target.model->motionPool()[4].mp() << ",";
                lout << target.model->motionPool()[5].mp() << ",";
 
+			  
 
 
           //     lout << FT[1] << ",";lout << FT[2] << ",";
@@ -209,12 +221,12 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
                {
                    for (int i = 0; i < 6; i++)
                    {
-                       cout << "pos" << i + 1 << ":" << target.model->motionPool()[i].mp() << "  ";
+                       //cout << "pos" << i + 1 << ":" << target.model->motionPool()[i].mp() << "  ";
                        //cout << "vel" << i + 1 << ":" << target.model->motionPool()[i].mv() << "  ";
                        //cout << "cur" << i + 1 << ":" << target.model->motionPool()[i].ma() << "  ";
                    }
 
-                   cout << "dX[0]" << FT[3]<<"  ";
+                   //cout << "dX[0]" << FT[3]<<"  ";
                    cout << std::endl;
 
                }
@@ -278,9 +290,77 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
                 }
 
 				*/
+
+				
+				dX[0] = 0.0000;
+				dX[1] = 0.0000;
+				dX[2] = 0.0000;
+				dX[3] = 0.0000;
+				dX[4] = 0.0000;
+				dX[5] = 0.0001;
+				double PqEnd[7], TransVector[16];
+				target.model->generalMotionPool().at(0).getMpq(PqEnd);
+				cout << PqEnd[2] << "  ";
+				
+               ///* Using Jacobian, TransMatrix from ARIS
+			   double EndW[3], EndP[3],BaseV[3];
+			  
+			   target.model->generalMotionPool().at(0).getMpm(TransVector);
+			   for (int i = 0;i < 3;i++)
+				   EndW[i] = dX[i+3];
+
+			   for (int i = 0;i < 3;i++)
+				   EndP[i] = PqEnd[i];
+			   crossVector(EndP, EndW, BaseV);
+
+			   for (int i = 0;i < 3;i++)
+				   dX[i + 3] = dX[i + 3];
+			   for (int i = 0;i < 3;i++)
+				   dX[i] = dX[i]+ BaseV[i];
+
+
+				double pe[6];
+				target.model->generalMotionPool()[0].makI().getPe(
+					target.model->generalMotionPool()[0].makI().fatherPart(), 
+					pe);
+
+				pe[0] += 0.0;
+
+				target.model->generalMotionPool()[0].makI().setPrtPe(pe);
+				target.model->generalMotionPool()[0].makJ();
+
+
+
+
+				auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(target.model->solverPool()[1]);
+				fwd.cptJacobi();
+				double pinv[36];
+
+				// 所需的中间变量，请对U的对角线元素做处理
+				double U[36], tau[6];
+				aris::Size p[6];
+				aris::Size rank;
+
+				// 根据 A 求出中间变量，相当于做 QR 分解 //
+				// 请对 U 的对角线元素做处理
+				s_householder_utp(6, 6, fwd.Jf(), U, tau, p, rank, 1e-10);
+				for (int i = 0;i < 6;i++)
+					if (U[7 * i] >= 0)
+						U[7 * i] = U[7 * i] + 0.1;
+					else
+						U[7 * i] = U[7 * i] - 0.1;
+				// 根据QR分解的结果求x，相当于Matlab中的 x = A\b //
+				s_householder_utp_sov(6, 6, 1, rank, U, tau, p, dX, dTheta, 1e-10);
+
+				// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A) //
+				double tau2[6];
+				s_householder_utp2pinv(6, 6, rank, U, tau, p, pinv, tau2, 1e-10);
+
+				// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A)*b //
+				s_mm(6, 1, 6, pinv, dX, dTheta);
 				
 
-                robotDemo.jointIncrement(RobotPositionJ, dX,dTheta);
+                //robotDemo.jointIncrement(RobotPositionJ, dX,dTheta);
 
                 for (int i = 0; i < 6; i++)
                 {
@@ -288,16 +368,16 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
                         dTheta[i] = 0.003;
                     if (dTheta[i] < -0.003)
                        dTheta[i] = -0.003;
-                     lout << dTheta[i] << ",";
+                     //lout << dTheta[i] << ",";
                 }
 
 
-                    lout << std::endl;
+                //lout << std::endl;
 
 				for (int i = 0; i < 6; i++)
 				{
 					step_pjs[i] = step_pjs[i] + dTheta[i];
-                    //target.model->motionPool().at(i).setMp(step_pjs[i]);
+                    target.model->motionPool().at(i).setMp(step_pjs[i]);
 				}
 
                 for (int i = 0; i < 6; i++)

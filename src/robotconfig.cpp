@@ -161,7 +161,7 @@ void robotconfig::jointIncrement(const double* q, const double* dX, double* dThe
         { 
 	       double JacoEnd[36];
 	       robotJacobian(q,JacoEnd);
-		  
+
 		   
 		   // 求解 A的广义逆pinv 和 x
 		   double pinv[36];
@@ -265,15 +265,14 @@ void robotconfig::jointIncrement(const double* q, const double* dX, double* dThe
 					TransVector[i * 4 + j] = B0[i][j];
         }
 
-
-		std::array<double, 3> crossVector(std::array<double, 3> &a, std::array<double, 3> &b)
+		/*
+		void crossVector(const double* a, const double* b, double* c)
 		{
-			std::array<double, 3> c;
 			c[0] = a[1] * b[2] - b[1] * a[2];
 			c[1] = -(a[0] * b[2] - b[0] * a[2]);
 			c[2] = a[0] * b[1] - b[0] * a[1];
-			return c;
-		}
+			
+		}*/
 		void robotconfig::forceTransform(const double* q, const float* FmInEnd, double* FmInWorld)
         {
 			double TransVector[16];
