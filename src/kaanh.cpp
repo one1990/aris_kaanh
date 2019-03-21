@@ -2057,9 +2057,8 @@ namespace kaanh
 	{
 		std::vector<double> term_begin_pe_vec;
 		std::vector<double> term_target_pe_vec;
-		std::vector<double> term_offset_pe_vec;
 		std::vector<double> term_input_pe_vec;
-		double x, y, z, a, b, c, vel, acc, dec;
+		double x, y, z, a, b, c, vel, acc, dec, term_offset_pe;;
 		aris::Size move_type;
 	};
 	class MovePoint : public aris::plan::Plan
@@ -2071,7 +2070,7 @@ namespace kaanh
 			MovePointParam param;
 			param.term_begin_pe_vec.resize(6, 0.0);
 			param.term_target_pe_vec.resize(6, 0.0);
-			param.term_offset_pe_vec.resize(6, 0.0);
+			param.term_offset_pe = 0;
 			param.term_input_pe_vec.resize(6, 0.0);
 
 			for (auto &p : params)
@@ -2080,37 +2079,37 @@ namespace kaanh
 				{
 					param.x = std::stod(p.second);
 					param.move_type = 0;
-					param.term_offset_pe_vec[param.move_type] = param.x;
+					param.term_offset_pe = param.x;
 				}
 				else if (p.first == "y")
 				{
 					param.y = std::stod(p.second);
 					param.move_type = 1;
-					param.term_offset_pe_vec[param.move_type] = param.y;
+					param.term_offset_pe = param.y;
 				}
 				else if (p.first == "z")
 				{
 					param.z = std::stod(p.second);
 					param.move_type = 2;
-					param.term_offset_pe_vec[param.move_type] = param.z;
+					param.term_offset_pe = param.z;
 				}
 				else if (p.first == "a")
 				{
 					param.a = std::stod(p.second);
 					param.move_type = 3;
-					param.term_offset_pe_vec[param.move_type] = param.a;
+					param.term_offset_pe = param.a;
 				}
 				else if (p.first == "b")
 				{
 					param.b = std::stod(p.second);
 					param.move_type = 4;
-					param.term_offset_pe_vec[param.move_type] = param.b;
+					param.term_offset_pe = param.b;
 				}
 				else if (p.first == "c")
 				{
 					param.c = std::stod(p.second);
 					param.move_type = 5;
-					param.term_offset_pe_vec[param.move_type] = param.c;
+					param.term_offset_pe = param.c;
 				}
 				else if (p.first == "vel")
 				{
@@ -2151,57 +2150,64 @@ namespace kaanh
 			auto controller = dynamic_cast<aris::control::Controller*>(target.master);
 			auto &param = std::any_cast<MovePointParam&>(target.param);
 			static aris::Size total_count = 1;
+
+			char eu_type[4]{ '1' + param.move_type - 3 , '1' + (param.move_type - 2) % 3 , '1' + param.move_type - 3 , '\0' };
 			
 			if (target.count == 1)
-			{
-				// 绕大地坐标系x轴旋转a角度 //
-				if (param.move_type == 3)
+			{	
+				// 绕大地坐标系x，y，z轴旋转 //
+				if (param.move_type >= 3)
 				{
-					target.model->generalMotionPool().at(0).getMpe(param.term_begin_pe_vec.data(), "123");
-					target.model->generalMotionPool().at(0).getMpe(param.term_target_pe_vec.data(), "123");
-					target.model->generalMotionPool().at(0).getMpe(param.term_input_pe_vec.data(), "123");
-					param.term_target_pe_vec[param.move_type] = param.term_begin_pe_vec[param.move_type] + param.term_offset_pe_vec[param.move_type];
+					target.model->generalMotionPool().at(0).getMpe(param.term_begin_pe_vec.data(), eu_type);
+					target.model->generalMotionPool().at(0).getMpe(param.term_target_pe_vec.data(), eu_type);
+					target.model->generalMotionPool().at(0).getMpe(param.term_input_pe_vec.data(), eu_type);
+					param.term_target_pe_vec[3] = param.term_begin_pe_vec[3] + param.term_offset_pe;
 				}
-				// 绕大地坐标系y轴旋转b角度 //
-				else if (param.move_type == 4)
-				{
-					target.model->generalMotionPool().at(0).getMpe(param.term_begin_pe_vec.data(), "212");
-					target.model->generalMotionPool().at(0).getMpe(param.term_target_pe_vec.data(), "212");
-					target.model->generalMotionPool().at(0).getMpe(param.term_input_pe_vec.data(), "212");
-					param.term_target_pe_vec[param.move_type] = param.term_begin_pe_vec[param.move_type] + param.term_offset_pe_vec[param.move_type];
-				}
-				// 绕大地坐标系z轴旋转c角度 //
-				else if (param.move_type == 5)
-				{
-					target.model->generalMotionPool().at(0).getMpe(param.term_begin_pe_vec.data(), "313");
-					target.model->generalMotionPool().at(0).getMpe(param.term_target_pe_vec.data(), "313");
-					target.model->generalMotionPool().at(0).getMpe(param.term_input_pe_vec.data(), "313");
-					param.term_target_pe_vec[param.move_type] = param.term_begin_pe_vec[param.move_type] + param.term_offset_pe_vec[param.move_type];
-				}
-				// 沿大地坐标系坐标轴x,y,z移动 //
+				// 沿大地坐标系坐标轴x,y,z平动 //
 				else
 				{
 					target.model->generalMotionPool().at(0).getMpe(param.term_begin_pe_vec.data());
 					target.model->generalMotionPool().at(0).getMpe(param.term_target_pe_vec.data());
 					target.model->generalMotionPool().at(0).getMpe(param.term_input_pe_vec.data());
-					param.term_target_pe_vec[param.move_type] = param.term_begin_pe_vec[param.move_type] + param.term_offset_pe_vec[param.move_type];
-				}
+					param.term_target_pe_vec[param.move_type] = param.term_begin_pe_vec[param.move_type] + param.term_offset_pe;
+				}	
 			}
 			// 梯形轨迹规划 //
 			double p, v, a;
 			aris::Size t_count;
-			aris::plan::moveAbsolute(target.count, param.term_begin_pe_vec[param.move_type], param.term_target_pe_vec[param.move_type], param.vel / 1000
-				,param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
-			total_count = std::max(total_count, t_count);
+			if (param.move_type >= 3)
+			{
+				aris::plan::moveAbsolute(target.count, param.term_begin_pe_vec[3], param.term_target_pe_vec[3], param.vel / 1000
+					, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
+				total_count = std::max(total_count, t_count);
 
-			param.term_input_pe_vec[param.move_type] = p;
-			target.model->generalMotionPool().at(0).setMpe(param.term_input_pe_vec.data());
+				param.term_input_pe_vec[3] = p;
+				target.model->generalMotionPool().at(0).setMpe(param.term_input_pe_vec.data(), eu_type);
+			}
+			else
+			{
+				aris::plan::moveAbsolute(target.count, param.term_begin_pe_vec[param.move_type], param.term_target_pe_vec[param.move_type], param.vel / 1000
+					, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
+				total_count = std::max(total_count, t_count);
+
+				param.term_input_pe_vec[param.move_type] = p;
+				target.model->generalMotionPool().at(0).setMpe(param.term_input_pe_vec.data());
+			}
 
 			// 运动学反解 //
 			if (!target.model->solverPool().at(0).kinPos())return -1;
 
 			// 打印电流 //
 			auto &cout = controller->mout();
+			if (target.count == 1)
+			{
+				for (Size i = 0; i < 6; i++)
+				{
+					cout << param.term_input_pe_vec[i] << "  ";
+				}
+				cout << std::endl;
+			}
+
 			if (target.count % 100 == 0)
 			{
 				for (Size i = 0; i < 6; i++)
