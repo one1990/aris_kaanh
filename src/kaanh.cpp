@@ -187,7 +187,7 @@ namespace kaanh
 		auto &m6 = model->addMotion(j6);
 
 		// add ee general motion //
-		double pq_ee_i[]{ 0.398, 0.0, 0.6295, 0.0, 0.0, 0.0, 1.0 };
+		double pq_ee_i[]{ 0.398, 0.0, 0.6295, 0.0, 0.0, 0.0, 1.0 };		//x方向加上0.1
 		double pm_ee_i[16];
 		double pm_ee_j[16]{ 1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1 };
 
@@ -2055,13 +2055,12 @@ namespace kaanh
 	// 示教运动--输入末端大地坐标系的位姿pe，控制动作 //
 	struct MovePointParam
 	{
-		std::vector<double> pq;
-		std::vector<Size> total_count_vec;
-		std::vector<double> axis_begin_pos_vec;
-		std::vector<double> axis_pos_vec;
-		std::vector<double> axis_vel_vec;
-		std::vector<double> axis_acc_vec;
-		std::vector<double> axis_dec_vec;
+		std::vector<double> term_begin_pe_vec;
+		std::vector<double> term_target_pe_vec;
+		std::vector<double> term_offset_pe_vec;
+		std::vector<double> term_input_pe_vec;
+		double x, y, z, a, b, c, vel, acc, dec;
+		aris::Size move_type;
 	};
 	class MovePoint : public aris::plan::Plan
 	{
@@ -2069,121 +2068,67 @@ namespace kaanh
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 		{
 			auto c = dynamic_cast<aris::control::Controller*>(target.master);
-			MoveJIParam param;
-			param.pq.resize(7, 0.0);
-			param.total_count_vec.resize(6, 1);
-			param.axis_begin_pos_vec.resize(6, 0.0);
-			param.axis_pos_vec.resize(6, 0.0);
+			MovePointParam param;
+			param.term_begin_pe_vec.resize(6, 0.0);
+			param.term_target_pe_vec.resize(6, 0.0);
+			param.term_offset_pe_vec.resize(6, 0.0);
+			param.term_input_pe_vec.resize(6, 0.0);
 
-			//params.at("pq")
 			for (auto &p : params)
 			{
-				if (p.first == "pq")
+				if (p.first == "x")
 				{
-					if (p.second == "current_pos")
-					{
-						target.option |= aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
-					}
-					else
-					{
-						auto pqarray = target.model->calculator().calculateExpression(p.second);
-						param.pq.assign(pqarray.begin(), pqarray.end());
-					}
+					param.x = std::stod(p.second);
+					param.move_type = 0;
+					param.term_offset_pe_vec[param.move_type] = param.x;
+				}
+				else if (p.first == "y")
+				{
+					param.y = std::stod(p.second);
+					param.move_type = 1;
+					param.term_offset_pe_vec[param.move_type] = param.y;
+				}
+				else if (p.first == "z")
+				{
+					param.z = std::stod(p.second);
+					param.move_type = 2;
+					param.term_offset_pe_vec[param.move_type] = param.z;
+				}
+				else if (p.first == "a")
+				{
+					param.a = std::stod(p.second);
+					param.move_type = 3;
+					param.term_offset_pe_vec[param.move_type] = param.a;
+				}
+				else if (p.first == "b")
+				{
+					param.b = std::stod(p.second);
+					param.move_type = 4;
+					param.term_offset_pe_vec[param.move_type] = param.b;
+				}
+				else if (p.first == "c")
+				{
+					param.c = std::stod(p.second);
+					param.move_type = 5;
+					param.term_offset_pe_vec[param.move_type] = param.c;
 				}
 				else if (p.first == "vel")
 				{
-					auto v = target.model->calculator().calculateExpression(p.second);
-					if (v.size() == 1)
-					{
-						param.axis_vel_vec.resize(param.axis_pos_vec.size(), v.toDouble());
-					}
-					else if (v.size() == param.axis_pos_vec.size())
-					{
-						param.axis_vel_vec.assign(v.begin(), v.end());
-					}
-					else
-					{
-						throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
-					}
-
-					for (Size i = 0; i < param.axis_pos_vec.size(); ++i)
-					{
-						//if (param.axis_vel_vec[i] > 1.0 || param.axis_vel_vec[i] < 0.01)
-						//	throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
-						if (param.axis_vel_vec[i] > 1.0)
-						{
-							param.axis_vel_vec[i] = 1.0;
-						}
-						if (param.axis_vel_vec[i] < 0.0)
-						{
-							param.axis_vel_vec[i] = 0.0;
-						}
-						param.axis_vel_vec[i] = param.axis_vel_vec[i] * c->motionPool()[i].maxVel();
-					}
+					param.vel = std::stod(p.second);
 				}
 				else if (p.first == "acc")
 				{
-					auto a = target.model->calculator().calculateExpression(p.second);
-					if (a.size() == 1)
-					{
-						param.axis_acc_vec.resize(param.axis_pos_vec.size(), a.toDouble());
-					}
-					else if (a.size() == param.axis_pos_vec.size())
-					{
-						param.axis_acc_vec.assign(a.begin(), a.end());
-					}
-					else
-					{
-						throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
-					}
-
-					for (Size i = 0; i < param.axis_pos_vec.size(); ++i)
-					{
-						if (param.axis_acc_vec[i] > 1.0)
-						{
-							param.axis_acc_vec[i] = 1.0;
-						}
-						if (param.axis_acc_vec[i] < 0.0)
-						{
-							param.axis_acc_vec[i] = 0.0;
-						}
-						param.axis_acc_vec[i] = param.axis_acc_vec[i] * c->motionPool()[i].maxAcc();
-					}
+					param.acc = std::stod(p.second);
 				}
 				else if (p.first == "dec")
 				{
-					auto d = target.model->calculator().calculateExpression(p.second);
-					if (d.size() == 1)
-					{
-						param.axis_dec_vec.resize(param.axis_pos_vec.size(), d.toDouble());
-					}
-					else if (d.size() == param.axis_pos_vec.size())
-					{
-						param.axis_dec_vec.assign(d.begin(), d.end());
-					}
-					else
-					{
-						throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
-					}
-
-					for (Size i = 0; i < param.axis_pos_vec.size(); ++i)
-					{
-						if (param.axis_dec_vec[i] > 1.0)
-						{
-							param.axis_dec_vec[i] = 1.0;
-						}
-						if (param.axis_dec_vec[i] < 0.0)
-						{
-							param.axis_dec_vec[i] = 0.0;
-						}
-						param.axis_dec_vec[i] = param.axis_dec_vec[i] * c->motionPool()[i].minAcc();
-					}
+					param.dec = std::stod(p.second);
 				}
 			}
 			target.param = param;
 
 			target.option |=
-				Plan::USE_VEL_OFFSET |
+				Plan::USE_TARGET_POS |
 #ifdef WIN32
 				Plan::NOT_CHECK_POS_MIN |
 				Plan::NOT_CHECK_POS_MAX |
@@ -2204,32 +2149,56 @@ namespace kaanh
 		{
 			//获取驱动//
 			auto controller = dynamic_cast<aris::control::Controller*>(target.master);
-			auto &param = std::any_cast<MoveJIParam&>(target.param);
-			static double begin_pos[6];
-			static double pos[6];
-			// 取得起始位置 //
+			auto &param = std::any_cast<MovePointParam&>(target.param);
+			static aris::Size total_count = 1;
+			
 			if (target.count == 1)
 			{
-				target.model->generalMotionPool().at(0).setMpq(param.pq.data());	//generalMotionPool()指模型末端，at(0)表示第1个末端，对于6足就有6个末端，对于机器人只有1个末端
-				if (!target.model->solverPool().at(0).kinPos())return -1;
-				for (Size i = 0; i < param.axis_pos_vec.size(); ++i)
+				// 绕大地坐标系x轴旋转a角度 //
+				if (param.move_type == 3)
 				{
-					param.axis_begin_pos_vec[i] = controller->motionPool().at(i).targetPos();
-					param.axis_pos_vec[i] = target.model->motionPool().at(i).mp();		//motionPool()指模型驱动器，at(0)表示第1个驱动器
+					target.model->generalMotionPool().at(0).getMpe(param.term_begin_pe_vec.data(), "123");
+					target.model->generalMotionPool().at(0).getMpe(param.term_target_pe_vec.data(), "123");
+					target.model->generalMotionPool().at(0).getMpe(param.term_input_pe_vec.data(), "123");
+					param.term_target_pe_vec[param.move_type] = param.term_begin_pe_vec[param.move_type] + param.term_offset_pe_vec[param.move_type];
+				}
+				// 绕大地坐标系y轴旋转b角度 //
+				else if (param.move_type == 4)
+				{
+					target.model->generalMotionPool().at(0).getMpe(param.term_begin_pe_vec.data(), "212");
+					target.model->generalMotionPool().at(0).getMpe(param.term_target_pe_vec.data(), "212");
+					target.model->generalMotionPool().at(0).getMpe(param.term_input_pe_vec.data(), "212");
+					param.term_target_pe_vec[param.move_type] = param.term_begin_pe_vec[param.move_type] + param.term_offset_pe_vec[param.move_type];
+				}
+				// 绕大地坐标系z轴旋转c角度 //
+				else if (param.move_type == 5)
+				{
+					target.model->generalMotionPool().at(0).getMpe(param.term_begin_pe_vec.data(), "313");
+					target.model->generalMotionPool().at(0).getMpe(param.term_target_pe_vec.data(), "313");
+					target.model->generalMotionPool().at(0).getMpe(param.term_input_pe_vec.data(), "313");
+					param.term_target_pe_vec[param.move_type] = param.term_begin_pe_vec[param.move_type] + param.term_offset_pe_vec[param.move_type];
+				}
+				// 沿大地坐标系坐标轴x,y,z移动 //
+				else
+				{
+					target.model->generalMotionPool().at(0).getMpe(param.term_begin_pe_vec.data());
+					target.model->generalMotionPool().at(0).getMpe(param.term_target_pe_vec.data());
+					target.model->generalMotionPool().at(0).getMpe(param.term_input_pe_vec.data());
+					param.term_target_pe_vec[param.move_type] = param.term_begin_pe_vec[param.move_type] + param.term_offset_pe_vec[param.move_type];
 				}
 			}
-			// 设置驱动器的位置 //
-			for (Size i = 0; i < param.axis_pos_vec.size(); ++i)
-			{
-				double p, v, a;
-				aris::plan::moveAbsolute(target.count, param.axis_begin_pos_vec[i], param.axis_pos_vec[i], param.axis_vel_vec[i] / 1000
-					, param.axis_acc_vec[i] / 1000 / 1000, param.axis_dec_vec[i] / 1000 / 1000, p, v, a, param.total_count_vec[i]);
-				controller->motionAtAbs(i).setTargetPos(p);
-				//速度前馈//
-				controller->motionAtAbs(i).setOffsetVel(v * 1000);
-				target.model->motionPool().at(i).setMp(p);
-			}
-			if (!target.model->solverPool().at(1).kinPos())return -1;
+			// 梯形轨迹规划 //
+			double p, v, a;
+			aris::Size t_count;
+			aris::plan::moveAbsolute(target.count, param.term_begin_pe_vec[param.move_type], param.term_target_pe_vec[param.move_type], param.vel / 1000
+				,param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
+			total_count = std::max(total_count, t_count);
+
+			param.term_input_pe_vec[param.move_type] = p;
+			target.model->generalMotionPool().at(0).setMpe(param.term_input_pe_vec.data());
+
+			// 运动学反解 //
+			if (!target.model->solverPool().at(0).kinPos())return -1;
 
 			// 打印电流 //
 			auto &cout = controller->mout();
@@ -2237,9 +2206,7 @@ namespace kaanh
 			{
 				for (Size i = 0; i < 6; i++)
 				{
-					cout << "pos" << i + 1 << ":" << controller->motionAtAbs(i).actualPos() << "  ";
-					cout << "vel" << i + 1 << ":" << controller->motionAtAbs(i).actualVel() << "  ";
-					cout << "cur" << i + 1 << ":" << controller->motionAtAbs(i).actualCur() << "  ";
+					cout << param.term_input_pe_vec[i] << "  ";
 				}
 				cout << std::endl;
 			}
@@ -2248,14 +2215,17 @@ namespace kaanh
 			auto &lout = controller->lout();
 			for (Size i = 0; i < 6; i++)
 			{
-				lout << controller->motionAtAbs(i).targetPos() << ",";
-				lout << controller->motionAtAbs(i).actualPos() << ",";
-				lout << controller->motionAtAbs(i).actualVel() << ",";
-				lout << controller->motionAtAbs(i).actualCur() << ",";
+				lout << controller->motionAtAbs(i).actualPos() << " ";
+				lout << controller->motionAtAbs(i).actualVel() << " ";
+				lout << controller->motionAtAbs(i).actualCur() << " ";
+			}
+			for (Size i = 0; i < 6; i++)
+			{
+				lout << param.term_input_pe_vec[i] << " ";
 			}
 			lout << std::endl;
 
-			return (static_cast<int>(*std::max_element(param.total_count_vec.begin(), param.total_count_vec.end())) > target.count) ? 1 : 0;
+			return total_count-target.count;
 		}
 		auto virtual collectNrt(PlanTarget &target)->void {}
 
@@ -2264,10 +2234,17 @@ namespace kaanh
 			command().loadXmlStr(
 				"<movePoint>"
 				"	<group type=\"GroupParam\" default_child_type=\"Param\">"
-				"		<pq default=\"current_pos\"/>"
-				"		<vel default=\"{0.05,0.05,0.05,0.05,0.05,0.05}\" abbreviation=\"v\"/>"
-				"		<acc default=\"{0.1,0.1,0.1,0.1,0.1,0.1}\" abbreviation=\"a\"/>"
-				"		<dec default=\"{0.1,0.1,0.1,0.1,0.1,0.1}\" abbreviation=\"d\"/>"
+				"		<vel default=\"0.2\" abbreviation=\"v\"/>"
+				"		<acc default=\"0.4\" abbreviation=\"a\"/>"
+				"		<dec default=\"0.4\" abbreviation=\"d\"/>"
+				"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"x\">"
+				"			<x default=\"0.02\"/>"
+				"			<y default=\"0.02\"/>"
+				"			<z default=\"0.02\"/>"
+				"			<a default=\"0.17\"/>"
+				"			<b default=\"0.17\"/>"
+				"			<c default=\"0.17\"/>"
+				"		</unique>"
 				"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_all\">"
 				"			<check_all/>"
 				"			<check_none/>"
@@ -3205,6 +3182,7 @@ namespace kaanh
 		plan_root->planPool().add<forcecontrol::MoveSPQ>();
 		plan_root->planPool().add<kaanh::MoveJM>();
 		plan_root->planPool().add<kaanh::MoveJI>();
+		plan_root->planPool().add<kaanh::MovePoint>();
 		plan_root->planPool().add<kaanh::Grasp>();
 		plan_root->planPool().add<kaanh::ListenDI>();
 		plan_root->planPool().add<kaanh::MoveEA>();

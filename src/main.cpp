@@ -29,6 +29,15 @@ int main(int argc, char *argv[])
 	cs.resetPlanRoot(kaanh::createPlanRootRokaeXB4().release());
 	cs.resetSensorRoot(new aris::sensor::SensorRoot);
 
+	//末端位置加0.1的工件长度//
+	/*
+	double pe[6];
+	cs.model().generalMotionPool()[0].makI().getPe(
+		cs.model().generalMotionPool()[0].makI().fatherPart(),
+		pe);
+
+	pe[0] += 0.1;
+	*/
 	aris::core::Socket socket;
 	socket.setConnectType(aris::core::Socket::WEB);
 
