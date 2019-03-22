@@ -221,11 +221,18 @@ namespace kaanh
 		return model;
 	}
 	// 获取驱动器当前位置，并设置为起始位置 //
+	struct MoveInitParam
+	{
+		std::vector<double> axis_pos_vec;
+	};
 	class MoveInit : public aris::plan::Plan
 	{
 	public:
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 		{
+			MoveInitParam param;
+			param.axis_pos_vec.resize(6, 0.0);
+			target.param = param;
 			target.option |=
 				Plan::USE_TARGET_POS |
 #ifdef WIN32
@@ -248,11 +255,46 @@ namespace kaanh
 		{
 			// 访问主站 //
 			auto controller = dynamic_cast<aris::control::EthercatController*>(target.master);
+			auto &param = std::any_cast<MoveInitParam&>(target.param);
+
+			// 取得起始位置 //
+			if (target.count == 1)
+			{
+				for (Size i = 0; i < param.axis_pos_vec.size(); ++i)
+				{
+					param.axis_pos_vec[i] = controller->motionPool().at(i).targetPos();
+				}
+			}
 
 			for (Size i = 0; i < 6; ++i)
 			{
-				target.model->motionPool().at(i).setMp(controller->motionAtAbs(i).actualPos());
+				target.model->motionPool().at(i).setMp(param.axis_pos_vec[i]);
 			}
+
+			// 打印电流 //
+			auto &cout = controller->mout();
+			if (target.count % 100 == 0)
+			{
+				for (Size i = 0; i < 6; i++)
+				{
+					cout << "pos" << i + 1 << ":" << controller->motionAtAbs(i).actualPos() << "  ";
+					cout << "vel" << i + 1 << ":" << controller->motionAtAbs(i).actualVel() << "  ";
+					cout << "cur" << i + 1 << ":" << controller->motionAtAbs(i).actualCur() << "  ";
+				}
+				cout << std::endl;
+			}
+
+			// log 电流 //
+			auto &lout = controller->lout();
+			for (Size i = 0; i < 6; i++)
+			{
+				lout << param.axis_pos_vec[i] << " ";
+				lout << controller->motionAtAbs(i).actualPos() << " ";
+				lout << controller->motionAtAbs(i).actualVel() << " ";
+				lout << controller->motionAtAbs(i).actualCur() << " ";
+			}
+			lout << std::endl;
+
 
 			if (!target.model->solverPool().at(1).kinPos())return -1;
 			return 1000-target.count;
