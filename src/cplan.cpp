@@ -1190,9 +1190,12 @@ auto load_pq10()->void
 
 
 
+	
 
-///
+	///
 //采用桂凯的方法，走由sin加直线组成的标准曲线的3D打印件
+//load_pq14对应的是打磨的时候磨头经过曲面的速度恒定
+//load_pq12对应的是打磨的时候水平速度恒定
 	auto load_pq12()->void
 	{
 		vector<vector<double>> XYZ(3);
@@ -1211,16 +1214,33 @@ auto load_pq10()->void
 		double v_x = distance_x / (run_time*1.0000);
 		double distance_sin = 0.250;//sin曲线跨度250mm长度
 		double distance_l_tilted = 0.0761254;//斜直线跨度
+		double k_l_tilted = 0.37699;//斜直线的斜率
+		//以下定义圆角过渡曲线，在此处约定，圆角只能为一小半圆弧，即圆弧对应的角度不可超过180度，超过时报错
 		double distance_c = 0.0070551;//圆角跨度
-		double distance_l_horizontal = 0.0218195;
-		//开始构造数组XYZ
-		//定义初始位置坐标
-		double x0 = -0.12424, y0=0.47118, z0=0.0294;
+		double center_x = 0.3331805;//相对于工件的加工起始点而言，圆弧圆心x坐标
+		double center_z = 9.9843*0.001;
+		double radius_c = 0.020;//圆弧的半径
+		int root;//定义开根号的系数，只为1或者-1，具体在走圆弧的时候确定
+		if (distance_c > radius_c * 2.0 *0.8)
+		{
+			throw std::runtime_error("The arc to be travelled cannot be a large semi-arc");
+			//圆角只能为一小半圆弧，即圆弧对应的角度不可超过180度，超过时报错
+		}
+		double distance_l_horizontal = 0.0218195;//水平直线的跨度
+		double lateral_step = 0.01;//侧向步长，在数模中显示为y轴方向的步长
+		double distance_lateral = 0.12;//数模的侧向总长度
+		int loop_count = int(distance_lateral / lateral_step);
+		cout << "loop_count验证是否为整数" << loop_count << endl;
+		double distance_avoid = 0.15; //回刀循环过程中的避让距离，在数模中为Z轴方向的抬升高度
+
+
+		//定义待加工件上起始加工点的初始位置坐标
+		double x0 = -0.12424, y0 = 0.47118, z0 = 0.0294;
 		double xa = x0;
 
 		for (int i = 0; i < run_time * 1000; i++)
 		{
-			
+
 			double time = i * 0.001;
 			xa = xa + v_x * 0.001;//x在循环中的实际位置
 			//cout << "xa:   " << xa << endl;
@@ -1230,10 +1250,19 @@ auto load_pq10()->void
 			if (i <= (distance_sin / v_x * 1000.00))
 				tangent[2] = v_x * 0.001 * (6 * pi) * (cos(2 * pi*(xa - x0) / 0.25)) / 50.0;
 			else if (i > (distance_sin / v_x * 1000.00) && i <= ((distance_sin + distance_l_tilted) / v_x * 1000.00))
-				tangent[2] = 0.37699 * v_x * 0.001;
+				tangent[2] = k_l_tilted * v_x * 0.001;
 			//以下经过圆角
 			else if (i > ((distance_sin + distance_l_tilted) / v_x * 1000.00) && i <= ((distance_sin + distance_l_tilted + distance_c) / v_x * 1000.00))
-				tangent[2] = -(xa - 0.3331805 - x0) / sqrt(0.020 * 0.020 - (xa - 0.3331805 - x0) * (xa - 0.3331805 - x0))* v_x * 0.001;
+			{
+				if (center_z > XYZ[2][i - 1])
+					root = -1;
+				else if (center_z < XYZ[2][i - 1])
+					root = 1;
+				else if (std::abs(center_z - XYZ[2][i - 1]) < radius_c * 0.3 )
+					throw std::runtime_error("The slope of the arc to be traveled is too large");
+				tangent[2] = -(root * 1.00000) * (xa - center_x - x0) / sqrt(radius_c * radius_c - (xa - center_x - x0) * (xa - center_x - x0))* v_x * 0.001;
+			}
+				
 			else if (i > ((distance_sin + distance_l_tilted + distance_c) / v_x * 1000.00))
 				tangent[2] = 0;
 			//定义起始点为0
@@ -1315,10 +1344,10 @@ auto load_pq10()->void
 			outfile << XYZ[0][k] << "     " << XYZ[1][k] << "     " << XYZ[2][k] << endl;
 			cout << "success outfile " << endl;
 		}*/
-		
+
 		for (int k = 0; k < pq[0].size(); k++)
 		{
-			outfile << pq[0][k] << "   " << pq[1][k] << "  "  << pq[2][k] << "  " << pq[3][k] << "    " << pq[4][k] << "    " << pq[5][k] << "    " << pq[6][k] << std::endl;
+			outfile << pq[0][k] << "   " << pq[1][k] << "  " << pq[2][k] << "  " << pq[3][k] << "    " << pq[4][k] << "    " << pq[5][k] << "    " << pq[6][k] << std::endl;
 			cout << "success outfile " << endl;
 		}
 		outfile.close();
