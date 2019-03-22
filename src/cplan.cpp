@@ -1207,12 +1207,12 @@ auto load_pq10()->void
 		}
 		//定义总的运行时间为6s
 		int run_time = 6;
-		double distance_x = 360;//工件总长度x轴跨度360mm长度
+		double distance_x = 0.360;//工件总长度x轴跨度360mm长度
 		double v_x = distance_x / (run_time*1.0000);
-		double distance_sin = 250;//sin曲线跨度250mm长度
-		double distance_l_tilted = 76.1254;//斜直线跨度
-		double distance_c = 7.0551;//圆角跨度
-		double distance_l_horizontal = 21.8195;
+		double distance_sin = 0.250;//sin曲线跨度250mm长度
+		double distance_l_tilted = 0.0761254;//斜直线跨度
+		double distance_c = 0.0070551;//圆角跨度
+		double distance_l_horizontal = 0.0218195;
 		//开始构造数组XYZ
 		//定义初始位置坐标
 		double x0 = -0.12424, y0=0.47118, z0=0.0294;
@@ -1228,12 +1228,12 @@ auto load_pq10()->void
 			double tangent[3] = { v_x / 1000, 0 ,0 };
 			//以下状态走sin曲线
 			if (i <= (distance_sin / v_x * 1000.00))
-				tangent[2] = v_x * 0.001 * (6 * pi) * (cos(2 * pi*(xa - x0) / 250)) / 50.0;
+				tangent[2] = v_x * 0.001 * (6 * pi) * (cos(2 * pi*(xa - x0) / 0.25)) / 50.0;
 			else if (i > (distance_sin / v_x * 1000.00) && i <= ((distance_sin + distance_l_tilted) / v_x * 1000.00))
 				tangent[2] = 0.37699 * v_x * 0.001;
 			//以下经过圆角
 			else if (i > ((distance_sin + distance_l_tilted) / v_x * 1000.00) && i <= ((distance_sin + distance_l_tilted + distance_c) / v_x * 1000.00))
-				tangent[2] = -(xa - 333.1805 - x0) / sqrt(20 * 20 - (xa - 333.1805 - x0) * (xa - 333.1805 - x0))* v_x * 0.001;
+				tangent[2] = -(xa - 0.3331805 - x0) / sqrt(0.020 * 0.020 - (xa - 0.3331805 - x0) * (xa - 0.3331805 - x0))* v_x * 0.001;
 			else if (i > ((distance_sin + distance_l_tilted + distance_c) / v_x * 1000.00))
 				tangent[2] = 0;
 			//定义起始点为0
