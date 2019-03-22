@@ -509,25 +509,16 @@ RemoveFile::RemoveFile(const std::string &name) :Plan(name)
 
 
 
-
-
-
-
-
-
-
-
 //直接给14维数组
 auto load_pq2(aris::Size count, aris::Size &start_count)->std::array<double, 14>
-
 {
-	std::array<double, 14> temp = { -0.122203,0.386206,0.0139912,-0.492466,0.474288,0.511942,0.520041,0,0,0,0,0,0,0 };
-	std::array<double, 7> targetpos1 = { -0.122203,0.386206,0.0139912,-0.492466,0.474288,0.511942,0.520041 };
+    std::array<double, 14> temp = { -0.122203,0.396206,0.0139912,-0.492466,0.474288,0.511942,0.520041,0,0,0,0,0,0,0 };
+    std::array<double, 7> targetpos1 = { -0.122203,0.396206,0.0139912,-0.492466,0.474288,0.511942,0.520041 };
 	std::array<double, 7> targetpos2 = { -0.122203,0.466206,0.0139912,-0.492466,0.474288,0.511942,0.520041 };
 	std::array<double, 7> targetpos3 = { 0.162203,0.466206,0.0139912,-0.492466,0.474288,0.511942,0.520041 };
-	std::array<double, 7> targetpos4 = { 0.162203,0.386206,0.0,-0.492466,0.474288,0.511942,0.520041 };
-	std::array<double, 7> targetpos5 = { -0.122203,0.386206,0.0,-0.492466,0.474288,0.511942,0.520041 };
-	double vel = 0.04, acc = 0.08, dec = 0.08, v, a;
+    std::array<double, 7> targetpos4 = { 0.162203,0.396206,0.0139912,-0.492466,0.474288,0.511942,0.520041 };
+    std::array<double, 7> targetpos5 = { -0.122203,0.396206,0.0139912,-0.492466,0.474288,0.511942,0.520041 };
+    double vel = 0.1, acc = 0.2, dec = 0.2, v, a;
 	aris::Size t_count;
 	static aris::Size count_last = 0, count_last2 = 0, count_last3 = 0, count_last4 = 0;//上个轨迹完成共消耗的count ,每个阶段单独的时间
 	if (count == start_count)
@@ -589,7 +580,6 @@ auto load_pq2(aris::Size count, aris::Size &start_count)->std::array<double, 14>
 	}
 	return temp;
 }
-
 
 
 std::vector<std::vector<double>> pq(7);
@@ -718,12 +708,6 @@ auto load_pq5()->void
 	std::cout << "pq[0][0]" << pq[0][0] << "    " << "pq[1][0]" << pq[1][0] << "    " << "pq[2][0]" << pq[2][0] << "pq[3][0]" << pq[3][0] << "    " << "pq[4][0]" << pq[4][0] << "    " << "pq[5][0]" << pq[5][0] << "    " << "pq[6][0]" << pq[6][0] << std::endl;
 	std::cout << "pq size:" << pq[0].size() << std::endl;
 }
-
-
-
-
-
-
 
 
 ///函数pq9是采用廖能超的方法从POS开始截取数据
@@ -936,7 +920,6 @@ auto load_pq9()->void
 	}
 	outfile.close();
 }
-
 
 
 //采用akima插值方法
