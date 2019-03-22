@@ -80,5 +80,13 @@ public:
 	explicit FMovePath(const std::string &name = "FMovePath_plan");
 };
 
+class MoveLPolish : public aris::plan::Plan
+{
+public:
+	auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+	explicit MoveLPolish(const std::string &name = "MoveLPolish_plan");
+};
+
+
 
 #endif
