@@ -262,7 +262,7 @@ namespace kaanh
 			{
 				for (Size i = 0; i < param.axis_pos_vec.size(); ++i)
 				{
-					param.axis_pos_vec[i] = controller->motionPool().at(i).targetPos();
+					param.axis_pos_vec[i] = controller->motionAtAbs(i).actualPos();
 				}
 			}
 
