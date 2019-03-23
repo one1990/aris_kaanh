@@ -41,6 +41,7 @@ int main(int argc, char *argv[])
 	cs.model().generalMotionPool()[0].makJ();
 
 	cs.model().solverPool()[0].allocateMemory();
+    for(auto &m:cs.model().motionPool())m.activate(true);
 
 	aris::core::Socket socket;
 	socket.setConnectType(aris::core::Socket::WEB);

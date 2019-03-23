@@ -129,7 +129,7 @@ namespace kaanh
 			"	</SyncManagerPoolObject>"
 			"</EthercatSlave>";
 
-        controller->slavePool().add<aris::control::EthercatSlave>().loadXmlStr(xml_str);
+        //controller->slavePool().add<aris::control::EthercatSlave>().loadXmlStr(xml_str);
 
 		return controller;
 	};
@@ -1008,7 +1008,8 @@ namespace kaanh
 			{
 				for (Size i = 0; i < 6; i++)
 				{
-					cout << "pos" << i + 1 << ":" << controller->motionAtAbs(i).actualPos() << "  ";
+                    cout << "mp" << i + 1 << ":" << target.model->motionPool()[i].mp() << "  ";
+                    cout << "pos" << i + 1 << ":" << controller->motionAtAbs(i).targetPos() << "  ";
 					cout << "vel" << i + 1 << ":" << controller->motionAtAbs(i).actualVel() << "  ";
 					cout << "cur" << i + 1 << ":" << controller->motionAtAbs(i).actualCur() << "  ";
 				}
