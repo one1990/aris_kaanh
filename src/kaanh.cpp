@@ -55,8 +55,8 @@ namespace kaanh
 			};
 			
 			std::string xml_str =
-				"<EthercatMotion phy_id=\"" + std::to_string(i) + "\" product_code=\"0x10305070\""
-				" vendor_id=\"0x000001DD\" revision_num=\"0x02040608\" dc_assign_activate=\"0x0300\""
+                "<EthercatMotion phy_id=\"" + std::to_string(i) + "\" product_code=\"0x0\""
+                " vendor_id=\"0x000002E1\" revision_num=\"0x29001\" dc_assign_activate=\"0x0300\""
 				" min_pos=\"" + std::to_string(min_pos[i]) + "\" max_pos=\"" + std::to_string(max_pos[i]) + "\" max_vel=\"" + std::to_string(max_vel[i]) + "\" min_vel=\"" + std::to_string(-max_vel[i]) + "\""
 				" max_acc=\"" + std::to_string(max_acc[i]) + "\" min_acc=\"" + std::to_string(-max_acc[i]) + "\" max_pos_following_error=\"0.1\" max_vel_following_error=\"0.5\""
 				" home_pos=\"0\" pos_factor=\"" + std::to_string(pos_factor[i]) + "\" pos_offset=\"" + std::to_string(pos_offset[i]) + "\">"
@@ -129,7 +129,7 @@ namespace kaanh
 			"	</SyncManagerPoolObject>"
 			"</EthercatSlave>";
 
-		controller->slavePool().add<aris::control::EthercatSlave>().loadXmlStr(xml_str);
+        controller->slavePool().add<aris::control::EthercatSlave>().loadXmlStr(xml_str);
 
 		return controller;
 	};
