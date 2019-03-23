@@ -1,7 +1,7 @@
 ﻿#include <algorithm>
 #include"kaanh.h"
 #include"iir.h"
-
+#include "sixdistalfc.h"
 
 
 using namespace aris::dynamic;
@@ -30,7 +30,7 @@ namespace kaanh
 #ifdef UNIX
 			double pos_offset[6]
 			{
-				0.00293480352126769,0.317555328381088,-0.292382537944081,0.0582675097338009,1.53363576057128,17.1269434336436
+                0.00293480352126769,0.317555328381088,-0.292382537944081,0.0582675097338009,1.53363576057128,17.1269434336436-0.739942
 			};
 #endif
 			double pos_factor[6]
@@ -3241,7 +3241,13 @@ namespace kaanh
 		plan_root->planPool().add<MoveFile>();
 		plan_root->planPool().add<RemoveFile>();
 		plan_root->planPool().add<MoveinModel>();
+
 		plan_root->planPool().add<FMovePath>();
+
+		plan_root->planPool().add<replay>();
+		plan_root->planPool().add<MoveXYZ>();
+		plan_root->planPool().add<MoveDistal>();
+
 		//plan_root->planPool().add<plPQ>();
 
 	/*	auto &dm1 = plan_root->planPool().add<aris::plan::MoveJ>();
