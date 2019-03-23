@@ -187,7 +187,7 @@ namespace kaanh
 		auto &m6 = model->addMotion(j6);
 
 		// add ee general motion //
-		double pq_ee_i[]{ 0.398, 0.0, 0.6295, 0.0, 0.0, 0.0, 1.0 };
+		double pq_ee_i[]{ 0.398, 0.0, 0.6295, 0.0, 0.0, 0.0, 1.0 };		//x方向加上0.1
 		double pm_ee_i[16];
 		double pm_ee_j[16]{ 1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1 };
 
@@ -221,11 +221,18 @@ namespace kaanh
 		return model;
 	}
 	// 获取驱动器当前位置，并设置为起始位置 //
+	struct MoveInitParam
+	{
+		std::vector<double> axis_pos_vec;
+	};
 	class MoveInit : public aris::plan::Plan
 	{
 	public:
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 		{
+			MoveInitParam param;
+			param.axis_pos_vec.resize(6, 0.0);
+			target.param = param;
 			target.option |=
 				Plan::USE_TARGET_POS |
 #ifdef WIN32
@@ -248,11 +255,46 @@ namespace kaanh
 		{
 			// 访问主站 //
 			auto controller = dynamic_cast<aris::control::EthercatController*>(target.master);
+			auto &param = std::any_cast<MoveInitParam&>(target.param);
+
+			// 取得起始位置 //
+			if (target.count == 1)
+			{
+				for (Size i = 0; i < param.axis_pos_vec.size(); ++i)
+				{
+					param.axis_pos_vec[i] = controller->motionPool().at(i).targetPos();
+				}
+			}
 
 			for (Size i = 0; i < 6; ++i)
 			{
-				target.model->motionPool().at(i).setMp(controller->motionAtAbs(i).actualPos());
+				target.model->motionPool().at(i).setMp(param.axis_pos_vec[i]);
 			}
+
+			// 打印电流 //
+			auto &cout = controller->mout();
+			if (target.count % 100 == 0)
+			{
+				for (Size i = 0; i < 6; i++)
+				{
+					cout << "pos" << i + 1 << ":" << controller->motionAtAbs(i).actualPos() << "  ";
+					cout << "vel" << i + 1 << ":" << controller->motionAtAbs(i).actualVel() << "  ";
+					cout << "cur" << i + 1 << ":" << controller->motionAtAbs(i).actualCur() << "  ";
+				}
+				cout << std::endl;
+			}
+
+			// log 电流 //
+			auto &lout = controller->lout();
+			for (Size i = 0; i < 6; i++)
+			{
+				lout << param.axis_pos_vec[i] << " ";
+				lout << controller->motionAtAbs(i).actualPos() << " ";
+				lout << controller->motionAtAbs(i).actualVel() << " ";
+				lout << controller->motionAtAbs(i).actualCur() << " ";
+			}
+			lout << std::endl;
+
 
 			if (!target.model->solverPool().at(1).kinPos())return -1;
 			return 1000-target.count;
@@ -1233,6 +1275,7 @@ namespace kaanh
 			target.param = param;
 
 			target.option |=
+				Plan::USE_TARGET_POS |
 #ifdef WIN32
 				Plan::NOT_CHECK_POS_MIN |
 				Plan::NOT_CHECK_POS_MAX |
@@ -1260,7 +1303,8 @@ namespace kaanh
 				{
 					if (param.joint_active_vec[i])
 					{
-						param.begin_joint_pos_vec[i] = controller->motionPool()[i].actualPos();
+						//param.begin_joint_pos_vec[i] = controller->motionPool()[i].actualPos();
+						param.begin_joint_pos_vec[i] = target.model->motionPool().at(i).mp();
 					}
 				}
 			}
@@ -1272,9 +1316,10 @@ namespace kaanh
 				{
 					double p, v, a;
 					aris::Size t_count;
-					//auto result = aris::plan::moveAbsolute2(param.begin_joint_pos_vec[i], param.begin_axis_vel_vec[i], param.begin_axis_acc_vec[i], param.joint_pos_vec[i], 0.0, 0.0, param.axis_vel_vec[i], param.axis_acc_vec[i], param.axis_acc_vec[i], 1e-3, 1e-10, p, v, a, t_count);
-					controller->motionAtAbs(i).setTargetPos(p);
-                   // total_count = result;
+					auto result = aris::plan::moveAbsolute2(param.begin_joint_pos_vec[i], param.begin_axis_vel_vec[i], param.begin_axis_acc_vec[i], param.joint_pos_vec[i], 0.0, 0.0, param.axis_vel_vec[i], param.axis_acc_vec[i], param.axis_acc_vec[i], 1e-3, 1e-10, p, v, a, t_count);
+					//controller->motionAtAbs(i).setTargetPos(p);
+					target.model->motionPool().at(i).setMp(p);
+                    total_count = result;
                     //total_count = std::max(total_count, t_count);
 
 					param.begin_joint_pos_vec[i] = p;
@@ -1283,7 +1328,7 @@ namespace kaanh
 				}
 			}
 
-            //if (!target.model->solverPool().at(1).kinPos())return -1;
+            if (!target.model->solverPool().at(1).kinPos())return -1;
 			   
 			// 打印电流 //
 			auto &cout = controller->mout();
@@ -2049,6 +2094,276 @@ namespace kaanh
 		}
 	};
 	
+	// 示教运动--输入末端大地坐标系的位姿pe，控制动作 //
+	struct MovePointParam
+	{
+		std::vector<double> term_begin_pe_vec;
+		std::vector<double> term_target_pe_vec;
+		std::vector<double> term_input_pe_vec;
+		double x, y, z, a, b, c, vel, acc, dec, term_offset_pe;;
+		aris::Size move_type;
+	};
+	class MovePoint : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+		{
+			auto c = dynamic_cast<aris::control::Controller*>(target.master);
+			MovePointParam param;
+			param.term_begin_pe_vec.resize(6, 0.0);
+			param.term_target_pe_vec.resize(6, 0.0);
+			param.term_offset_pe = 0;
+			param.term_input_pe_vec.resize(6, 0.0);
+
+			for (auto &p : params)
+			{
+				if (p.first == "x")
+				{
+					param.x = std::stod(p.second);
+					param.move_type = 0;
+					param.term_offset_pe = param.x;
+				}
+				else if (p.first == "y")
+				{
+					param.y = std::stod(p.second);
+					param.move_type = 1;
+					param.term_offset_pe = param.y;
+				}
+				else if (p.first == "z")
+				{
+					param.z = std::stod(p.second);
+					param.move_type = 2;
+					param.term_offset_pe = param.z;
+				}
+				else if (p.first == "a")
+				{
+					param.a = std::stod(p.second);
+					param.move_type = 3;
+					param.term_offset_pe = param.a;
+				}
+				else if (p.first == "b")
+				{
+					param.b = std::stod(p.second);
+					param.move_type = 4;
+					param.term_offset_pe = param.b;
+				}
+				else if (p.first == "c")
+				{
+					param.c = std::stod(p.second);
+					param.move_type = 5;
+					param.term_offset_pe = param.c;
+				}
+				else if (p.first == "vel")
+				{
+					param.vel = std::stod(p.second);
+				}
+				else if (p.first == "acc")
+				{
+					param.acc = std::stod(p.second);
+				}
+				else if (p.first == "dec")
+				{
+					param.dec = std::stod(p.second);
+				}
+			}
+			target.param = param;
+
+			target.option |=
+				Plan::USE_TARGET_POS |
+#ifdef WIN32
+				Plan::NOT_CHECK_POS_MIN |
+				Plan::NOT_CHECK_POS_MAX |
+				Plan::NOT_CHECK_POS_CONTINUOUS |
+				Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
+				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
+				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
+				Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
+#endif
+				Plan::NOT_CHECK_VEL_MIN |
+				Plan::NOT_CHECK_VEL_MAX |
+				Plan::NOT_CHECK_VEL_CONTINUOUS |
+				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
+				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+
+		}
+		auto virtual executeRT(PlanTarget &target)->int
+		{
+			//获取驱动//
+			auto controller = dynamic_cast<aris::control::Controller*>(target.master);
+			auto &param = std::any_cast<MovePointParam&>(target.param);
+			static aris::Size total_count = 1;
+
+			char eu_type[4]{ '1' + param.move_type - 3 , '1' + (param.move_type - 2) % 3 , '1' + param.move_type - 3 , '\0' };
+			
+			if (target.count == 1)
+			{	
+				// 绕大地坐标系x，y，z轴旋转 //
+				if (param.move_type >= 3)
+				{
+					target.model->generalMotionPool().at(0).getMpe(param.term_begin_pe_vec.data(), eu_type);
+					target.model->generalMotionPool().at(0).getMpe(param.term_target_pe_vec.data(), eu_type);
+					target.model->generalMotionPool().at(0).getMpe(param.term_input_pe_vec.data(), eu_type);
+					param.term_target_pe_vec[3] = param.term_begin_pe_vec[3] + param.term_offset_pe;
+				}
+				// 沿大地坐标系坐标轴x,y,z平动 //
+				else
+				{
+					target.model->generalMotionPool().at(0).getMpe(param.term_begin_pe_vec.data());
+					target.model->generalMotionPool().at(0).getMpe(param.term_target_pe_vec.data());
+					target.model->generalMotionPool().at(0).getMpe(param.term_input_pe_vec.data());
+					param.term_target_pe_vec[param.move_type] = param.term_begin_pe_vec[param.move_type] + param.term_offset_pe;
+				}	
+			}
+			// 梯形轨迹规划 //
+			double p, v, a;
+			aris::Size t_count;
+			if (param.move_type >= 3)
+			{
+				aris::plan::moveAbsolute(target.count, param.term_begin_pe_vec[3], param.term_target_pe_vec[3], param.vel / 1000
+					, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
+				total_count = std::max(total_count, t_count);
+
+				param.term_input_pe_vec[3] = p;
+				target.model->generalMotionPool().at(0).setMpe(param.term_input_pe_vec.data(), eu_type);
+			}
+			else
+			{
+				aris::plan::moveAbsolute(target.count, param.term_begin_pe_vec[param.move_type], param.term_target_pe_vec[param.move_type], param.vel / 1000
+					, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
+				total_count = std::max(total_count, t_count);
+
+				param.term_input_pe_vec[param.move_type] = p;
+				target.model->generalMotionPool().at(0).setMpe(param.term_input_pe_vec.data());
+			}
+
+			// 运动学反解 //
+			if (!target.model->solverPool().at(0).kinPos())return -1;
+
+			// 打印电流 //
+			auto &cout = controller->mout();
+			if (target.count == 1)
+			{
+				for (Size i = 0; i < 6; i++)
+				{
+					cout << param.term_input_pe_vec[i] << "  ";
+				}
+				cout << std::endl;
+			}
+
+			if (target.count % 100 == 0)
+			{
+				for (Size i = 0; i < 6; i++)
+				{
+					cout << param.term_input_pe_vec[i] << "  ";
+				}
+				cout << std::endl;
+			}
+
+			// log 电流 //
+			auto &lout = controller->lout();
+			for (Size i = 0; i < 6; i++)
+			{
+				lout << controller->motionAtAbs(i).actualPos() << " ";
+				lout << controller->motionAtAbs(i).actualVel() << " ";
+				lout << controller->motionAtAbs(i).actualCur() << " ";
+			}
+			for (Size i = 0; i < 6; i++)
+			{
+				lout << param.term_input_pe_vec[i] << " ";
+			}
+			lout << std::endl;
+
+			return total_count-target.count;
+		}
+		auto virtual collectNrt(PlanTarget &target)->void {}
+
+		explicit MovePoint(const std::string &name = "MovePoint_plan") :Plan(name)
+		{
+			command().loadXmlStr(
+				"<movePoint>"
+				"	<group type=\"GroupParam\" default_child_type=\"Param\">"
+				"		<vel default=\"0.2\" abbreviation=\"v\"/>"
+				"		<acc default=\"0.4\" abbreviation=\"a\"/>"
+				"		<dec default=\"0.4\" abbreviation=\"d\"/>"
+				"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"x\">"
+				"			<x default=\"0.02\"/>"
+				"			<y default=\"0.02\"/>"
+				"			<z default=\"0.02\"/>"
+				"			<a default=\"0.17\"/>"
+				"			<b default=\"0.17\"/>"
+				"			<c default=\"0.17\"/>"
+				"		</unique>"
+				"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_all\">"
+				"			<check_all/>"
+				"			<check_none/>"
+				"			<group type=\"GroupParam\" default_child_type=\"Param\">"
+				"				<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos\">"
+				"					<check_pos/>"
+				"					<not_check_pos/>"
+				"					<group type=\"GroupParam\" default_child_type=\"Param\">"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_max\">"
+				"							<check_pos_max/>"
+				"							<not_check_pos_max/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_min\">"
+				"							<check_pos_min/>"
+				"							<not_check_pos_min/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous\">"
+				"							<check_pos_continuous/>"
+				"							<not_check_pos_continuous/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous_at_start\">"
+				"							<check_pos_continuous_at_start/>"
+				"							<not_check_pos_continuous_at_start/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous_second_order\">"
+				"							<check_pos_continuous_second_order/>"
+				"							<not_check_pos_continuous_second_order/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous_second_order_at_start\">"
+				"							<check_pos_continuous_second_order_at_start/>"
+				"							<not_check_pos_continuous_second_order_at_start/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_following_error\">"
+				"							<check_pos_following_error/>"
+				"							<not_check_pos_following_error />"
+				"						</unique>"
+				"					</group>"
+				"				</unique>"
+				"				<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel\">"
+				"					<check_vel/>"
+				"					<not_check_vel/>"
+				"					<group type=\"GroupParam\" default_child_type=\"Param\">"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_max\">"
+				"							<check_vel_max/>"
+				"							<not_check_vel_max/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_min\">"
+				"							<check_vel_min/>"
+				"							<not_check_vel_min/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_continuous\">"
+				"							<check_vel_continuous/>"
+				"							<not_check_vel_continuous/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_continuous_at_start\">"
+				"							<check_vel_continuous_at_start/>"
+				"							<not_check_vel_continuous_at_start/>"
+				"						</unique>"
+				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_following_error\">"
+				"							<check_vel_following_error/>"
+				"							<not_check_vel_following_error />"
+				"						</unique>"
+				"					</group>"
+				"				</unique>"
+				"			</group>"
+				"		</unique>"
+				"	</group>"
+				"</movePoint>");
+		}
+	};
+
 	// 夹爪控制 //
 	struct GraspParam
 	{
@@ -2915,6 +3230,7 @@ namespace kaanh
 		plan_root->planPool().add<forcecontrol::MoveSPQ>();
 		plan_root->planPool().add<kaanh::MoveJM>();
 		plan_root->planPool().add<kaanh::MoveJI>();
+		plan_root->planPool().add<kaanh::MovePoint>();
 		plan_root->planPool().add<kaanh::Grasp>();
 		plan_root->planPool().add<kaanh::ListenDI>();
 		plan_root->planPool().add<kaanh::MoveEA>();
@@ -2925,7 +3241,7 @@ namespace kaanh
 		plan_root->planPool().add<MoveFile>();
 		plan_root->planPool().add<RemoveFile>();
 		plan_root->planPool().add<MoveinModel>();
-		plan_root->planPool().add<replay>();
+		plan_root->planPool().add<FMovePath>();
 		//plan_root->planPool().add<plPQ>();
 
 	/*	auto &dm1 = plan_root->planPool().add<aris::plan::MoveJ>();
