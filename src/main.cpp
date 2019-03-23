@@ -565,7 +565,7 @@ int main(int argc, char *argv[])
 			else
 			{
 				auto id = cs.executeCmd(aris::core::Msg(command_in));
-				std::cout << "command id:" << id << std::endl;
+                std::cout << "command id:" << id->command_id << std::endl;
 			}
 		}
 		catch (std::exception &e)
