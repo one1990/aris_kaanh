@@ -507,107 +507,7 @@ RemoveFile::RemoveFile(const std::string &name) :Plan(name)
 }
 
 
-struct replayParam
-{
-	std::vector<std::vector<double>> pq_convert;
-	int col;
-};
 
-auto replay::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
-{
-	replayParam param;
-
-	string site = "C:/Users/qianch_kaanh_cn/Desktop/data/rt_log--2019-02-27--14-15-05--6.txt";
-	//以下定义读取log文件的输入流oplog; 
-	ifstream oplog;
-
-	oplog.open(site);
-	//以下检查是否成功读取文件；
-	if (!oplog)
-	{
-		cout << "fail to open the file" << endl;
-		throw std::runtime_error("fail to open the file");
-		//return -1;//或者抛出异常。
-	}
-	while (!oplog.eof())
-	{
-		for (int j = 0; j < 25; j++)
-		{
-			double data;
-			oplog >> data;
-			POS[j].push_back(data);
-		}
-	}
-	oplog.close();
-	oplog.clear();
-	for (int j = 0; j < n; j++)
-	{
-		POS[j].pop_back();
-	}
-	param.col = POS[0].size();
-
-	param.pq_convert = std::vector<std::vector<double>>(param.col, std::vector<double>(7, 0));
-	//直接从POS中提取pq验证是否能复现
-	for (int i = 0; i < param.col; i++)
-	{
-		for (int j = 0; j < 7; j++)
-		{
-			param.pq_convert[i][j] = POS[j + 18][i];
-		}
-	}
-
-
-
-	target.param = param;
-	target.option =
-		//aris::plan::Plan::USE_TARGET_POS |
-		aris::plan::Plan::NOT_CHECK_VEL_MIN |
-		aris::plan::Plan::NOT_CHECK_VEL_MAX |
-		aris::plan::Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-		aris::plan::Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
-		aris::plan::Plan::NOT_CHECK_VEL_FOLLOWING_ERROR |
-		aris::plan::Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START | // 开始不检查速度连续
-		aris::plan::Plan::NOT_CHECK_VEL_CONTINUOUS;
-	NOT_RUN_EXECUTE_FUNCTION;
-}
-
-
-auto replay::executeRT(PlanTarget &target)->int
-{
-	auto controller = dynamic_cast<aris::control::EthercatController *>(target.master);
-	auto &p = std::any_cast<replayParam&>(target.param);
-
-	target.model->generalMotionPool().at(0).setMpq(p.pq_convert[target.count - 1].data());
-
-	target.model->solverPool()[0].kinPos();
-
-	//std::cout << "p.pq_convert[target.count - 1].size():" << p.pq_convert[target.count - 1].size() << std::endl;
-	std::cout << "pq_convert1_7" << p.pq_convert[target.count - 1][0] << "   " << p.pq_convert[target.count - 1][1] << "   " << p.pq_convert[target.count - 1][2] << std::endl;
-	std::cout << "pq_convert1_7:   " << p.pq_convert[target.count - 1][3] << "   " << p.pq_convert[target.count - 1][4] << "   " << p.pq_convert[target.count - 1][5] << "   " << p.pq_convert[target.count - 1][6] << std::endl;
-	//std::cout << "target.count:  " << target.count << std::endl;
-	//if(p.pq_convert[1][1]==pq[1][1] && p.pq_convert[2][2] == pq[2][2] && p.pq_convert[3][3] == pq[3][3])
-		//std::cout << "convert successfully in executeRT" << std::endl;
-	return p.col - target.count;
-
-}
-
-
-replay::replay(const std::string &name) :Plan(name)
-{
-	command().loadXmlStr(
-		"<rp>"
-		"	<group type=\"GroupParam\" default_child_type=\"Param\">"
-		//"	    <total_time type=\"Param\" default=\"5000\"/>" // 默认5000
-		//"		<vel type=\"Param\" default=\"0.04\"/>"
-		//"		<acc type=\"Param\" default=\"0.08\"/>"
-		//"		<dec type=\"Param\" default=\"0.08\"/>"
-		//"		<choose type=\"Param\" default=\"0\"/>"
-		//"		<pt type=\"Param\" default=\"{0.0,0.0,0.0,0.0,0.0,0.0}\"/>"
-		//"		<file type=\"Param\" default=\"1.txt\" abbreviation=\"f\"/>"
-		"	</group>"
-		"</rp>");
-}
-*/
 
 //直接给14维数组
 auto load_pq2(aris::Size count, aris::Size &start_count)->std::array<double, 14>
@@ -788,13 +688,14 @@ auto load_pq5()->void
 			//double pm[16];
 			//输出pm
 			//相对
-			s_pe2pm(pe, pm[0], "323");//必须是二位数组的第一个地址
+			//aris::dynamic::s_pe2pm(pe, pm[0], "323");//必须是二位数组的第一个地址
+			aris::dynamic::s_pe2pm(pe, pm[0], "323");
 			//绝对
 			//s_pe2pm(pe, pm[0], "312");
 			//s_pe2pm(pe, *pm, "323");
 			double pq0[7] = { 0,0,0,0,0,0,0 };
 			//输出pq
-			s_pm2pq(pm[0], pq0);
+			aris::dynamic::s_pm2pq(pm[0], pq0);
 			for (int s = 0; s < i - pq[0].size() + 1; s++)
 			{
 				for (int j = 0; j < 7; j++)
@@ -969,13 +870,13 @@ auto load_pq9()->void
 			//double pm[16];
 			//输出pm
 			//相对
-			s_pe2pm(pe, pm[0], "323");//必须是二位数组的第一个地址
+			aris::dynamic::s_pe2pm(pe, pm[0], "323");//必须是二位数组的第一个地址
 			//绝对
 			//s_pe2pm(pe, pm[0], "312");
 			//s_pe2pm(pe, *pm, "323");
 			double pq0[7] = { 0,0,0,0,0,0,0 };
 			//输出pq
-			s_pm2pq(pm[0], pq0);
+			aris::dynamic::s_pm2pq(pm[0], pq0);
 
 			for (int j = 0; j < 7; j++)
 			{
@@ -1029,11 +930,11 @@ auto load_pq10()->void
 {
 	//将文件中的数据读取到POS中，共25列；
 	std::cout << "now is on pq10" << std::endl;
-	string site = "C:/Users/qianch_kaanh_cn/Desktop/data/rt_log--2019-02-28--23-25-52--11.txt";
+	string site = "C:/Users/qianch_kaanh_cn/Desktop/data/rt_log--2019-02-28--23-25-52--5.txt";
 	//string site = "C:/Users/qianch_kaanh_cn/Desktop/data/rt_log--2019-02-27--14-13-05--7.txt";
 	ifstream oplog;
-	vector<double> theta2;
-	theta2.clear();
+	//vector<double> theta2;
+	//theta2.clear();
 	oplog.open(site);
 	//以下检查是否成功读取文件；
 	if (!oplog)
@@ -1049,7 +950,7 @@ auto load_pq10()->void
 	//清除pq，防止多次调用累积增加
 	for (int i = 0; i < 7; i++)
 	{
-		pq[i].clear();
+		pq[i].clear();//pq是全局变量
 	}
 
 	while (!oplog.eof())
@@ -1072,12 +973,75 @@ auto load_pq10()->void
 	//先定义取点的间隔p_space
 	row = POS[0].size();//总行数
 	cout << "row:" << row << endl;
-	std::vector<double> p1, p2, p3;
-	p1 = std::vector<double> (row);
-	p2 = std::vector<double>(row);
-	p3 = std::vector<double>(row);
+	double ds = 0.0;
+	vector<vector<double>> S_P(4);//定义四维数组，用于记录ds和POS之间的关联
+	for (int i = 0; i < 4; i++)
+	{
+		S_P[i].clear();
+	}
+	for (int i = 0; i < row - 1; i++)
+	{
+		  double cccc = sqrt((POS[18][i + 1] - POS[18][i])*(POS[18][i + 1] - POS[18][i]) + (POS[19][i + 1] - POS[19][i])*(POS[19][i + 1] - POS[19][i]) + (POS[20][i + 1] - POS[20][i])*(POS[20][i + 1] - POS[20][i]));
+		  ds = ds + cccc;
+		  if (cccc > 10e-8)
+		  {
+			  S_P[0].push_back(ds);
+			  S_P[1].push_back(POS[18][i + 1]);
+			  S_P[2].push_back(POS[19][i + 1]);
+			  S_P[3].push_back(POS[20][i + 1]);
+		  }
+	}
+	cout << "ds:   " << ds << endl;
+	int row_SP = S_P[0].size();
+	std::vector<double> p11, p12, p13, p21, p22, p23, p31, p32, p33, p41, p42, p43;
+	//p11, p12, p13对应的是ds与POS[18]对应的插值系数
+	p11 = std::vector<double>(row_SP);
+	p12 = std::vector<double>(row_SP);
+	p13 = std::vector<double>(row_SP);
+	p21 = std::vector<double>(row_SP);
+	p22 = std::vector<double>(row_SP);
+	p23 = std::vector<double>(row_SP);
+	p31 = std::vector<double>(row_SP);
+	p32 = std::vector<double>(row_SP);
+	p33 = std::vector<double>(row_SP);
+	p41 = std::vector<double>(row_SP);
+	p42 = std::vector<double>(row_SP);
+	p43 = std::vector<double>(row_SP);
+	s_akima(row_SP, S_P[0].data(), S_P[1].data(), p11.data(), p12.data(), p13.data());
+	s_akima(row_SP, S_P[0].data(), S_P[2].data(), p21.data(), p22.data(), p23.data());
+	s_akima(row_SP, S_P[0].data(), S_P[3].data(), p31.data(), p32.data(), p33.data());
+	
+	
+	int point_sum = 5000;//数据均匀等分个数
+	
+	
+	double s_step = 0.0;
+	vector<vector<double>> XYZ(3);
+	for (int i = 0; i < point_sum; i++)
+	{
+		s_step = s_step + (i+1) * ds / point_sum;
+		double x_s=s_akima_at(row_SP, S_P[0].data(), S_P[1].data(), p11.data(), p12.data(), p13.data(), s_step, '0');
+		double y_s = s_akima_at(row_SP, S_P[0].data(), S_P[2].data(), p21.data(), p22.data(), p23.data(), s_step, '0');
+		double z_s = s_akima_at(row_SP, S_P[0].data(), S_P[3].data(), p31.data(), p32.data(), p33.data(), s_step, '0');		
+		XYZ[0].push_back(x_s);
+		XYZ[1].push_back(y_s);
+		XYZ[2].push_back(z_s);
+	}
+	int row_xyz = XYZ[0].size();
 
-	s_akima(row, POS[18].data(), POS[20].data(), p1.data(), p2.data(), p3.data());
+	std::vector<double> p1, p2, p3;
+	p1 = std::vector<double>(row_xyz);
+	p2 = std::vector<double>(row_xyz);
+	p3 = std::vector<double>(row_xyz);
+	//以下是x和Z进行插值
+	s_akima(row_xyz, XYZ[0].data(), XYZ[2].data(), p1.data(), p2.data(), p3.data());
+	cout << "XYZ[0].size()验证是否是5000（point_sum）:    " << XYZ[0].size() << endl;
+	for (int i = 0; i < 5000; i++)
+	{
+		cout << "XYZ[0][i]" << XYZ[0][i]<<"   " << "XYZ[1][i]" << XYZ[1][i] << "   " << "XYZ[2][i]" << XYZ[2][i] << endl;
+	}
+	cout << "XYZ[1][2]" << XYZ[1][2] << endl;
+	cout << "p1[2]" << p1[2] << endl;
 	//double A[5] = { 1,3,7,10,15 };
 	//double B[5] = { 1,6,-1,8,4 };
 	//s_akima(5, A, B, p1.data(), p2.data(), p3.data());
@@ -1089,17 +1053,19 @@ auto load_pq10()->void
 	double Kz4 = s_akima_at(5, A, B, p1.data(), p2.data(), p3.data(), 8.5, '1');
 	double Kz5 = s_akima_at(5, A, B, p1.data(), p2.data(), p3.data(), 12, '1');
 	std::cout << "Kz1" << Kz1 << "   " << "Kz2" << Kz2 << "   " << "Kz3" << Kz3 << "Kz4" << Kz4 << "   " << "Kz5" << Kz5 << std::endl;*/
-
-	
-	for (int i = 0; i < POS[0].size() - step_wave; i++)
+	double runtime = point_sum/1000;//5s内走完所有的轨迹
+	double zsite = POS[20][0];//将Z的位置进行初始化
+	for (int i = 0; i < runtime*1000 - step_wave; i++)
 	{
 
-		double time = i * 0.001;
+		//double xsite = POS[18][0] + (POS[18][row - 1] - POS[18][0]) / runtime / 1000.0000*(i + 1);
+		double xsite = XYZ[0][i];
 		//Kz是Z轴的斜率
-		double Kz = s_akima_at(row, POS[18].data(), POS[20].data(), p1.data(), p2.data(), p3.data(), POS[18][0]+i* 0.00001, '1');
-		cout <<"time:"<<time<< "  Kz:   " << Kz << endl;
-		double tangent[3] = { 0.00001,0 ,0.00001*Kz };
-		if (i <= 3000)
+		double Kz = s_akima_at(row_xyz, XYZ[0].data(), XYZ[2].data(), p1.data(), p2.data(), p3.data(), xsite, '1');
+		cout << "  Kz:   " << Kz << endl;
+		double tangent[3] = {1,0 ,Kz };
+		//zsite = zsite + Kz * (POS[18][row - 1] - POS[18][0]) / runtime / 1000.0000;
+		/*if (i <= 3000)
 			tangent[0] = 0.0001;
 
 		if (cos(2 * time) > 0)
@@ -1124,66 +1090,66 @@ auto load_pq10()->void
 				continue;
 			else
 			{
-				/*for (int i = 0; i < 25; i++)
+				for (int i = 0; i < 25; i++)
 				{
 					POS2[i].push_back(POS[i][j]);
 					POS2[i].push_back(POS[i][j+1]);
 				}
-				j++;*/
+				j++;
 				//轨迹上切线的向量
 				//double tangent[3] = { POS[18][i + step_wave] - POS[18][i],POS[19][i + step_wave] - POS[19][i] ,POS[20][i + step_wave] - POS[20][i] };
 				//double tangL = sqrt(tangent[0] * tangent[0] + tangent[1] * tangent[1] + tangent[2] * tangent[2]);
 				//定义与Z轴方向的欧拉角系数coe
-				//int coe;
-				double x[3] = { 1, 0, 0 };
-				double y[3] = { 0, 1, 0 };
-				double z[3] = { 0, 0, -1 };
-				//求取切线与y轴的公法线向量
-				double vert[3] = { 0,0,0 };
-				//叉乘
-				s_c3(tangent, y, vert);
-				//先求出垂直向量的模，再除以模长求出单位向量；
-				double sq = sqrt(vert[0] * vert[0] + vert[1] * vert[1] + vert[2] * vert[2]);
-				std::cout << "sq" << sq << std::endl;
-				double vert0[3] = { 0,0,0 };
-				for (int j = 0; j < 3; j++)
-				{
-					vert0[j] = vert[j] / sq;
-				}
-				//先求叉乘，再求arcsin
+				int coe;*/
+		double x[3] = { 1, 0, 0 };
+		double y[3] = { 0, 1, 0 };
+		double z[3] = { 0, 0, -1 };
+		//求取切线与y轴的公法线向量
+		double vert[3] = { 0,0,0 };
+		//叉乘
+		s_c3(tangent, y, vert);
+		//先求出垂直向量的模，再除以模长求出单位向量；
+		double sq = sqrt(vert[0] * vert[0] + vert[1] * vert[1] + vert[2] * vert[2]);
+		std::cout << "sq" << sq << std::endl;
+		double vert0[3] = { 0,0,0 };
+		for (int j = 0; j < 3; j++)
+		{
+			vert0[j] = vert[j] / sq;
+		}
+		//先求叉乘，再求arcsin
 
-				//求点乘，由于是单位向量，点乘即角度
-				//double dot = s_vv(3, vert0, z);
-				//对dot做出限制
-				//std::cout << " vert0[2]: " << vert0[2] << "    " << "vert0[0]:  " << vert0[0] << std::endl;
-				//注意theta的正负性,与Z轴成180度左右；
+		//求点乘，由于是单位向量，点乘即角度
+		//double dot = s_vv(3, vert0, z);
+		//对dot做出限制
+		//std::cout << " vert0[2]: " << vert0[2] << "    " << "vert0[0]:  " << vert0[0] << std::endl;
+		//注意theta的正负性,与Z轴成180度左右；
 
-				double theta = atan(vert0[0] / vert0[2]);
-				theta2.push_back(theta);
-				double pe[6] = { POS[18][i] ,POS[19][i] ,POS[20][i],atan(1) * 2 ,atan(1) * 2 , theta };
+		double theta = atan(vert0[0] / vert0[2]);
 
-				//绝对
-				//double pe[6] = { POS[18][i] ,POS[19][i] ,POS[20][i], atan(1) * 2,-atan(1) * 2 , theta };
-				//vector <vector <double>>pm(4, std::vector<double>(4, 0.0));
-				double pm[4][4];
-				//double pm[16];
-				//输出pm
-				//相对
-				s_pe2pm(pe, pm[0], "323");//必须是二位数组的第一个地址
-				//绝对
-				//s_pe2pm(pe, pm[0], "312");
-				//s_pe2pm(pe, *pm, "323");
-				double pq0[7] = { 0,0,0,0,0,0,0 };
-				//输出pq
-				s_pm2pq(pm[0], pq0);
+		double pe[6] = { XYZ[0][i] ,XYZ[1][i] ,XYZ[2][i],atan(1) * 2 ,atan(1) * 2 , theta };
 
-				for (int j = 0; j < 7; j++)
-				{
-					pq[j].push_back(pq0[j]);
-				}
-			}
+		//绝对
+		//double pe[6] = { POS[18][i] ,POS[19][i] ,POS[20][i], atan(1) * 2,-atan(1) * 2 , theta };
+		//vector <vector <double>>pm(4, std::vector<double>(4, 0.0));
+		double pm[4][4];
+		//double pm[16];
+		//输出pm
+		//相对
+		aris::dynamic::s_pe2pm(pe, pm[0], "323");//必须是二位数组的第一个地址
+		//绝对
+		//s_pe2pm(pe, pm[0], "312");
+		//s_pe2pm(pe, *pm, "323");
+		double pq0[7] = { 0,0,0,0,0,0,0 };
+		//输出pq
+		aris::dynamic::s_pm2pq(pm[0], pq0);
+
+		for (int j = 0; j < 7; j++)
+		{
+			pq[j].push_back(pq0[j]);
 		}
 	}
+		
+	
 		
 		//int step_i = 1;
 		std::cout << "pq[0].size():  " << pq[0].size() << endl;
@@ -1195,14 +1161,152 @@ auto load_pq10()->void
 			cout << "Unable to open otfile";
 			exit(1); // terminate with error
 		}
-		for (int k = 0; k < theta2.size(); k++)
+		/*for (int k = 0; k < theta2.size(); k++)
 			//for (int k = 0; k < POS[0].size(); k++)
 		{
 			outfile << POS[18][k] << "  " << POS[19][k] << "  " << POS[20][k] << "  " << POS[21][k] << "  " << POS[22][k] << "  " << POS[23][k] << "  " << POS[24][k] << " theta2:   " << theta2[k] << endl;
 			cout << "success outfile " << endl;
 			//cout << data[k][0] << " " << data[k][1] << endl;
 		}
-		outfile.close();		
+		outfile.close();*/		
+	}
+
+
+
+
+///
+//采用桂凯的方法，走由sin加直线组成的标准曲线的3D打印件
+	auto load_pq12()->void
+	{
+		vector<vector<double>> XYZ(3);
+		for (int i = 0; i < 3; i++)
+		{
+			XYZ[i].clear();
+		}
+		//清除pq，防止多次调用累积增加
+		for (int i = 0; i < 7; i++)
+		{
+			pq[i].clear();
+		}
+		//定义总的运行时间为6s
+		int run_time = 6;
+		double distance_x = 0.360;//工件总长度x轴跨度360mm长度
+		double v_x = distance_x / (run_time*1.0000);
+		double distance_sin = 0.250;//sin曲线跨度250mm长度
+		double distance_l_tilted = 0.0761254;//斜直线跨度
+		double distance_c = 0.0070551;//圆角跨度
+		double distance_l_horizontal = 0.0218195;
+		//开始构造数组XYZ
+		//定义初始位置坐标
+		double x0 = -0.12424, y0=0.47118, z0=0.0294;
+		double xa = x0;
+
+		for (int i = 0; i < run_time * 1000; i++)
+		{
+			
+			double time = i * 0.001;
+			xa = xa + v_x * 0.001;//x在循环中的实际位置
+			//cout << "xa:   " << xa << endl;
+			double pi = 3.1415926;
+			double tangent[3] = { v_x / 1000, 0 ,0 };
+			//以下状态走sin曲线
+			if (i <= (distance_sin / v_x * 1000.00))
+				tangent[2] = v_x * 0.001 * (6 * pi) * (cos(2 * pi*(xa - x0) / 0.25)) / 50.0;
+			else if (i > (distance_sin / v_x * 1000.00) && i <= ((distance_sin + distance_l_tilted) / v_x * 1000.00))
+				tangent[2] = 0.37699 * v_x * 0.001;
+			//以下经过圆角
+			else if (i > ((distance_sin + distance_l_tilted) / v_x * 1000.00) && i <= ((distance_sin + distance_l_tilted + distance_c) / v_x * 1000.00))
+				tangent[2] = -(xa - 0.3331805 - x0) / sqrt(0.020 * 0.020 - (xa - 0.3331805 - x0) * (xa - 0.3331805 - x0))* v_x * 0.001;
+			else if (i > ((distance_sin + distance_l_tilted + distance_c) / v_x * 1000.00))
+				tangent[2] = 0;
+			//定义起始点为0
+			if (i == 0)
+			{
+				XYZ[0].push_back(x0);
+				XYZ[1].push_back(y0);
+				XYZ[2].push_back(z0);
+			}
+			else
+			{
+				XYZ[0].push_back(XYZ[0][i - 1] + tangent[0]);
+				XYZ[1].push_back(y0);
+				//POS[19][i] = POS[19][i - 1];
+				XYZ[2].push_back(XYZ[2][i - 1] + +tangent[2]);
+			}
+
+
+			double tangL = sqrt(tangent[0] * tangent[0] + tangent[1] * tangent[1] + tangent[2] * tangent[2]);
+			//cout << "tangL:   " << tangL << endl;
+			if (tangL < 5 * 10e-17)//-6************************************************************************
+				continue;
+			else
+			{
+
+				double x[3] = { 1, 0, 0 };
+				double y[3] = { 0, 1, 0 };
+				double z[3] = { 0, 0, -1 };
+				//求取切线与y轴的公法线向量
+				double vert[3] = { 0,0,0 };
+				//叉乘
+				s_c3(tangent, y, vert);
+				//先求出垂直向量的模，再除以模长求出单位向量；
+
+
+				double sq = sqrt(vert[0] * vert[0] + vert[1] * vert[1] + vert[2] * vert[2]);
+
+				//std::cout << "sq" << sq << std::endl;
+
+				double vert0[3] = { 0,0,0 };
+				for (int j = 0; j < 3; j++)
+				{
+					vert0[j] = vert[j] / sq;
+				}
+
+				double theta = atan(vert0[0] / vert0[2]);
+				//std::cout << "theta:   " << theta << std::endl;
+				double pe[6] = { XYZ[0][i] ,XYZ[1][i] ,XYZ[2][i],atan(1) * 2 ,atan(1) * 2 , theta };
+
+				double pm[4][4];
+
+				//s_pe2pm(pe, &pm[0][0], "323");
+
+				aris::dynamic::s_pe2pm(pe, pm[0], "323");//必须是二位数组的第一个地址
+
+				double pq0[7] = { 0,0,0,0,0,0,0 };
+
+				aris::dynamic::s_pm2pq(pm[0], pq0);
+
+				for (int j = 0; j < 7; j++)
+				{
+					pq[j].push_back(pq0[j]);
+				}
+				int xxxx = 0;
+			}
+		}
+		std::cout << "pq[0][0]" << pq[0][0] << "    " << "pq[1][0]" << pq[1][0] << "    " << "pq[2][0]" << pq[2][0] << "pq[3][0]" << pq[3][0] << "    " << "pq[4][0]" << pq[4][0] << "    " << "pq[5][0]" << pq[5][0] << "    " << "pq[6][0]" << pq[6][0] << std::endl;
+		//std::cout << "pq size:" << pq[0].size() << std::endl;
+		std::cout << "XYZ[0].size()" << XYZ[0].size() << endl;
+		ofstream outfile("C:/Users/qianch_kaanh_cn/Desktop/data/outfile.txt");
+		if (!outfile)
+		{
+			cout << "Unable to open otfile";
+			exit(1); // terminate with error
+		}
+		/*for (int k = 0; k < XYZ[0].size(); k++)
+			//for (int k = 0; k < POS[0].size(); k++)
+		{
+			outfile << XYZ[0][k] << "     " << XYZ[1][k] << "     " << XYZ[2][k] << endl;
+			cout << "success outfile " << endl;
+		}*/
+		
+		for (int k = 0; k < pq[0].size(); k++)
+		{
+			outfile << pq[0][k] << "   " << pq[1][k] << "  "  << pq[2][k] << "  " << pq[3][k] << "    " << pq[4][k] << "    " << pq[5][k] << "    " << pq[6][k] << std::endl;
+			cout << "success outfile " << endl;
+		}
+		outfile.close();
+
+
 	}
 
 
@@ -1220,7 +1324,7 @@ auto MoveinModel::prepairNrt(const std::map<std::string, std::string> &params, P
 	
 	
 	//load_pq5();
-	load_pq10();
+	load_pq12();
 	//得到二维数组pq;
 	//获取行数
 	int col = pq[0].size();
@@ -1278,18 +1382,12 @@ auto MoveinModel::executeRT(PlanTarget &target)->int
 }
 
 
+
 MoveinModel::MoveinModel(const std::string &name) :Plan(name)
 {
 	command().loadXmlStr(
 		"<mvinmod>"
 		"	<group type=\"GroupParam\" default_child_type=\"Param\">"
-		//"	    <total_time type=\"Param\" default=\"5000\"/>" // 默认5000
-		//"		<vel type=\"Param\" default=\"0.04\"/>"
-		//"		<acc type=\"Param\" default=\"0.08\"/>"
-		//"		<dec type=\"Param\" default=\"0.08\"/>"
-		//"		<choose type=\"Param\" default=\"0\"/>"
-		//"		<pt type=\"Param\" default=\"{0.0,0.0,0.0,0.0,0.0,0.0}\"/>"
-		//"		<file type=\"Param\" default=\"1.txt\" abbreviation=\"f\"/>"
 		"	</group>"
 		"</mvinmod>");
 }
@@ -1300,6 +1398,7 @@ vector <vector<double>> pq_real(7);
 struct FMovePathParam
 {
 	vector<vector<double>>pq;//是二位数组吗
+	double runtime;
 };
 auto FMovePath::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 {
@@ -1308,6 +1407,9 @@ auto FMovePath::prepairNrt(const std::map<std::string, std::string> &params, Pla
 	int row_n = m.m();//计算矩阵的总行数；
 	std::cout << "row_n:  " << row_n << endl;
 	std::cout << "m(1,1):  " << m(1, 1) << endl;
+
+	auto runtime = std::stoi(params.at("runtime"));
+
 	//pq1~7是对应的pq的7个数组 
 	vector<double> pq1,pq2,pq3,pq4,pq5,pq6,pq7;
 	pq1.clear();
@@ -1327,15 +1429,10 @@ auto FMovePath::prepairNrt(const std::map<std::string, std::string> &params, Pla
 		pq6.push_back(m(i, 5));
 		pq7.push_back(m(i, 6));
 	}	
-	//pqi进行归一化
-	for (int i = 0; i < row_n; i++)
-	{
-		double norm2 = sqrt(pq4[i] * pq4[i] + pq5[i] * pq5[i] + pq6[i] * pq6[i]+ pq7[i] * pq7[i]);
-		pq4[i] = pq4[i] / norm2;
-		pq5[i] = pq5[i] / norm2;
-		pq6[i] = pq6[i] / norm2;
-		pq7[i] = pq7[i] / norm2;
-	}
+	
+	cout << "pq1.size()" << pq1.size() << endl;
+
+
 	//调整四元数的方向
 	for (int i = 0; i < row_n -1; i++)
 	{
@@ -1347,24 +1444,75 @@ auto FMovePath::prepairNrt(const std::map<std::string, std::string> &params, Pla
 			pq4[i + 1] = -pq4[i + 1];
 			pq5[i + 1] = -pq5[i + 1];
 			pq6[i + 1] = -pq6[i + 1];
+			pq7[i + 1] = -pq7[i + 1];
 		}
 	}
+
+	//输出修改后的四元数
+	/*ofstream outfile("C:/Users/qianch_kaanh_cn/Desktop/data/four_elem.txt");
+	if (!outfile)
+	{
+		cout << "Unable to open otfile";
+		exit(1); // terminate with error
+	}
+	for (int k = 0; k < pq1.size(); k++)
+		//for (int k = 0; k < POS[0].size(); k++)
+	{
+		outfile << pq1[k] << "  " << pq2[k] << "  " << pq3[k] << "  " << pq4[k] << "  " << pq5[k] << "  " << pq6[k] << "  " << pq7[k] << endl;
+		cout << "success outfile four_elem " << endl;
+		//cout << data[k][0] << " " << data[k][1] << endl;
+	}
+	outfile.close();*/
+
+
+
 	//定义akima函数的参数p1,p2p3
-	std::vector<double> p1, p2, p3;	
-	p1 = std::vector<double>(pq1.size());
-	p2 = std::vector<double>(pq1.size());
-	p3 = std::vector<double>(pq1.size());
+	std::vector<double> p11, p12, p13, p21, p22, p23, p31, p32, p33, p41, p42, p43, p51, p52, p53, p61, p62, p63, p71, p72, p73;
+	p11 = std::vector<double>(pq1.size());
+	p12 = std::vector<double>(pq1.size());
+	p13 = std::vector<double>(pq1.size());
+	p21 = std::vector<double>(pq1.size());
+	p22 = std::vector<double>(pq1.size());
+	p23 = std::vector<double>(pq1.size());
+	p31 = std::vector<double>(pq1.size());
+	p32 = std::vector<double>(pq1.size());
+	p33 = std::vector<double>(pq1.size()); 
+	p41 = std::vector<double>(pq1.size());
+	p42 = std::vector<double>(pq1.size());
+	p43 = std::vector<double>(pq1.size()); 
+	p51 = std::vector<double>(pq1.size());
+	p52 = std::vector<double>(pq1.size());
+	p53 = std::vector<double>(pq1.size()); 
+	p61 = std::vector<double>(pq1.size());
+	p62 = std::vector<double>(pq1.size());
+	p63 = std::vector<double>(pq1.size()); 
+	p71 = std::vector<double>(pq1.size());
+	p72 = std::vector<double>(pq1.size());
+	p73 = std::vector<double>(pq1.size());
 	//孟给定我的点的数目
-	int numM = pq1.size();
+	double numM = pq1.size();
 	//定义和时间相关的数组
 	vector<double> time;
-	int runtime = 5;//5s内走完所有的点
+	//double runtime = 5;//5s内走完所有的点
 	for (int i = 0; i < pq1.size(); i++)
 	{
-		time.push_back((i + 1)*(runtime/numM));
+		time.push_back((i + 1) * runtime /numM);
 	}
-	s_akima(pq1.size(), time.data(), pq1.data(), p1.data(), p2.data(), p3.data());//?????????????p1.data()
+	s_akima(pq1.size(), time.data(), pq1.data(), p11.data(), p12.data(), p13.data());//?????????????p1.data()
+	s_akima(pq1.size(), time.data(), pq2.data(), p21.data(), p22.data(), p23.data());
+	s_akima(pq1.size(), time.data(), pq3.data(), p31.data(), p32.data(), p33.data());
+	s_akima(pq1.size(), time.data(), pq4.data(), p41.data(), p42.data(), p43.data());
+	s_akima(pq1.size(), time.data(), pq5.data(), p51.data(), p52.data(), p53.data());
+	s_akima(pq1.size(), time.data(), pq6.data(), p61.data(), p62.data(), p63.data());
+	s_akima(pq1.size(), time.data(), pq7.data(), p71.data(), p72.data(), p73.data());
 	//获取插值之后的pq数值
+
+
+	cout << "time[2]" << time[2] << endl;
+	cout << "p11[2]" << p11[2] <<endl;
+	
+	
+	
 	for (int i = 0; i < 7; i++)
 	{
 		pq_real[i].clear();//将pq_real先清空
@@ -1372,75 +1520,60 @@ auto FMovePath::prepairNrt(const std::map<std::string, std::string> &params, Pla
 	//注意统一单位为s，否则求导之后系数有问题
 	for (int i = 0; i < runtime * 1000; i++)
 	{
-		double x_t = 1/ runtime/ 1000 * (i+1);
-		double c1 = s_akima_at(pq1.size(), time.data(), pq1.data(), p1.data(), p2.data(), p3.data(), x_t, '0');
-		double c2 = s_akima_at(pq1.size(), time.data(), pq2.data(), p1.data(), p2.data(), p3.data(), x_t, '0');
-		double c3 = s_akima_at(pq1.size(), time.data(), pq3.data(), p1.data(), p2.data(), p3.data(), x_t, '0');
-		double c4 = s_akima_at(pq1.size(), time.data(), pq4.data(), p1.data(), p2.data(), p3.data(), x_t, '0');
-		double c5 = s_akima_at(pq1.size(), time.data(), pq5.data(), p1.data(), p2.data(), p3.data(), x_t, '0');
-		double c6 = s_akima_at(pq1.size(), time.data(), pq6.data(), p1.data(), p2.data(), p3.data(), x_t, '0');
-		double c7 = s_akima_at(pq1.size(), time.data(), pq7.data(), p1.data(), p2.data(), p3.data(), x_t, '0');
-		pq_real[0].push_back(c1);
-		pq_real[1].push_back(c2);
-		pq_real[2].push_back(c3);
-		pq_real[3].push_back(c4);
-		pq_real[4].push_back(c5);
-		pq_real[5].push_back(c6);
-		pq_real[6].push_back(c7);
+		double x_t = (i+1)/1000.0000;
+		if (x_t >= runtime / numM)
+		{
+			double c1 = s_akima_at(pq1.size(), time.data(), pq1.data(), p11.data(), p12.data(), p13.data(), x_t, '0');
+			double c2 = s_akima_at(pq1.size(), time.data(), pq2.data(), p21.data(), p22.data(), p23.data(), x_t, '0');
+			double c3 = s_akima_at(pq1.size(), time.data(), pq3.data(), p31.data(), p32.data(), p33.data(), x_t, '0');
+			double c4 = s_akima_at(pq1.size(), time.data(), pq4.data(), p41.data(), p42.data(), p43.data(), x_t, '0');
+			double c5 = s_akima_at(pq1.size(), time.data(), pq5.data(), p51.data(), p52.data(), p53.data(), x_t, '0');
+			double c6 = s_akima_at(pq1.size(), time.data(), pq6.data(), p61.data(), p62.data(), p63.data(), x_t, '0');
+			double c7 = s_akima_at(pq1.size(), time.data(), pq7.data(), p71.data(), p72.data(), p73.data(), x_t, '0');
+			pq_real[0].push_back(c1);
+			pq_real[1].push_back(c2);
+			pq_real[2].push_back(c3);
+			pq_real[3].push_back(c4);
+			pq_real[4].push_back(c5);
+			pq_real[5].push_back(c6);
+			pq_real[6].push_back(c7);
+			std::cout << "x_t: " << x_t << endl;
+			std::cout << "c1: " << c1 << "c2: " << c2 << "c3: " << c3 << "c4: " << c4 << "c5: " << c5 << "c6: " << c6 << "c7: " << c7 << endl;
+		}		
 	}
+
+	//插值后pq_real进行归一化
+	for (int i = 0; i < pq_real[0].size(); i++)
+	{
+		double norm2 = sqrt(pq_real[3][i] * pq_real[3][i] + pq_real[4][i] * pq_real[4][i] + pq_real[5][i] * pq_real[5][i] + pq_real[6][i] * pq_real[6][i]);
+		pq_real[3][i] = pq_real[3][i] / norm2;
+		pq_real[4][i] = pq_real[4][i] / norm2;
+		pq_real[5][i] = pq_real[5][i] / norm2;
+		pq_real[6][i] = pq_real[6][i] / norm2;
+		cout << "pq_real" << pq_real[3][i] << "  " << pq_real[4][i] << "  " << pq_real[5][i] << "  " << pq_real[6][i] <<endl;
+	}
+
+
+
 	std::cout << "run succssful" << std::endl;
 	std::cout << "pq_real[0].size():  "<< pq_real[0].size() << std::endl;
 
-	/*for (auto &p : params)
+	ofstream outfile("C:/Users/qianch_kaanh_cn/Desktop/data/outfile.txt");
+	if (!outfile)
 	{
-		if (p.first == "setpqJF")
-		{
-			auto pqarray = target.model->calculator().calculateExpression(p.second);
-			std::array<double, 7> temp;
-			std::copy(pqarray.begin(), pqarray.end(), temp.begin());
-			setpqJF.store(temp);
-		}
-		else if (p.first == "setpqJFB")
-		{
-			auto pqarray = target.model->calculator().calculateExpression(p.second);
-			std::array<double, 7> temp;
-			std::copy(pqarray.begin(), pqarray.end(), temp.begin());
-			setpqJFB.store(temp);
-		}
-		else if (p.first == "setpqPQB")
-		{
-			auto pqarray = target.model->calculator().calculateExpression(p.second);
-			std::array<double, 14> temp = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
-			std::copy(pqarray.begin(), pqarray.end(), temp.begin());
-			setpqPQB.store(temp);
-			which_func == 1;
-			func[1] = load_pq1;
-		}
-		else if (p.first == "which_func")
-		{
-			which_func = std::stoi(p.second);
-			if (which_func == 1)
-			{
-				func[1] = load_pq1;
-				one_time_counter = false;
-			}
-			else if (which_func == 2)
-			{
-				func[1] = load_pq2;
-				one_time_counter = true;
-			}
-			else if (which_func == 3)
-			{
-				func[1] = load_pq3;
-				one_time_counter = true;
-			}
-			else if (which_func == 7)
-			{
-				func[1] = load_pq7;
-				one_time_counter = true;
-			}
-		}
-	}*/
+		cout << "Unable to open otfile";
+		exit(1); // terminate with error
+	}
+	for (int k = 0; k < pq_real[0].size(); k++)
+		//for (int k = 0; k < POS[0].size(); k++)
+	{
+		outfile << pq_real[0][k] << "  " << pq_real[1][k] << "  " << pq_real[2][k] << "  " << pq_real[3][k] << "  " << pq_real[4][k] << "  " << pq_real[5][k] << "  " << pq_real[6][k]<< endl;
+		cout << "success outfile " << endl;
+		//cout << data[k][0] << " " << data[k][1] << endl;
+	}
+	outfile.close();
+
+
 	target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
 }
 FMovePath::FMovePath(const std::string &name):Plan(name)
@@ -1448,13 +1581,8 @@ FMovePath::FMovePath(const std::string &name):Plan(name)
 	command().loadXmlStr(
 		"<FMovePath>"
 		"	<group type=\"GroupParam\" default_child_type=\"Param\">"
-		//"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"setpqJFB\">"
 		"			<pq default=\"{0.42,0.0,0.55,0,0,0,1}\"/>"
-		//"			<pq default=\"{0.42,0.0,0.55,0,0,0,1}\"/>"
-		//"			<setpqJFB default=\"{0.42,0.0,0.55,0,0,0,1}\"/>"
-		//"			<setpqPQB default=\"{0.42,0.0,0.55,0,0,0,1}\"/>"
-		//"			<which_func default=\"1\"/>"
-		//"		</unique>"
+		"			<runtime default=\"5\"/>"
 		"	</group>"
 		"</FMovePath>");
 }
@@ -1502,3 +1630,99 @@ auto load_pq7(aris::Size count, aris::Size &start_count)->std::array<double, 14>
 	}
 	return temp;
 }
+
+
+//不经过离线编程，直接走直线打磨；
+struct MoveLPolishParam
+{
+	vector<vector<double>>pq;//是二位数组吗
+	double runtime;
+	double Point1[3], Point2[3];
+	double vec[3];
+};
+auto MoveLPolish::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+{
+	MoveLPolishParam p;
+	p.runtime = std::stod(params.at("runtime"));
+	aris::core::Matrix mat = target.model->calculator().calculateExpression(params.at("Point1"));
+	if (mat.size() != 3)
+	{
+		throw std::runtime_error("The value of mat.size() is not 3");
+	}
+	std::copy(mat.begin(), mat.end(), p.Point1);
+	mat = target.model->calculator().calculateExpression(params.at("Point2"));
+	if (mat.size() != 3)
+	{
+		throw std::runtime_error("The value of mat.size() is not 3");
+	}
+	std::copy(mat.begin(), mat.end(), p.Point2);
+	mat = target.model->calculator().calculateExpression(params.at("vec"));
+	if (mat.size() != 3)
+	{
+		throw std::runtime_error("The value of mat.size() is not 3");
+	}
+	std::copy(mat.begin(), mat.end(), p.vec);
+	double P1P2[3];//切向量
+	for (int i = 0; i < 3; i++)
+	{
+		P1P2[i] = p.Point2[i] - p.Point1[i];
+	}
+	double vert[3];
+	s_c3(P1P2, p.vec, vert);
+	//先求出垂直向量的模，再除以模长求出单位向量；
+	double sq = sqrt(vert[0] * vert[0] + vert[1] * vert[1] + vert[2] * vert[2]);
+	std::cout << "sq" << sq << std::endl;
+	double vert0[3] = { 0,0,0 };
+	for (int j = 0; j < 3; j++)
+	{
+		vert0[j] = vert[j] / sq;
+	}
+	double theta = atan(vert0[0] / vert0[2]);
+	double Pa[3];//实际位置；
+	for (int i = 0; i < 7; i++)
+	{
+		pq[i].clear();
+	}
+	for (int j = 0; j < p.runtime * 1000; j++)
+	{
+		for (int i = 0; i < 3; i++)
+		{
+			Pa[i] = p.Point1[i] + j * (p.Point2[i] - p.Point1[i]) / p.runtime / 1000.0000;
+		}
+	double pe[6] = { Pa[0] ,Pa[1] ,Pa[2],atan(1) * 2 ,atan(1) * 2 , theta };
+	double pm[4][4];
+	//输出pm
+	//相对
+	aris::dynamic::s_pe2pm(pe, pm[0], "323");//必须是二位数组的第一个地址
+	double pq0[7] = { 0,0,0,0,0,0,0 };
+	//输出pq
+	aris::dynamic::s_pm2pq(pm[0], pq0);
+	//pq0就是全部轨迹的pq值；
+	for (int i = 0; i < 7; i++)
+	{
+		pq[i].push_back(pq0[i]);
+	}
+	}
+	target.param = p;
+	target.option =
+		//用这段话可以不用将model的轨迹赋值到controller里面，系统直接调用model中的反解计算结果
+		aris::plan::Plan::USE_TARGET_POS |
+		aris::plan::Plan::NOT_CHECK_VEL_FOLLOWING_ERROR |
+		aris::plan::Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
+		aris::plan::Plan::NOT_CHECK_VEL_CONTINUOUS;
+}
+MoveLPolish::MoveLPolish(const std::string &name) :Plan(name)
+{
+	command().loadXmlStr(
+		"<mlpo>"
+		"	<group type=\"GroupParam\" default_child_type=\"Param\">"
+		"			<pq default=\"{0.42,0.0,0.55,0,0,0,1}\"/>"
+		"			<Point1 default=\"{0.0,0.0,0.0}\"/>"
+		"			<Point2 default=\"{0.1,0.1,0.1}\"/>"
+		"			<runtime default=\"5\"/>"
+		"	</group>"
+		"</mlpo>");
+}
+
+
+
