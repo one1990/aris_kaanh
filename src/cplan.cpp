@@ -1192,7 +1192,7 @@ auto load_pq10()->void
 			pq[i].clear();
 		}
 		//定义总的运行时间为6s
-		int run_time = 6;
+		int run_time = 4;//default6s
 		double distance_x = 0.360;//工件总长度x轴跨度360mm长度
 		double v_x = distance_x / (run_time*1.0000);
 		double distance_sin = 0.250;//sin曲线跨度250mm长度
@@ -1212,9 +1212,11 @@ auto load_pq10()->void
 		double distance_l_horizontal = 0.0218195;//水平直线的跨度
 		double lateral_step = 0.01;//侧向步长，在数模中显示为y轴方向的步长
 		double distance_lateral = 0.12;//数模的侧向总长度
-		int loop_count = int(distance_lateral / lateral_step);
-		cout << "loop_count验证是否为整数" << loop_count << endl;
-		double distance_avoid = 0.15; //回刀循环过程中的避让距离，在数模中为Z轴方向的抬升高度
+		int loop_total = int(distance_lateral / lateral_step);
+		cout << "loop_total验证是否为整数" << loop_total << endl;
+		//loop_count为打磨的循环次数计数器
+		int loop_count = 0;
+		double distance_avoid = 0.1; //default0.15回刀循环过程中的避让距离，在数模中为Z轴方向的抬升高度
 
 
 		//定义待加工件上起始加工点的初始位置坐标
@@ -1222,8 +1224,7 @@ auto load_pq10()->void
 		double xa = x0;
 
 		for (int i = 0; i < run_time * 1000; i++)
-		{
-
+		{			
 			double time = i * 0.001;
 			xa = xa + v_x * 0.001;//x在循环中的实际位置
 			//cout << "xa:   " << xa << endl;
@@ -1260,7 +1261,8 @@ auto load_pq10()->void
 				XYZ[0].push_back(XYZ[0][i - 1] + tangent[0]);
 				XYZ[1].push_back(y0);
 				//POS[19][i] = POS[19][i - 1];
-				XYZ[2].push_back(XYZ[2][i - 1] + +tangent[2]);
+				XYZ[2].push_back(XYZ[2][i - 1] +tangent[2]);
+				//cout << "i:  "<<i<<"    " << "XYZ[0][i]: " << XYZ[0][i] << "tangent[2]: " << tangent[2] << "XYZ[2][i]:   " << XYZ[2][i] << endl;
 			}
 
 
@@ -1304,12 +1306,126 @@ auto load_pq10()->void
 				double pq0[7] = { 0,0,0,0,0,0,0 };
 
 				aris::dynamic::s_pm2pq(pm[0], pq0);
+				
 
 				for (int j = 0; j < 7; j++)
 				{
 					pq[j].push_back(pq0[j]);
 				}
-				int xxxx = 0;
+				
+				if (i == run_time * 1000 - 1)
+				{
+					//以下地方容易出错
+					//空中的几个点的pq值
+					double pq_switch1[7] = { XYZ[0][i] ,XYZ[1][i] , XYZ[2][i] + distance_avoid, -0.5, 0.5, 0.5, 0.5 };
+					double pq_switch2[7] = { XYZ[0][0] ,XYZ[1][0] + lateral_step, XYZ[2][i] + distance_avoid, -0.5, 0.5, 0.5, 0.5 };
+					double pq_switch3[7] = { XYZ[0][0] ,XYZ[1][0] + lateral_step  , XYZ[2][0], -0.5815, 0.4023, 0.4023, 0.5815 };
+					double pt, v, a;
+					double vel = 0.04 * 2;
+					double acc = 0.08*2;
+					double dec = 0.08 * 2;
+					aris::Size t_count;
+					aris::Size last_count1 = 0, last_count2 = 0, last_count3 = 0;//count的记录中间变量，1，2，3分别对应上升，平动和下降
+					//aris::Size total_count = 1;
+					double begin_pos = 0.0;//局部变量最好赋一个初始值
+					//if (target.count == 1)
+					//{
+					//	begin_pos = controller->motionAtAbs(5).targetPos();
+					//}
+					//aris::plan::moveAbsolute(target.count, begin_pos, p.pt, p.vel / 1000, p.acc / 1000 / 1000, p.dec / 1000 / 1000, pt, v, a, t_count);
+					//以下完成上升过程
+					//---------定义上升过程中的pq中间值变量，定义为pq_up
+					//---------pq_up中赋值为0的地方就是过程中需要变化的值
+					double pq_up[7] = { XYZ[0][i] ,XYZ[1][i] , 0, -0.5, 0.5, 0.5, 0.5 };
+					aris::plan::moveAbsolute(0, XYZ[2][i], pq_switch1[2], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, pt, v, a, t_count);
+					/*cout << "tangent[2]:    " << tangent[2] << endl;
+					
+					cout << "XYZ[2][i]:    " << XYZ[2][i]<<"    " << "pq_switch1[2]:    " << pq_switch1[2] << endl;
+					cout << "XYZ[1][i]:    " << XYZ[1][i] << endl;
+					cout << "XYZ[0][i]:    " << XYZ[0][i] << endl;
+					cout << "t_count:    " << t_count << endl;*/
+					last_count1 = std::max(t_count, last_count1);
+					//cout << "last_count1:    " << last_count1 << endl;
+
+
+
+					for (int j = 0; j < last_count1; j++)
+					{
+						aris::plan::moveAbsolute(j, XYZ[2][i], pq_switch1[2], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, pt, v, a, t_count);
+						pq_up[2] = pt;
+						for (int k = 0; k < 7; k++)
+						{
+							pq[k].push_back(pq_up[k]);
+						}
+					}
+					//以下完成空中平动过程
+					//---------定义平动过程中的pq中间值变量，定义为pq_move
+					//---------pq_move中赋值为0的地方就是过程中需要变化的值
+					double pq_move[7] = { 0 ,0, XYZ[2][i] + distance_avoid, -0.5, 0.5, 0.5, 0.5 };
+					//-----x轴恢复起始位置
+					aris::plan::moveAbsolute(0, XYZ[0][i], XYZ[0][0], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, pt, v, a, t_count);
+					last_count2 = std::max(t_count, last_count2);
+					//------y轴做出一定的偏移，此处为加
+					aris::plan::moveAbsolute(0, XYZ[1][0], pq_switch2[1], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, pt, v, a, t_count);
+					last_count2 = std::max(t_count, last_count2);
+					//cout << "last_count2:    " << last_count2 << endl;
+
+
+
+					for (int j = 0; j < last_count2; j++)
+					{
+						aris::plan::moveAbsolute(j, XYZ[0][i], XYZ[0][0], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, pt, v, a, t_count);
+						pq_move[0] = pt;
+						aris::plan::moveAbsolute(j, XYZ[1][0], pq_switch2[1], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, pt, v, a, t_count);
+						pq_move[1] = pt;				
+						for (int k = 0; k < 7; k++)
+						{
+							pq[k].push_back(pq_move[k]);
+						}
+					}
+					//以下完成下降过程
+					//---------定义平动过程中的pq中间值变量，定义为pq_down
+					//---------pq_down中赋值为0的地方就是过程中需要变化的值
+					double pq_down[7] = { XYZ[0][0] ,XYZ[1][0] + lateral_step, 0.0, 0.0, 0.0, 0.0, 0.0 };
+
+
+					for (int j = 2; j < 7; j++)
+					{
+						aris::plan::moveAbsolute(0, pq_switch2[j], pq_switch3[j], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, pt, v, a, t_count);
+						last_count3 = std::max(t_count, last_count3);
+					}
+					//cout << "last_count3:    " << last_count3 << endl;
+
+
+					for (int j = 0; j < last_count3; j++)
+					{
+						for (int s = 2; s < 7; s++)
+						{
+							aris::plan::moveAbsolute(j, pq_switch2[s], pq_switch3[s], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, pt, v, a, t_count);
+							pq_down[s] = pt;
+						}
+						
+						for (int k = 0; k < 7; k++)
+						{
+							pq[k].push_back(pq_down[k]);
+						}
+					}
+					i = -1;//因为循环重复有个i++的过程，所以如果此处令i=0,那么再次循环的时候i=1开始的
+					loop_count = loop_count + 1;
+					if (loop_count == loop_total)
+					{
+						i = run_time * 1000;//停止循环
+					}
+
+					y0 = y0 + lateral_step;
+					xa = x0;
+					for (int j = 0; j < 3; j++)
+					{
+						XYZ[j].clear();
+					}
+
+				}
+
 			}
 		}
 		std::cout << "pq[0][0]" << pq[0][0] << "    " << "pq[1][0]" << pq[1][0] << "    " << "pq[2][0]" << pq[2][0] << "pq[3][0]" << pq[3][0] << "    " << "pq[4][0]" << pq[4][0] << "    " << "pq[5][0]" << pq[5][0] << "    " << "pq[6][0]" << pq[6][0] << std::endl;
@@ -1331,7 +1447,7 @@ auto load_pq10()->void
 		for (int k = 0; k < pq[0].size(); k++)
 		{
 			outfile << pq[0][k] << "   " << pq[1][k] << "  " << pq[2][k] << "  " << pq[3][k] << "    " << pq[4][k] << "    " << pq[5][k] << "    " << pq[6][k] << std::endl;
-			cout << "success outfile " << endl;
+			//cout << "success outfile " << endl;
 		}
 		outfile.close();
 
@@ -1597,7 +1713,7 @@ auto FMovePath::prepairNrt(const std::map<std::string, std::string> &params, Pla
 		//for (int k = 0; k < POS[0].size(); k++)
 	{
 		outfile << pq_real[0][k] << "  " << pq_real[1][k] << "  " << pq_real[2][k] << "  " << pq_real[3][k] << "  " << pq_real[4][k] << "  " << pq_real[5][k] << "  " << pq_real[6][k]<< endl;
-		cout << "success outfile " << endl;
+		//cout << "success outfile " << endl;
 		//cout << data[k][0] << " " << data[k][1] << endl;
 	}
 	outfile.close();

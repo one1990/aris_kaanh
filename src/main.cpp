@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
 		cs.model().generalMotionPool()[0].makI().fatherPart(),
 		pe);
 
-	pe[0] += 0.3;
+	pe[0] += 0.1  ;
 	cs.model().generalMotionPool()[0].makI().setPrtPe(pe);
 	cs.model().generalMotionPool()[0].makJ();
 
