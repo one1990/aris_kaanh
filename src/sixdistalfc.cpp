@@ -329,19 +329,6 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 				   dX[i] = dX[i]+ BaseV[i];
 
 
-				double pe[6];
-				target.model->generalMotionPool()[0].makI().getPe(
-					target.model->generalMotionPool()[0].makI().fatherPart(), 
-					pe);
-
-				pe[0] += 0.0;
-
-				target.model->generalMotionPool()[0].makI().setPrtPe(pe);
-				target.model->generalMotionPool()[0].makJ();
-
-
-
-
 				auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(target.model->solverPool()[1]);
 				fwd.cptJacobi();
 				double pinv[36];
@@ -610,6 +597,191 @@ MoveDistal::MoveDistal(const std::string &name) :Plan(name)
 		"</mvDistal>");
 }
 
+
+
+struct SetToolParam
+{
+	double period;
+	double amplitude;
+
+};
+auto SetTool::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+{
+	SetToolParam param;
+
+	for (auto &p : params)
+	{
+		if (p.first == "period")
+			param.period = std::stod(p.second);
+		if (p.first == "amplitude")
+			param.amplitude = std::stod(p.second);
+
+	}
+
+	target.param = param;
+
+	target.option |=
+		Plan::USE_TARGET_POS |
+		//#ifdef WIN32
+		Plan::NOT_CHECK_POS_MIN |
+		Plan::NOT_CHECK_POS_MAX |
+		Plan::NOT_CHECK_POS_CONTINUOUS |
+		Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
+		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
+		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
+		Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
+		//#endif
+		Plan::NOT_CHECK_VEL_MIN |
+		Plan::NOT_CHECK_VEL_MAX |
+		Plan::NOT_CHECK_VEL_CONTINUOUS |
+		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
+		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+
+	
+	
+}
+auto SetTool::executeRT(PlanTarget &target)->int
+{
+	auto &param = std::any_cast<SetToolParam&>(target.param);
+
+
+	double TransMatrix[6][12] = { { -0.6492,0.2770,0.7084,-0.2863,0.7738,-0.5650,-0.7046,-0.5697,-0.4231,1028.29,233.29,1432.98},
+	{-0.8469, 0.1182, 0.5184, 0.4204, 0.7458, 0.5168, -0.3256, 0.6556, -0.6813,1118.69,-231.99,1478.85},
+	{-0.8680, -0.0425, 0.4947, -0.0744, 0.9962, -0.0451, -0.4909, -0.0759, -0.8679,1129.45,25,1564},
+	{-0.5835, 0.0035, 0.8121, 0.0020, 1.0000, -0.0028, -0.8121, 0.0000, -0.5835,983.98,0.39,1502.31},
+	{ -0.5835, 0.0035, 0.8121, 0.0020, 1.0000, -0.0028, -0.8121, 0.0000, -0.5835,605.47,0.39,1502.31},
+	{ -0.5835, 0.0035, 0.8121, 0.0020, 1.0000, -0.0028, -0.8121, 0.0000, -0.5835,983.98,0.39,1122.24}};
+	double Atemp[5][9],Btemp[5][3];
+	
+	//target.model->generalMotionPool().at(0).getMpm(TransVector);
+	for (int i = 0;i < 5;i++)
+		for(int j=0;j<9;j++)
+			Atemp[i][j] = TransMatrix[i][j] - TransMatrix[i+1][j];
+	
+	double L[3][3] = { 0 };
+	for (int i = 0;i < 5;i++)
+	{
+		for (int m = 0;m < 3;m++)
+			for (int n = 0;n < 3;n++)
+				for (int j = 0;j < 3;j++)
+				L[m][n] = L[m][n] + Atemp[i][j+3*m] * Atemp[i][j*3 + n];
+	}
+
+	for (int i = 0;i < 5;i++)
+		for (int j = 0;j < 3;j++)
+			Btemp[i][j] = TransMatrix[i + 1][j + 9] - TransMatrix[i][j + 9];
+
+	double R[3] = { 0 };
+	for (int i = 0;i < 5;i++)
+	{
+		for (int m = 0;m < 3;m++)
+				for (int j = 0;j < 3;j++)
+					R[m] = R[m] + Atemp[i][j + 3 * m] * Btemp[i][j];
+	}
+
+	// Pinv(L)*R,求取位置偏移Epos
+	double Lvec[9];
+	for(int i=0;i<3;i++)
+		for (int j = 0;j < 3;j++)
+			Lvec[i * 3 + j] = L[i][j];
+		
+	double U[9], tau[3], pinv[9], Epos[3];
+	aris::Size p[3];
+	aris::Size rank;
+
+	// 根据 A 求出中间变量，相当于做 QR 分解 //
+	// 请对 U 的对角线元素做处理
+	s_householder_utp(3, 3, Lvec, U, tau, p, rank, 1e-10);
+	
+	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A) //
+	double tau2[3];
+	s_householder_utp2pinv(3, 3, rank, U, tau, p, pinv, tau2, 1e-10);
+
+	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A)*b //
+	s_mm(3, 1, 3, pinv, R, Epos);
+
+	// 求取姿态偏移矩阵Epos
+	double Trans4[9] = { -0.5835, 0.0035, 0.8121, 0.0020, 1.0000, -0.0028, -0.8121, 0.0000, -0.5835 };
+	double Dis4[3] = { 983.98,0.39,1502.31 };
+	double Dis5[3] = { 605.47,0.39,1502.31 };
+	double Dis6[3] = { 983.98,0.39,1122.24 };
+	double x1[3], x2[3],x12[3];
+	s_mm(3, 1, 3, Trans4, Epos, x1);
+	for (int i = 0;i < 3;i++)
+		x1[i] = x1[i] + Dis4[i];
+	s_mm(3, 1, 3, Trans4, Epos, x2);
+	for (int i = 0;i < 3;i++)
+		x2[i] = x2[i] + Dis5[i];
+
+	//计算X方向的方向余弦
+	double norm_x12 = 0,n_TE[3];
+	for (int i = 0;i < 3;i++)
+	{
+        x12[i] = x2[i] - x1[i];
+		norm_x12 = norm_x12 + x12[i] * x12[i];
+	}
+	norm_x12 = sqrt(norm_x12);
+	for (int i = 0;i < 3;i++)
+	{
+		x12[i] = x12[i] / norm_x12;
+	}
+	// 根据 A 求出中间变量，相当于做 QR 分解 //
+	s_householder_utp(3, 3, Trans4, U, tau, p, rank, 1e-10);
+
+	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A) //
+	s_householder_utp2pinv(3, 3, rank, U, tau, p, pinv, tau2, 1e-10);
+
+	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A)*b //
+	s_mm(3, 1, 3, pinv, x12, n_TE);
+
+	//计算Z方向的方向余弦
+	s_mm(3, 1, 3, Trans4, Epos, x2);
+	for (int i = 0;i < 3;i++)
+		x2[i] = x2[i] + Dis6[i];
+	double a_TE[3];
+	for (int i = 0;i < 3;i++)
+	{
+		x12[i] = x2[i] - x1[i];
+		norm_x12 = norm_x12 + x12[i] * x12[i];
+	}
+	norm_x12 = sqrt(norm_x12);
+	for (int i = 0;i < 3;i++)
+	{
+		x12[i] = x12[i] / norm_x12;
+	}
+	// 根据 A 求出中间变量，相当于做 QR 分解 //
+	s_householder_utp(3, 3, Trans4, U, tau, p, rank, 1e-10);
+
+	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A) //
+	s_householder_utp2pinv(3, 3, rank, U, tau, p, pinv, tau2, 1e-10);
+
+	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A)*b //
+	s_mm(3, 1, 3, pinv, x12, a_TE);
+
+	//计算Y方向的方向余弦
+	double o_TE[3];
+	crossVector(a_TE, n_TE, o_TE);
+	return 10 - target.count;
+}
+
+auto SetTool::collectNrt(aris::plan::PlanTarget &target)->void
+{
+
+	sixDistalMatrix.RLS(PositionList, SensorList, estParas);
+	double a = 3;
+}
+
+
+SetTool::SetTool(const std::string &name) :Plan(name)
+{
+	command().loadXmlStr(
+		"<STool>"
+		"	<group type=\"GroupParam\" default_child_type=\"Param\">"
+		"		<period default=\"1.0\" abbreviation=\"p\"/>"
+		"		<amplitude default=\"0.2\" abbreviation=\"a\"/>"
+		"	</group>"
+		"</STool>");
+}
 
 
 
