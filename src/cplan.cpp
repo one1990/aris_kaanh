@@ -441,7 +441,7 @@ MoveFile::MoveFile(const std::string &name) :Plan(name)
 
 struct RemoveFileParam
 {
-
+	int memo;//内存，单位为MB兆
 	string filePath;
 };
 
@@ -449,7 +449,7 @@ auto RemoveFile::prepairNrt(const std::map<std::string, std::string> &params, Pl
 {
 	RemoveFileParam p;
 
-	
+	p.memo= std::stoi(params.at("memo"));
 	p.filePath = params.at("filePath"); 
 	//p.filePath = "C:/Users/qianch_kaanh_cn/Desktop/myplan/src/rokae/";
 
@@ -470,7 +470,9 @@ auto RemoveFile::prepairNrt(const std::map<std::string, std::string> &params, Pl
 		<< "/log:   " << devi.capacity << "   "
 		<< devi.free << "   " << devi.available << '\n';
 	//如果可用内存小于40g;
-    if (devi.available < 10737418240 * 4)
+	//devi.available以byte为单位
+	if (devi.available < 1048576 * p.memo)
+   // if (devi.available < 10737418240 * 4)
 	{
         std::cout<<files[0].size()<<"  ";
         std::cout<<files[0].substr(72)<<"  ";
@@ -512,6 +514,7 @@ RemoveFile::RemoveFile(const std::string &name) :Plan(name)
 		"<rmFi>"
 		"	<group type=\"GroupParam\" default_child_type=\"Param\">"
 		"	    <filePath type=\"Param\" default=\"C:/Users/qianch_kaanh_cn/Desktop/build_qianch/log/\" abbreviation=\"f\" />"  
+		"	    <memo type=\"Param\" default=\"40\" abbreviation=\"m\" />"
 		"	</group>"
 		"</rmFi>");
 }
