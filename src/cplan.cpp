@@ -441,35 +441,40 @@ MoveFile::MoveFile(const std::string &name) :Plan(name)
 
 struct RemoveFileParam
 {
-//	int total_time;
+
+	string filePath;
 };
 
 auto RemoveFile::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 {
 	RemoveFileParam p;
-	//p.total_time = std::stoi(params.at("total_time"));
+
 	
-	string filePath = "C:/Users/qianch_kaanh_cn/Desktop/myplan/src/rokae/" ;
+	p.filePath = params.at("filePath"); 
+	//p.filePath = "C:/Users/qianch_kaanh_cn/Desktop/myplan/src/rokae/";
+
+
 
     //string filePath = "/home/kaanh/Desktop/build-kaanh-Desktop_Qt_5_11_2_GCC_64bit-Default/log/";//自己设置目录
     
 	//char * filePath = "/home/kaanh/Desktop/build-kaanh-Desktop_Qt_5_11_2_GCC_64bit-Default/log/";//自己设置目录
-    
+	
 	//string filePath = "C:/Users/qianch_kaanh_cn/Desktop/build_qianch/log/";
 	vector<string> files;
 	//获取该路径下的所有文件  
     files.clear();
-	getFiles2(filePath, files);
+	getFiles2(p.filePath, files);
 
 	std::filesystem::space_info devi = std::filesystem::space("log");
 	std::cout << ".        Capacity       Free      Available\n"
 		<< "/log:   " << devi.capacity << "   "
 		<< devi.free << "   " << devi.available << '\n';
-	//如果可用内存小于10g;
+	//如果可用内存小于40g;
     if (devi.available < 10737418240 * 4)
 	{
         std::cout<<files[0].size()<<"  ";
         std::cout<<files[0].substr(72)<<"  ";
+		//移除前三十个文件；
         for (int i = 0; i < 30; i++)
 		{
             std::filesystem::remove(files[i]);
@@ -494,19 +499,19 @@ auto RemoveFile::prepairNrt(const std::map<std::string, std::string> &params, Pl
 auto RemoveFile::executeRT(PlanTarget &target)->int
 {
 	auto controller = dynamic_cast<aris::control::EthercatController *>(target.master);
-    std::cout<<"before"<<std::endl;
-    auto &p = std::any_cast<MoveFileParam&>(target.param);
-    std::cout<<"after"<<std::endl;
-
+	std::cout << "before" << std::endl;
+	auto &p = std::any_cast<MoveFileParam&>(target.param);
+	std::cout << "after" << std::endl;
 	return 0;
 }
+
 
 RemoveFile::RemoveFile(const std::string &name) :Plan(name)
 {
 	command().loadXmlStr(
 		"<rmFi>"
 		"	<group type=\"GroupParam\" default_child_type=\"Param\">"
-		"	    <total_time type=\"Param\" default=\"5000\"/>" // 默认5000	   
+		"	    <filePath type=\"Param\" default=\"C:/Users/qianch_kaanh_cn/Desktop/build_qianch/log/\" abbreviation=\"f\" />"  
 		"	</group>"
 		"</rmFi>");
 }
