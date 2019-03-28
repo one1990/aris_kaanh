@@ -2823,13 +2823,13 @@ namespace kaanh
 		plan_root->planPool().add<kaanh::MoveEA>();
 		plan_root->planPool().add<kaanh::MoveEAP>();
 		plan_root->planPool().add<kaanh::FSSignal>();
-		plan_root->planPool().add<MoveCircle>();
-		plan_root->planPool().add<MoveTroute>();
-		plan_root->planPool().add<MoveFile>();
-		plan_root->planPool().add<RemoveFile>();
-		plan_root->planPool().add<MoveinModel>();
-		plan_root->planPool().add<FMovePath>();
-		plan_root->planPool().add<OpenFile>();
+        plan_root->planPool().add<cplan::MoveCircle>();
+        plan_root->planPool().add<cplan::MoveTroute>();
+        plan_root->planPool().add<cplan::MoveFile>();
+        plan_root->planPool().add<cplan::RemoveFile>();
+        plan_root->planPool().add<cplan::MoveinModel>();
+        plan_root->planPool().add<cplan::FMovePath>();
+        plan_root->planPool().add<cplan::OpenFile>();
 
 	/*	auto &dm1 = plan_root->planPool().add<aris::plan::MoveJ>();
 		dm1.command().findByName("group")->findByName("unique_pos")->findByName("pq")->loadXmlStr("<pq default=\"{0.444,-0,0.562,0.642890516,0.000011540,0.765958083,-0.000008196}\"/>");

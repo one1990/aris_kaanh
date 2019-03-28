@@ -3549,7 +3549,7 @@ namespace forcecontrol
 				}
 				else if (which_func == 2)
 				{
-					func[1] = load_pq2;
+                    func[1] = cplan::load_pq2;
 					one_time_counter = true;
 				}
 				else if (which_func == 3)
@@ -3559,7 +3559,7 @@ namespace forcecontrol
 				}
 				else if (which_func == 7)
 				{
-					func[1] = load_pq7;
+                    func[1] = cplan::load_pq7;
 					one_time_counter = true;
 				}
 			}
