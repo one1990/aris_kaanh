@@ -83,6 +83,11 @@ public:
 	explicit MoveLPolish(const std::string &name = "MoveLPolish_plan");
 };
 
-
+class OpenFile : public aris::plan::Plan
+{
+public:
+	auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+	explicit OpenFile(const std::string &name = "OpenFile");
+};
 
 #endif
