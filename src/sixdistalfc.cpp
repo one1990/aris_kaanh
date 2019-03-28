@@ -742,27 +742,287 @@ SetTool::SetTool(const std::string &name) :Plan(name)
 
 
 
+struct MovePressureParam
+{
+	double PressF;
+	
 
-/*
+};
+
 auto MovePressure::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 {
-    MoveCParam p;
+	MovePressureParam param;
+	for (auto &p : params)
+	{
+		if (p.first == "PressF")
+			param.PressF = std::stod(p.second);
+
+	}
+
+	target.param = param;
+
+	target.option |=
+		Plan::USE_TARGET_POS |
+		//#ifdef WIN32
+		Plan::NOT_CHECK_POS_MIN |
+		Plan::NOT_CHECK_POS_MAX |
+		Plan::NOT_CHECK_POS_CONTINUOUS |
+		Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
+		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
+		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
+		Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
+		//#endif
+		Plan::NOT_CHECK_VEL_MIN |
+		Plan::NOT_CHECK_VEL_MAX |
+		Plan::NOT_CHECK_VEL_CONTINUOUS |
+		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
+		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+
+
+
    
 }
 auto MovePressure::executeRT(PlanTarget &target)->int
 {
+	auto &param = std::any_cast<MoveXYZParam&>(target.param);
+
+	double RobotPosition[6];
+	double RobotPositionJ[6];
+	double RobotVelocity[6];
+	double RobotAcceleration[6];
+	double TorqueSensor[6];
+	double X1[3];
+	double X2[3];
+	static double begin_pjs[6];
+	static double step_pjs[6];
+	static double stateTor0[6][3], stateTor1[6][3];
+	static float FT0[6];
+
+	// 访问主站 //
+	auto controller = dynamic_cast<aris::control::Controller*>(target.master);
+
+	// 获取当前起始点位置 //
+	if (target.count == 1)
+	{
+		for (int i = 0; i < 6; ++i)
+		{
+			step_pjs[i] = target.model->motionPool()[i].mp();
+			// controller->motionPool().at(i).setModeOfOperation(10);	//切换到电流控制
+		}
+	}
+
+
+	if (!target.model->solverPool().at(1).kinPos())return -1;
+
+
+	///* Using Jacobian, TransMatrix from ARIS
+	double EndW[3], EndP[3], BaseV[3];
+	double PqEnd[7], TransVector[16];
+	target.model->generalMotionPool().at(0).getMpm(TransVector);
+	target.model->generalMotionPool().at(0).getMpq(PqEnd);
+
+	double dX[6] = { 0.00001, -0.0000, -0.0000, -0.0000, -0.0000, -0.0000 };
+	double dTheta[6] = { 0 };
+
+	float FT[6];
+	uint16_t FTnum;
+	auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.master);
+	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x00, &FTnum, 16);
+	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x01, &FT[0], 32);  //Fx
+	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x02, &FT[1], 32);  //Fy
+	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x03, &FT[2], 32);  //Fz
+	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x04, &FT[3], 32);
+	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x05, &FT[4], 32);
+	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x06, &FT[5], 32);
+
+	
+	for (int i = 0;i < 6;i++)
+	{
+		RobotPositionJ[i] = target.model->motionPool()[i].mp();
+		RobotPosition[i] = target.model->motionPool()[i].mp();
+		RobotVelocity[i] = 0;
+		RobotAcceleration[i] = 0;
+		TorqueSensor[i] = FT[i];
+	}
+
+
+	// 获取当前起始点位置 //
+	if (target.count == 1)
+	{
+		for (int j = 0; j < 6; j++)
+		{
+			stateTor0[j][0] = FT[j];
+			FT0[j] = FT[j];
+		}
+	}
+
+	
+
+	for (int j = 0; j < 6; j++)
+	{
+		double A[3][3], B[3], CutFreq = 10;
+		A[0][0] = 0; A[0][1] = 1; A[0][2] = 0;
+		A[1][0] = 0; A[1][1] = 0; A[1][2] = 1;
+		A[2][0] = -CutFreq * CutFreq * CutFreq;
+		A[2][1] = -2 * CutFreq * CutFreq;
+		A[2][2] = -2 * CutFreq;
+		B[0] = 0; B[1] = 0;
+		B[2] = -A[2][0];
+		double intDT = 0.001;
+		stateTor1[j][0] = stateTor0[j][0] + intDT * (A[0][0] * stateTor0[j][0] + A[0][1] * stateTor0[j][1] + A[0][2] * stateTor0[j][2] + B[0] * FT[j]);
+		stateTor1[j][1] = stateTor0[j][1] + intDT * (A[1][0] * stateTor0[j][0] + A[1][1] * stateTor0[j][1] + A[1][2] * stateTor0[j][2] + B[1] * FT[j]);
+		stateTor1[j][2] = stateTor0[j][2] + intDT * (A[2][0] * stateTor0[j][0] + A[2][1] * stateTor0[j][1] + A[2][2] * stateTor0[j][2] + B[2] * FT[j]);
+	}
+
+	/*
+	for (int i = 0; i < 6; i++)
+	{
+		FT[i] = stateTor1[i][0] - FT0[i];
+	}*/
+
+	dX[2] = 1 * (stateTor1[2][0] - FT0[2]) / 80000;
+
+
+	if (target.count % 100 == 0)
+	{
+		for (int i = 0; i < 6; i++)
+		{
+			cout << stateTor1[i][0] << "***" << FT[i] << endl;
+
+		}
+
+		cout << std::endl;
+
+	}
+
+
+	for (int j = 0; j < 6; j++)
+	{
+		if (dX[j] > 0.00025)
+			dX[j] = 0.00025;
+		if (dX[j] < -0.00025)
+			dX[j] = -0.00025;
+	}
+
+
+	// 打印电流 //
+	auto &cout = controller->mout();
+
+	// log 电流 //
+	auto &lout = controller->lout();
+
+	// lout << target.model->motionPool()[0].mp() << ",";
+	 //lout << target.model->motionPool()[1].mp() << ",";
+	 //lout << target.model->motionPool()[2].mp() << ",";
+	 //lout << target.model->motionPool()[3].mp() << ",";
+	 //lout << target.model->motionPool()[4].mp() << ",";
+	 //lout << target.model->motionPool()[5].mp() << ",";
+
+
+	lout << FT[1] << ",";lout << FT[2] << ",";
+	lout << FT[3] << ",";lout << FT[4] << ",";
+	lout << FT[5] << ",";lout << FT[6] << ",";
+	lout << stateTor0[0][0] << ",";lout << stateTor0[1][0] << ",";
+	lout << stateTor0[2][0] << ",";lout << stateTor0[3][0] << ",";
+	lout << stateTor0[4][0] << ",";lout << stateTor0[5][0] << ",";
+
+	//lout << stateTor1[2][0] << ",";lout << FT0[3] << ",";
+   // lout << dX[0] << ",";
+
+   // lout << dX[0] << ",";
+   // lout << FT[1] << ",";lout << FT[2] << ",";
+   // lout << FT[3] << ",";lout << FT[4] << ",";
+   // lout << FT[5] << ",";lout << FT[6] << ",";
+	lout << std::endl;
+
+
+
+	///* Using Jacobian, TransMatrix from ARIS
+	for (int i = 0;i < 3;i++)
+		EndW[i] = dX[i + 3];
+
+	for (int i = 0;i < 3;i++)
+		EndP[i] = PqEnd[i];
+	crossVector(EndP, EndW, BaseV);
+
+	for (int i = 0;i < 3;i++)
+		dX[i + 3] = dX[i + 3];
+	for (int i = 0;i < 3;i++)
+		dX[i] = dX[i] + BaseV[i];
+
+
+	auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(target.model->solverPool()[1]);
+	fwd.cptJacobi();
+	double pinv[36];
+
+	// 所需的中间变量，请对U的对角线元素做处理
+	double U[36], tau[6];
+	aris::Size p[6];
+	aris::Size rank;
+
+	// 根据 A 求出中间变量，相当于做 QR 分解 //
+	// 请对 U 的对角线元素做处理
+	s_householder_utp(6, 6, fwd.Jf(), U, tau, p, rank, 1e-10);
+	for (int i = 0;i < 6;i++)
+		if (U[7 * i] >= 0)
+			U[7 * i] = U[7 * i] + 0.1;
+		else
+			U[7 * i] = U[7 * i] - 0.1;
+	// 根据QR分解的结果求x，相当于Matlab中的 x = A\b //
+	s_householder_utp_sov(6, 6, 1, rank, U, tau, p, dX, dTheta, 1e-10);
+
+	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A) //
+	double tau2[6];
+	s_householder_utp2pinv(6, 6, rank, U, tau, p, pinv, tau2, 1e-10);
+
+	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A)*b //
+	s_mm(6, 1, 6, pinv, dX, dTheta);
+
+
+
+	for (int i = 0; i < 6; i++)
+	{
+		if (dTheta[i] > 0.003)
+			dTheta[i] = 0.003;
+		if (dTheta[i] < -0.003)
+			dTheta[i] = -0.003;
+		//lout << dTheta[i] << ",";
+	}
+
+
+	//lout << std::endl;
+	for (int i = 0; i < 6; i++)
+	{
+		dTheta[i] = dTheta[i] * DirectionFlag[i];
+
+	}
+
+	for (int i = 0; i < 6; i++)
+	{
+		step_pjs[i] = step_pjs[i] + dTheta[i];
+		target.model->motionPool().at(i).setMp(step_pjs[i]);
+	}
+
+
+
+	for (int i = 0; i < 6; i++)
+	{
+
+		stateTor0[i][0] = stateTor1[i][0];
+		stateTor0[i][1] = stateTor1[i][1];
+		stateTor0[i][2] = stateTor1[i][2];
+	}
+
+	return 150000000 - target.count;
    
 }
 
 MovePressure::MovePressure(const std::string &name) :Plan(name)
     {
         command().loadXmlStr(
-            "<mvEE>"
+            "<mvPre>"
             "	<group type=\"GroupParam\">"
-            "	    <total_time type=\"Param\" default=\"5000\"/>" //默认5000
-            "       <radius type=\"Param\" default=\"0.01\"/>"
-            "       <detal type=\"Param\" default=\"0.1/5000\"/>"//5秒走10cm
+            "       <PressF type=\"Param\" default=\"0\"/>"
             "   </group>"
-            "</mvEE>");
+            "</mvPre>");
     }
-	*/

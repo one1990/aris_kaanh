@@ -3248,6 +3248,7 @@ namespace kaanh
 		plan_root->planPool().add<MoveXYZ>();
 		plan_root->planPool().add<MoveDistal>();
 		plan_root->planPool().add<SetTool>();
+		plan_root->planPool().add<MovePressure>();
 		//plan_root->planPool().add<plPQ>();
 
 	/*	auto &dm1 = plan_root->planPool().add<aris::plan::MoveJ>();
