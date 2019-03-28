@@ -31,7 +31,7 @@ auto MoveCircle::prepairNrt(const std::map<std::string, std::string> &params, Pl
 }
 auto MoveCircle::executeRT(PlanTarget &target)->int
 {
-    auto controller = dynamic_cast<aris::control::EthercatController *>(target.master);
+    auto controller = dynamic_cast<aris::control::EthercatController *>(target.controller);
     auto &p = std::any_cast<MoveCParam&>(target.param);
 
     static double beginpq[7];
@@ -48,24 +48,24 @@ auto MoveCircle::executeRT(PlanTarget &target)->int
     double theta = 1.0*(1 - std::cos(1.0*target.count / p.total_time * 1 * aris::PI));
     pq[1] = beginpq[1] + p.radius*(std::cos(-aris::PI/2+1.0* theta * 5 * 2 * aris::PI)) + p.detal * theta * 5000;//Y轴，水平轴,走完5个圆
     pq[2] = beginpq[2] + p.radius*(std::sin(-aris::PI/2+1.0*theta * 5 * 2 * aris::PI)) + p.radius;//Z轴竖直轴
-    if(target.count %500 ==0)target.master->mout()<< pq[1] <<"  "<<pq[2]<< std::endl;
+    if(target.count %500 ==0)target.controller->mout()<< pq[1] <<"  "<<pq[2]<< std::endl;
     //将变量的值赋值给model中模型的末端位置
     target.model->generalMotionPool()[0].setMpq(pq);
     //求运动学反解需要调用求解器solverpool，0是反解，1是正解，kinPos是位置反解，kinVel是速度反解
-    if(target.model->solverPool()[0].kinPos() == 0 && target.count %500 ==0)target.master->mout()<< "kin failed"<<std::endl;
+    if(target.model->solverPool()[0].kinPos() == 0 && target.count %500 ==0)target.controller->mout()<< "kin failed"<<std::endl;
     return p.total_time - target.count;
 }
 
 MoveCircle::MoveCircle(const std::string &name) :Plan(name)
     {
         command().loadXmlStr(
-            "<mvEE>"
-            "	<group type=\"GroupParam\">"
-            "	    <total_time type=\"Param\" default=\"5000\"/>" //默认5000
-            "       <radius type=\"Param\" default=\"0.01\"/>"
-            "       <detal type=\"Param\" default=\"0.1/5000\"/>"//5秒走10cm
-            "   </group>"
-            "</mvEE>");
+            "<Command name=\"mvEE\">"
+            "	<GroupParam>"
+            "	    <Param name=\"total_time\" default=\"5000\"/>" //默认5000
+            "       <Param name=\"radius\" default=\"0.01\"/>"
+            "       <Param name=\"detal\" default=\"0.1/5000\"/>"//5秒走10cm
+            "   </GroupParam>"
+            "</Command>");
     }
 
 
@@ -99,7 +99,7 @@ auto MoveTroute::prepairNrt(const std::map<std::string, std::string> &params, Pl
 }
 auto MoveTroute::executeRT(PlanTarget &target)->int
 {
-	auto controller = dynamic_cast<aris::control::EthercatController *>(target.master);
+	auto controller = dynamic_cast<aris::control::EthercatController *>(target.controller);
 	auto &p = std::any_cast<MoveTParam&>(target.param);
 	double pt, v, a;
 	aris::Size t_count;
@@ -117,15 +117,15 @@ auto MoveTroute::executeRT(PlanTarget &target)->int
 MoveTroute::MoveTroute(const std::string &name) :Plan(name)
 {
 	command().loadXmlStr(
-		"<mvTT>"
-		"	<group type=\"GroupParam\" default_child_type=\"Param\">"
-		"	    <total_time type=\"Param\" default=\"5000\"/>" //默认5000
-		"		<pt type=\"Param\" default=\"0.1\"/>"
-		"		<vel type=\"Param\" default=\"0.04\"/>"
-		"		<acc type=\"Param\" default=\"0.08\"/>"
-		"		<dec type=\"Param\" default=\"0.08\"/>"
-		"	</group>"
-		"</mvTT>");
+		"<Command name=\"mvTT\">"
+		"	<GroupParam>"
+		"	    <Param name=\"total_time\" default=\"5000\"/>" //默认5000
+		"		<Param name=\"pt\" default=\"0.1\"/>"
+		"		<Param name=\"vel\" default=\"0.04\"/>"
+		"		<Param name=\"acc\" default=\"0.08\"/>"
+		"		<Param name=\"dec\" default=\"0.08\"/>"
+		"	</GroupParam>"
+		"</Command>");
 }
 
 
@@ -347,7 +347,7 @@ auto MoveFile::prepairNrt(const std::map<std::string, std::string> &params, Plan
 /// @return 返回值为空
 auto MoveFile::executeRT(PlanTarget &target)->int
 {
-	auto controller = dynamic_cast<aris::control::EthercatController *>(target.master);
+	auto controller = dynamic_cast<aris::control::EthercatController *>(target.controller);
 	auto &p = std::any_cast<MoveFileParam&>(target.param);
 	double ptt, v, a;
 	aris::Size t_count;
@@ -421,19 +421,19 @@ auto MoveFile::executeRT(PlanTarget &target)->int
 MoveFile::MoveFile(const std::string &name) :Plan(name)
     {
         command().loadXmlStr(
-            "<mvFi>"
-            "	<group type=\"GroupParam\" default_child_type=\"Param\">"
-            "	    <total_time type=\"Param\" default=\"5000\"/>" // 默认5000
+            "<Command name=\"mvFi\">"
+            "	<GroupParam>"
+            "	    <Param name=\"total_time\" default=\"5000\"/>" // 默认5000
            // "		<m type=\"Param\" default=\"59815\"/>"  // 行数
             //"		<n type=\"Param\" default=\"24\"/>"
-            "		<vel type=\"Param\" default=\"0.04\"/>"
-            "		<acc type=\"Param\" default=\"0.08\"/>"
-            "		<dec type=\"Param\" default=\"0.08\"/>"
-            "		<choose type=\"Param\" default=\"0\"/>"
-            "		<pt type=\"Param\" default=\"{0.0,0.0,0.0,0.0,0.0,0.0}\"/>"
-			"		<file type=\"Param\" default=\"1.txt\" abbreviation=\"f\"/>"
-            "	</group>"
-            "</mvFi>");
+            "		<Param name=\"vel\" default=\"0.04\"/>"
+            "		<Param name=\"acc\" default=\"0.08\"/>"
+            "		<Param name=\"dec\" default=\"0.08\"/>"
+            "		<Param name=\"choose\" default=\"0\"/>"
+            "		<Param name=\"pt\" default=\"{0.0,0.0,0.0,0.0,0.0,0.0}\"/>"
+			"		<Param name=\"file\" default=\"1.txt\" abbreviation=\"f\"/>"
+            "	</GroupParam>"
+            "</Command>");
     }
 
 
@@ -507,6 +507,7 @@ auto RemoveFile::executeRT(PlanTarget &target)->int
 	std::cout << "before" << std::endl;
 	auto &p = std::any_cast<MoveFileParam&>(target.param);
 	std::cout << "after" << std::endl;
+
 	return 0;
 }
 
@@ -514,12 +515,13 @@ auto RemoveFile::executeRT(PlanTarget &target)->int
 RemoveFile::RemoveFile(const std::string &name) :Plan(name)
 {
 	command().loadXmlStr(
-		"<rmFi>"
-		"	<group type=\"GroupParam\" default_child_type=\"Param\">"
-		"	    <filePath type=\"Param\" default=\"C:/Users/qianch_kaanh_cn/Desktop/build_qianch/log/\" abbreviation=\"f\" />"  
-		"	    <memo type=\"Param\" default=\"40\" abbreviation=\"m\" />"
-		"	</group>"
-		"</rmFi>");
+
+		"<Command name=\"rmFi\">"
+		"	<GroupParam>"
+		"	    <Param name=\"filePath\" default=\"C:/Users/qianch_kaanh_cn/Desktop/build_qianch/log/\" abbreviation=\"f\" />" 	
+    "	    <Param name=\"memo\" default=\"40\" abbreviation=\"m\" />"
+		"	</GroupParam>"
+		"</Command>");
 }
 
 
@@ -1590,7 +1592,7 @@ auto MoveinModel::prepairNrt(const std::map<std::string, std::string> &params, P
 
 auto MoveinModel::executeRT(PlanTarget &target)->int
 {
-	auto controller = dynamic_cast<aris::control::EthercatController *>(target.master);
+	auto controller = dynamic_cast<aris::control::EthercatController *>(target.controller);
 	auto &p = std::any_cast<MoveinModelParam&>(target.param);
 	
 	target.model->generalMotionPool().at(0).setMpq(p.pq_convert[target.count-1].data());
@@ -1619,10 +1621,10 @@ auto MoveinModel::executeRT(PlanTarget &target)->int
 MoveinModel::MoveinModel(const std::string &name) :Plan(name)
 {
 	command().loadXmlStr(
-		"<mvinmod>"
-		"	<group type=\"GroupParam\" default_child_type=\"Param\">"
-		"	</group>"
-		"</mvinmod>");
+		"<Command name=\"mvinmod\">"
+		"	<GroupParam>"
+		"	</GroupParam>"
+		"</Command>");
 }
 
 
@@ -1812,12 +1814,12 @@ auto FMovePath::prepairNrt(const std::map<std::string, std::string> &params, Pla
 FMovePath::FMovePath(const std::string &name):Plan(name)
 {
 	command().loadXmlStr(
-		"<FMovePath>"
-		"	<group type=\"GroupParam\" default_child_type=\"Param\">"
-		"			<pq default=\"{0.42,0.0,0.55,0,0,0,1}\"/>"
-		"			<runtime default=\"5\"/>"
-		"	</group>"
-		"</FMovePath>");
+		"<Command name=\"FMovePath\">"
+		"	<GroupParam>"
+		"			<Param name=\"pq\" default=\"{0.42,0.0,0.55,0,0,0,1}\"/>"
+		"			<Param name=\"runtime\" default=\"5\"/>"
+		"	</GroupParam>"
+		"</Command>");
 }
 
 
@@ -1947,14 +1949,14 @@ auto MoveLPolish::prepairNrt(const std::map<std::string, std::string> &params, P
 MoveLPolish::MoveLPolish(const std::string &name) :Plan(name)
 {
 	command().loadXmlStr(
-		"<mlpo>"
-		"	<group type=\"GroupParam\" default_child_type=\"Param\">"
-		"			<pq default=\"{0.42,0.0,0.55,0,0,0,1}\"/>"
-		"			<Point1 default=\"{0.0,0.0,0.0}\"/>"
-		"			<Point2 default=\"{0.1,0.1,0.1}\"/>"
-		"			<runtime default=\"5\"/>"
-		"	</group>"
-		"</mlpo>");
+		"<Command name=\"mlpo\">"
+		"	<GroupParam>"
+		"			<Param name=\"pq\" default=\"{0.42,0.0,0.55,0,0,0,1}\"/>"
+		"			<Param name=\"Point1\" default=\"{0.0,0.0,0.0}\"/>"
+		"			<Param name=\"Point2\" default=\"{0.1,0.1,0.1}\"/>"
+		"			<Param name=\"runtime\" default=\"5\"/>"
+		"	</GroupParam>"
+		"</Command>");
 }
 
 

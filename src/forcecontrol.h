@@ -3,10 +3,7 @@
 
 
 #include <memory>
-#include <aris_control.h>
-#include <aris_dynamic.h>
-#include <aris_plan.h>
-#include <tinyxml2.h>
+#include <aris.hpp>
 #include <atomic>
 #include"cplan.h"
 
