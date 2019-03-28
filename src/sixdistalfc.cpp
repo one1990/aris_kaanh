@@ -874,20 +874,20 @@ auto MovePressure::executeRT(PlanTarget &target)->int
 		stateTor1[j][2] = stateTor0[j][2] + intDT * (A[2][0] * stateTor0[j][0] + A[2][1] * stateTor0[j][1] + A[2][2] * stateTor0[j][2] + B[2] * FT[j]);
 	}
 
-	/*
+
 	for (int i = 0; i < 6; i++)
 	{
 		FT[i] = stateTor1[i][0] - FT0[i];
-	}*/
+    }
 
-	dX[2] = 1 * (stateTor1[2][0] - FT0[2]) / 80000;
+    dX[2] = 1 * FT[2] / 80000;
 
 
 	if (target.count % 100 == 0)
 	{
 		for (int i = 0; i < 6; i++)
 		{
-			cout << stateTor1[i][0] << "***" << FT[i] << endl;
+            cout << FT[i] << endl;
 
 		}
 
@@ -1000,7 +1000,7 @@ auto MovePressure::executeRT(PlanTarget &target)->int
 	for (int i = 0; i < 6; i++)
 	{
 		step_pjs[i] = step_pjs[i] + dTheta[i];
-		target.model->motionPool().at(i).setMp(step_pjs[i]);
+        //target.model->motionPool().at(i).setMp(step_pjs[i]);
 	}
 
 
