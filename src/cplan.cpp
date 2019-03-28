@@ -5,6 +5,10 @@ using namespace aris::plan;
 using namespace aris::dynamic;
 
 /// \brief
+namespace cplan
+{
+
+
 struct MoveCParam
 {
     int total_time;
@@ -503,7 +507,7 @@ auto RemoveFile::prepairNrt(const std::map<std::string, std::string> &params, Pl
 
 auto RemoveFile::executeRT(PlanTarget &target)->int
 {
-	auto controller = dynamic_cast<aris::control::EthercatController *>(target.master);
+    auto controller = dynamic_cast<aris::control::EthercatController *>(target.controller);
 	std::cout << "before" << std::endl;
 	auto &p = std::any_cast<MoveFileParam&>(target.param);
 	std::cout << "after" << std::endl;
@@ -519,7 +523,7 @@ RemoveFile::RemoveFile(const std::string &name) :Plan(name)
 		"<Command name=\"rmFi\">"
 		"	<GroupParam>"
 		"	    <Param name=\"filePath\" default=\"C:/Users/qianch_kaanh_cn/Desktop/build_qianch/log/\" abbreviation=\"f\" />" 	
-    "	    <Param name=\"memo\" default=\"40\" abbreviation=\"m\" />"
+        "	    <Param name=\"memo\" default=\"40\" abbreviation=\"m\" />"
 		"	</GroupParam>"
 		"</Command>");
 }
@@ -589,11 +593,11 @@ auto OpenFile::executeRT(PlanTarget &target)->int
 OpenFile::OpenFile(const std::string &name) :Plan(name)
 {
 	command().loadXmlStr(
-		"<opFi>"
-		"	<group type=\"GroupParam\" default_child_type=\"Param\">"
-		"	    <vn type=\"Param\" default=\"back\"/>" // 默认5000	   
-		"	</group>"
-		"</opFi>");
+        "<Command name=\"opFi\">"
+        "	<GroupParam>"
+        "	    <Param name=\"vn\" default=\"back\"/>"
+        "	</GroupParam>"
+        "</Command>");
 }
 
 
@@ -2238,4 +2242,5 @@ auto load_pq14()->void
 	outfile.close();
 
 
+}
 }
