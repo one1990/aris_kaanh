@@ -471,19 +471,22 @@ auto RemoveFile::prepairNrt(const std::map<std::string, std::string> &params, Pl
 		<< devi.free << "   " << devi.available << '\n';
 	//如果可用内存小于40g;
 	//devi.available以byte为单位
-	if (devi.available < 1048576 * p.memo)
-   // if (devi.available < 10737418240 * 4)
+	while (devi.available < 1048576 * p.memo)
 	{
-        std::cout<<files[0].size()<<"  ";
-        std::cout<<files[0].substr(72)<<"  ";
+		std::cout << files[0].size() << "  ";
+		std::cout << files[0].substr(72) << "  ";
 		//移除前三十个文件；
-        for (int i = 0; i < 30; i++)
+		for (int i = 0; i < 30; i++)
 		{
-            std::filesystem::remove(files[i]);
-            //std::cout<<"success123456";
-            std::cout<<files[0]<<"  ";
+			std::filesystem::remove(files[i]);
+			//std::cout<<"success123456";
+			std::cout << files[0] << "  ";
 		}
-	}
+	} 
+   // if (devi.available < 10737418240 * 4)
+	
+       
+	
 	//std::filesystem::remove(files[0]);
 	target.param = p;
 	target.option =
