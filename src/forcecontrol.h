@@ -3,10 +3,7 @@
 
 
 #include <memory>
-#include <aris_control.h>
-#include <aris_dynamic.h>
-#include <aris_plan.h>
-#include <tinyxml2.h>
+#include <aris.hpp>
 #include <atomic>
 #include"cplan.h"
 
@@ -33,8 +30,8 @@ namespace forcecontrol
     constexpr double ft_limit_JFB[6] = { 33,18,10,15,10,10 };
 	
     constexpr double fi_limit_PQB[6] = { 35,40,40,15,10,10 };
-    constexpr double vt_limit_PQB[6] = { 0.08,0.12,0.12,0.6,0.6,0.6 };
-    constexpr double vt_normv_limit = 0.13;
+    constexpr double vt_limit_PQB[6] = { 0.2,0.2,0.09,0.6,0.6,0.6 };
+    constexpr double vt_normv_limit = 0.3;
     constexpr double ft_limit_PQB[6] = { 35,40,40,15,10,10 };
 	constexpr double ft_limit_PQB_P[6] = { 35,40,40,15,10,10 };
 

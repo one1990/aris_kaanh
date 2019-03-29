@@ -19,7 +19,7 @@ namespace forcecontrol
 	static std::atomic_bool enable_moveJRC = true;
 	auto MoveJRC::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
-		auto c = dynamic_cast<aris::control::Controller*>(target.master);
+		auto c = target.controller;
 		MoveJRCParam param;
 		enable_moveJRC = true;
 		for (auto cmd_param : params)
@@ -109,7 +109,7 @@ namespace forcecontrol
 	auto MoveJRC::executeRT(PlanTarget &target)->int
 	{
 		auto &param = std::any_cast<MoveJRCParam&>(target.param);
-		auto controller = dynamic_cast<aris::control::Controller *>(target.master);
+		auto controller = target.controller;
         bool is_running{ true };
 		static double vinteg[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 		double pqa[7] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
@@ -334,90 +334,24 @@ namespace forcecontrol
 	MoveJRC::MoveJRC(const std::string &name) :Plan(name)
 	{
 		command().loadXmlStr(
-			"<moveJRC default_child_type=\"Param\">"
-			"	<group type=\"GroupParam\" default_child_type=\"Param\">"
-			"		<limit_time default=\"5000\"/>"
-			"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"all\">"
-			"			<all abbreviation=\"a\"/>"
-			"			<motion_id abbreviation=\"m\" default=\"0\"/>"
-			"			<physical_id abbreviation=\"p\" default=\"0\"/>"
-			"			<slave_id abbreviation=\"s\" default=\"0\"/>"
-			"		</unique>"
-			"		<pos default=\"0\"/>"
-			"		<vel default=\"0.5\"/>"
-			"		<acc default=\"1\"/>"
-			"		<dec default=\"1\"/>"
-			"		<kp_p default=\"1\"/>"
-			"		<kp_v default=\"100\"/>"
-			"		<ki_v default=\"0.1\"/>"
-			"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_all\">"
-			"			<check_all/>"
-			"			<check_none/>"
-			"			<group type=\"GroupParam\" default_child_type=\"Param\">"
-			"				<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos\">"
-			"					<check_pos/>"
-			"					<not_check_pos/>"
-			"					<group type=\"GroupParam\" default_child_type=\"Param\">"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_max\">"
-			"							<check_pos_max/>"
-			"							<not_check_pos_max/>"
-			"						</unique>"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_min\">"
-			"							<check_pos_min/>"
-			"							<not_check_pos_min/>"
-			"						</unique>"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous\">"
-			"							<check_pos_continuous/>"
-			"							<not_check_pos_continuous/>"
-			"						</unique>"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous_at_start\">"
-			"							<check_pos_continuous_at_start/>"
-			"							<not_check_pos_continuous_at_start/>"
-			"						</unique>"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous_second_order\">"
-			"							<check_pos_continuous_second_order/>"
-			"							<not_check_pos_continuous_second_order/>"
-			"						</unique>"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous_second_order_at_start\">"
-			"							<check_pos_continuous_second_order_at_start/>"
-			"							<not_check_pos_continuous_second_order_at_start/>"
-			"						</unique>"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_following_error\">"
-			"							<check_pos_following_error/>"
-			"							<not_check_pos_following_error />"
-			"						</unique>"
-			"					</group>"
-			"				</unique>"
-			"				<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel\">"
-			"					<check_vel/>"
-			"					<not_check_vel/>"
-			"					<group type=\"GroupParam\" default_child_type=\"Param\">"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_max\">"
-			"							<check_vel_max/>"
-			"							<not_check_vel_max/>"
-			"						</unique>"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_min\">"
-			"							<check_vel_min/>"
-			"							<not_check_vel_min/>"
-			"						</unique>"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_continuous\">"
-			"							<check_vel_continuous/>"
-			"							<not_check_vel_continuous/>"
-			"						</unique>"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_continuous_at_start\">"
-			"							<check_vel_continuous_at_start/>"
-			"							<not_check_vel_continuous_at_start/>"
-			"						</unique>"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_following_error\">"
-			"							<check_vel_following_error/>"
-			"							<not_check_vel_following_error />"
-			"						</unique>"
-			"					</group>"
-			"				</unique>"
-			"			</group>"
-			"		</unique>"
-			"	</group>"
-			"</moveJRC>");
+			"<Command name=\"moveJRC\">"
+			"	<GroupParam>"
+			"		<Param name=\"limit_time\" default=\"5000\"/>"
+			"		<UniqueParam default=\"all\">"
+			"			<Param name=\"all\" abbreviation=\"a\"/>"
+			"			<Param name=\"motion_id\" abbreviation=\"m\" default=\"0\"/>"
+			"			<Param name=\"physical_id\" abbreviation=\"p\" default=\"0\"/>"
+			"			<Param name=\"slave_id\" abbreviation=\"s\" default=\"0\"/>"
+			"		</UniqueParam>"
+			"		<Param name=\"pos\" default=\"0\"/>"
+			"		<Param name=\"vel\" default=\"0.5\"/>"
+			"		<Param name=\"acc\" default=\"1\"/>"
+			"		<Param name=\"dec\" default=\"1\"/>"
+			"		<Param name=\"kp_p\" default=\"1\"/>"
+			"		<Param name=\"kp_v\" default=\"100\"/>"
+			"		<Param name=\"ki_v\" default=\"0.1\"/>"
+			"	</GroupParam>"
+			"</Command>");
 	}
 
 
@@ -439,7 +373,7 @@ namespace forcecontrol
 	static std::atomic_bool enable_movePQCrash = true;
 	auto MovePQCrash::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 		{
-			auto c = dynamic_cast<aris::control::Controller*>(target.master);
+			auto c = target.controller;
 			MovePQCrashParam param;
 			enable_movePQCrash = true;
 			param.kp_p.resize(7, 0.0);
@@ -569,7 +503,7 @@ namespace forcecontrol
 	auto MovePQCrash::executeRT(PlanTarget &target)->int
 		{
 			auto &param = std::any_cast<MovePQCrashParam&>(target.param);
-			auto controller = dynamic_cast<aris::control::Controller *>(target.master);
+			auto controller = target.controller;
             bool is_running{ true };
 			static double vinteg[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 			static double vproportion[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
@@ -811,80 +745,14 @@ namespace forcecontrol
 	MovePQCrash::MovePQCrash(const std::string &name) :Plan(name)
 		{
 			command().loadXmlStr(
-				"<movePQCrash>"
-				"	<group type=\"GroupParam\" default_child_type=\"Param\">"
-				"		<pqt default=\"{0.42,0.0,0.55,0.0,0.0,0.0,1.0}\" abbreviation=\"p\"/>"
-				"		<kp_p default=\"{1.0,1.0,1.0,1.0,1.0,1.0,1.0}\"/>"
-				"		<kp_v default=\"0.1*{100,100,100,100,100,100}\"/>"
-				"		<ki_v default=\"30*{1,1,1,1,1,1}\"/>"
-				"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_all\">"
-				"			<check_all/>"
-				"			<check_none/>"
-				"			<group type=\"GroupParam\" default_child_type=\"Param\">"
-				"				<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos\">"
-				"					<check_pos/>"
-				"					<not_check_pos/>"
-				"					<group type=\"GroupParam\" default_child_type=\"Param\">"
-				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_max\">"
-				"							<check_pos_max/>"
-				"							<not_check_pos_max/>"
-				"						</unique>"
-				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_min\">"
-				"							<check_pos_min/>"
-				"							<not_check_pos_min/>"
-				"						</unique>"
-				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous\">"
-				"							<check_pos_continuous/>"
-				"							<not_check_pos_continuous/>"
-				"						</unique>"
-				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous_at_start\">"
-				"							<check_pos_continuous_at_start/>"
-				"							<not_check_pos_continuous_at_start/>"
-				"						</unique>"
-				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous_second_order\">"
-				"							<check_pos_continuous_second_order/>"
-				"							<not_check_pos_continuous_second_order/>"
-				"						</unique>"
-				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous_second_order_at_start\">"
-				"							<check_pos_continuous_second_order_at_start/>"
-				"							<not_check_pos_continuous_second_order_at_start/>"
-				"						</unique>"
-				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_following_error\">"
-				"							<check_pos_following_error/>"
-				"							<not_check_pos_following_error />"
-				"						</unique>"
-				"					</group>"
-				"				</unique>"
-				"				<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel\">"
-				"					<check_vel/>"
-				"					<not_check_vel/>"
-				"					<group type=\"GroupParam\" default_child_type=\"Param\">"
-				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_max\">"
-				"							<check_vel_max/>"
-				"							<not_check_vel_max/>"
-				"						</unique>"
-				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_min\">"
-				"							<check_vel_min/>"
-				"							<not_check_vel_min/>"
-				"						</unique>"
-				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_continuous\">"
-				"							<check_vel_continuous/>"
-				"							<not_check_vel_continuous/>"
-				"						</unique>"
-				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_continuous_at_start\">"
-				"							<check_vel_continuous_at_start/>"
-				"							<not_check_vel_continuous_at_start/>"
-				"						</unique>"
-				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_following_error\">"
-				"							<check_vel_following_error/>"
-				"							<not_check_vel_following_error />"
-				"						</unique>"
-				"					</group>"
-				"				</unique>"
-				"			</group>"
-				"		</unique>"
-				"	</group>"
-				"</movePQCrash>");
+				"<Command name=\"movePQCrash\">"
+				"	<GroupParam>"
+				"		<Param name=\"pqt\" default=\"{0.42,0.0,0.55,0.0,0.0,0.0,1.0}\" abbreviation=\"p\"/>"
+				"		<Param name=\"kp_p\" default=\"{1.0,1.0,1.0,1.0,1.0,1.0,1.0}\"/>"
+				"		<Param name=\"kp_v\" default=\"0.1*{100,100,100,100,100,100}\"/>"
+				"		<Param name=\"ki_v\" default=\"30*{1,1,1,1,1,1}\"/>"
+				"	</GroupParam>"
+				"</Command>");
 		}
 
 	
@@ -910,9 +778,14 @@ namespace forcecontrol
 		std::vector<double> vfwd;
 
 		std::vector<double> ft;
-		std::vector<double> ft_pid;
         std::vector<double> vinteg;
         std::vector<double> vproportion;
+		std::vector<double> fs_friction;
+		std::vector<double> fk_friction;
+		std::vector<double> f_friction;
+		std::vector<double> f_dynamic;
+		std::vector<double> ft_pid;
+		std::vector<double> f_input;
 
         aris::Size start_count = 1;
         aris::Size actual_count = 1;
@@ -934,9 +807,9 @@ namespace forcecontrol
         {0.162203,0.466206,0.0139912,-0.492466,0.474288,0.511942,0.520041},{0.162203,0.396206,0.0139912,-0.492466,0.474288,0.511942,0.520041},
         {0.04804,0.396206,0.04334,-0.492466,0.474288,0.511942,0.520041},{-0.01902,0.396206,0.02162,-0.492466,0.474288,0.511942,0.520041},{-0.06067,0.396206,0.03139,-0.492466,0.474288,0.511942,0.520041},
         {-0.122203,0.396206,0.0139912,-0.492466,0.474288,0.511942,0.520041} };
-        double vel = 0.04, acc = 0.08, dec = 0.08;
+        double vel = 0.1, acc = 0.2, dec = 0.2;
 		static aris::Size total_count[10] = { 1,1,1,1,1,1,1,1,1,1 };
-		static aris::Size step_count[10] = { start_count,start_count,start_count,start_count,start_count,start_count,start_count,start_count,start_count,start_count };
+        aris::Size step_count[10] = { start_count,start_count,start_count,start_count,start_count,start_count,start_count,start_count,start_count,start_count };
 
         std::array<double, 14> temp = {-0.122203,0.396206,0.0139912,-0.492466,0.474288,0.511942,0.520041,0,0,0,0,0,0,0};
 		
@@ -953,14 +826,14 @@ namespace forcecontrol
 					total_count[j] = std::max(total_count[j], t_count);
 				}
 			}
-            for (aris::Size i = 0; i < 10; i++)
-            {
-                for (aris::Size j = 0; j <= i; j++)
-                {
-                    step_count[i] = step_count[i] + total_count[j];
-                }
-            }
 		}
+        for (aris::Size i = 0; i < 10; i++)
+        {
+            for (aris::Size j = 0; j <= i; j++)
+            {
+                step_count[i] = step_count[i] + total_count[j];
+            }
+        }
 
 		//获取根据输入的target.count选择执行哪一段梯形轨迹
 		if (count <= step_count[0])
@@ -1035,7 +908,6 @@ namespace forcecontrol
 		}
 		return temp; 
 	}
-
 	//加载pq函数
 	auto load_func(PlanTarget &target, std::function<std::array<double, 14>(aris::Size count, aris::Size &start_count)> func)->void
 	{
@@ -1045,12 +917,11 @@ namespace forcecontrol
 		std::copy(temp.begin(), temp.begin() + 7, param.pqt.begin());
 		std::copy(temp.begin() + 7, temp.begin() + 14, param.vqf.begin());
 	}
-	
 	//力控算法函数
     auto force_control_algorithm1(PlanTarget &target)->void
 	{
 		auto &param = std::any_cast<MovePQBParam&>(target.param);
-		auto controller = dynamic_cast<aris::control::Controller *>(target.master);
+		auto controller = target.controller;
 
 		//求目标位置pq的运动学反解，获取电机实际位置、实际速度
 		target.model->generalMotionPool().at(0).setMpq(param.pqt.data());
@@ -1089,10 +960,8 @@ namespace forcecontrol
 			param.pt[i] = target.model->motionPool().at(i).mp();		//motionPool()指模型驱动器，at(0)表示第1个驱动器
 		}
 
-		double ft_friction[6];
-		double ft_offset[6];
 		double real_vel[6];
-		double ft_friction1[6], ft_friction2[6], ft_dynamic[6];
+		
 		static double ft_friction2_index[6] = { 5.0, 5.0, 5.0, 5.0, 5.0, 3.0 };
 
         //速度前馈
@@ -1208,35 +1077,23 @@ namespace forcecontrol
         //动力学载荷
         for (Size i = 0; i < param.ft_pid.size(); ++i)
         {
-            //动力学参数
-            //constexpr double f_static[6] = { 9.349947583,11.64080253,4.770140543,3.631416685,2.58310847,1.783739862 };
-            //constexpr double f_vel[6] = { 7.80825641,13.26518528,7.856443575,3.354615249,1.419632126,0.319206404 };
-            //constexpr double f_acc[6] = { 0,3.555679326,0.344454603,0.148247716,0.048552673,0.033815455 };
-            //constexpr double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
-            //constexpr double f_static_index[6] = {0.5, 0.5, 0.5, 0.85, 0.95, 0.8};
+			//f_friction=静摩擦力+动摩擦力
+			real_vel[i] = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
+			param.fs_friction[i] = f_static_index_JRC[i] * (f_static[i] * real_vel[i] / max_static_vel[i]);
+			param.fk_friction[i] = f_vel_JRC[i] * controller->motionAtAbs(i).actualVel();
+			param.f_friction[i] = param.fs_friction[i] + param.fk_friction[i];
+			//限制摩擦力的大小为500以内
+			param.f_friction[i] = std::max(-500.0, param.f_friction[i]);
+			param.f_friction[i] = std::min(500.0, param.f_friction[i]);
 
-            //静摩擦力+动摩擦力=ft_friction
+			//动力学载荷=f_dynamic
+			param.f_dynamic[i] = target.model->motionPool()[i].mfDyn();
 
-            real_vel[i] = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
-            ft_friction1[i] = 0.8*(f_static[i] * real_vel[i] / max_static_vel[i]);
+			//电机输入电流=力*力到电流的系数
+			param.f_input[i] = (param.f_friction[i] + param.f_dynamic[i] + param.ft_pid[i])*f2c_index[i];
 
-            //double ft_friction2_max = std::max(0.0, controller->motionAtAbs(i).actualVel() >= 0 ? f_static[i] - ft_friction1[i] : f_static[i] + ft_friction1[i]);
-            //double ft_friction2_min = std::min(0.0, controller->motionAtAbs(i).actualVel() >= 0 ? -f_static[i] + ft_friction1[i] : -f_static[i] - ft_friction1[i]);
-            //ft_friction2[i] = std::max(ft_friction2_min, std::min(ft_friction2_max, ft_friction2_index[i] * param.ft[i]));
-            //ft_friction[i] = ft_friction1[i] + ft_friction2[i] + f_vel[i] * controller->motionAtAbs(i).actualVel();
-
-            ft_friction[i] = ft_friction1[i] + f_vel[i] * controller->motionAtAbs(i).actualVel();
-
-            ft_friction[i] = std::max(-500.0, ft_friction[i]);
-            ft_friction[i] = std::min(500.0, ft_friction[i]);
-
-            //动力学载荷=ft_dynamic
-            ft_dynamic[i] = target.model->motionPool()[i].mfDyn();
-
-            ft_offset[i] = (ft_friction[i] + ft_dynamic[i] + param.ft_pid[i])*f2c_index[i];
-            controller->motionAtAbs(i).setTargetCur(ft_offset[i]);
+			controller->motionAtAbs(i).setTargetCur(param.f_input[i]);
         }
-
 
 		//print//
 		auto &cout = controller->mout();
@@ -1297,35 +1154,35 @@ namespace forcecontrol
 				cout << std::setw(10) << param.ft_pid[i] << "  ";
 			}
 			cout << std::endl;
-			cout << "friction1:";
+			cout << "fs_friction:";
 			for (Size i = 0; i < 6; i++)
 			{
-				cout << std::setw(10) << ft_friction1[i] << "  ";
+				cout << std::setw(10) << param.fs_friction[i] << "  ";
 			}
 			cout << std::endl;
-			cout << "friction:";
+			cout << "fk_friction:";
 			for (Size i = 0; i < 6; i++)
 			{
-				cout << std::setw(10) << ft_friction[i] << "  ";
+				cout << std::setw(10) << param.fk_friction[i] << "  ";
 			}
 			cout << std::endl;
-			cout << "ft_dynamic:";
+			cout << "f_friction:";
 			for (Size i = 0; i < 6; i++)
 			{
-				cout << std::setw(10) << ft_dynamic[i] << "  ";
+				cout << std::setw(10) << param.f_friction[i] << "  ";
 			}
 			cout << std::endl;
-			cout << "ft_offset:";
+			cout << "f_input:";
 			for (Size i = 0; i < 6; i++)
 			{
-				cout << std::setw(10) << ft_offset[i] << "  ";
+				cout << std::setw(10) << param.f_input[i] << "  ";
 			}
 			cout << std::endl;
 			cout << "vfwd:";
-            for (Size i = 0; i < 6; i++)
-            {
-                cout << std::setw(10) << param.vfwd[i] << "  ";
-            }
+			for (Size i = 0; i < 6; i++)
+			{
+				cout << std::setw(10) << param.vfwd[i] << "  ";
+			}
 			cout << std::endl;
 			cout << "------------------------------------------------" << std::endl;
 		}
@@ -1335,7 +1192,7 @@ namespace forcecontrol
 	auto force_control_algorithm2(PlanTarget &target)->void
 	{
 		auto &param = std::any_cast<MovePQBParam&>(target.param);
-		auto controller = dynamic_cast<aris::control::Controller *>(target.master);
+		auto controller = target.controller;
 		
 		//求目标位置pqt的运动学反解，获取电机实际位置、实际速度
 		target.model->generalMotionPool().at(0).setMpq(param.pqt.data());
@@ -1362,8 +1219,7 @@ namespace forcecontrol
 		target.model->solverPool()[0].dynAccAndFce();
 		target.model->solverPool()[2].dynAccAndFce();
 
-		double f_friction[6], fs_friction[6], fk_friction[6], f_dynamic[6], ft_pid[6];
-		double real_vel[6], f_input[6];
+		double real_vel[6];
 
 		//速度前馈
 		{
@@ -1421,20 +1277,20 @@ namespace forcecontrol
 		{
 			//f_friction=静摩擦力+动摩擦力
 			real_vel[i] = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
-			fs_friction[i] = f_static_index[i]*(f_static[i] * real_vel[i] / max_static_vel[i]);
-			fk_friction[i] = f_vel[i] * controller->motionAtAbs(i).actualVel();
-			f_friction[i] = fs_friction[i] + fk_friction[i];
+			param.fs_friction[i] = f_static_index[i]*(f_static[i] * real_vel[i] / max_static_vel[i]);
+			param.fk_friction[i] = f_vel[i] * controller->motionAtAbs(i).actualVel();
+			param.f_friction[i] = param.fs_friction[i] + param.fk_friction[i];
 			//限制摩擦力的大小为500以内
-			f_friction[i] = std::max(-500.0, f_friction[i]);
-			f_friction[i] = std::min(500.0, f_friction[i]);
+			param.f_friction[i] = std::max(-500.0, param.f_friction[i]);
+			param.f_friction[i] = std::min(500.0, param.f_friction[i]);
 
 			//动力学载荷=f_dynamic
-			f_dynamic[i] = target.model->motionPool()[i].mfDyn();
+			param.f_dynamic[i] = target.model->motionPool()[i].mfDyn();
 
 			//电机输入电流=力*力到电流的系数
-			f_input[i] = (f_friction[i] + f_dynamic[i] + param.ft_pid[i])*f2c_index[i];
+			param.f_input[i] = (param.f_friction[i] + param.f_dynamic[i] + param.ft_pid[i])*f2c_index[i];
 
-			controller->motionAtAbs(i).setTargetCur(f_input[i]);
+			controller->motionAtAbs(i).setTargetCur(param.f_input[i]);
 		}
 
 		//print//
@@ -1478,25 +1334,25 @@ namespace forcecontrol
 			cout << "fs_friction:";
 			for (Size i = 0; i < 6; i++)
 			{
-				cout << std::setw(10) << fs_friction[i] << "  ";
+				cout << std::setw(10) << param.fs_friction[i] << "  ";
 			}
 			cout << std::endl;
 			cout << "fk_friction:";
 			for (Size i = 0; i < 6; i++)
 			{
-				cout << std::setw(10) << fk_friction[i] << "  ";
+				cout << std::setw(10) << param.fk_friction[i] << "  ";
 			}
 			cout << std::endl;
 			cout << "f_friction:";
 			for (Size i = 0; i < 6; i++)
 			{
-				cout << std::setw(10) << f_friction[i] << "  ";
+				cout << std::setw(10) << param.f_friction[i] << "  ";
 			}
 			cout << std::endl;
 			cout << "f_input:";
 			for (Size i = 0; i < 6; i++)
 			{
-				cout << std::setw(10) << f_input[i] << "  ";
+				cout << std::setw(10) << param.f_input[i] << "  ";
 			}
 			cout << std::endl;
 			cout << "vfwd:";
@@ -1509,11 +1365,10 @@ namespace forcecontrol
 		}
 
 	}
-
 	//MovePQB成员函数实现
 	auto MovePQB::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
-		auto c = dynamic_cast<aris::control::Controller*>(target.master);
+		auto c = target.controller;
 		MovePQBParam param;
 
 		enable_movePQB = true;
@@ -1535,9 +1390,14 @@ namespace forcecontrol
 		param.va.resize(6, 0.0);
 		param.vfwd.resize(6, 0.0);
 		param.ft.resize(6, 0.0);
-		param.ft_pid.resize(6, 0.0);
         param.vinteg.resize(6, 0.0);
         param.vproportion.resize(6, 0.0);
+		param.fs_friction.resize(6, 0.0);
+		param.fk_friction.resize(6, 0.0);
+		param.f_friction.resize(6, 0.0);
+		param.f_dynamic.resize(6, 0.0);
+		param.ft_pid.resize(6, 0.0);
+		param.f_input.resize(6, 0.0);
 
         //load_pq5();
 		for (auto &p : params)
@@ -1664,7 +1524,7 @@ namespace forcecontrol
 	auto MovePQB::executeRT(PlanTarget &target)->int
 	{
 		auto &param = std::any_cast<MovePQBParam&>(target.param);
-		auto controller = dynamic_cast<aris::control::Controller *>(target.master);
+		auto controller = target.controller;
         //controller->logFile("movePQB");
         bool is_running{ true };
 		bool ds_is_all_finished{ true };
@@ -1752,10 +1612,20 @@ namespace forcecontrol
 			lout << controller->motionAtAbs(i).actualVel() << " ";
 			lout << controller->motionAtAbs(i).actualCur() << " ";
 		}
-        //log--记录当前PQ值//
+		//log--记录当前PQ值//
 		for (Size i = 0; i < param.pqb.size(); i++)
 		{
 			lout << param.pqb[i] << " ";
+			lout << param.pqt[i] << " ";
+		}
+		//log--记录f_input相关的数值//
+		for (Size i = 0; i < param.ft_pid.size(); i++)
+		{
+			lout << param.ft_pid[i] << " ";
+			lout << param.fs_friction[i] << " ";
+			lout << param.fk_friction[i] << " ";
+			lout << param.f_friction[i] << " ";
+			lout << param.f_input[i] << " ";
 		}
 		lout << std::endl;
 
@@ -1771,81 +1641,15 @@ namespace forcecontrol
 	MovePQB::MovePQB(const std::string &name) :Plan(name)
 	{
 		command().loadXmlStr(
-			"<movePQB>"
-			"	<group type=\"GroupParam\" default_child_type=\"Param\">"
-            "		<pqt default=\"{0.42,0.0,0.55,0,0,0,1}\" abbreviation=\"p\"/>"
-            "		<kp_p default=\"{4,6,4,3,3,2}\"/>"
-            "		<kp_v default=\"{170,270,90,60,35,16}\"/>"
-            "		<ki_v default=\"{2,15,10,0.2,0.2,0.18}\"/>"
-			"		<which_fca default=\"2\"/>"
-			"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_all\">"
-			"			<check_all/>"
-			"			<check_none/>"
-			"			<group type=\"GroupParam\" default_child_type=\"Param\">"
-			"				<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos\">"
-			"					<check_pos/>"
-			"					<not_check_pos/>"
-			"					<group type=\"GroupParam\" default_child_type=\"Param\">"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_max\">"
-			"							<check_pos_max/>"
-			"							<not_check_pos_max/>"
-			"						</unique>"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_min\">"
-			"							<check_pos_min/>"
-			"							<not_check_pos_min/>"
-			"						</unique>"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous\">"
-			"							<check_pos_continuous/>"
-			"							<not_check_pos_continuous/>"
-			"						</unique>"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous_at_start\">"
-			"							<check_pos_continuous_at_start/>"
-			"							<not_check_pos_continuous_at_start/>"
-			"						</unique>"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous_second_order\">"
-			"							<check_pos_continuous_second_order/>"
-			"							<not_check_pos_continuous_second_order/>"
-			"						</unique>"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous_second_order_at_start\">"
-			"							<check_pos_continuous_second_order_at_start/>"
-			"							<not_check_pos_continuous_second_order_at_start/>"
-			"						</unique>"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_following_error\">"
-			"							<check_pos_following_error/>"
-			"							<not_check_pos_following_error />"
-			"						</unique>"
-			"					</group>"
-			"				</unique>"
-			"				<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel\">"
-			"					<check_vel/>"
-			"					<not_check_vel/>"
-			"					<group type=\"GroupParam\" default_child_type=\"Param\">"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_max\">"
-			"							<check_vel_max/>"
-			"							<not_check_vel_max/>"
-			"						</unique>"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_min\">"
-			"							<check_vel_min/>"
-			"							<not_check_vel_min/>"
-			"						</unique>"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_continuous\">"
-			"							<check_vel_continuous/>"
-			"							<not_check_vel_continuous/>"
-			"						</unique>"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_continuous_at_start\">"
-			"							<check_vel_continuous_at_start/>"
-			"							<not_check_vel_continuous_at_start/>"
-			"						</unique>"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_following_error\">"
-			"							<check_vel_following_error/>"
-			"							<not_check_vel_following_error />"
-			"						</unique>"
-			"					</group>"
-			"				</unique>"
-			"			</group>"
-			"		</unique>"
-			"	</group>"
-			"</movePQB>");
+			"<Command name=\"movePQB\">"
+			"	<GroupParam>"
+            "		<Param name=\"pqt\" default=\"{0.42,0.0,0.55,0,0,0,1}\" abbreviation=\"p\"/>"
+            "		<Param name=\"kp_p\" default=\"{4,4,6,3,3,2}\"/>"
+            "		<Param name=\"kp_v\" default=\"{140,180,60,50,30,14}\"/>"
+            "		<Param name=\"ki_v\" default=\"{2,8,5,0.16,0.2,0.18}\"/>"
+            "		<Param name=\"which_fca\" default=\"1\"/>"
+			"	</GroupParam>"
+			"</Command>");
 	}
 
 
@@ -1873,7 +1677,7 @@ namespace forcecontrol
 	static std::atomic_bool enable_moveJCrash = true;
 	auto MoveJCrash::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 		{
-			auto c = dynamic_cast<aris::control::Controller*>(target.master);
+			auto c = target.controller;
 			MoveJCrashParam param;
 			enable_moveJCrash = true;
 			param.kp_p.resize(6, 0.0);
@@ -2027,7 +1831,7 @@ namespace forcecontrol
 	auto MoveJCrash::executeRT(PlanTarget &target)->int
 		{
 			auto &param = std::any_cast<MoveJCrashParam&>(target.param);
-			auto controller = dynamic_cast<aris::control::Controller *>(target.master);
+			auto controller = target.controller;
             bool is_running{ true };
 			static double vinteg[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 			static double vproportion[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
@@ -2311,86 +2115,20 @@ namespace forcecontrol
 	MoveJCrash::MoveJCrash(const std::string &name) :Plan(name)
 		{
 			command().loadXmlStr(
-				"<moveJCrash>"
-				"	<group type=\"GroupParam\" default_child_type=\"Param\">"
-				"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"pqt\">"
-				"			<pqt default=\"{0.42,0.0,0.55,0,0,0,1}\" abbreviation=\"p\"/>"
-				"			<xyz default=\"{0.01,0.0,0.0}\"/>"
-				"		</unique>"
-				"		<vel default=\"0.05\"/>"
-				"		<acc default=\"0.1\"/>"
-				"		<dec default=\"0.1\"/>"
-				"		<kp_p default=\"{10,12,70,4,6,3}\"/>"
-				"		<kp_v default=\"{200,360,120,100,60,20}\"/>"
-				"		<ki_v default=\"{2,18,20,0.6,0.5,0.4}\"/>"
-				"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_all\">"
-				"			<check_all/>"
-				"			<check_none/>"
-				"			<group type=\"GroupParam\" default_child_type=\"Param\">"
-				"				<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos\">"
-				"					<check_pos/>"
-				"					<not_check_pos/>"
-				"					<group type=\"GroupParam\" default_child_type=\"Param\">"
-				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_max\">"
-				"							<check_pos_max/>"
-				"							<not_check_pos_max/>"
-				"						</unique>"
-				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_min\">"
-				"							<check_pos_min/>"
-				"							<not_check_pos_min/>"
-				"						</unique>"
-				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous\">"
-				"							<check_pos_continuous/>"
-				"							<not_check_pos_continuous/>"
-				"						</unique>"
-				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous_at_start\">"
-				"							<check_pos_continuous_at_start/>"
-				"							<not_check_pos_continuous_at_start/>"
-				"						</unique>"
-				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous_second_order\">"
-				"							<check_pos_continuous_second_order/>"
-				"							<not_check_pos_continuous_second_order/>"
-				"						</unique>"
-				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous_second_order_at_start\">"
-				"							<check_pos_continuous_second_order_at_start/>"
-				"							<not_check_pos_continuous_second_order_at_start/>"
-				"						</unique>"
-				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_following_error\">"
-				"							<check_pos_following_error/>"
-				"							<not_check_pos_following_error />"
-				"						</unique>"
-				"					</group>"
-				"				</unique>"
-				"				<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel\">"
-				"					<check_vel/>"
-				"					<not_check_vel/>"
-				"					<group type=\"GroupParam\" default_child_type=\"Param\">"
-				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_max\">"
-				"							<check_vel_max/>"
-				"							<not_check_vel_max/>"
-				"						</unique>"
-				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_min\">"
-				"							<check_vel_min/>"
-				"							<not_check_vel_min/>"
-				"						</unique>"
-				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_continuous\">"
-				"							<check_vel_continuous/>"
-				"							<not_check_vel_continuous/>"
-				"						</unique>"
-				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_continuous_at_start\">"
-				"							<check_vel_continuous_at_start/>"
-				"							<not_check_vel_continuous_at_start/>"
-				"						</unique>"
-				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_following_error\">"
-				"							<check_vel_following_error/>"
-				"							<not_check_vel_following_error />"
-				"						</unique>"
-				"					</group>"
-				"				</unique>"
-				"			</group>"
-				"		</unique>"
-				"	</group>"
-				"</moveJCrash>");
+				"<Command name=\"moveJCrash\">"
+				"	<GroupParam>"
+				"		<UniqueParam default=\"pqt\">"
+				"			<Param name=\"pqt\" default=\"{0.42,0.0,0.55,0,0,0,1}\" abbreviation=\"p\"/>"
+				"			<Param name=\"xyz\" default=\"{0.01,0.0,0.0}\"/>"
+				"		</UniqueParam>"
+				"		<Param name=\"vel\" default=\"0.05\"/>"
+				"		<Param name=\"acc\" default=\"0.1\"/>"
+				"		<Param name=\"dec\" default=\"0.1\"/>"
+				"		<Param name=\"kp_p\" default=\"{10,12,70,4,6,3}\"/>"
+				"		<Param name=\"kp_v\" default=\"{200,360,120,100,60,20}\"/>"
+				"		<Param name=\"ki_v\" default=\"{2,18,20,0.6,0.5,0.4}\"/>"
+				"	</GroupParam>"
+				"</Command>");
 		}
 
 
@@ -2414,7 +2152,7 @@ namespace forcecontrol
     static std::atomic<std::array<double, 7> > setpqJF;
 	auto MoveJF::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
-		auto c = dynamic_cast<aris::control::Controller*>(target.master);
+		auto c = target.controller;
 		MoveJFParam param;
 		enable_moveJF = true;
 		param.kp_p.resize(6, 0.0);
@@ -2548,7 +2286,7 @@ namespace forcecontrol
 	auto MoveJF::executeRT(PlanTarget &target)->int
 	{
 		auto &param = std::any_cast<MoveJFParam&>(target.param);
-		auto controller = dynamic_cast<aris::control::Controller *>(target.master);
+		auto controller = target.controller;
         bool is_running{ true };
 		static double vinteg[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 		static double vproportion[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
@@ -2793,80 +2531,14 @@ namespace forcecontrol
 	MoveJF::MoveJF(const std::string &name) :Plan(name)
 	{
 		command().loadXmlStr(
-			"<moveJF>"
-			"	<group type=\"GroupParam\" default_child_type=\"Param\">"
-			"		<pqt default=\"{0.42,0.0,0.55,0,0,0,1}\" abbreviation=\"p\"/>"
-            "		<kp_p default=\"{10,12,20,3,4,3}\"/>"
-            "		<kp_v default=\"{200,360,120,80,40,20}\"/>"
-            "		<ki_v default=\"{2,18,20,0.4,0.3,0.4}\"/>"
-			"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_all\">"
-			"			<check_all/>"
-			"			<check_none/>"
-			"			<group type=\"GroupParam\" default_child_type=\"Param\">"
-			"				<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos\">"
-			"					<check_pos/>"
-			"					<not_check_pos/>"
-			"					<group type=\"GroupParam\" default_child_type=\"Param\">"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_max\">"
-			"							<check_pos_max/>"
-			"							<not_check_pos_max/>"
-			"						</unique>"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_min\">"
-			"							<check_pos_min/>"
-			"							<not_check_pos_min/>"
-			"						</unique>"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous\">"
-			"							<check_pos_continuous/>"
-			"							<not_check_pos_continuous/>"
-			"						</unique>"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous_at_start\">"
-			"							<check_pos_continuous_at_start/>"
-			"							<not_check_pos_continuous_at_start/>"
-			"						</unique>"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous_second_order\">"
-			"							<check_pos_continuous_second_order/>"
-			"							<not_check_pos_continuous_second_order/>"
-			"						</unique>"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous_second_order_at_start\">"
-			"							<check_pos_continuous_second_order_at_start/>"
-			"							<not_check_pos_continuous_second_order_at_start/>"
-			"						</unique>"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_following_error\">"
-			"							<check_pos_following_error/>"
-			"							<not_check_pos_following_error />"
-			"						</unique>"
-			"					</group>"
-			"				</unique>"
-			"				<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel\">"
-			"					<check_vel/>"
-			"					<not_check_vel/>"
-			"					<group type=\"GroupParam\" default_child_type=\"Param\">"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_max\">"
-			"							<check_vel_max/>"
-			"							<not_check_vel_max/>"
-			"						</unique>"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_min\">"
-			"							<check_vel_min/>"
-			"							<not_check_vel_min/>"
-			"						</unique>"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_continuous\">"
-			"							<check_vel_continuous/>"
-			"							<not_check_vel_continuous/>"
-			"						</unique>"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_continuous_at_start\">"
-			"							<check_vel_continuous_at_start/>"
-			"							<not_check_vel_continuous_at_start/>"
-			"						</unique>"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_following_error\">"
-			"							<check_vel_following_error/>"
-			"							<not_check_vel_following_error />"
-			"						</unique>"
-			"					</group>"
-			"				</unique>"
-			"			</group>"
-			"		</unique>"
-			"	</group>"
-			"</moveJF>");
+			"<Command name=\"moveJF\">"
+			"	<GroupParam>"
+			"		<Param name=\"pqt\" default=\"{0.42,0.0,0.55,0,0,0,1}\" abbreviation=\"p\"/>"
+            "		<Param name=\"kp_p\" default=\"{10,12,20,3,4,3}\"/>"
+            "		<Param name=\"kp_v\" default=\"{200,360,120,80,40,20}\"/>"
+            "		<Param name=\"ki_v\" default=\"{2,18,20,0.4,0.3,0.4}\"/>"
+			"	</GroupParam>"
+			"</Command>");
 	}
 
 
@@ -2891,7 +2563,7 @@ namespace forcecontrol
 	static std::atomic<std::array<double, 7> > setpqJFB;
 	auto MoveJFB::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
-		auto c = dynamic_cast<aris::control::Controller*>(target.master);
+		auto c = target.controller;
 		MoveJFBParam param;
 		enable_moveJFB = true;
 		param.kp_p.resize(6, 0.0);
@@ -3026,7 +2698,7 @@ namespace forcecontrol
 	auto MoveJFB::executeRT(PlanTarget &target)->int
 	{
 		auto &param = std::any_cast<MoveJFBParam&>(target.param);
-		auto controller = dynamic_cast<aris::control::Controller *>(target.master);
+		auto controller = target.controller;
         bool is_running{ true };
 		static double vinteg[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 		static double vproportion[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
@@ -3284,80 +2956,14 @@ namespace forcecontrol
 	MoveJFB::MoveJFB(const std::string &name) :Plan(name)
 	{
 		command().loadXmlStr(
-			"<moveJFB>"
-			"	<group type=\"GroupParam\" default_child_type=\"Param\">"
-			"		<pqt default=\"{0.42,0.0,0.55,0,0,0,1}\" abbreviation=\"p\"/>"
-            "		<kp_p default=\"{8,12,20,3,3,2}\"/>"
-            "		<kp_v default=\"{170,360,120,60,35,16}\"/>"
-            "		<ki_v default=\"{2,18,20,0.2,0.2,0.18}\"/>"
-			"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_all\">"
-			"			<check_all/>"
-			"			<check_none/>"
-			"			<group type=\"GroupParam\" default_child_type=\"Param\">"
-			"				<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos\">"
-			"					<check_pos/>"
-			"					<not_check_pos/>"
-			"					<group type=\"GroupParam\" default_child_type=\"Param\">"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_max\">"
-			"							<check_pos_max/>"
-			"							<not_check_pos_max/>"
-			"						</unique>"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_min\">"
-			"							<check_pos_min/>"
-			"							<not_check_pos_min/>"
-			"						</unique>"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous\">"
-			"							<check_pos_continuous/>"
-			"							<not_check_pos_continuous/>"
-			"						</unique>"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous_at_start\">"
-			"							<check_pos_continuous_at_start/>"
-			"							<not_check_pos_continuous_at_start/>"
-			"						</unique>"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous_second_order\">"
-			"							<check_pos_continuous_second_order/>"
-			"							<not_check_pos_continuous_second_order/>"
-			"						</unique>"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous_second_order_at_start\">"
-			"							<check_pos_continuous_second_order_at_start/>"
-			"							<not_check_pos_continuous_second_order_at_start/>"
-			"						</unique>"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_following_error\">"
-			"							<check_pos_following_error/>"
-			"							<not_check_pos_following_error />"
-			"						</unique>"
-			"					</group>"
-			"				</unique>"
-			"				<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel\">"
-			"					<check_vel/>"
-			"					<not_check_vel/>"
-			"					<group type=\"GroupParam\" default_child_type=\"Param\">"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_max\">"
-			"							<check_vel_max/>"
-			"							<not_check_vel_max/>"
-			"						</unique>"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_min\">"
-			"							<check_vel_min/>"
-			"							<not_check_vel_min/>"
-			"						</unique>"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_continuous\">"
-			"							<check_vel_continuous/>"
-			"							<not_check_vel_continuous/>"
-			"						</unique>"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_continuous_at_start\">"
-			"							<check_vel_continuous_at_start/>"
-			"							<not_check_vel_continuous_at_start/>"
-			"						</unique>"
-			"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_following_error\">"
-			"							<check_vel_following_error/>"
-			"							<not_check_vel_following_error />"
-			"						</unique>"
-			"					</group>"
-			"				</unique>"
-			"			</group>"
-			"		</unique>"
-			"	</group>"
-			"</moveJFB>");
+			"<Command name=\"moveJFB\">"
+			"	<GroupParam>"
+			"		<Param name=\"pqt\" default=\"{0.42,0.0,0.55,0,0,0,1}\" abbreviation=\"p\"/>"
+            "		<Param name=\"kp_p\" default=\"{8,12,20,3,3,2}\"/>"
+            "		<Param name=\"kp_v\" default=\"{170,360,120,60,35,16}\"/>"
+            "		<Param name=\"ki_v\" default=\"{2,18,20,0.2,0.2,0.18}\"/>"
+			"	</GroupParam>"
+			"</Command>");
 	}
 
 
@@ -3380,7 +2986,7 @@ namespace forcecontrol
 	static std::atomic_bool enable_moveJPID = true;
 	auto MoveJPID::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 		{
-			auto c = dynamic_cast<aris::control::Controller*>(target.master);
+			auto c = target.controller;
 			MoveJPIDParam param;
 			enable_moveJPID = true;
 			param.kp_p.resize(6, 0.0);
@@ -3564,7 +3170,7 @@ namespace forcecontrol
 	auto MoveJPID::executeRT(PlanTarget &target)->int
 		{
 			auto &param = std::any_cast<MoveJPIDParam&>(target.param);
-			auto controller = dynamic_cast<aris::control::Controller *>(target.master);
+			auto controller = target.controller;
             bool is_running{ true };
 			static double vproportion[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 			static double vinteg[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
@@ -3867,87 +3473,21 @@ namespace forcecontrol
 	MoveJPID::MoveJPID(const std::string &name) :Plan(name)
 		{
 			command().loadXmlStr(
-				"<moveJPID>"
-				"	<group type=\"GroupParam\" default_child_type=\"Param\">"
-				"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"all\">"
-				"			<all abbreviation=\"a\"/>"
-				"			<motion_id abbreviation=\"m\" default=\"0\"/>"
-				"			<physical_id abbreviation=\"p\" default=\"0\"/>"
-				"			<slave_id abbreviation=\"s\" default=\"0\"/>"
-				"		</unique>"
-				"		<pos default=\"0.0\"/>"
-				"		<kp_p default=\"{10,12,70,5,6,3}\"/>"
-				"		<kp_v default=\"{270,360,120,120,60,25}\"/>"
-				"		<ki_v default=\"{2,18,20.0,0.6,0.5,0.5}\"/>"
-				"		<kd_v default=\"0\"/>"
-				"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_all\">"
-				"			<check_all/>"
-				"			<check_none/>"
-				"			<group type=\"GroupParam\" default_child_type=\"Param\">"
-				"				<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos\">"
-				"					<check_pos/>"
-				"					<not_check_pos/>"
-				"					<group type=\"GroupParam\" default_child_type=\"Param\">"
-				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_max\">"
-				"							<check_pos_max/>"
-				"							<not_check_pos_max/>"
-				"						</unique>"
-				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_min\">"
-				"							<check_pos_min/>"
-				"							<not_check_pos_min/>"
-				"						</unique>"
-				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous\">"
-				"							<check_pos_continuous/>"
-				"							<not_check_pos_continuous/>"
-				"						</unique>"
-				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous_at_start\">"
-				"							<check_pos_continuous_at_start/>"
-				"							<not_check_pos_continuous_at_start/>"
-				"						</unique>"
-				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous_second_order\">"
-				"							<check_pos_continuous_second_order/>"
-				"							<not_check_pos_continuous_second_order/>"
-				"						</unique>"
-				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_continuous_second_order_at_start\">"
-				"							<check_pos_continuous_second_order_at_start/>"
-				"							<not_check_pos_continuous_second_order_at_start/>"
-				"						</unique>"
-				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_pos_following_error\">"
-				"							<check_pos_following_error/>"
-				"							<not_check_pos_following_error />"
-				"						</unique>"
-				"					</group>"
-				"				</unique>"
-				"				<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel\">"
-				"					<check_vel/>"
-				"					<not_check_vel/>"
-				"					<group type=\"GroupParam\" default_child_type=\"Param\">"
-				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_max\">"
-				"							<check_vel_max/>"
-				"							<not_check_vel_max/>"
-				"						</unique>"
-				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_min\">"
-				"							<check_vel_min/>"
-				"							<not_check_vel_min/>"
-				"						</unique>"
-				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_continuous\">"
-				"							<check_vel_continuous/>"
-				"							<not_check_vel_continuous/>"
-				"						</unique>"
-				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_continuous_at_start\">"
-				"							<check_vel_continuous_at_start/>"
-				"							<not_check_vel_continuous_at_start/>"
-				"						</unique>"
-				"						<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"check_vel_following_error\">"
-				"							<check_vel_following_error/>"
-				"							<not_check_vel_following_error />"
-				"						</unique>"
-				"					</group>"
-				"				</unique>"
-				"			</group>"
-				"		</unique>"
-				"	</group>"
-				"</moveJPID>");
+				"<Command name=\"moveJPID\">"
+				"	<GroupParam>"
+				"		<UniqueParam default=\"all\">"
+				"			<Param name=\"all\" abbreviation=\"a\"/>"
+				"			<Param name=\"motion_id\" abbreviation=\"m\" default=\"0\"/>"
+				"			<Param name=\"physical_id\" abbreviation=\"p\" default=\"0\"/>"
+				"			<Param name=\"slave_id\" abbreviation=\"s\" default=\"0\"/>"
+				"		</UniqueParam>"
+				"		<Param name=\"pos\" default=\"0.0\"/>"
+				"		<Param name=\"kp_p\" default=\"{10,12,70,5,6,3}\"/>"
+				"		<Param name=\"kp_v\" default=\"{270,360,120,120,60,25}\"/>"
+				"		<Param name=\"ki_v\" default=\"{2,18,20.0,0.6,0.5,0.5}\"/>"
+				"		<Param name=\"kd_v\" default=\"0\"/>"
+				"	</GroupParam>"
+				"</Command>");
 		}
 	
 
@@ -3966,8 +3506,8 @@ namespace forcecontrol
 	MoveStop::MoveStop(const std::string &name) :Plan(name)
 		{
 			command().loadXmlStr(
-				"<moveStop>"
-				"</moveStop>");
+				"<Command name=\"moveStop\">"
+				"</Command>");
 		}
 	
 
@@ -4009,7 +3549,7 @@ namespace forcecontrol
 				}
 				else if (which_func == 2)
 				{
-					func[1] = load_pq2;
+                    func[1] = cplan::load_pq2;
 					one_time_counter = true;
 				}
 				else if (which_func == 3)
@@ -4019,7 +3559,7 @@ namespace forcecontrol
 				}
 				else if (which_func == 7)
 				{
-					func[1] = load_pq7;
+                    func[1] = cplan::load_pq7;
 					one_time_counter = true;
 				}
 			}
@@ -4029,16 +3569,16 @@ namespace forcecontrol
 	MoveSPQ::MoveSPQ(const std::string &name) :Plan(name)
 	{
 		command().loadXmlStr(
-			"<moveSPQ>"
-			"	<group type=\"GroupParam\" default_child_type=\"Param\">"
-			"		<unique type=\"UniqueParam\" default_child_type=\"Param\" default=\"setpqJFB\">"
-			"			<setpqJF default=\"{0.42,0.0,0.55,0,0,0,1}\"/>"
-			"			<setpqJFB default=\"{0.42,0.0,0.55,0,0,0,1}\"/>"
-			"			<setpqPQB default=\"{0.42,0.0,0.55,0,0,0,1}\"/>"
-			"			<which_func default=\"1\"/>"
-			"		</unique>"
-			"	</group>"
-			"</moveSPQ>");
+			"<Command name=\"moveSPQ\">"
+			"	<GroupParam>"
+			"		<UniqueParam default=\"setpqJFB\">"
+			"			<Param name=\"setpqJF\" default=\"{0.42,0.0,0.55,0,0,0,1}\"/>"
+			"			<Param name=\"setpqJFB\" default=\"{0.42,0.0,0.55,0,0,0,1}\"/>"
+			"			<Param name=\"setpqPQB\" default=\"{0.42,0.0,0.55,0,0,0,1}\"/>"
+			"			<Param name=\"which_func\" default=\"1\"/>"
+			"		</UniqueParam>"
+			"	</GroupParam>"
+			"</Command>");
 	}
 
 }
