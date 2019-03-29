@@ -24,6 +24,7 @@ int main(int argc, char *argv[])
 	auto&cs = aris::server::ControlServer::instance();
 	auto port = argc < 2 ? 5866 : std::stoi(argv[1]);
 
+	/*
 	cs.resetController(kaanh::createControllerRokaeXB4().release());
 	cs.resetModel(aris::dynamic::createModelRokaeXB4().release());
 	cs.resetPlanRoot(kaanh::createPlanRootRokaeXB4().release());
@@ -32,19 +33,21 @@ int main(int argc, char *argv[])
 	//std::cout << cs.controller().xmlString() << std::endl;
 
 	//末端位置加0.1的工件长度//
-
 	double pe[6];
 	cs.model().generalMotionPool()[0].makI().getPe(
     cs.model().generalMotionPool()[0].makI().fatherPart(),
     pe);
 
     pe[0] += 0.0;
-
 	cs.model().generalMotionPool()[0].makI().setPrtPe(pe);
 	cs.model().generalMotionPool()[0].makJ();
 	cs.model().solverPool()[0].allocateMemory();
 
-  for(auto &m:cs.model().motionPool())m.activate(true);
+	cs.saveXmlFile("C:/Users/kevin/Desktop/aris_kaanh/aris_kaanh/rokae.xml");
+	*/
+
+	kaanh::registerPlan();
+	cs.loadXmlFile("c:/users/kevin/desktop/aris_kaanh/aris_kaanh/rokae.xml");
 
 	cs.start();
 
