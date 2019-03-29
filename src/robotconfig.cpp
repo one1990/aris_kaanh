@@ -1,8 +1,8 @@
-#include"robotconfig.h"
+ï»¿#include"robotconfig.h"
 #include"stdio.h"
 #include<math.h>
 #include<array>
-#include <aris.h>
+#include <aris.hpp>
 using namespace CONFIG;
 using namespace aris::plan;
 using namespace aris::dynamic;
@@ -163,30 +163,30 @@ void robotconfig::jointIncrement(const double* q, const double* dX, double* dThe
 	       robotJacobian(q,JacoEnd);
 
 		   
-		   // Çó½â AµÄ¹ãÒåÄæpinv ºÍ x
+		   // Ã‡Ã³Â½Ã¢ AÂµÃ„Â¹Ã£Ã’Ã¥Ã„Ã¦pinv ÂºÃ x
 		   double pinv[36];
 
-		   // ËùĞèµÄÖĞ¼ä±äÁ¿£¬Çë¶ÔUµÄ¶Ô½ÇÏßÔªËØ×ö´¦Àí
+		   // Ã‹Ã¹ÃÃ¨ÂµÃ„Ã–ÃÂ¼Ã¤Â±Ã¤ÃÂ¿Â£Â¬Ã‡Ã«Â¶Ã”UÂµÃ„Â¶Ã”Â½Ã‡ÃÃŸÃ”ÂªÃ‹Ã˜Ã—Ã¶Â´Â¦Ã€Ã­
 		   double U[36], tau[6];
 		   aris::Size p[6];
 		   aris::Size rank;
 
-		   // ¸ù¾İ A Çó³öÖĞ¼ä±äÁ¿£¬Ïàµ±ÓÚ×ö QR ·Ö½â //
-		   // Çë¶Ô U µÄ¶Ô½ÇÏßÔªËØ×ö´¦Àí
+		   // Â¸Ã¹Â¾Ã A Ã‡Ã³Â³Ã¶Ã–ÃÂ¼Ã¤Â±Ã¤ÃÂ¿Â£Â¬ÃÃ ÂµÂ±Ã“ÃšÃ—Ã¶ QR Â·Ã–Â½Ã¢ //
+		   // Ã‡Ã«Â¶Ã” U ÂµÃ„Â¶Ã”Â½Ã‡ÃÃŸÃ”ÂªÃ‹Ã˜Ã—Ã¶Â´Â¦Ã€Ã­
 		   s_householder_utp(6, 6, JacoEnd, U, tau, p, rank, 1e-10);
            for(int i=0;i<6;i++)
                if(U[7*i]>=0)
                      U[7*i]=U[7*i]+0.1;
                else
                     U[7*i]=U[7*i]-0.1;
-		   // ¸ù¾İQR·Ö½âµÄ½á¹ûÇóx£¬Ïàµ±ÓÚMatlabÖĞµÄ x = A\b //
+		   // Â¸Ã¹Â¾ÃQRÂ·Ã–Â½Ã¢ÂµÃ„Â½Ã¡Â¹Ã»Ã‡Ã³xÂ£Â¬ÃÃ ÂµÂ±Ã“ÃšMatlabÃ–ÃÂµÃ„ x = A\b //
 		   s_householder_utp_sov(6, 6, 1, rank, U, tau, p, dX, dTheta, 1e-10);
 
-		   // ¸ù¾İQR·Ö½âµÄ½á¹ûÇó¹ãÒåÄæ£¬Ïàµ±ÓÚMatlabÖĞµÄ pinv(A) //
+		   // Â¸Ã¹Â¾ÃQRÂ·Ã–Â½Ã¢ÂµÃ„Â½Ã¡Â¹Ã»Ã‡Ã³Â¹Ã£Ã’Ã¥Ã„Ã¦Â£Â¬ÃÃ ÂµÂ±Ã“ÃšMatlabÃ–ÃÂµÃ„ pinv(A) //
 		   double tau2[6];
 		   s_householder_utp2pinv(6, 6, rank, U, tau, p, pinv, tau2, 1e-10);
 
-		   // ¸ù¾İQR·Ö½âµÄ½á¹ûÇó¹ãÒåÄæ£¬Ïàµ±ÓÚMatlabÖĞµÄ pinv(A)*b //
+		   // Â¸Ã¹Â¾ÃQRÂ·Ã–Â½Ã¢ÂµÃ„Â½Ã¡Â¹Ã»Ã‡Ã³Â¹Ã£Ã’Ã¥Ã„Ã¦Â£Â¬ÃÃ ÂµÂ±Ã“ÃšMatlabÃ–ÃÂµÃ„ pinv(A)*b //
 		   s_mm(6, 1, 6, pinv, dX, dTheta);
 
                 

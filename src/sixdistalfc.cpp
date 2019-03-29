@@ -101,7 +101,7 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
             static float FT0[6];
 
             // 访问主站 //
-            auto controller = dynamic_cast<aris::control::Controller*>(target.master);
+            auto controller = target.controller;
 
 				// 获取当前起始点位置 //
 				if (target.count == 1)
@@ -128,7 +128,7 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 
             float FT[6];
             uint16_t FTnum;
-            auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.master);
+            auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.controller);
             conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x00, &FTnum ,16);
             conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x01, &FT[0] ,32);  //Fx
             conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x02, &FT[1], 32);  //Fy
@@ -469,11 +469,11 @@ auto MoveDistal::executeRT(PlanTarget &target)->int
     if (!target.model->solverPool().at(1).kinPos())return -1;
 
 	// 访问主站 //
-	auto controller = dynamic_cast<aris::control::Controller*>(target.master);
+	auto controller = target.controller;
 
     float FT[6];
     int16_t FTnum;
-    auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.master);
+    auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.controller);
     conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x00, &FTnum ,16);
     conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x01, &FT[0] ,32);
     conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x02, &FT[1], 32);
@@ -523,7 +523,7 @@ auto MoveDistal::executeRT(PlanTarget &target)->int
 
 auto MoveDistal::collectNrt(aris::plan::PlanTarget &target)->void
 {
-  //  auto controller = dynamic_cast<aris::control::Controller*>(target.master);
+  //  auto controller = target.controller;
    // auto &lout = controller->lout();
     std::cout<<"collect"<<std::endl;
     sixDistalMatrix.RLS(PositionList, SensorList, estParas,StatisError);
@@ -799,7 +799,7 @@ auto MovePressure::executeRT(PlanTarget &target)->int
 	static float FT0[6];
 
 	// 访问主站 //
-	auto controller = dynamic_cast<aris::control::Controller*>(target.master);
+	auto controller = target.controller;
 
 	// 获取当前起始点位置 //
 	if (target.count == 1)
@@ -826,7 +826,7 @@ auto MovePressure::executeRT(PlanTarget &target)->int
 
 	float FT[6];
 	uint16_t FTnum;
-	auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.master);
+	auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.controller);
 	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x00, &FTnum, 16);
 	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x01, &FT[0], 32);  //Fx
 	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x02, &FT[1], 32);  //Fy

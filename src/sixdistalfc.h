@@ -1,16 +1,12 @@
 ﻿#ifndef SIXDISTALFC_H_
 #define SIXDISTALFC_H_
 
-#include <aris.h>
+#include <aris.hpp>
 #include <iostream>
 #include <fstream>
 #include <typeinfo>
 #include <vector>
 #include <memory>
-#include <aris_control.h>
-#include <aris_dynamic.h>
-#include <aris_plan.h>
-#include <tinyxml2.h>
 #include <atomic>
 #include <string> 
 #include <algorithm>
