@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
 	//std::cout << cs.controller().xmlString() << std::endl;
 
 	//末端位置加0.1的工件长度//
-	
+
 	double pe[6];
 	cs.model().generalMotionPool()[0].makI().getPe(
     cs.model().generalMotionPool()[0].makI().fatherPart(),
@@ -42,9 +42,9 @@ int main(int argc, char *argv[])
 
 	cs.model().generalMotionPool()[0].makI().setPrtPe(pe);
 	cs.model().generalMotionPool()[0].makJ();
-
 	cs.model().solverPool()[0].allocateMemory();
-    for(auto &m:cs.model().motionPool())m.activate(true);
+
+  for(auto &m:cs.model().motionPool())m.activate(true);
 
 	cs.start();
 
