@@ -397,6 +397,7 @@ MoveXYZ::MoveXYZ(const std::string &name) :Plan(name)
     }
 
 
+
 struct MoveDistalParam
 {
 	double period;

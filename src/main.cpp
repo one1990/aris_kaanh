@@ -15,7 +15,7 @@ std::vector<std::vector<std::string>> plantrack(6, std::vector<std::string>());
 std::atomic_int which_di = 0;
 
 auto xmlpath = std::filesystem::absolute(".");
-const std::string xmlfile = "plan.xml";
+const std::string xmlfile = "rokae.xml";
 
 int main(int argc, char *argv[])
 {
@@ -24,6 +24,8 @@ int main(int argc, char *argv[])
 	auto&cs = aris::server::ControlServer::instance();
 	auto port = argc < 2 ? 5866 : std::stoi(argv[1]);
 
+	//生成rokae.xml文档
+	/*
 	cs.resetController(kaanh::createControllerRokaeXB4().release());
 	cs.resetModel(aris::dynamic::createModelRokaeXB4().release());
 	cs.resetPlanRoot(kaanh::createPlanRootRokaeXB4().release());
@@ -32,19 +34,21 @@ int main(int argc, char *argv[])
 	//std::cout << cs.controller().xmlString() << std::endl;
 
 	//末端位置加0.1的工件长度//
-
 	double pe[6];
 	cs.model().generalMotionPool()[0].makI().getPe(
     cs.model().generalMotionPool()[0].makI().fatherPart(),
     pe);
 
     pe[0] += 0.0;
-
 	cs.model().generalMotionPool()[0].makI().setPrtPe(pe);
 	cs.model().generalMotionPool()[0].makJ();
 	cs.model().solverPool()[0].allocateMemory();
 
-  for(auto &m:cs.model().motionPool())m.activate(true);
+	cs.saveXmlFile(xmlpath.string().c_str());
+	*/
+
+	kaanh::registerPlan();
+	cs.loadXmlFile(xmlpath.string().c_str());
 
 	cs.start();
 
