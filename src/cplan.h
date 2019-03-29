@@ -1,19 +1,18 @@
 ﻿#ifndef ROKAE_CPLAN_H_
 #define ROKAE_CPLAN_H_
 
-#include <aris.h>
+#include <aris.hpp>
 #include <iostream>
 #include <fstream>
 #include <typeinfo>
 #include <vector>
 #include <memory>
-#include <aris_control.h>
-#include <aris_dynamic.h>
-#include <aris_plan.h>
-#include <tinyxml2.h>
 #include <atomic>
 #include <string> 
 #include <algorithm>
+
+namespace cplan
+{
 
 
 class MoveCircle : public aris::plan::Plan
@@ -87,6 +86,11 @@ public:
 	explicit MoveLPolish(const std::string &name = "MoveLPolish_plan");
 };
 
-
-
+class OpenFile : public aris::plan::Plan
+{
+public:
+	auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+	explicit OpenFile(const std::string &name = "OpenFile");
+};
+}
 #endif
