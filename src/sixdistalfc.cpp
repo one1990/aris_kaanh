@@ -387,13 +387,13 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 MoveXYZ::MoveXYZ(const std::string &name) :Plan(name)
     {
         command().loadXmlStr(
-            "<mvXYZ>"
-			"	<group type=\"GroupParam\" default_child_type=\"Param\">"
-			"		<damp default=\"1.0\" abbreviation=\"t\"/>"
-			"	</group>"
-            "</mvXYZ>");
+            "<Command name=\"mvXYZ\">"
+			"	<GroupParam>"
+			"		<Param name=\"damp\" default=\"1.0\"/>"
+			"	</GroupParam>"
+            "</Command>");
 
-		//mvXYZ --j1=0.1
+
     }
 
 
@@ -541,13 +541,15 @@ auto MoveDistal::collectNrt(aris::plan::PlanTarget &target)->void
 
 MoveDistal::MoveDistal(const std::string &name) :Plan(name)
 {
+	
 	command().loadXmlStr(
-		"<mvDistal>"
-		"	<group type=\"GroupParam\" default_child_type=\"Param\">"
-        "		<period default=\"4.0\" abbreviation=\"p\"/>"
-        "		<amplitude default=\"0.5\" abbreviation=\"a\"/>"
-		"	</group>"
-		"</mvDistal>");
+		"<Command name=\"mvDistal\">"
+		"	<GroupParam>"
+        "		<Param name=\"period\"default=\"1.0\"/>"
+        "		<Param name=\"amplitude\"default=\"0.2\"/>"
+		"	</GroupParam>"
+		"</Command>");
+
 }
 
 
@@ -727,13 +729,16 @@ auto SetTool::collectNrt(aris::plan::PlanTarget &target)->void
 
 SetTool::SetTool(const std::string &name) :Plan(name)
 {
+	
 	command().loadXmlStr(
-		"<STool>"
-		"	<group type=\"GroupParam\" default_child_type=\"Param\">"
-		"		<period default=\"1.0\" abbreviation=\"p\"/>"
-		"		<amplitude default=\"0.2\" abbreviation=\"a\"/>"
-		"	</group>"
-		"</STool>");
+		"<Command name=\"STool\">"
+		"	<GroupParam>"
+		"		<Param name=\"period\"default=\"1.0\"/>"
+		"		<Param name=\"amplitude\"default=\"0.2\"/>"
+		"	</GroupParam>"
+		"</Command>");
+		
+
 }
 
 
@@ -1019,10 +1024,14 @@ auto MovePressure::executeRT(PlanTarget &target)->int
 
 MovePressure::MovePressure(const std::string &name) :Plan(name)
     {
+	
         command().loadXmlStr(
-            "<mvPre>"
-            "	<group type=\"GroupParam\">"
-            "       <PressF type=\"Param\" default=\"0\"/>"
-            "   </group>"
-            "</mvPre>");
+			"<Command name=\"mvPre\">"
+            "	<GroupParam>"
+            "       <Param name=\"PressF\" default=\"0\"/>"
+            "   </GroupParam>"
+			"</Command>");
+			
+	
+
     }
