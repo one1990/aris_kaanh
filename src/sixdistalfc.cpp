@@ -98,7 +98,7 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 			static double begin_pjs[6];
 			static double step_pjs[6];
             static double stateTor0[6][3],stateTor1[6][3];
-            static float FT0[6];
+            static float FT0[6],FT_be[6];
 
             // 访问主站 //
             auto controller = target.controller;
@@ -140,6 +140,40 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
             FT[0]=-FT[0];FT[3]=-FT[3];
 
 
+            // 获取当前起始点位置 //
+            if (target.count == 1)
+            {
+                for (int j = 0; j < 6; j++)
+                {
+                    stateTor0[j][0] = FT[j];
+                    FT0[j] = FT[j];
+                    FT_be[j]=FT[j];
+                }
+            }
+
+            for (int j = 0; j < 6; j++)
+            {
+                if(abs(FT[j])<0.0001)
+                   FT[j]=FT_be[j];
+            }
+
+
+            for (int j = 0; j < 6; j++)
+            {
+                double A[3][3], B[3], CutFreq = 5;
+                A[0][0] = 0; A[0][1] = 1; A[0][2] = 0;
+                A[1][0] = 0; A[1][1] = 0; A[1][2] = 1;
+                A[2][0] = -CutFreq * CutFreq * CutFreq;
+                A[2][1] = -2 * CutFreq * CutFreq;
+                A[2][2] = -2 * CutFreq;
+                B[0] = 0; B[1] = 0;
+                B[2] = -A[2][0];
+                double intDT = 0.001;
+                stateTor1[j][0] = stateTor0[j][0] + intDT * (A[0][0] * stateTor0[j][0] + A[0][1] * stateTor0[j][1] + A[0][2] * stateTor0[j][2] + B[0] * FT[j]);
+                stateTor1[j][1] = stateTor0[j][1] + intDT * (A[1][0] * stateTor0[j][0] + A[1][1] * stateTor0[j][1] + A[1][2] * stateTor0[j][2] + B[1] * FT[j]);
+                stateTor1[j][2] = stateTor0[j][2] + intDT * (A[2][0] * stateTor0[j][0] + A[2][1] * stateTor0[j][1] + A[2][2] * stateTor0[j][2] + B[2] * FT[j]);
+            }
+
 
             for (int i = 0;i < 6;i++)
             {
@@ -147,37 +181,33 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
                 RobotPosition[i] = target.model->motionPool()[i].mp();
                 RobotVelocity[i]=0;
                 RobotAcceleration[i]=0;
-                TorqueSensor[i]=FT[i];
+                TorqueSensor[i]=stateTor1[i][0];
             }
             double estFT[6]={0};
-
             sixDistalMatrix.sixDistalCollision(RobotPosition, RobotVelocity, RobotAcceleration, TorqueSensor, estParas, estFT);
 
-
+            double FT_KAI[6];
             for (int i = 0; i < 6; i++)
             {
-                    FT[i]=FT[i]-estFT[i];
+                    FT_KAI[i]=stateTor1[i][0]-estFT[i];
             }
 
 
 
             for (int i = 0; i < 3; i++)
             {
-                if (abs(FT[i]) < 2)
-                      FT[i]=0;
+                if (abs(FT_KAI[i]) < 2)
+                      FT_KAI[i]=0;
             }
             for (int i = 3; i < 6; i++)
             {
-                if (abs(FT[i]) < 0.05)
-                      FT[i]=0;
+                if (abs(FT_KAI[i]) < 0.05)
+                      FT_KAI[i]=0;
             }
 
-
-            double temp;
-            temp=FT[0];FT[0]=FT[2];FT[2]=temp;
-            temp=FT[3];FT[3]=FT[5];FT[5]=temp;
-            FT[1]=-FT[1];FT[5]=-FT[5];
-
+            double FT_YANG[6];
+            FT_YANG[0]=FT_KAI[2];FT_YANG[1]=-FT_KAI[1];FT_YANG[2]=FT_KAI[0];
+            FT_YANG[3]=FT_KAI[5];FT_YANG[4]=-FT_KAI[4];FT_YANG[5]=FT_KAI[3];
 
 			double FmInWorld[6];
 
@@ -191,55 +221,28 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 			double a[3] = { TransMatrix[2][0], TransMatrix[2][1], TransMatrix[2][2] };
 			
             //FT[0] = 0;FT[1] = 0;FT[2] = 1;FT[3] = 0;FT[4] = 0;FT[5] = 0;
-			FmInWorld[0] = n[0] * FT[0] + n[1] * FT[1] + n[2] * FT[2];
-			FmInWorld[1] = o[0] * FT[0] + o[1] * FT[1] + o[2] * FT[2];
-			FmInWorld[2] = a[0] * FT[0] + a[1] * FT[1] + a[2] * FT[2];
-			FmInWorld[3] = n[0] * FT[3] + n[1] * FT[4] + n[2] * FT[5];
-			FmInWorld[4] = o[0] * FT[3] + o[1] * FT[4] + o[2] * FT[5];
-			FmInWorld[5] = a[0] * FT[3] + a[1] * FT[4] + a[2] * FT[5];
-
-            //robotDemo.forceTransform(RobotPositionJ, FT, FmInWorld);
+            FmInWorld[0] = n[0] * FT_YANG[0] + n[1] * FT_YANG[1] + n[2] * FT_YANG[2];
+            FmInWorld[1] = o[0] * FT_YANG[0] + o[1] * FT_YANG[1] + o[2] * FT_YANG[2];
+            FmInWorld[2] = a[0] * FT_YANG[0] + a[1] * FT_YANG[1] + a[2] * FT_YANG[2];
+            FmInWorld[3] = n[0] * FT_YANG[3] + n[1] * FT_YANG[4] + n[2] * FT_YANG[5];
+            FmInWorld[4] = o[0] * FT_YANG[3] + o[1] * FT_YANG[4] + o[2] * FT_YANG[5];
+            FmInWorld[5] = a[0] * FT_YANG[3] + a[1] * FT_YANG[4] + a[2] * FT_YANG[5];
 
 
-            // 获取当前起始点位置 //
-            if (target.count == 1)
-            {
 
-                for (int j = 0; j < 6; j++)
-                    stateTor0[j][0] = FmInWorld[j];
-            }
-
-
-            for (int j = 0; j < 6; j++)
-                {
-					double A[3][3],B[3],CutFreq=10;
-					A[0][0] = 0; A[0][1] = 1; A[0][2] = 0;
-					A[1][0] = 0; A[1][1] = 0; A[1][2] = 1;
-					A[2][0] = -CutFreq * CutFreq * CutFreq;
-					A[2][1] = -2 * CutFreq * CutFreq;
-					A[2][2] = -2 * CutFreq;
-					B[0] = 0; B[1] = 0;
-					B[2] = -A[2][0];
-					double intDT = 0.001;
-                    stateTor1[j][0] = stateTor0[j][0] + intDT * (A[0][0] * stateTor0[j][0] + A[0][1] * stateTor0[j][1] + A[0][2] * stateTor0[j][2] + B[0] * FmInWorld[j]);
-                    stateTor1[j][1] = stateTor0[j][1] + intDT * (A[1][0] * stateTor0[j][0] + A[1][1] * stateTor0[j][1] + A[1][2] * stateTor0[j][2] + B[1] * FmInWorld[j]);
-                    stateTor1[j][2] = stateTor0[j][2] + intDT * (A[2][0] * stateTor0[j][0] + A[2][1] * stateTor0[j][1] + A[2][2] * stateTor0[j][2] + B[2] * FmInWorld[j]);
-                }
-			   
-               dX[0] = 1*stateTor1[0][0] / 80000;
-               dX[1] = 1*stateTor1[1][0] / 80000;
-               dX[2] = 1*stateTor1[2][0] / 80000;
-               dX[3] = 1*stateTor1[3][0] / 12000;
-               dX[4] = 1*stateTor1[4][0] / 12000;
-               dX[5] = 1*stateTor1[5][0] / 12000;
-
+               dX[0] = 1*FmInWorld[0] / 80000;
+               dX[1] = 1*FmInWorld[1] / 80000;
+               dX[2] = 1*FmInWorld[2] / 80000;
+               dX[3] = 1*FmInWorld[3] / 12000;
+               dX[4] = 1*FmInWorld[4] / 12000;
+               dX[5] = 1*FmInWorld[5] / 12000;
 
 
                if (target.count % 100 == 0)
                {
                    for (int i = 0; i < 6; i++)
                    {
-                       cout<<stateTor1[i][0]<<"***"<<FT[i]<<"***"<<FmInWorld[i]<<endl;
+                       cout<<dX[i]<<"***"<<FT[i]<<"***"<<FmInWorld[i]<<endl;
 
                    }
 
@@ -381,6 +384,10 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
                     stateTor0[i, 2] = stateTor1[i, 2];
                 } */
             
+                for (int j = 0; j < 6; j++)
+                {
+                    FT_be[j]=FT[j];
+                }
                 return 150000000 - target.count;
 }
 
@@ -464,7 +471,7 @@ auto MoveDistal::executeRT(PlanTarget &target)->int
            // target.model->motionPool().at(4).setMp(step_pjs[4]);
 
             step_pjs[5] = begin_pjs[5] + 2*ampVar * (std::sin(2 * aris::PI / param.period *target.count/1000));
-           // target.model->motionPool().at(5).setMp(step_pjs[5]);
+            target.model->motionPool().at(5).setMp(step_pjs[5]);
 	
     if (!target.model->solverPool().at(1).kinPos())return -1;
 
@@ -789,7 +796,7 @@ auto MovePressure::prepairNrt(const std::map<std::string, std::string> &params, 
 }
 auto MovePressure::executeRT(PlanTarget &target)->int
 {
-	auto &param = std::any_cast<MoveXYZParam&>(target.param);
+    auto &param = std::any_cast<MovePressureParam&>(target.param);
 
 	double RobotPosition[6];
 	double RobotPositionJ[6];
@@ -801,7 +808,7 @@ auto MovePressure::executeRT(PlanTarget &target)->int
 	static double begin_pjs[6];
 	static double step_pjs[6];
 	static double stateTor0[6][3], stateTor1[6][3];
-	static float FT0[6];
+    static float FT0[6],FT_be[6];
 
 	// 访问主站 //
 	auto controller = target.controller;
@@ -826,7 +833,7 @@ auto MovePressure::executeRT(PlanTarget &target)->int
 	target.model->generalMotionPool().at(0).getMpm(TransVector);
 	target.model->generalMotionPool().at(0).getMpq(PqEnd);
 
-	double dX[6] = { 0.00001, -0.0000, -0.0000, -0.0000, -0.0000, -0.0000 };
+    double dX[6] = { 0.00000, -0.0000, -0.0000, -0.0000, -0.0000, -0.0000 };
 	double dTheta[6] = { 0 };
 
 	float FT[6];
@@ -839,7 +846,7 @@ auto MovePressure::executeRT(PlanTarget &target)->int
 	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x04, &FT[3], 32);
 	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x05, &FT[4], 32);
 	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x06, &FT[5], 32);
-
+    FT[0]=-FT[0];FT[3]=-FT[3];
 	
 	for (int i = 0;i < 6;i++)
 	{
@@ -851,6 +858,7 @@ auto MovePressure::executeRT(PlanTarget &target)->int
 	}
 
 
+
 	// 获取当前起始点位置 //
 	if (target.count == 1)
 	{
@@ -858,14 +866,20 @@ auto MovePressure::executeRT(PlanTarget &target)->int
 		{
 			stateTor0[j][0] = FT[j];
 			FT0[j] = FT[j];
+            FT_be[j]=FT[j];
 		}
 	}
 
+    for (int j = 0; j < 6; j++)
+    {
+        if(abs(FT[j])<0.0001)
+           FT[j]=FT_be[j];
+    }
 	
 
 	for (int j = 0; j < 6; j++)
 	{
-		double A[3][3], B[3], CutFreq = 10;
+        double A[3][3], B[3], CutFreq = 5;
 		A[0][0] = 0; A[0][1] = 1; A[0][2] = 0;
 		A[1][0] = 0; A[1][1] = 0; A[1][2] = 1;
 		A[2][0] = -CutFreq * CutFreq * CutFreq;
@@ -880,21 +894,46 @@ auto MovePressure::executeRT(PlanTarget &target)->int
 	}
 
 
+    double FT_KAI[6];
 	for (int i = 0; i < 6; i++)
 	{
-		FT[i] = stateTor1[i][0] - FT0[i];
+        FT_KAI[i] = stateTor1[i][0] - FT0[i];//In KAI Coordinate
     }
 
-    dX[2] = 1 * FT[2] / 80000;
+    double FT_YANG[6];
+    FT_YANG[0]=FT_KAI[2];FT_YANG[1]=-FT_KAI[1];FT_YANG[2]=FT_KAI[0];
+    FT_YANG[3]=FT_KAI[5];FT_YANG[4]=-FT_KAI[4];FT_YANG[5]=FT_KAI[3];
+
+    double FmInWorld[6];
+
+    double TransMatrix[4][4];
+    for (int i = 0;i < 4;i++)
+        for (int j = 0;j < 4;j++)
+            TransMatrix[i][j] = TransVector[4 * i + j];
+
+    double n[3] = { TransMatrix[0][0], TransMatrix[0][1], TransMatrix[0][2] };
+    double o[3] = { TransMatrix[1][0], TransMatrix[1][1], TransMatrix[1][2] };
+    double a[3] = { TransMatrix[2][0], TransMatrix[2][1], TransMatrix[2][2] };
+
+    //FT[0] = 0;FT[1] = 0;FT[2] = 1;FT[3] = 0;FT[4] = 0;FT[5] = 0;
+    FmInWorld[0] = n[0] * FT_YANG[0] + n[1] * FT_YANG[1] + n[2] * FT_YANG[2];
+    FmInWorld[1] = o[0] * FT_YANG[0] + o[1] * FT_YANG[1] + o[2] * FT_YANG[2];
+    FmInWorld[2] = a[0] * FT_YANG[0] + a[1] * FT_YANG[1] + a[2] * FT_YANG[2];
+    FmInWorld[3] = n[0] * FT_YANG[3] + n[1] * FT_YANG[4] + n[2] * FT_YANG[5];
+    FmInWorld[4] = o[0] * FT_YANG[3] + o[1] * FT_YANG[4] + o[2] * FT_YANG[5];
+    FmInWorld[5] = a[0] * FT_YANG[3] + a[1] * FT_YANG[4] + a[2] * FT_YANG[5];
+
+
+
+    dX[2] = 1 * (FmInWorld[2]-(10)) / 36820000;
 
 
 	if (target.count % 100 == 0)
 	{
-		for (int i = 0; i < 6; i++)
-		{
-            cout << FT[i] << endl;
 
-		}
+        cout << FmInWorld[2]<<"***"<<dX[2]<<"***"<<FT_KAI[2]<<endl;
+
+       //cout <<  FT_KAI[0]<<"***"<<FmInWorld[2]<<endl;
 
 		cout << std::endl;
 
@@ -923,13 +962,13 @@ auto MovePressure::executeRT(PlanTarget &target)->int
 	 //lout << target.model->motionPool()[4].mp() << ",";
 	 //lout << target.model->motionPool()[5].mp() << ",";
 
-
-	lout << FT[1] << ",";lout << FT[2] << ",";
-	lout << FT[3] << ",";lout << FT[4] << ",";
-	lout << FT[5] << ",";lout << FT[6] << ",";
-	lout << stateTor0[0][0] << ",";lout << stateTor0[1][0] << ",";
-	lout << stateTor0[2][0] << ",";lout << stateTor0[3][0] << ",";
-	lout << stateTor0[4][0] << ",";lout << stateTor0[5][0] << ",";
+    lout << FTnum << ",";
+    lout << FT[0] << ",";lout << FT[1] << ",";
+    lout << FT[2] << ",";lout << FT[3] << ",";
+    lout << FT[4] << ",";lout << FT[5] << ",";
+    lout << FT_KAI[0] << ",";lout << FT_KAI[1] << ",";
+    lout << FT_KAI[2] << ",";lout << FT_KAI[3] << ",";
+    lout << FT_KAI[4] << ",";lout << FT_KAI[5] << ",";
 
 	//lout << stateTor1[2][0] << ",";lout << FT0[3] << ",";
    // lout << dX[0] << ",";
@@ -1005,7 +1044,7 @@ auto MovePressure::executeRT(PlanTarget &target)->int
 	for (int i = 0; i < 6; i++)
 	{
 		step_pjs[i] = step_pjs[i] + dTheta[i];
-        //target.model->motionPool().at(i).setMp(step_pjs[i]);
+        target.model->motionPool().at(i).setMp(step_pjs[i]);
 	}
 
 
@@ -1018,6 +1057,10 @@ auto MovePressure::executeRT(PlanTarget &target)->int
 		stateTor0[i][2] = stateTor1[i][2];
 	}
 
+    for (int j = 0; j < 6; j++)
+    {
+        FT_be[j]=FT[j];
+    }
 	return 150000000 - target.count;
    
 }
@@ -1032,6 +1075,4 @@ MovePressure::MovePressure(const std::string &name) :Plan(name)
             "   </GroupParam>"
 			"</Command>");
 			
-	
-
     }
