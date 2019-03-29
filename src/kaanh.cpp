@@ -2831,13 +2831,13 @@ namespace kaanh
 		plan_root->planPool().add<SetTool>();
 		plan_root->planPool().add<MovePressure>();
 
-    plan_root->planPool().add<cplan::MoveCircle>();
-    plan_root->planPool().add<cplan::MoveTroute>();
-    plan_root->planPool().add<cplan::MoveFile>();
-    plan_root->planPool().add<cplan::RemoveFile>();
-    plan_root->planPool().add<cplan::MoveinModel>();
-    plan_root->planPool().add<cplan::FMovePath>();
-    plan_root->planPool().add<cplan::OpenFile>();
+		plan_root->planPool().add<cplan::MoveCircle>();
+		plan_root->planPool().add<cplan::MoveTroute>();
+		plan_root->planPool().add<cplan::MoveFile>();
+		plan_root->planPool().add<cplan::RemoveFile>();
+		plan_root->planPool().add<cplan::MoveinModel>();
+		plan_root->planPool().add<cplan::FMovePath>();
+		plan_root->planPool().add<cplan::OpenFile>();
 
 		return plan_root;
 	}
