@@ -3,7 +3,7 @@
 #include<math.h>
 #include<array>
 #include"robotconfig.h"
-#include <aris.h>
+#include <aris.hpp>
 using namespace sixDistalDynamicsInt;
 
 using namespace CONFIG;
