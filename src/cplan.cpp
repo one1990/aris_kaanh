@@ -530,7 +530,8 @@ namespace cplan
 	{
 		string vn;//数组中的序号
 	};
-
+	
+	// std::atomic_bool OpenFile::Imp::is_running_ = false;
 	auto OpenFile::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
 		OpenFileParam p;
@@ -552,7 +553,7 @@ namespace cplan
 		cout << "num:  " << num << endl;
 	
 		fstream fin;
-		//打开files中的最新的一个文件files[0]
+		//打开files中的最新的一个文件files[ files.size() - 1]
 		//fin.open(files.back().c_str(), ios::in);
 		fin.open(files[ num ].c_str(), ios::in);
 		vector<string> v;
@@ -561,21 +562,20 @@ namespace cplan
 		{
 			v.push_back(tmp);
 		}
-		for (auto x : v)
-		cout << x << endl;
+		//for (auto x : v)
+		//cout << x << endl;
 		//std::filesystem::remove(files[0]);
 		target.param = p;
-		target.option =
-			//aris::plan::Plan::USE_TARGET_POS |
-			aris::plan::Plan::NOT_CHECK_VEL_MIN |
-			aris::plan::Plan::NOT_CHECK_VEL_MAX |
-			aris::plan::Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-			aris::plan::Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
-			aris::plan::Plan::NOT_CHECK_VEL_FOLLOWING_ERROR |
-			aris::plan::Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START | // 开始不检查速度连续
-			aris::plan::Plan::NOT_CHECK_VEL_CONTINUOUS |
-			NOT_RUN_EXECUTE_FUNCTION;
+		target.option = NOT_RUN_EXECUTE_FUNCTION;
+
+		target.ret = files[num].substr(50);
+		//target.ret = std::string("this is ret msg");
 	}
+	
+	//  auto OpenFile::OpenFile(PlanTarget &target)-> void
+	//{
+	//	if (~(target.option | USE_TARGET_POS))Imp::is_running_.store(false);
+	//}
 	/*
 	auto OpenFile::executeRT(PlanTarget &target)->int
 	{
