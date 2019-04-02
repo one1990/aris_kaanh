@@ -2801,6 +2801,7 @@ namespace kaanh
 		aris::core::Object::registerTypeGlobal<kaanh::FSSignal>();
 
 		aris::core::Object::registerTypeGlobal<MoveXYZ>();
+		aris::core::Object::registerTypeGlobal<MoveJoint>();
 		aris::core::Object::registerTypeGlobal<MoveDistal>();
 		aris::core::Object::registerTypeGlobal<SetTool>();
 		aris::core::Object::registerTypeGlobal<MovePressure>();

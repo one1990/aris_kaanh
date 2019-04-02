@@ -10,10 +10,6 @@ using namespace CONFIG;
 using namespace sixDistalDynamicsInt;
 /// \brief
 
-
-
-
-
 robotconfig robotDemo;
 sixdistaldynamics sixDistalMatrix;
 double estParas[GroupDim]={-0.03543402,0.04347624,0.05651912,-0.04722695,-0.05991794,-0.08057128,0.02379530,-0.00348242,0.02249035,
@@ -1435,3 +1431,4 @@ MoveJoint::MoveJoint(const std::string &name) :Plan(name)
 		"</Command>");
 
 }
+
