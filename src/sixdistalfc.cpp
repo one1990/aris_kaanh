@@ -1108,3 +1108,310 @@ MovePressure::MovePressure(const std::string &name) :Plan(name)
 			"</Command>");
 			
     }
+
+
+
+
+struct MoveJointParam
+{
+	double PressF;
+
+};
+
+auto MoveJoint::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+{
+	MoveJointParam param;
+	for (auto &p : params)
+	{
+		if (p.first == "PressF")
+			param.PressF = std::stod(p.second);
+
+	}
+
+	target.param = param;
+
+	target.option |=
+		Plan::USE_TARGET_POS |
+		//#ifdef WIN32
+		Plan::NOT_CHECK_POS_MIN |
+		Plan::NOT_CHECK_POS_MAX |
+		Plan::NOT_CHECK_POS_CONTINUOUS |
+		Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
+		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
+		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
+		Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
+		//#endif
+		Plan::NOT_CHECK_VEL_MIN |
+		Plan::NOT_CHECK_VEL_MAX |
+		Plan::NOT_CHECK_VEL_CONTINUOUS |
+		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
+		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+
+
+
+
+}
+auto MoveJoint::executeRT(PlanTarget &target)->int
+{
+	auto &param = std::any_cast<MoveJointParam&>(target.param);
+
+	double RobotPosition[6];
+	double RobotPositionJ[6];
+	double RobotVelocity[6];
+	double RobotAcceleration[6];
+	double TorqueSensor[6];
+	double X1[3];
+	double X2[3];
+	static double begin_pjs[6];
+	static double step_pjs[6];
+	static double stateTor0[6][3], stateTor1[6][3];
+	static float FT0[6], FT_be[6];
+
+	// 访问主站 //
+	auto controller = target.controller;
+
+	// 获取当前起始点位置 //
+	if (target.count == 1)
+	{
+		for (int i = 0; i < 6; ++i)
+		{
+			step_pjs[i] = target.model->motionPool()[i].mp();
+			// controller->motionPool().at(i).setModeOfOperation(10);	//切换到电流控制
+		}
+	}
+
+
+	if (!target.model->solverPool().at(1).kinPos())return -1;
+
+
+	///* Using Jacobian, TransMatrix from ARIS
+	double EndW[3], EndP[3], BaseV[3];
+	double PqEnd[7], TransVector[16];
+	target.model->generalMotionPool().at(0).getMpm(TransVector);
+	target.model->generalMotionPool().at(0).getMpq(PqEnd);
+
+	double dX[6] = { 0.00000, -0.0000, -0.0000, -0.0000, -0.0000, -0.0000 };
+	double dTheta[6] = { 0 };
+
+	float FT[6];
+	uint16_t FTnum;
+	auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.controller);
+	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x00, &FTnum, 16);
+	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x01, &FT[0], 32);  //Fx
+	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x02, &FT[1], 32);  //Fy
+	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x03, &FT[2], 32);  //Fz
+	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x04, &FT[3], 32);
+	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x05, &FT[4], 32);
+	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x06, &FT[5], 32);
+	FT[0] = -FT[0];FT[3] = -FT[3];
+
+	for (int i = 0;i < 6;i++)
+	{
+		RobotPositionJ[i] = target.model->motionPool()[i].mp();
+		RobotPosition[i] = target.model->motionPool()[i].mp();
+		RobotVelocity[i] = 0;
+		RobotAcceleration[i] = 0;
+		TorqueSensor[i] = FT[i];
+	}
+
+	// 获取当前起始点位置 //
+	if (target.count == 1)
+	{
+		for (int j = 0; j < 6; j++)
+		{
+			stateTor0[j][0] = FT[j];
+			FT0[j] = FT[j];
+			FT_be[j] = FT[j];
+		}
+	}
+
+	for (int j = 0; j < 6; j++)
+	{
+		if (abs(FT[j]) < 0.0001)
+			FT[j] = FT_be[j];
+	}
+
+	for (int j = 0; j < 6; j++)
+	{
+		double A[3][3], B[3], CutFreq = 35;//SHANGHAI DIANQI EXP
+		
+		A[0][0] = 0; A[0][1] = 1; A[0][2] = 0;
+		A[1][0] = 0; A[1][1] = 0; A[1][2] = 1;
+		A[2][0] = -CutFreq * CutFreq * CutFreq;
+		A[2][1] = -2 * CutFreq * CutFreq;
+		A[2][2] = -2 * CutFreq;
+		B[0] = 0; B[1] = 0;
+		B[2] = -A[2][0];
+		double intDT = 0.001;
+		stateTor1[j][0] = stateTor0[j][0] + intDT * (A[0][0] * stateTor0[j][0] + A[0][1] * stateTor0[j][1] + A[0][2] * stateTor0[j][2] + B[0] * FT[j]);
+		stateTor1[j][1] = stateTor0[j][1] + intDT * (A[1][0] * stateTor0[j][0] + A[1][1] * stateTor0[j][1] + A[1][2] * stateTor0[j][2] + B[1] * FT[j]);
+		stateTor1[j][2] = stateTor0[j][2] + intDT * (A[2][0] * stateTor0[j][0] + A[2][1] * stateTor0[j][1] + A[2][2] * stateTor0[j][2] + B[2] * FT[j]);
+	}
+
+	double FT_KAI[6];
+	for (int i = 0; i < 6; i++)
+	{
+		FT_KAI[i] = stateTor1[i][0] - FT0[i];//In KAI Coordinate
+	}
+
+	double FT_YANG[6];
+	FT_YANG[0] = FT_KAI[2];FT_YANG[1] = -FT_KAI[1];FT_YANG[2] = FT_KAI[0];
+	FT_YANG[3] = FT_KAI[5];FT_YANG[4] = -FT_KAI[4];FT_YANG[5] = FT_KAI[3];
+
+	double FmInWorld[6];
+
+	double TransMatrix[4][4];
+	for (int i = 0;i < 4;i++)
+		for (int j = 0;j < 4;j++)
+			TransMatrix[i][j] = TransVector[4 * i + j];
+
+	double n[3] = { TransMatrix[0][0], TransMatrix[0][1], TransMatrix[0][2] };
+	double o[3] = { TransMatrix[1][0], TransMatrix[1][1], TransMatrix[1][2] };
+	double a[3] = { TransMatrix[2][0], TransMatrix[2][1], TransMatrix[2][2] };
+
+	//FT[0] = 0;FT[1] = 0;FT[2] = 1;FT[3] = 0;FT[4] = 0;FT[5] = 0;
+	FmInWorld[0] = n[0] * FT_YANG[0] + n[1] * FT_YANG[1] + n[2] * FT_YANG[2];
+	FmInWorld[1] = o[0] * FT_YANG[0] + o[1] * FT_YANG[1] + o[2] * FT_YANG[2];
+	FmInWorld[2] = a[0] * FT_YANG[0] + a[1] * FT_YANG[1] + a[2] * FT_YANG[2];
+	FmInWorld[3] = n[0] * FT_YANG[3] + n[1] * FT_YANG[4] + n[2] * FT_YANG[5];
+	FmInWorld[4] = o[0] * FT_YANG[3] + o[1] * FT_YANG[4] + o[2] * FT_YANG[5];
+	FmInWorld[5] = a[0] * FT_YANG[3] + a[1] * FT_YANG[4] + a[2] * FT_YANG[5];
+
+
+	if (target.count % 100 == 0)
+	{
+
+		cout << FmInWorld[0] << "***" << FmInWorld[1] << "***" << FmInWorld[2] << "***" << FmInWorld[3] << "***" << FT0[2] << endl;
+
+		//cout <<  FT_KAI[0]<<"***"<<FmInWorld[2]<<endl;
+
+		cout << std::endl;
+
+	}
+
+
+	for (int j = 0; j < 6; j++)
+	{
+		if (dX[j] > 0.00025)
+			dX[j] = 0.00025;
+		if (dX[j] < -0.00025)
+			dX[j] = -0.00025;
+	}
+
+
+	// 打印电流 //
+	auto &cout = controller->mout();
+
+	// log 电流 //
+	auto &lout = controller->lout();
+
+	lout << FTnum << ",";
+	//lout << FT[2] << ",";lout << dX[2] << ",";
+	//lout << FmInWorld[2] << ",";lout << FT0[2] << ",";
+
+	lout << FmInWorld[0] << ",";lout << FmInWorld[1] << ",";
+	lout << FmInWorld[2] << ",";lout << FmInWorld[3] << ",";
+	lout << FmInWorld[4] << ",";
+	// lout << FT_KAI[0] << ",";lout << FT_KAI[1] << ",";
+	// lout << FT_KAI[2] << ",";lout << FT_KAI[3] << ",";
+	 //lout << FT_KAI[4] << ",";lout << FT_KAI[5] << ",";
+
+
+
+
+	 //lout << stateTor1[2][0] << ",";lout << FT0[3] << ",";
+	// lout << dX[0] << ",";
+
+	// lout << dX[0] << ",";
+	// lout << FT[1] << ",";lout << FT[2] << ",";
+	// lout << FT[3] << ",";lout << FT[4] << ",";
+	// lout << FT[5] << ",";lout << FT[6] << ",";
+	lout << std::endl;
+
+
+
+	///* Using Jacobian, TransMatrix from ARIS
+    auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(target.model->solverPool()[1]);
+	fwd.cptJacobi();
+	double pinv[36];
+	double tempS[6][6] = { 0 };
+	for (int i = 0;i < 6;i++)
+		for (int j = 0;j < 6;j++)
+			if (i == j)
+				tempS[i][j] = 1;
+	tempS[0][4] = -PqEnd[2];tempS[0][5] = PqEnd[1];
+	tempS[1][3] = PqEnd[2];tempS[1][5] = -PqEnd[0];
+	tempS[2][3] = -PqEnd[1];tempS[2][4] = PqEnd[0];
+	double tempVec[36] = { 0 };
+	for (int i = 0;i < 6;i++)
+		for (int j = 0;j < 6;j++)
+			tempVec[6 * i + j] = tempS[i][j];
+
+	double U[36], tau[6];
+	aris::Size p[6];
+	aris::Size rank;
+
+	s_householder_utp(6, 6, tempVec, U, tau, p, rank, 1e-10);
+	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A) //
+	double tau2[6];
+	s_householder_utp2pinv(6, 6, rank, U, tau, p, pinv, tau2, 1e-10);
+
+	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A)*b //
+	double JacobEnd[36] = { 0 };
+	s_mm(6, 6, 6, pinv, fwd.Jf(), JacobEnd);
+	//robotDemo.jointIncrement(RobotPositionJ, dX, dTheta);
+
+	double JoinTau[6] = { 0 };
+	s_mm(6, 1, 6, JacobEnd, FmInWorld, JoinTau);
+	for (int i = 0;i < 6;i++)
+		dTheta[i] = JoinTau[i] / 10000;
+
+
+	for (int i = 0; i < 6; i++)
+	{
+		if (dTheta[i] > 0.003)
+			dTheta[i] = 0.003;
+		if (dTheta[i] < -0.003)
+			dTheta[i] = -0.003;
+		//lout << dTheta[i] << ",";
+	}
+
+	for (int i = 0; i < 6; i++)
+	{
+		dTheta[i] = dTheta[i] * DirectionFlag[i];
+
+	}
+
+	for (int i = 0; i < 6; i++)
+	{
+		step_pjs[i] = step_pjs[i] + dTheta[i];
+		target.model->motionPool().at(i).setMp(step_pjs[i]);
+	}
+
+	for (int i = 0; i < 6; i++)
+	{
+
+		stateTor0[i][0] = stateTor1[i][0];
+		stateTor0[i][1] = stateTor1[i][1];
+		stateTor0[i][2] = stateTor1[i][2];
+	}
+
+	for (int j = 0; j < 6; j++)
+	{
+		FT_be[j] = FT[j];
+	}
+	return 150000000 - target.count;
+
+}
+
+MoveJoint::MoveJoint(const std::string &name) :Plan(name)
+{
+
+	command().loadXmlStr(
+		"<Command name=\"mvJoint\">"
+		"	<GroupParam>"
+		"       <Param name=\"PressF\" default=\"0\"/>"
+		"   </GroupParam>"
+		"</Command>");
+
+}
