@@ -1,6 +1,5 @@
 ﻿#include <algorithm>
 #include"kaanh.h"
-#include"iir.h"
 #include "sixdistalfc.h"
 
 
@@ -153,87 +152,83 @@ namespace kaanh
 	{
 		std::vector<double> axis_pos_vec;
 	};
-	class MoveInit : public aris::plan::Plan
+	auto MoveInit::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
-	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
-		{
-			MoveInitParam param;
-			param.axis_pos_vec.resize(6, 0.0);
-			target.param = param;
-			target.option |=
-				Plan::USE_TARGET_POS |
+		MoveInitParam param;
+		param.axis_pos_vec.resize(6, 0.0);
+		target.param = param;
+		target.option |=
+			Plan::USE_TARGET_POS |
 #ifdef WIN32
-				Plan::NOT_CHECK_POS_MIN |
-				Plan::NOT_CHECK_POS_MAX |
-				Plan::NOT_CHECK_POS_CONTINUOUS |
-				Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
-				Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
+			Plan::NOT_CHECK_POS_MIN |
+			Plan::NOT_CHECK_POS_MAX |
+			Plan::NOT_CHECK_POS_CONTINUOUS |
+			Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
+			Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
+			Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
+			Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
 #endif
-				Plan::NOT_CHECK_VEL_MIN |
-				Plan::NOT_CHECK_VEL_MAX |
-				Plan::NOT_CHECK_VEL_CONTINUOUS |
-				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+			Plan::NOT_CHECK_VEL_MIN |
+			Plan::NOT_CHECK_VEL_MAX |
+			Plan::NOT_CHECK_VEL_CONTINUOUS |
+			Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
+			Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 
-		}
-		auto virtual executeRT(PlanTarget &target)->int
+	}
+	auto MoveInit::executeRT(PlanTarget &target)->int
+	{
+		// 访问主站 //
+		auto controller =target.controller;
+		auto &param = std::any_cast<MoveInitParam&>(target.param);
+
+		// 取得起始位置 //
+		if (target.count == 1)
 		{
-			// 访问主站 //
-			auto controller =target.controller;
-			auto &param = std::any_cast<MoveInitParam&>(target.param);
-
-			// 取得起始位置 //
-			if (target.count == 1)
+			for (Size i = 0; i < param.axis_pos_vec.size(); ++i)
 			{
-				for (Size i = 0; i < param.axis_pos_vec.size(); ++i)
-				{
-					param.axis_pos_vec[i] = controller->motionAtAbs(i).actualPos();
-				}
+				param.axis_pos_vec[i] = controller->motionAtAbs(i).actualPos();
 			}
+		}
 
-			for (Size i = 0; i < 6; ++i)
-			{
-				target.model->motionPool().at(i).setMp(param.axis_pos_vec[i]);
-			}
+		for (Size i = 0; i < 6; ++i)
+		{
+			target.model->motionPool().at(i).setMp(param.axis_pos_vec[i]);
+		}
 
-			// 打印电流 //
-			auto &cout = controller->mout();
-			if (target.count % 100 == 0)
-			{
-				for (Size i = 0; i < 6; i++)
-				{
-					cout << "pos" << i + 1 << ":" << controller->motionAtAbs(i).actualPos() << "  ";
-					cout << "vel" << i + 1 << ":" << controller->motionAtAbs(i).actualVel() << "  ";
-					cout << "cur" << i + 1 << ":" << controller->motionAtAbs(i).actualCur() << "  ";
-				}
-				cout << std::endl;
-			}
-
-			// log 电流 //
-			auto &lout = controller->lout();
+		// 打印电流 //
+		auto &cout = controller->mout();
+		if (target.count % 100 == 0)
+		{
 			for (Size i = 0; i < 6; i++)
 			{
-				lout << param.axis_pos_vec[i] << " ";
-				lout << controller->motionAtAbs(i).actualPos() << " ";
-				lout << controller->motionAtAbs(i).actualVel() << " ";
-				lout << controller->motionAtAbs(i).actualCur() << " ";
+				cout << "pos" << i + 1 << ":" << controller->motionAtAbs(i).actualPos() << "  ";
+				cout << "vel" << i + 1 << ":" << controller->motionAtAbs(i).actualVel() << "  ";
+				cout << "cur" << i + 1 << ":" << controller->motionAtAbs(i).actualCur() << "  ";
 			}
-			lout << std::endl;
+			cout << std::endl;
+		}
 
-			if (!target.model->solverPool().at(1).kinPos())return -1;
-			return 1000-target.count;
-		}
-		auto virtual collectNrt(PlanTarget &target)->void {}
-		explicit MoveInit(const std::string &name = "MoveInit_plan"): Plan(name)
+		// log 电流 //
+		auto &lout = controller->lout();
+		for (Size i = 0; i < 6; i++)
 		{
-			command().loadXmlStr(
-				"<Command name=\"moveInit\">"
-				"</Command>");
+			lout << param.axis_pos_vec[i] << " ";
+			lout << controller->motionAtAbs(i).actualPos() << " ";
+			lout << controller->motionAtAbs(i).actualVel() << " ";
+			lout << controller->motionAtAbs(i).actualCur() << " ";
 		}
-	};
+		lout << std::endl;
+
+		if (!target.model->solverPool().at(1).kinPos())return -1;
+		return 1000-target.count;
+	}
+	auto MoveInit::collectNrt(PlanTarget &target)->void {}
+	MoveInit::MoveInit(const std::string &name): Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"moveInit\">"
+			"</Command>");
+	}
 
 	// 末端四元数xyz方向余弦轨迹；速度前馈//
 	struct MoveXParam
@@ -241,10 +236,7 @@ namespace kaanh
 		double x, y, z;
 		double time;
 	};
-	class MoveX : public aris::plan::Plan
-	{
-	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void 
+	auto MoveX::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 		{
 			MoveXParam param ={0.0,0.0,0.0,0.0};
 			for (auto &p : params)
@@ -288,7 +280,7 @@ namespace kaanh
 				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 
 		}
-		auto virtual executeRT(PlanTarget &target)->int 
+	auto MoveX::executeRT(PlanTarget &target)->int
 		{ 
 			auto &ee = target.model->generalMotionPool().at(0);
 			auto &param = std::any_cast<MoveXParam&>(target.param);
@@ -331,24 +323,21 @@ namespace kaanh
 
 			return time-target.count;
 		}
-		auto virtual collectNrt(PlanTarget &target)->void {}
-
-		explicit MoveX(const std::string &name = "MoveX_plan") :Plan(name)
-		{
-			command().loadXmlStr(
-				"<Command name=\"moveX\">"
-				"	<GroupParam>"
-				"		<UniqueParam default=\"x\">"
-				"			<Param name=\"x\" default=\"0.1\"/>"
-				"			<Param name=\"y\" default=\"0.1\"/>"
-				"			<Param name=\"z\" default=\"0.1\"/>"
-				"		</UniqueParam>"
-				"		<Param name=\"time\" default=\"1.0\"/>"
-				"	</GroupParam>"
-				"</Command>");
-		}
-
-	};
+	auto MoveX::collectNrt(PlanTarget &target)->void {}
+	MoveX::MoveX(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"moveX\">"
+			"	<GroupParam>"
+			"		<UniqueParam default=\"x\">"
+			"			<Param name=\"x\" default=\"0.1\"/>"
+			"			<Param name=\"y\" default=\"0.1\"/>"
+			"			<Param name=\"z\" default=\"0.1\"/>"
+			"		</UniqueParam>"
+			"		<Param name=\"time\" default=\"1.0\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
 
 	// 单关节正弦往复轨迹 //
 	struct MoveJSParam
@@ -358,10 +347,7 @@ namespace kaanh
 		uint32_t timenum;
 		std::vector<bool> joint_active_vec;
 	};
-	class MoveJS : public aris::plan::Plan
-	{
-	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	auto MoveJS::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 		{
 			//MoveJSParam param = {{0.0,0.0,0.0,0.0,0.0,0.0},0.0,0};
 			MoveJSParam param;
@@ -485,7 +471,7 @@ namespace kaanh
 				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 
 		}
-		auto virtual executeRT(PlanTarget &target)->int
+	auto MoveJS::executeRT(PlanTarget &target)->int
 		{
 			auto &param = std::any_cast<MoveJSParam&>(target.param);
 			auto time = static_cast<int32_t>(param.time * 1000);
@@ -577,25 +563,24 @@ namespace kaanh
 			
 			return totaltime - target.count;
 		}
-		auto virtual collectNrt(PlanTarget &target)->void {}
+	auto MoveJS::collectNrt(PlanTarget &target)->void {}
+	MoveJS::MoveJS(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"moveJS\">"
+			"	<GroupParam>"
+			"		<Param name=\"j1\" default=\"current_pos\"/>"
+			"		<Param name=\"j2\" default=\"current_pos\"/>"
+			"		<Param name=\"j3\" default=\"current_pos\"/>"
+			"		<Param name=\"j4\" default=\"current_pos\"/>"
+			"		<Param name=\"j5\" default=\"current_pos\"/>"
+			"		<Param name=\"j6\" default=\"current_pos\"/>"
+			"		<Param name=\"time\" default=\"1.0\" abbreviation=\"t\"/>"
+			"		<Param name=\"timenum\" default=\"2\" abbreviation=\"n\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
 
-		explicit MoveJS(const std::string &name = "MoveJS_plan") :Plan(name)
-		{
-			command().loadXmlStr(
-				"<Command name=\"moveJS\">"
-				"	<GroupParam>"
-				"		<Param name=\"j1\" default=\"current_pos\"/>"
-				"		<Param name=\"j2\" default=\"current_pos\"/>"
-				"		<Param name=\"j3\" default=\"current_pos\"/>"
-				"		<Param name=\"j4\" default=\"current_pos\"/>"
-				"		<Param name=\"j5\" default=\"current_pos\"/>"
-				"		<Param name=\"j6\" default=\"current_pos\"/>"
-				"		<Param name=\"time\" default=\"1.0\" abbreviation=\"t\"/>"
-				"		<Param name=\"timenum\" default=\"2\" abbreviation=\"n\"/>"
-				"	</GroupParam>"
-				"</Command>");
-		}
-	};
 
 	// 任意关节正弦往复轨迹 //
 	struct MoveJSNParam
@@ -605,10 +590,7 @@ namespace kaanh
 		std::vector<bool> joint_active_vec;
 		uint32_t timenum;
 	};
-	class MoveJSN : public aris::plan::Plan
-	{
-	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	auto MoveJSN::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 		{
 			MoveJSNParam param;
 			auto c = target.controller;
@@ -712,7 +694,7 @@ namespace kaanh
 				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 
 		}
-		auto virtual executeRT(PlanTarget &target)->int
+	auto MoveJSN::executeRT(PlanTarget &target)->int
 		{
 			auto &param = std::any_cast<MoveJSNParam&>(target.param);
 			static int32_t time[6];
@@ -800,20 +782,19 @@ namespace kaanh
 
 			return totaltime_max - target.count;
 		}
-		auto virtual collectNrt(PlanTarget &target)->void {}
-
-		explicit MoveJSN(const std::string &name = "MoveJSN_plan") :Plan(name)
-		{
-			command().loadXmlStr(
-				"<Command name=\"moveJSN\">"
-				"	<GroupParam>"
-				"		<Param name=\"pos\" default=\"{0.1,0.2,0.2,0.2,0.2,0.2}\" abbreviation=\"p\"/>"
-				"		<Param name=\"time\" default=\"{1.0,1.0,1.0,1.0,1.0,1.0}\" abbreviation=\"t\"/>"
-				"		<Param name=\"timenum\" default=\"2\" abbreviation=\"n\"/>"
-				"	</GroupParam>"
-				"</Command>");
-		}
-	};
+	auto MoveJSN::collectNrt(PlanTarget &target)->void {}
+	MoveJSN::MoveJSN(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"moveJSN\">"
+			"	<GroupParam>"
+			"		<Param name=\"pos\" default=\"{0.1,0.2,0.2,0.2,0.2,0.2}\" abbreviation=\"p\"/>"
+			"		<Param name=\"time\" default=\"{1.0,1.0,1.0,1.0,1.0,1.0}\" abbreviation=\"t\"/>"
+			"		<Param name=\"timenum\" default=\"2\" abbreviation=\"n\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
+		
 
 	// 单关节相对运动轨迹--输入单个关节，角度位置；关节按照梯形速度轨迹执行；速度前馈//
 	struct MoveJRParam
@@ -822,10 +803,7 @@ namespace kaanh
 		std::vector<double> joint_pos_vec, begin_joint_pos_vec;
 		std::vector<bool> joint_active_vec;
 	};
-	class MoveJR : public aris::plan::Plan
-	{
-	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	auto MoveJR::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 		{
 			auto c = target.controller;
 			MoveJRParam param;
@@ -902,7 +880,7 @@ namespace kaanh
 				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 
 		}
-		auto virtual executeRT(PlanTarget &target)->int
+	auto MoveJR::executeRT(PlanTarget &target)->int
 		{
 			auto &param = std::any_cast<MoveJRParam&>(target.param);
 			auto controller = target.controller;
@@ -961,27 +939,26 @@ namespace kaanh
 
 			return total_count - target.count;
 		}
-		auto virtual collectNrt(PlanTarget &target)->void {}
+	auto MoveJR::collectNrt(PlanTarget &target)->void {}
+	MoveJR::MoveJR(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"moveJR\">"
+			"	<GroupParam>"
+			"		<UniqueParam default=\"all\">"
+			"			<Param name=\"all\" abbreviation=\"a\"/>"
+			"			<Param name=\"motion_id\" abbreviation=\"m\" default=\"0\"/>"
+			"			<Param name=\"physical_id\" abbreviation=\"p\" default=\"0\"/>"
+			"			<Param name=\"slave_id\" abbreviation=\"s\" default=\"0\"/>"
+			"		</UniqueParam>"
+			"		<Param name=\"pos\" default=\"0\"/>"
+			"		<Param name=\"vel\" default=\"0.5\"/>"
+			"		<Param name=\"acc\" default=\"1\"/>"
+			"		<Param name=\"dec\" default=\"1\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
 
-		explicit MoveJR(const std::string &name = "MoveJR_plan") :Plan(name)
-		{
-			command().loadXmlStr(
-				"<Command name=\"moveJR\">"
-				"	<GroupParam>"
-				"		<UniqueParam default=\"all\">"
-				"			<Param name=\"all\" abbreviation=\"a\"/>"
-				"			<Param name=\"motion_id\" abbreviation=\"m\" default=\"0\"/>"
-				"			<Param name=\"physical_id\" abbreviation=\"p\" default=\"0\"/>"
-				"			<Param name=\"slave_id\" abbreviation=\"s\" default=\"0\"/>"
-				"		</UniqueParam>"
-				"		<Param name=\"pos\" default=\"0\"/>"
-				"		<Param name=\"vel\" default=\"0.5\"/>"
-				"		<Param name=\"acc\" default=\"1\"/>"
-				"		<Param name=\"dec\" default=\"1\"/>"
-				"	</GroupParam>"
-				"</Command>");
-		}
-	};
 
 	// 梯形轨迹2测试--输入单个关节，角度位置；关节按照梯形速度轨迹执行；速度前馈//
 	struct MoveTTTParam
@@ -995,10 +972,7 @@ namespace kaanh
 		std::vector<double> joint_pos_vec, begin_joint_pos_vec;
 		std::vector<bool> joint_active_vec;
 	};
-	class MoveTTT : public aris::plan::Plan
-	{
-	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	auto MoveTTT::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 		{
 			auto c = target.controller;
 			MoveTTTParam param;
@@ -1153,7 +1127,7 @@ namespace kaanh
 				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 
 		}
-		auto virtual executeRT(PlanTarget &target)->int
+	auto MoveTTT::executeRT(PlanTarget &target)->int
 		{
 			auto &param = std::any_cast<MoveTTTParam&>(target.param);
 			auto controller = target.controller;
@@ -1243,27 +1217,26 @@ namespace kaanh
             //return total_count - target.count;
             return total_count;
 		}
-		auto virtual collectNrt(PlanTarget &target)->void {}
+	auto MoveTTT::collectNrt(PlanTarget &target)->void {}
+	MoveTTT::MoveTTT(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+            "<Command name=\"moveTTT\">"
+			"	<GroupParam>"
+			"		<UniqueParam default=\"all\">"
+			"			<Param name=\"all\" abbreviation=\"a\"/>"
+			"			<Param name=\"motion_id\" abbreviation=\"m\" default=\"0\"/>"
+			"			<Param name=\"physical_id\" abbreviation=\"p\" default=\"0\"/>"
+			"			<Param name=\"slave_id\" abbreviation=\"s\" default=\"0\"/>"
+			"		</UniqueParam>"
+			"		<Param name=\"pos\" default=\"0\"/>"
+            "		<Param name=\"vel\" default=\"0.04\"/>"
+            "		<Param name=\"acc\" default=\"0.1\"/>"
+            "		<Param name=\"dec\" default=\"0.1\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
 
-		explicit MoveTTT(const std::string &name = "MoveTTT_plan") :Plan(name)
-		{
-			command().loadXmlStr(
-                "<Command name=\"moveTTT\">"
-				"	<GroupParam>"
-				"		<UniqueParam default=\"all\">"
-				"			<Param name=\"all\" abbreviation=\"a\"/>"
-				"			<Param name=\"motion_id\" abbreviation=\"m\" default=\"0\"/>"
-				"			<Param name=\"physical_id\" abbreviation=\"p\" default=\"0\"/>"
-				"			<Param name=\"slave_id\" abbreviation=\"s\" default=\"0\"/>"
-				"		</UniqueParam>"
-				"		<Param name=\"pos\" default=\"0\"/>"
-                "		<Param name=\"vel\" default=\"0.04\"/>"
-                "		<Param name=\"acc\" default=\"0.1\"/>"
-                "		<Param name=\"dec\" default=\"0.1\"/>"
-				"	</GroupParam>"
-				"</Command>");
-		}
-	};
 
 	// 多关节混合插值梯形轨迹；速度前馈 //
 	struct MoveJMParam
@@ -1276,10 +1249,7 @@ namespace kaanh
 		std::vector<double> axis_dec_vec;
 		bool ab;
 	};
-	class MoveJM : public aris::plan::Plan
-	{
-	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	auto MoveJM::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 		{
 			auto c = target.controller;
 			MoveJMParam param;
@@ -1447,7 +1417,7 @@ namespace kaanh
 				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 
 		}
-		auto virtual executeRT(PlanTarget &target)->int
+	auto MoveJM::executeRT(PlanTarget &target)->int
 		{
 			//获取驱动//
 			auto controller = target.controller;
@@ -1518,22 +1488,21 @@ namespace kaanh
 
 			return (static_cast<int>(*std::max_element(param.total_count_vec.begin(), param.total_count_vec.end())) > target.count) ? 1 : 0;
 		}
-		auto virtual collectNrt(PlanTarget &target)->void {}
+	auto MoveJM::collectNrt(PlanTarget &target)->void {}
+	MoveJM::MoveJM(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"moveJM\">"
+			"	<GroupParam>"
+			"		<Param name=\"pos\" default=\"current_pos\"/>"
+			"		<Param name=\"vel\" default=\"{0.2,0.2,0.2,0.2,0.2,0.2}\" abbreviation=\"v\"/>"
+			"		<Param name=\"acc\" default=\"{0.1,0.1,0.1,0.1,0.1,0.1}\" abbreviation=\"a\"/>"
+			"		<Param name=\"dec\" default=\"{0.1,0.1,0.1,0.1,0.1,0.1}\" abbreviation=\"d\"/>"
+			"		<Param name=\"ab\" default=\"1\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
 
-		explicit MoveJM(const std::string &name = "MoveJM_plan") :Plan(name)
-		{
-			command().loadXmlStr(
-				"<Command name=\"moveJM\">"
-				"	<GroupParam>"
-				"		<Param name=\"pos\" default=\"current_pos\"/>"
-				"		<Param name=\"vel\" default=\"{0.2,0.2,0.2,0.2,0.2,0.2}\" abbreviation=\"v\"/>"
-				"		<Param name=\"acc\" default=\"{0.1,0.1,0.1,0.1,0.1,0.1}\" abbreviation=\"a\"/>"
-				"		<Param name=\"dec\" default=\"{0.1,0.1,0.1,0.1,0.1,0.1}\" abbreviation=\"d\"/>"
-				"		<Param name=\"ab\" default=\"1\"/>"
-				"	</GroupParam>"
-				"</Command>");
-		}
-	};
 
 	// 关节插值运动轨迹--输入末端pq姿态，各个关节的速度、加速度；各关节按照梯形速度轨迹执行；速度前馈 //
 	struct MoveJIParam
@@ -1546,10 +1515,7 @@ namespace kaanh
 		std::vector<double> axis_acc_vec;
 		std::vector<double> axis_dec_vec;
 	};
-	class MoveJI : public aris::plan::Plan
-	{
-	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	auto MoveJI::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 		{
 			auto c = target.controller;
 			MoveJIParam param;
@@ -1683,7 +1649,7 @@ namespace kaanh
 				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 
 		}
-		auto virtual executeRT(PlanTarget &target)->int
+	auto MoveJI::executeRT(PlanTarget &target)->int
 		{
 			//获取驱动//
 			auto controller = target.controller;
@@ -1740,21 +1706,20 @@ namespace kaanh
 
 			return (static_cast<int>(*std::max_element(param.total_count_vec.begin(), param.total_count_vec.end())) > target.count) ? 1 : 0;
 		}
-		auto virtual collectNrt(PlanTarget &target)->void {}
+	auto MoveJI::collectNrt(PlanTarget &target)->void {}
+	MoveJI::MoveJI(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"moveJI\">"
+			"	<GroupParam>"
+			"		<Param name=\"pq\" default=\"current_pos\"/>"
+            "		<Param name=\"vel\" default=\"{0.05,0.05,0.05,0.05,0.05,0.05}\" abbreviation=\"v\"/>"
+			"		<Param name=\"acc\" default=\"{0.1,0.1,0.1,0.1,0.1,0.1}\" abbreviation=\"a\"/>"
+			"		<Param name=\"dec\" default=\"{0.1,0.1,0.1,0.1,0.1,0.1}\" abbreviation=\"d\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
 
-		explicit MoveJI(const std::string &name = "MoveJI_plan") :Plan(name)
-		{
-			command().loadXmlStr(
-				"<Command name=\"moveJI\">"
-				"	<GroupParam>"
-				"		<Param name=\"pq\" default=\"current_pos\"/>"
-                "		<Param name=\"vel\" default=\"{0.05,0.05,0.05,0.05,0.05,0.05}\" abbreviation=\"v\"/>"
-				"		<Param name=\"acc\" default=\"{0.1,0.1,0.1,0.1,0.1,0.1}\" abbreviation=\"a\"/>"
-				"		<Param name=\"dec\" default=\"{0.1,0.1,0.1,0.1,0.1,0.1}\" abbreviation=\"d\"/>"
-				"	</GroupParam>"
-				"</Command>");
-		}
-	};
 	
 	// 示教运动--输入末端大地坐标系的位姿pe，控制动作 //
 	struct MovePointParam
@@ -1765,10 +1730,7 @@ namespace kaanh
 		double x, y, z, a, b, c, vel, acc, dec, term_offset_pe;;
 		aris::Size move_type;
 	};
-	class MovePoint : public aris::plan::Plan
-	{
-	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	auto MovePoint::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 		{
 			auto c = target.controller;
 			MovePointParam param;
@@ -1848,7 +1810,7 @@ namespace kaanh
 				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 
 		}
-		auto virtual executeRT(PlanTarget &target)->int
+	auto MovePoint::executeRT(PlanTarget &target)->int
 		{
 			//获取驱动//
 			auto controller = target.controller;
@@ -1937,38 +1899,34 @@ namespace kaanh
 
 			return total_count-target.count;
 		}
-		auto virtual collectNrt(PlanTarget &target)->void {}
+	auto MovePoint::collectNrt(PlanTarget &target)->void {}
+	MovePoint::MovePoint(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"movePoint\">"
+			"	<GroupParam>"
+			"		<Param name=\"vel\" default=\"0.2\" abbreviation=\"v\"/>"
+			"		<Param name=\"acc\" default=\"0.4\" abbreviation=\"a\"/>"
+			"		<Param name=\"dec\" default=\"0.4\" abbreviation=\"d\"/>"
+			"		<UniqueParam default=\"x\">"
+			"			<Param name=\"x\" default=\"0.02\"/>"
+			"			<Param name=\"y\" default=\"0.02\"/>"
+			"			<Param name=\"z\" default=\"0.02\"/>"
+			"			<Param name=\"a\" default=\"0.17\"/>"
+			"			<Param name=\"b\" default=\"0.17\"/>"
+			"			<Param name=\"c\" default=\"0.17\"/>"
+			"		</UniqueParam>"
+			"	</GroupParam>"
+			"</Command>");
+	}
 
-		explicit MovePoint(const std::string &name = "MovePoint_plan") :Plan(name)
-		{
-			command().loadXmlStr(
-				"<Command name=\"movePoint\">"
-				"	<GroupParam>"
-				"		<Param name=\"vel\" default=\"0.2\" abbreviation=\"v\"/>"
-				"		<Param name=\"acc\" default=\"0.4\" abbreviation=\"a\"/>"
-				"		<Param name=\"dec\" default=\"0.4\" abbreviation=\"d\"/>"
-				"		<UniqueParam default=\"x\">"
-				"			<Param name=\"x\" default=\"0.02\"/>"
-				"			<Param name=\"y\" default=\"0.02\"/>"
-				"			<Param name=\"z\" default=\"0.02\"/>"
-				"			<Param name=\"a\" default=\"0.17\"/>"
-				"			<Param name=\"b\" default=\"0.17\"/>"
-				"			<Param name=\"c\" default=\"0.17\"/>"
-				"		</UniqueParam>"
-				"	</GroupParam>"
-				"</Command>");
-		}
-	};
 
 	// 夹爪控制 //
 	struct GraspParam
 	{
 		bool status;
 	};
-	class Grasp : public aris::plan::Plan
-	{
-	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	auto Grasp::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 		{
 			GraspParam param = { 0 };
 			for (auto &p : params)
@@ -1997,8 +1955,7 @@ namespace kaanh
 				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 #endif
 		}
-
-		auto virtual executeRT(PlanTarget &target)->int
+	auto Grasp::executeRT(PlanTarget &target)->int
 		{
 			auto &param = std::any_cast<GraspParam&>(target.param);
 			// 访问主站 //
@@ -2017,24 +1974,20 @@ namespace kaanh
 			//std::cout << int(a) << std::endl;
 			return 0;
 		}
-		auto virtual collectNrt(PlanTarget &target)->void {}
+	auto Grasp::collectNrt(PlanTarget &target)->void {}
+	Grasp::Grasp(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"grasp\">"
+			"	<GroupParam>"
+			"		<Param name=\"status\" default=\"1\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
 
-		explicit Grasp(const std::string &name = "Grasp_plan") :Plan(name)
-		{
-			command().loadXmlStr(
-				"<Command name=\"grasp\">"
-				"	<GroupParam>"
-				"		<Param name=\"status\" default=\"1\"/>"
-				"	</GroupParam>"
-				"</Command>");
-		}
-	};
 
 	// 监听DI信号 //
-	class ListenDI : public aris::plan::Plan
-	{
-	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void 
+	auto ListenDI::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 		{
 #ifdef WIN32
 			target.option |= 
@@ -2052,7 +2005,7 @@ namespace kaanh
 				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 #endif
 		}
-		auto virtual executeRT(PlanTarget &target)->int
+	auto ListenDI::executeRT(PlanTarget &target)->int
 		{
 			if (is_automatic)
 			{
@@ -2224,13 +2177,13 @@ namespace kaanh
 			}
 			
 		}
-		explicit ListenDI(const std::string &name = "ListenDI_plan") :Plan(name)
-		{
-			command().loadXmlStr(
-				"<Command name=\"listenDI\">"
-				"</Command>");
-		}
-	};
+	ListenDI::ListenDI(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"listenDI\">"
+			"</Command>");
+	}
+	
 
 	// 电缸余弦往复轨迹 //
 	struct MoveEAParam
@@ -2238,15 +2191,7 @@ namespace kaanh
 		double s;
 		double time;
 	};
-	class MoveEA : public aris::plan::Plan
-	{
-	public:
-		//平均值速度滤波、摩擦力滤波器初始化//
-		std::vector<double> fore_vel;
-		IIR_FILTER::IIR iir;
-		double tempforce;
-
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	auto MoveEA::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 		{
 			MoveEAParam param = { 0.0,0.0 };
 			for (auto &p : params)
@@ -2285,7 +2230,7 @@ namespace kaanh
 				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 
 		}
-		auto virtual executeRT(PlanTarget &target)->int
+	auto MoveEA::executeRT(PlanTarget &target)->int
 		{
 			auto &param = std::any_cast<MoveEAParam&>(target.param);
 
@@ -2412,24 +2357,23 @@ namespace kaanh
 
 			return time - target.count;
 		}
-		auto virtual collectNrt(PlanTarget &target)->void {}
+	auto MoveEA::collectNrt(PlanTarget &target)->void {}
+	MoveEA::MoveEA(const std::string &name):Plan(name), fore_vel(FORE_VEL_LENGTH + 1), tempforce(0)
+	{
+		command().loadXmlStr(
+			"<Command name=\"moveEA\">"
+			"	<GroupParam>"
+			"		<Param name=\"s\" default=\"0.1\"/>"
+			"		<Param name=\"time\" default=\"1.0\" abbreviation=\"t\"/>"
+			"	</GroupParam>"
+			"</Command>");
 
-		explicit MoveEA(const std::string &name = "MoveEA_plan"):Plan(name), fore_vel(FORE_VEL_LENGTH + 1), tempforce(0)
-		{
-			command().loadXmlStr(
-				"<Command name=\"moveEA\">"
-				"	<GroupParam>"
-				"		<Param name=\"s\" default=\"0.1\"/>"
-				"		<Param name=\"time\" default=\"1.0\" abbreviation=\"t\"/>"
-				"	</GroupParam>"
-				"</Command>");
+		std::vector<double> num_data(IIR_FILTER::num, IIR_FILTER::num + 20);
+		std::vector<double> den_data(IIR_FILTER::den, IIR_FILTER::den + 20);
+		iir.setPara(num_data, den_data);
 
-			std::vector<double> num_data(IIR_FILTER::num, IIR_FILTER::num + 20);
-			std::vector<double> den_data(IIR_FILTER::den, IIR_FILTER::den + 20);
-			iir.setPara(num_data, den_data);
+	}
 
-		}
-	};
 
 	// 电缸运动轨迹；速度前馈 //
 	struct MoveEAPParam
@@ -2437,15 +2381,7 @@ namespace kaanh
 		double begin_pos, pos, vel, acc, dec;
 		bool ab;
 	};
-	class MoveEAP : public aris::plan::Plan
-	{
-	public:
-		//平均值速度滤波、摩擦力滤波器初始化//
-		std::vector<double> fore_vel;
-		IIR_FILTER::IIR iir;
-		double tempforce;
-		
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	auto MoveEAP::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 		{
 			MoveEAPParam param = {0.0, 0.0, 0.0, 0.0, 0.0, 0};
 			for (auto &p : params)
@@ -2496,7 +2432,7 @@ namespace kaanh
 				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 
 		}
-		auto virtual executeRT(PlanTarget &target)->int
+	auto MoveEAP::executeRT(PlanTarget &target)->int
 		{
 			auto &param = std::any_cast<MoveEAPParam&>(target.param);
 			// 访问主站 //
@@ -2651,29 +2587,26 @@ namespace kaanh
 
 			return total_count - target.count;
 		}
-		auto virtual collectNrt(PlanTarget &target)->void {}
+	auto MoveEAP::collectNrt(PlanTarget &target)->void {}
+	MoveEAP::MoveEAP(const std::string &name) :Plan(name), fore_vel(FORE_VEL_LENGTH + 1), tempforce(0)
+	{
+		command().loadXmlStr(
+			"<Command name=\"moveEAP\">"
+			"	<GroupParam>"
+			"		<Param name=\"begin_pos\" default=\"0.1\" abbreviation=\"b\"/>"
+			"		<Param name=\"pos\" default=\"0.1\"/>"
+			"		<Param name=\"vel\" default=\"0.02\"/>"
+			"		<Param name=\"acc\" default=\"0.3\"/>"
+			"		<Param name=\"dec\" default=\"-0.3\"/>"
+			"		<Param name=\"ab\" default=\"0\"/>"
+			"	</GroupParam>"
+			"</Command>");
 
-		explicit MoveEAP(const std::string &name = "MoveEAP_plan") :Plan(name), fore_vel(FORE_VEL_LENGTH + 1), tempforce(0)
-		{
-			command().loadXmlStr(
-				"<Command name=\"moveEAP\">"
-				"	<GroupParam>"
-				"		<Param name=\"begin_pos\" default=\"0.1\" abbreviation=\"b\"/>"
-				"		<Param name=\"pos\" default=\"0.1\"/>"
-				"		<Param name=\"vel\" default=\"0.02\"/>"
-				"		<Param name=\"acc\" default=\"0.3\"/>"
-				"		<Param name=\"dec\" default=\"-0.3\"/>"
-				"		<Param name=\"ab\" default=\"0\"/>"
-				"	</GroupParam>"
-				"</Command>");
-
-			std::vector<double> num_data(IIR_FILTER::num, IIR_FILTER::num + 20);
-			std::vector<double> den_data(IIR_FILTER::den, IIR_FILTER::den + 20);
-			iir.setPara(num_data, den_data);
+		std::vector<double> num_data(IIR_FILTER::num, IIR_FILTER::num + 20);
+		std::vector<double> den_data(IIR_FILTER::den, IIR_FILTER::den + 20);
+		iir.setPara(num_data, den_data);
 			
-
-		}
-	};
+	}
 
 	// 力传感器信号测试 //
 	struct FSParam
@@ -2683,10 +2616,7 @@ namespace kaanh
         uint16_t datanum;
         float Fx,Fy,Fz,Mx,My,Mz;
 	};
-	class FSSignal : public aris::plan::Plan
-	{
-	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	auto FSSignal::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 		{
 			FSParam param;
 			for (auto &p : params)
@@ -2725,7 +2655,7 @@ namespace kaanh
 				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 #endif
 		}
-		auto virtual executeRT(PlanTarget &target)->int
+	auto FSSignal::executeRT(PlanTarget &target)->int
 		{
 			auto &param = std::any_cast<FSParam&>(target.param);
 			// 访问主站 //
@@ -2780,19 +2710,17 @@ namespace kaanh
 			param.time--;
 			return param.time;
 		}
-		auto virtual collectNrt(PlanTarget &target)->void {}
-
-		explicit FSSignal(const std::string &name = "FSSignal") :Plan(name)
-		{
-			command().loadXmlStr(
-				"<Command name=\"fssignal\">"
-				"	<GroupParam>"
-				"		<Param name=\"real_data\" default=\"1\"/>"
-				"		<Param name=\"time\" default=\"100000\"/>"
-				"	</GroupParam>"
-				"</Command>");
-		}
-	};
+	auto FSSignal::collectNrt(PlanTarget &target)->void {}
+	FSSignal::FSSignal(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"fssignal\">"
+			"	<GroupParam>"
+			"		<Param name=\"real_data\" default=\"1\"/>"
+			"		<Param name=\"time\" default=\"100000\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
 
 	auto createPlanRootRokaeXB4()->std::unique_ptr<aris::plan::PlanRoot>
 	{
@@ -2841,5 +2769,48 @@ namespace kaanh
 		plan_root->planPool().add<cplan::OpenFile>();
 
 		return plan_root;
+	}
+	
+	auto registerPlan()->void
+	{
+		aris::core::Object::registerTypeGlobal<aris::plan::MoveL>();
+		aris::core::Object::registerTypeGlobal<aris::plan::MoveJ>();
+		aris::core::Object::registerTypeGlobal<aris::plan::Show>();
+		aris::core::Object::registerTypeGlobal<kaanh::MoveInit>();
+		aris::core::Object::registerTypeGlobal<kaanh::MoveX>();
+		aris::core::Object::registerTypeGlobal<kaanh::MoveJS>();
+		aris::core::Object::registerTypeGlobal<kaanh::MoveJSN>();
+		aris::core::Object::registerTypeGlobal<kaanh::MoveJR>();
+		aris::core::Object::registerTypeGlobal<kaanh::MoveTTT>();
+		aris::core::Object::registerTypeGlobal<forcecontrol::MoveJRC>();
+		aris::core::Object::registerTypeGlobal<forcecontrol::MovePQCrash>();
+		aris::core::Object::registerTypeGlobal<forcecontrol::MovePQB>();
+		aris::core::Object::registerTypeGlobal<forcecontrol::MoveJCrash>();
+		aris::core::Object::registerTypeGlobal<forcecontrol::MoveJF>();
+		aris::core::Object::registerTypeGlobal<forcecontrol::MoveJFB>();
+		aris::core::Object::registerTypeGlobal<forcecontrol::MoveJPID>();
+		aris::core::Object::registerTypeGlobal<forcecontrol::MoveStop>();
+		aris::core::Object::registerTypeGlobal<forcecontrol::MoveSPQ>();
+		aris::core::Object::registerTypeGlobal<kaanh::MoveJM>();
+		aris::core::Object::registerTypeGlobal<kaanh::MoveJI>();
+		aris::core::Object::registerTypeGlobal<kaanh::MovePoint>();
+		aris::core::Object::registerTypeGlobal<kaanh::Grasp>();
+		aris::core::Object::registerTypeGlobal<kaanh::ListenDI>();
+		aris::core::Object::registerTypeGlobal<kaanh::MoveEA>();
+		aris::core::Object::registerTypeGlobal<kaanh::MoveEAP>();
+		aris::core::Object::registerTypeGlobal<kaanh::FSSignal>();
+
+		aris::core::Object::registerTypeGlobal<MoveXYZ>();
+		aris::core::Object::registerTypeGlobal<MoveDistal>();
+		aris::core::Object::registerTypeGlobal<SetTool>();
+		aris::core::Object::registerTypeGlobal<MovePressure>();
+
+		aris::core::Object::registerTypeGlobal<cplan::MoveCircle>();
+		aris::core::Object::registerTypeGlobal<cplan::MoveTroute>();
+		aris::core::Object::registerTypeGlobal<cplan::MoveFile>();
+		aris::core::Object::registerTypeGlobal<cplan::RemoveFile>();
+		aris::core::Object::registerTypeGlobal<cplan::MoveinModel>();
+		aris::core::Object::registerTypeGlobal<cplan::FMovePath>();
+		aris::core::Object::registerTypeGlobal<cplan::OpenFile>();
 	}
 }
