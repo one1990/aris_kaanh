@@ -1281,7 +1281,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 	if (target.count % 100 == 0)
 	{
 
-		cout << FmInWorld[0] << "***" << FmInWorld[1] << "***" << FmInWorld[2] << "***" << FmInWorld[3] << "***" << FT0[2] << endl;
+        //cout << FmInWorld[0] << "***" << FmInWorld[1] << "***" << FmInWorld[2] << "***" << FmInWorld[3] << "***" <<FmInWorld[4] << "***" <<FmInWorld[5] << "***" << FT0[2] << endl;
 
 		//cout <<  FT_KAI[0]<<"***"<<FmInWorld[2]<<endl;
 
@@ -1315,12 +1315,6 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 	// lout << FT_KAI[0] << ",";lout << FT_KAI[1] << ",";
 	// lout << FT_KAI[2] << ",";lout << FT_KAI[3] << ",";
 	 //lout << FT_KAI[4] << ",";lout << FT_KAI[5] << ",";
-
-
-
-
-	 //lout << stateTor1[2][0] << ",";lout << FT0[3] << ",";
-	// lout << dX[0] << ",";
 
 	// lout << dX[0] << ",";
 	// lout << FT[1] << ",";lout << FT[2] << ",";
@@ -1360,11 +1354,36 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 	double JacobEnd[36] = { 0 };
 	s_mm(6, 6, 6, pinv, fwd.Jf(), JacobEnd);
 	//robotDemo.jointIncrement(RobotPositionJ, dX, dTheta);
+    double JacobEndTrans[36] = { 0 };
+    double temp[6][6] = { 0 };
+    double temp1[6][6] = { 0 };
+    for (int i = 0;i < 6;i++)
+        for (int j = 0;j < 6;j++)
+            temp[i][j] = JacobEnd[i*6+j];
+    for (int i = 0;i < 6;i++)
+        for (int j = 0;j < 6;j++)
+            temp1[i][j] = temp[j][i];
+    for (int i = 0;i < 6;i++)
+        for (int j = 0;j < 6;j++)
+            JacobEndTrans[6 * i + j] = temp1[i][j];
 
+
+
+    //FmInWorld[0]=0; FmInWorld[1]=10; FmInWorld[2]=0; FmInWorld[3]=0; FmInWorld[4]=0; FmInWorld[5]=0;
 	double JoinTau[6] = { 0 };
-	s_mm(6, 1, 6, JacobEnd, FmInWorld, JoinTau);
+    s_mm(6, 1, 6, JacobEndTrans, FmInWorld, JoinTau);
+    if (target.count % 100 == 0)
+    {
+
+        cout << JoinTau[0] << "***" << JoinTau[1] << "***" << JoinTau[2] << "***" << JoinTau[3] << "***" <<JoinTau[4] << "***" <<JoinTau[5] << "***" << FT0[2] << endl;
+
+        //cout <<  FT_KAI[0]<<"***"<<FmInWorld[2]<<endl;
+
+        cout << std::endl;
+
+    }
 	for (int i = 0;i < 6;i++)
-		dTheta[i] = JoinTau[i] / 10000;
+        dTheta[i] = JoinTau[i] / 10000;
 
 
 	for (int i = 0; i < 6; i++)
@@ -1385,7 +1404,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 	for (int i = 0; i < 6; i++)
 	{
 		step_pjs[i] = step_pjs[i] + dTheta[i];
-		target.model->motionPool().at(i).setMp(step_pjs[i]);
+        target.model->motionPool().at(i).setMp(step_pjs[i]);
 	}
 
 	for (int i = 0; i < 6; i++)
