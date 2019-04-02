@@ -879,7 +879,8 @@ auto MovePressure::executeRT(PlanTarget &target)->int
 
 	for (int j = 0; j < 6; j++)
 	{
-        double A[3][3], B[3], CutFreq = 5;
+        double A[3][3], B[3], CutFreq = 35;//SHANGHAI DIANQI EXP
+        CutFreq = 85;
 		A[0][0] = 0; A[0][1] = 1; A[0][2] = 0;
 		A[1][0] = 0; A[1][1] = 0; A[1][2] = 1;
 		A[2][0] = -CutFreq * CutFreq * CutFreq;
@@ -925,13 +926,38 @@ auto MovePressure::executeRT(PlanTarget &target)->int
 
 
 
-    dX[2] = 1 * (FmInWorld[2]-(10)) / 36820000;
+    dX[2] = 1 * (FmInWorld[2]-(5)) / 820000;
+   // dX[3] = 1 * (FmInWorld[3]) / 4000;
+   // dX[4] = 1 * (FmInWorld[4]) / 4000;
+    //dX[5] = 1 * (FmInWorld[5]) / 4000;
 
+    /*  SHANGHAI DIANQI EXP
+    dX[0] = 1 * (FmInWorld[0]) / 40000;
+    dX[1] = 1 * (FmInWorld[1]) / 40000;
+    dX[2] = 1 * (FmInWorld[2]) / 40000;
+    dX[3] = 1 * (FmInWorld[3]) / 4000;
+    dX[4] = 1 * (FmInWorld[4]) / 4000;
+    dX[5] = 1 * (FmInWorld[5]) / 4000;
+    */
+
+/*
+   if(target.count >23000)
+        dX[0]=-0.00001;
+   if(target.count >45000)
+        dX[0]=0.00001;
+   if(target.count >67000)
+        dX[0]=-0.00001;
+   if(target.count >89000)
+        dX[0]=0.00001;
+   if(target.count >111000)
+        dX[0]=-0.00001;
+   if(target.count >133000)
+        dX[0]=0.00001;*/
 
 	if (target.count % 100 == 0)
 	{
 
-        cout << FmInWorld[2]<<"***"<<dX[2]<<"***"<<FT_KAI[2]<<endl;
+        cout << FmInWorld[2]<<"***"<<dX[3]<<"***"<<dX[4]<<"***"<<dX[5]<<"***"<<FT0[2]<<endl;
 
        //cout <<  FT_KAI[0]<<"***"<<FmInWorld[2]<<endl;
 
@@ -963,12 +989,18 @@ auto MovePressure::executeRT(PlanTarget &target)->int
 	 //lout << target.model->motionPool()[5].mp() << ",";
 
     lout << FTnum << ",";
-    lout << FT[0] << ",";lout << FT[1] << ",";
-    lout << FT[2] << ",";lout << FT[3] << ",";
-    lout << FT[4] << ",";lout << FT[5] << ",";
-    lout << FT_KAI[0] << ",";lout << FT_KAI[1] << ",";
-    lout << FT_KAI[2] << ",";lout << FT_KAI[3] << ",";
-    lout << FT_KAI[4] << ",";lout << FT_KAI[5] << ",";
+    //lout << FT[2] << ",";lout << dX[2] << ",";
+    //lout << FmInWorld[2] << ",";lout << FT0[2] << ",";
+
+    lout << FmInWorld[0] << ",";lout << FmInWorld[1] << ",";
+    lout << FmInWorld[2] << ",";lout << FmInWorld[3] << ",";
+    lout << FmInWorld[4] << ",";
+   // lout << FT_KAI[0] << ",";lout << FT_KAI[1] << ",";
+   // lout << FT_KAI[2] << ",";lout << FT_KAI[3] << ",";
+    //lout << FT_KAI[4] << ",";lout << FT_KAI[5] << ",";
+
+
+
 
 	//lout << stateTor1[2][0] << ",";lout << FT0[3] << ",";
    // lout << dX[0] << ",";
