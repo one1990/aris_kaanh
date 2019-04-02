@@ -590,22 +590,12 @@ namespace forcecontrol
 				{
 					double vinteg_limit;
 
-					//vproportion[i] = std::min(r2*limit, std::max(-r2*limit, param.kp_v[i] * (param.vt[i] - va[i])));
 					vproportion[i] = param.kp_v[i] * (param.vt[i] - param.va[i]);
 					vinteg_limit = std::max(0.0, mt_limit[i] - vproportion[i]);
 					vinteg[i] = std::min(vinteg_limit, std::max(-vinteg_limit, vinteg[i] + param.ki_v[i] * (param.vt[i] - param.va[i])));
 
 					param.ft[i] = vproportion[i] + vinteg[i];
-					//力的限制
-					//if (i < 3)
-					//{
-					//	param.ft[i] = std::max(std::min(param.ft[i], ft_limit), -ft_limit);
-					//}
-					//力矩的限制
-					//else
-					//{
-					//	param.ft[i] = std::max(std::min(param.ft[i], Mt_limit), -Mt_limit);
-					//}
+
 				}
 
 				s_c3a(param.pqa.data(), param.ft.data(), param.ft.data() + 3);
@@ -625,8 +615,6 @@ namespace forcecontrol
 				//动力学载荷
 				for (Size i = 0; i < param.ft.size(); ++i)
 				{
-					//double ft_friction1, ft_friction2, ft_dynamic, ft_pid;
-
 					//动力学参数
 					//constexpr double f_static[6] = { 9.349947583,11.64080253,4.770140543,3.631416685,2.58310847,1.783739862 };
 					//constexpr double f_vel[6] = { 7.80825641,13.26518528,7.856443575,3.354615249,1.419632126,0.319206404 };
@@ -635,7 +623,7 @@ namespace forcecontrol
 					//constexpr double f_static_index[6] = {0.5, 0.5, 0.5, 0.85, 0.95, 0.8};
 
 					//静摩擦力+动摩擦力=ft_friction
-
+                    /*
 					real_vel[i] = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
 					ft_friction1[i] = 0.8*(f_static[i] * real_vel[i] / max_static_vel[i]);
 
@@ -643,11 +631,11 @@ namespace forcecontrol
 					double ft_friction2_min = std::min(0.0, controller->motionAtAbs(i).actualVel() >= 0 ? -f_static[i] + ft_friction1[i] : -f_static[i] - ft_friction1[i]);
 
 					ft_friction2[i] = std::max(ft_friction2_min, std::min(ft_friction2_max, ft_friction2_index[i] * param.ft_pid[i]));
-
 					ft_friction[i] = ft_friction1[i] + ft_friction2[i] + f_vel[i] * controller->motionAtAbs(i).actualVel();
+                    */
 
-					//auto real_vel = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
-					//ft_friction = (f_vel[i] * controller->motionAtAbs(i).actualVel() + f_static_index[i] * f_static[i] * real_vel / max_static_vel[i])*f2c_index[i];
+                    auto real_vel = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
+                    ft_friction[i] = (f_vel[i] * controller->motionAtAbs(i).actualVel() + f_static_index[i] * f_static[i] * real_vel / max_static_vel[i]);
 
 					ft_friction[i] = std::max(-500.0, ft_friction[i]);
 					ft_friction[i] = std::min(500.0, ft_friction[i]);
@@ -743,17 +731,17 @@ namespace forcecontrol
 		}
 	auto MovePQCrash::collectNrt(PlanTarget &target)->void {}
 	MovePQCrash::MovePQCrash(const std::string &name) :Plan(name)
-		{
-			command().loadXmlStr(
-				"<Command name=\"movePQCrash\">"
-				"	<GroupParam>"
-				"		<Param name=\"pqt\" default=\"{0.42,0.0,0.55,0.0,0.0,0.0,1.0}\" abbreviation=\"p\"/>"
-				"		<Param name=\"kp_p\" default=\"{1.0,1.0,1.0,1.0,1.0,1.0,1.0}\"/>"
-				"		<Param name=\"kp_v\" default=\"0.1*{100,100,100,100,100,100}\"/>"
-				"		<Param name=\"ki_v\" default=\"30*{1,1,1,1,1,1}\"/>"
-				"	</GroupParam>"
-				"</Command>");
-		}
+    {
+        command().loadXmlStr(
+            "<Command name=\"movePQCrash\">"
+            "	<GroupParam>"
+            "		<Param name=\"pqt\" default=\"{0.42,0.0,0.55,0.0,0.0,0.0,1.0}\" abbreviation=\"p\"/>"
+            "		<Param name=\"kp_p\" default=\"{1,1,1,1,1,1,1}\"/>"
+            "		<Param name=\"kp_v\" default=\"{4,4,4,1,1,1}\"/>"
+            "		<Param name=\"ki_v\" default=\"{1,1,1,0.1,0.1,0.1}\"/>"
+            "	</GroupParam>"
+            "</Command>");
+    }
 
 	
 	// 力控末端跟随——末端pq由MoveSetPQ给定，前三根轴执行末端PID控制，保证末端执行到指定位置；最后三根轴通过轴空间PID控制，并保持末端姿态不变——速度前馈；电流控制 //
