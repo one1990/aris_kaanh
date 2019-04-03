@@ -166,7 +166,7 @@ int main(int argc, char *argv[])
 							ret_msg.header().reserved1_ = msg.header().reserved1_;
 							ret_msg.header().reserved2_ = msg.header().reserved2_;
 							ret_msg.header().reserved3_ = msg.header().reserved3_;
-							socket.sendMsg(ret_msg);
+							//socket.sendMsg(ret_msg);
 						}
 						catch (std::exception &e)
 						{
@@ -184,7 +184,7 @@ int main(int argc, char *argv[])
 							ret_msg.header().reserved1_ = msg.header().reserved1_;
 							ret_msg.header().reserved2_ = msg.header().reserved2_;
 							ret_msg.header().reserved3_ = msg.header().reserved3_;
-							socket.sendMsg(ret_msg);
+							//socket.sendMsg(ret_msg);
 						}
 						catch (std::exception &e)
 						{
