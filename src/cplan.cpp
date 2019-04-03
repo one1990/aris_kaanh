@@ -602,11 +602,11 @@ namespace cplan
 	auto load_pq2(aris::Size count, aris::Size &start_count)->std::array<double, 14>
 	{
 		std::array<double, 14> temp = { -0.122203,0.396206,0.0139912,-0.492466,0.474288,0.511942,0.520041,0,0,0,0,0,0,0 };
-		std::array<double, 7> targetpos1 = { -0.122203,0.396206,0.0139912,-0.492466,0.474288,0.511942,0.520041 };
-		std::array<double, 7> targetpos2 = { -0.122203,0.466206,0.0139912,-0.492466,0.474288,0.511942,0.520041 };
-		std::array<double, 7> targetpos3 = { 0.162203,0.466206,0.0139912,-0.492466,0.474288,0.511942,0.520041 };
-		std::array<double, 7> targetpos4 = { 0.162203,0.396206,0.0139912,-0.492466,0.474288,0.511942,0.520041 };
-		std::array<double, 7> targetpos5 = { -0.122203,0.396206,0.0139912,-0.492466,0.474288,0.511942,0.520041 };
+        std::array<double, 7> targetpos1 = { -0.122203,0.396206,0.01,-0.492466,0.474288,0.511942,0.520041 };
+        std::array<double, 7> targetpos2 = { -0.122203,0.466206,0.01,-0.492466,0.474288,0.511942,0.520041 };
+        std::array<double, 7> targetpos3 = { 0.162203,0.466206,0.01,-0.492466,0.474288,0.511942,0.520041 };
+        std::array<double, 7> targetpos4 = { 0.162203,0.396206,0.01,-0.492466,0.474288,0.511942,0.520041 };
+        std::array<double, 7> targetpos5 = { -0.122203,0.396206,0.01,-0.492466,0.474288,0.511942,0.520041 };
 		double vel = 0.1, acc = 0.2, dec = 0.2, v, a;
 		aris::Size t_count;
 		static aris::Size count_last = 0, count_last2 = 0, count_last3 = 0, count_last4 = 0;//上个轨迹完成共消耗的count ,每个阶段单独的时间
@@ -994,20 +994,7 @@ namespace cplan
 	
 		std::cout << "pq[0][0]" << pq[0][0] << "    " << "pq[1][0]" << pq[1][0] << "    " << "pq[2][0]" << pq[2][0] << "pq[3][0]" << pq[3][0] << "    " << "pq[4][0]" << pq[4][0] << "    " << "pq[5][0]" << pq[5][0] << "    " << "pq[6][0]" << pq[6][0] << std::endl;
 		//std::cout << "pq size:" << pq[0].size() << std::endl;
-		ofstream outfile("C:/Users/qianch_kaanh_cn/Desktop/data/outfile.txt");
-		if (!outfile)
-		{
-			cout << "Unable to open otfile";
-			exit(1); // terminate with error
-		}
-		for (int k = 0; k < theta2.size(); k++)
-		//for (int k = 0; k < POS[0].size(); k++)
-		{
-			outfile << POS[18][k] << "  " << POS[19][k] << "  " << POS[20][k] << "  " << POS[21][k]<< "  " << POS[22][k] << "  " << POS[23][k] << "  " << POS[24][k] << "theta2:   " << theta2[k] << endl;
-			cout <<  "success outfile "  << endl;
-			//cout << data[k][0] << " " << data[k][1] << endl;
-		}
-		outfile.close();
+
 	}
 
 
@@ -1244,27 +1231,13 @@ namespace cplan
 			std::cout << "pq[0].size():  " << pq[0].size() << endl;
 			std::cout << "pq[0][0]" << pq[0][0] << "    " << "pq[1][0]" << pq[1][0] << "    " << "pq[2][0]" << pq[2][0] << "pq[3][0]" << pq[3][0] << "    " << "pq[4][0]" << pq[4][0] << "    " << "pq[5][0]" << pq[5][0] << "    " << "pq[6][0]" << pq[6][0] << std::endl;
 			//std::cout << "pq size:" << pq[0].size() << std::endl;
-			ofstream outfile("C:/Users/qianch_kaanh_cn/Desktop/data/outfile.txt");
-			if (!outfile)
-			{
-				cout << "Unable to open otfile";
-				exit(1); // terminate with error
-			}
-			/*for (int k = 0; k < theta2.size(); k++)
-				//for (int k = 0; k < POS[0].size(); k++)
-			{
-				outfile << POS[18][k] << "  " << POS[19][k] << "  " << POS[20][k] << "  " << POS[21][k] << "  " << POS[22][k] << "  " << POS[23][k] << "  " << POS[24][k] << " theta2:   " << theta2[k] << endl;
-				cout << "success outfile " << endl;
-				//cout << data[k][0] << " " << data[k][1] << endl;
-			}
-			outfile.close();*/		
 		}
 
 
 	//采用桂凯的方法，走由sin加直线组成的标准曲线的3D打印件
 	//load_pq14对应的是打磨的时候磨头经过曲面的速度恒定
 	//load_pq12对应的是打磨的时候水平速度恒定
-		auto load_pq12()->void
+    auto load_pq12()->void
 		{
 			vector<vector<double>> XYZ(3);
 			for (int i = 0; i < 3; i++)
@@ -1516,26 +1489,6 @@ namespace cplan
 			std::cout << "pq[0][0]" << pq[0][0] << "    " << "pq[1][0]" << pq[1][0] << "    " << "pq[2][0]" << pq[2][0] << "pq[3][0]" << pq[3][0] << "    " << "pq[4][0]" << pq[4][0] << "    " << "pq[5][0]" << pq[5][0] << "    " << "pq[6][0]" << pq[6][0] << std::endl;
 			//std::cout << "pq size:" << pq[0].size() << std::endl;
 			std::cout << "XYZ[0].size()" << XYZ[0].size() << endl;
-			ofstream outfile("C:/Users/qianch_kaanh_cn/Desktop/data/outfile.txt");
-			if (!outfile)
-			{
-				cout << "Unable to open otfile";
-				exit(1); // terminate with error
-			}
-			/*for (int k = 0; k < XYZ[0].size(); k++)
-				//for (int k = 0; k < POS[0].size(); k++)
-			{
-				outfile << XYZ[0][k] << "     " << XYZ[1][k] << "     " << XYZ[2][k] << endl;
-				cout << "success outfile " << endl;
-			}*/
-
-			for (int k = 0; k < pq[0].size(); k++)
-			{
-				outfile << pq[0][k] << "   " << pq[1][k] << "  " << pq[2][k] << "  " << pq[3][k] << "    " << pq[4][k] << "    " << pq[5][k] << "    " << pq[6][k] << std::endl;
-				//cout << "success outfile " << endl;
-			}
-			outfile.close();
-
 
 		}
 
@@ -1677,24 +1630,6 @@ namespace cplan
 			}
 		}
 
-		//输出修改后的四元数
-		/*ofstream outfile("C:/Users/qianch_kaanh_cn/Desktop/data/four_elem.txt");
-		if (!outfile)
-		{
-			cout << "Unable to open otfile";
-			exit(1); // terminate with error
-		}
-		for (int k = 0; k < pq1.size(); k++)
-			//for (int k = 0; k < POS[0].size(); k++)
-		{
-			outfile << pq1[k] << "  " << pq2[k] << "  " << pq3[k] << "  " << pq4[k] << "  " << pq5[k] << "  " << pq6[k] << "  " << pq7[k] << endl;
-			cout << "success outfile four_elem " << endl;
-			//cout << data[k][0] << " " << data[k][1] << endl;
-		}
-		outfile.close();*/
-
-
-
 		//定义akima函数的参数p1,p2p3
 		std::vector<double> p11, p12, p13, p21, p22, p23, p31, p32, p33, p41, p42, p43, p51, p52, p53, p61, p62, p63, p71, p72, p73;
 		p11 = std::vector<double>(pq1.size());
@@ -1787,21 +1722,6 @@ namespace cplan
 		std::cout << "run succssful" << std::endl;
 		std::cout << "pq_real[0].size():  "<< pq_real[0].size() << std::endl;
 
-		ofstream outfile("C:/Users/qianch_kaanh_cn/Desktop/data/outfile.txt");
-		if (!outfile)
-		{
-			cout << "Unable to open otfile";
-			exit(1); // terminate with error
-		}
-		for (int k = 0; k < pq_real[0].size(); k++)
-			//for (int k = 0; k < POS[0].size(); k++)
-		{
-			outfile << pq_real[0][k] << "  " << pq_real[1][k] << "  " << pq_real[2][k] << "  " << pq_real[3][k] << "  " << pq_real[4][k] << "  " << pq_real[5][k] << "  " << pq_real[6][k]<< endl;
-			//cout << "success outfile " << endl;
-			//cout << data[k][0] << " " << data[k][1] << endl;
-		}
-		outfile.close();
-
 
 		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
 	}
@@ -1824,7 +1744,6 @@ namespace cplan
 		//定义新的14列容器temp
 		std::array<double, 14> temp = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 		int pqsize = pq_real[0].size();
-		std::cout << "pqsize" << pqsize << std::endl;
 		if (count - start_count < pqsize - 1)
 		{
 			std::cout << "count- start_count" << count - start_count << "pq_real[0][count- start_count]" << pq_real[0][count - start_count] << "   " << "pq_real[1][count- start_count]" << pq_real[1][count - start_count] << std::endl;
@@ -2209,26 +2128,6 @@ namespace cplan
 		std::cout << "pq[0][0]" << pq[0][0] << "    " << "pq[1][0]" << pq[1][0] << "    " << "pq[2][0]" << pq[2][0] << "pq[3][0]" << pq[3][0] << "    " << "pq[4][0]" << pq[4][0] << "    " << "pq[5][0]" << pq[5][0] << "    " << "pq[6][0]" << pq[6][0] << std::endl;
 		//std::cout << "pq size:" << pq[0].size() << std::endl;
 		std::cout << "XYZ[0].size()" << XYZ[0].size() << endl;
-		ofstream outfile("C:/Users/qianch_kaanh_cn/Desktop/data/outfile.txt");
-		if (!outfile)
-		{
-			cout << "Unable to open otfile";
-			exit(1); // terminate with error
-		}
-		/*for (int k = 0; k < XYZ[0].size(); k++)
-			//for (int k = 0; k < POS[0].size(); k++)
-		{
-			outfile << XYZ[0][k] << "     " << XYZ[1][k] << "     " << XYZ[2][k] << endl;
-			cout << "success outfile " << endl;
-		}*/
-
-		for (int k = 0; k < pq[0].size(); k++)
-		{
-			outfile << pq[0][k] << "   " << pq[1][k] << "  " << pq[2][k] << "  " << pq[3][k] << "    " << pq[4][k] << "    " << pq[5][k] << "    " << pq[6][k] << std::endl;
-			//cout << "success outfile " << endl;
-		}
-		outfile.close();
-
 
 	}
 }

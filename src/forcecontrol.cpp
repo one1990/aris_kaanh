@@ -1629,12 +1629,6 @@ namespace forcecontrol
 		}
 		lout << std::endl;
 
-        auto &cout = controller->mout();
-        if (target.count % 1000 == 0)
-        {
-            cout <<"one_time_counter:  "<<one_time_counter<<std::endl;
-        }
-
 		return (!is_running&&ds_is_all_finished&&md_is_all_finished) ? 0 : 1;
 	}
 	auto MovePQB::collectNrt(PlanTarget &target)->void {}
@@ -1646,7 +1640,7 @@ namespace forcecontrol
             "		<Param name=\"pqt\" default=\"{0.42,0.0,0.55,0,0,0,1}\" abbreviation=\"p\"/>"
             "		<Param name=\"kp_p\" default=\"{4,4,6,3,3,2}\"/>"
             "		<Param name=\"kp_v\" default=\"{140,180,60,50,30,14}\"/>"
-            "		<Param name=\"ki_v\" default=\"{2,8,5,0.16,0.2,0.18}\"/>"
+            "		<Param name=\"ki_v\" default=\"{2,8,5,0.18,0.2,0.18}\"/>"
             "		<Param name=\"which_fca\" default=\"1\"/>"
 			"	</GroupParam>"
 			"</Command>");
@@ -3502,6 +3496,7 @@ namespace forcecontrol
 			enable_moveJFB = false;
 			enable_moveJPID = false;
 			target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
+
 		}
 	MoveStop::MoveStop(const std::string &name) :Plan(name)
 		{
