@@ -25,7 +25,7 @@ int main(int argc, char *argv[])
 	auto port = argc < 2 ? 5866 : std::stoi(argv[1]);
 
 	//生成rokae.xml文档
-	/*
+    /*
 	cs.resetController(kaanh::createControllerRokaeXB4().release());
 	cs.resetModel(aris::dynamic::createModelRokaeXB4().release());
 	cs.resetPlanRoot(kaanh::createPlanRootRokaeXB4().release());
@@ -45,11 +45,11 @@ int main(int argc, char *argv[])
 	cs.model().solverPool()[0].allocateMemory();
 
 	cs.saveXmlFile(xmlpath.string().c_str());
-	*/
+    */
 
-	kaanh::registerPlan();
-	cs.loadXmlFile(xmlpath.string().c_str());
-
+    kaanh::registerPlan();
+    cs.loadXmlFile(xmlpath.string().c_str());
+    cs.saveXmlFile(xmlpath.string().c_str());
 	cs.start();
 
 	// interaction //
@@ -293,11 +293,6 @@ int main(int argc, char *argv[])
 		try
 		{
 			auto target = cs.executeCmd(aris::core::Msg(command_in));
-			target->finished.get();
-			if (auto str = std::any_cast<std::string>(&target->ret))
-			{
-				std::cout << *str << std::endl;
-			}
 		}
 		catch (std::exception &e)
 		{
