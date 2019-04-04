@@ -359,6 +359,7 @@ namespace forcecontrol
 	struct MovePQCrashParam
 	{
 		std::vector<double> kp_p;
+		std::vector<double> ki_p;
 		std::vector<double> kp_v;
 		std::vector<double> ki_v;
 
@@ -377,6 +378,7 @@ namespace forcecontrol
 			MovePQCrashParam param;
 			enable_movePQCrash = true;
 			param.kp_p.resize(7, 0.0);
+			param.ki_p.resize(7, 0.0);
 			param.kp_v.resize(6, 0.0);
 			param.ki_v.resize(6, 0.0);
 
@@ -419,6 +421,34 @@ namespace forcecontrol
 						if (param.kp_p[i] < 0.01)
 						{
 							param.kp_p[i] = 0.01;
+						}
+					}
+				}
+				else if (p.first == "ki_p")
+				{
+					auto v = target.model->calculator().calculateExpression(p.second);
+					if (v.size() == 1)
+					{
+						std::fill(param.ki_p.begin(), param.ki_p.end(), v.toDouble());
+					}
+					else if (v.size() == param.ki_p.size())
+					{
+						param.ki_p.assign(v.begin(), v.end());
+					}
+					else
+					{
+						throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+					}
+
+					for (Size i = 0; i < param.ki_p.size(); ++i)
+					{
+						if (param.ki_p[i] > 10000.0)
+						{
+							param.ki_p[i] = 10000.0;
+						}
+						if (param.ki_p[i] < 0.01)
+						{
+							param.ki_p[i] = 0.01;
 						}
 					}
 				}
@@ -578,35 +608,31 @@ namespace forcecontrol
 			{
 				//位置环PID+速度限制
 				target.model->generalMotionPool().at(0).getMpq(param.pqa.data());
-				for (Size i = 0; i < param.kp_p.size(); ++i)
+				for (Size i = 0; i < param.ft.size(); ++i)
 				{
-					param.vt[i] = param.kp_p[i] * (param.pqt[i] - param.pqa[i]);
-					param.vt[i] = std::max(std::min(param.vt[i], vt_limit[i]), -vt_limit[i]);
+					double vinteg_limit;
+					vproportion[i] = param.kp_p[i] * (param.pqt[i] - param.pqa[i]);
+
+					vinteg_limit = std::max(0.0, mt_limit[i] - vproportion[i]);
+					vinteg[i] = std::min(vinteg_limit, std::max(-vinteg_limit, vinteg[i] + param.ki_p[i] * (param.pqt[i] - param.pqa[i])));
+
+					param.ft[i] = vproportion[i] + vinteg[i];
 				}
 
+				/*
 				//速度环PID+力及力矩的限制
 				target.model->generalMotionPool().at(0).getMvq(param.va.data());
 				for (Size i = 0; i < param.ft.size(); ++i)
 				{
 					double vinteg_limit;
 
-					//vproportion[i] = std::min(r2*limit, std::max(-r2*limit, param.kp_v[i] * (param.vt[i] - va[i])));
 					vproportion[i] = param.kp_v[i] * (param.vt[i] - param.va[i]);
 					vinteg_limit = std::max(0.0, mt_limit[i] - vproportion[i]);
 					vinteg[i] = std::min(vinteg_limit, std::max(-vinteg_limit, vinteg[i] + param.ki_v[i] * (param.vt[i] - param.va[i])));
 
 					param.ft[i] = vproportion[i] + vinteg[i];
-					//力的限制
-					//if (i < 3)
-					//{
-					//	param.ft[i] = std::max(std::min(param.ft[i], ft_limit), -ft_limit);
-					//}
-					//力矩的限制
-					//else
-					//{
-					//	param.ft[i] = std::max(std::min(param.ft[i], Mt_limit), -Mt_limit);
-					//}
 				}
+				*/
 
 				s_c3a(param.pqa.data(), param.ft.data(), param.ft.data() + 3);
 
@@ -625,8 +651,6 @@ namespace forcecontrol
 				//动力学载荷
 				for (Size i = 0; i < param.ft.size(); ++i)
 				{
-					//double ft_friction1, ft_friction2, ft_dynamic, ft_pid;
-
 					//动力学参数
 					//constexpr double f_static[6] = { 9.349947583,11.64080253,4.770140543,3.631416685,2.58310847,1.783739862 };
 					//constexpr double f_vel[6] = { 7.80825641,13.26518528,7.856443575,3.354615249,1.419632126,0.319206404 };
@@ -635,7 +659,7 @@ namespace forcecontrol
 					//constexpr double f_static_index[6] = {0.5, 0.5, 0.5, 0.85, 0.95, 0.8};
 
 					//静摩擦力+动摩擦力=ft_friction
-
+                    /*
 					real_vel[i] = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
 					ft_friction1[i] = 0.8*(f_static[i] * real_vel[i] / max_static_vel[i]);
 
@@ -643,14 +667,14 @@ namespace forcecontrol
 					double ft_friction2_min = std::min(0.0, controller->motionAtAbs(i).actualVel() >= 0 ? -f_static[i] + ft_friction1[i] : -f_static[i] - ft_friction1[i]);
 
 					ft_friction2[i] = std::max(ft_friction2_min, std::min(ft_friction2_max, ft_friction2_index[i] * param.ft_pid[i]));
-
 					ft_friction[i] = ft_friction1[i] + ft_friction2[i] + f_vel[i] * controller->motionAtAbs(i).actualVel();
+                    */
 
-					//auto real_vel = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
-					//ft_friction = (f_vel[i] * controller->motionAtAbs(i).actualVel() + f_static_index[i] * f_static[i] * real_vel / max_static_vel[i])*f2c_index[i];
+                    auto real_vel = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
+                    ft_friction[i] = (f_vel[i] * controller->motionAtAbs(i).actualVel() + f_static_index[i] * f_static[i] * real_vel / max_static_vel[i]);
 
-					ft_friction[i] = std::max(-500.0, ft_friction[i]);
-					ft_friction[i] = std::min(500.0, ft_friction[i]);
+					ft_friction[i] = std::max(-400.0, ft_friction[i]);
+					ft_friction[i] = std::min(400.0, ft_friction[i]);
 
 					//动力学载荷=ft_dynamic
 					ft_dynamic[i] = target.model->motionPool()[i].mfDyn();
@@ -668,17 +692,31 @@ namespace forcecontrol
 			auto &cout = controller->mout();
 			if (target.count % 1000 == 0)
 			{
-				cout << "friction1 and friction2:";
+				cout << "kp_p:";
 				for (Size i = 0; i < 6; i++)
 				{
-					cout << ft_friction1[i] << "  ";
-					cout << ft_friction2[i] << "  ";
+					cout << param.kp_p[i] << "  ";
 				}
 				cout << std::endl;
-				cout << "vt:";
+
+				cout << "ki_p:";
 				for (Size i = 0; i < 6; i++)
 				{
-					cout << param.vt[i] << "  ";
+					cout << param.ki_p[i] << "  ";
+				}
+				cout << std::endl;
+
+				cout << "vproportion:";
+				for (Size i = 0; i < 6; i++)
+				{
+					cout << vproportion[i] << "  ";
+				}
+				cout << std::endl;
+
+				cout << "vinteg:";
+				for (Size i = 0; i < 6; i++)
+				{
+					cout << vinteg[i] << "  ";
 				}
 				cout << std::endl;
 
@@ -689,52 +727,57 @@ namespace forcecontrol
 				}
 				cout << std::endl;
 
-				cout << "fi:";
+				cout << "ft_pid:";
 				for (Size i = 0; i < 6; i++)
 				{
-					cout << param.ft_pid[i] * f2c_index[i] << "  ";
+					cout << param.ft_pid[i] << "  ";
 				}
 				cout << std::endl;
 
-
-				cout << "------------------------------------------------" << std::endl;
-
-				/*
+				cout << "friction:";
 				for (Size i = 0; i < 6; i++)
 				{
-					cout << std::setw(6) << "pos" << i + 1 << ":" << controller->motionAtAbs(i).actualPos();
-					cout << std::setw(6) << "vel" << i + 1 << ":" << controller->motionAtAbs(i).actualVel();
-					cout << std::setw(6) << "cur" << i + 1 << ":" << controller->motionAtAbs(i).actualCur();
+					cout << ft_friction[i] << "  ";
 				}
-				cout << std::endl;*/
+				cout << std::endl;
+
+				cout << "ft_dynamic:";
+				for (Size i = 0; i < 6; i++)
+				{
+					cout << ft_dynamic[i] << "  ";
+				}
+				cout << std::endl;
+
+				cout << "ft_offset:";
+				for (Size i = 0; i < 6; i++)
+				{
+					cout << ft_offset[i] << "  ";
+				}
+				cout << std::endl;
+
+				cout << "------------------------------------------------" << std::endl;
 			}
 
 			// log //
 			auto &lout = controller->lout();
 			for (Size i = 0; i < param.kp_p.size(); i++)
 			{
-				lout << param.kp_p[i] << ",";
-				lout << param.kp_v[i] << ",";
-				lout << param.ki_v[i] << ",";
-				lout << param.pqt[i] << ",";
-				lout << param.pqa[i] << ",";
-				lout << param.vt[i] << ",";
-				lout << param.va[i] << ",";
+				lout << param.kp_p[i] << " ";
+				lout << param.ki_p[i] << " ";
+				lout << param.pqt[i] << " ";
+				lout << param.pqa[i] << " ";
 			}
 			for (Size i = 0; i < param.ft.size(); i++)
 			{
-				lout << vproportion[i] << ",";
-				lout << vinteg[i] << ",";
-				lout << param.ft[i] << ",";
-				lout << param.ft_pid[i] << ",";
-				lout << ft_friction1[i] << ",";
-				lout << ft_friction2[i] << ",";
-				lout << ft_friction[i] << ",";
-				lout << ft_dynamic[i] << ",";
-				lout << ft_offset[i] << ",";
-				lout << controller->motionAtAbs(i).targetCur() << ",";
-				lout << controller->motionAtAbs(i).actualPos() << ",";
-				lout << controller->motionAtAbs(i).actualVel() << ",";
+				lout << vproportion[i] << " ";
+				lout << vinteg[i] << " ";
+				lout << param.ft[i] << " ";
+				lout << param.ft_pid[i] << " ";
+				lout << ft_friction[i] << " ";
+				lout << ft_dynamic[i] << " ";
+				lout << ft_offset[i] << " ";
+				lout << controller->motionAtAbs(i).actualPos() << " ";
+				lout << controller->motionAtAbs(i).actualVel() << " ";
 				lout << controller->motionAtAbs(i).actualCur();
 			}
 			lout << std::endl;
@@ -743,17 +786,18 @@ namespace forcecontrol
 		}
 	auto MovePQCrash::collectNrt(PlanTarget &target)->void {}
 	MovePQCrash::MovePQCrash(const std::string &name) :Plan(name)
-		{
-			command().loadXmlStr(
-				"<Command name=\"movePQCrash\">"
-				"	<GroupParam>"
-				"		<Param name=\"pqt\" default=\"{0.42,0.0,0.55,0.0,0.0,0.0,1.0}\" abbreviation=\"p\"/>"
-				"		<Param name=\"kp_p\" default=\"{1.0,1.0,1.0,1.0,1.0,1.0,1.0}\"/>"
-				"		<Param name=\"kp_v\" default=\"0.1*{100,100,100,100,100,100}\"/>"
-				"		<Param name=\"ki_v\" default=\"30*{1,1,1,1,1,1}\"/>"
-				"	</GroupParam>"
-				"</Command>");
-		}
+    {
+        command().loadXmlStr(
+            "<Command name=\"movePQCrash\">"
+            "	<GroupParam>"
+            "		<Param name=\"pqt\" default=\"{0.42,0.0,0.55,0.0,0.0,0.0,1.0}\" abbreviation=\"p\"/>"
+            "		<Param name=\"kp_p\" default=\"{1,1,1,1,1,1,1}\"/>"
+			"		<Param name=\"ki_p\" default=\"{1,1,1,1,1,1,1}\"/>"
+            "		<Param name=\"kp_v\" default=\"{4,4,4,1,1,1}\"/>"
+            "		<Param name=\"ki_v\" default=\"{1,1,1,0.1,0.1,0.1}\"/>"
+            "	</GroupParam>"
+            "</Command>");
+    }
 
 	
 	// 力控末端跟随——末端pq由MoveSetPQ给定，前三根轴执行末端PID控制，保证末端执行到指定位置；最后三根轴通过轴空间PID控制，并保持末端姿态不变——速度前馈；电流控制 //
@@ -1629,12 +1673,6 @@ namespace forcecontrol
 		}
 		lout << std::endl;
 
-        auto &cout = controller->mout();
-        if (target.count % 1000 == 0)
-        {
-            cout <<"one_time_counter:  "<<one_time_counter<<std::endl;
-        }
-
 		return (!is_running&&ds_is_all_finished&&md_is_all_finished) ? 0 : 1;
 	}
 	auto MovePQB::collectNrt(PlanTarget &target)->void {}
@@ -1646,7 +1684,7 @@ namespace forcecontrol
             "		<Param name=\"pqt\" default=\"{0.42,0.0,0.55,0,0,0,1}\" abbreviation=\"p\"/>"
             "		<Param name=\"kp_p\" default=\"{4,4,6,3,3,2}\"/>"
             "		<Param name=\"kp_v\" default=\"{140,180,60,50,30,14}\"/>"
-            "		<Param name=\"ki_v\" default=\"{2,8,5,0.16,0.2,0.18}\"/>"
+            "		<Param name=\"ki_v\" default=\"{2,8,5,0.18,0.2,0.18}\"/>"
             "		<Param name=\"which_fca\" default=\"1\"/>"
 			"	</GroupParam>"
 			"</Command>");
@@ -3502,6 +3540,7 @@ namespace forcecontrol
 			enable_moveJFB = false;
 			enable_moveJPID = false;
 			target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
+
 		}
 	MoveStop::MoveStop(const std::string &name) :Plan(name)
 		{

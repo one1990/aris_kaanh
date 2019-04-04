@@ -47,9 +47,9 @@ int main(int argc, char *argv[])
 	cs.saveXmlFile(xmlpath.string().c_str());
     */
 
+
     kaanh::registerPlan();
     cs.loadXmlFile(xmlpath.string().c_str());
-
 	cs.start();
 
 	// interaction //
@@ -293,11 +293,6 @@ int main(int argc, char *argv[])
 		try
 		{
 			auto target = cs.executeCmd(aris::core::Msg(command_in));
-			target->finished.get();
-			if (auto str = std::any_cast<std::string>(&target->ret))
-			{
-				std::cout << *str << std::endl;
-			}
 		}
 		catch (std::exception &e)
 		{
