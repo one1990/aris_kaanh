@@ -12,11 +12,7 @@ using namespace sixDistalDynamicsInt;
 
 robotconfig robotDemo;
 sixdistaldynamics sixDistalMatrix;
-double estParas[GroupDim]={-0.03543402,0.04347624,0.05651912,-0.04722695,-0.05991794,-0.08057128,0.02379530,-0.00348242,0.02249035,
-                           -0.39696606,-0.21818207,-0.21345102,1.70374386,-3.39132646,-10.60129932,-0.26885910,-0.13424096,-1.70564392,
-                           -0.69093494,-4.31449348,-0.16970778,0.29115017,1.74100845,2.26599670,4.22193900,-0.01429569,-0.05549581,
-                           -0.00492963,-0.07884729,-0.06306367,0.01734506,-0.03780796,-0.01712891,-1.14768852,-0.46078009,0.00188965,
-                           -0.00727051,0.03497930,-0.36029486,-1.08830666,-24.11968458,-27.17416365,-16.19901088,-1.92030904,-0.64581102,1.14128814};
+double estParas[GroupDim];
 
 
 std::vector<double> PositionList_vec(6 * SampleNum);
@@ -24,7 +20,7 @@ auto PositionList = PositionList_vec.data();
 std::vector<double> SensorList_vec(6 * SampleNum);
 auto SensorList = SensorList_vec.data();
 
-double StatisError[6];
+
 
 struct MoveXYZParam
 {
@@ -463,13 +459,13 @@ auto MoveDistal::executeRT(PlanTarget &target)->int
 				step_pjs[i] = target.model->motionPool()[i].mp();
 			}
 	}
-    param.period=30;
+    param.period=60;
 
-            step_pjs[4] = begin_pjs[4] + 3*ampVar * (std::sin(2 * aris::PI / param.period *target.count/1000));
+            step_pjs[4] = begin_pjs[4] + 4*ampVar * (std::sin(2 * aris::PI / param.period *target.count/1000));
             target.model->motionPool().at(4).setMp(step_pjs[4]);
 
             step_pjs[5] = begin_pjs[5] + 4*ampVar * (std::sin(2 * aris::PI / param.period *target.count/1000));
-            //target.model->motionPool().at(5).setMp(step_pjs[5]);
+            target.model->motionPool().at(5).setMp(step_pjs[5]);
 	
     if (!target.model->solverPool().at(1).kinPos())return -1;
 
@@ -528,12 +524,13 @@ auto MoveDistal::executeRT(PlanTarget &target)->int
 
 auto MoveDistal::collectNrt(aris::plan::PlanTarget &target)->void
 {
+    double StatisError[6];
   //  auto controller = target.controller;
    // auto &lout = controller->lout();
     std::cout<<"collect"<<std::endl;
     sixDistalMatrix.RLS(PositionList, SensorList, estParas,StatisError);
-
-    for(int i=0;i<46;i++)
+std::cout<<"collect"<<std::endl;
+    for(int i=0;i<GroupDim;i++)
         cout<<estParas[i]<<",";
 
     std::cout<<endl;
@@ -878,7 +875,7 @@ auto MovePressure::executeRT(PlanTarget &target)->int
 	for (int j = 0; j < 6; j++)
 	{
         double A[3][3], B[3], CutFreq = 35;//SHANGHAI DIANQI EXP
-        CutFreq = 85;
+        //CutFreq = 85;
 		A[0][0] = 0; A[0][1] = 1; A[0][2] = 0;
 		A[1][0] = 0; A[1][1] = 0; A[1][2] = 1;
 		A[2][0] = -CutFreq * CutFreq * CutFreq;
@@ -898,6 +895,24 @@ auto MovePressure::executeRT(PlanTarget &target)->int
 	{
         FT_KAI[i] = stateTor1[i][0] - FT0[i];//In KAI Coordinate
     }
+
+
+    for (int i = 0; i < 3; i++)
+    {
+        if(FT_KAI[i]<1.0&&FT_KAI[i]>0)
+            FT_KAI[i] = FT_KAI[i]*FT_KAI[i];//In KAI Coordinate
+        else if(FT_KAI[i]<0&&FT_KAI[i]>-1.0)
+            FT_KAI[i] = -FT_KAI[i]*FT_KAI[i];//In KAI Coordinate
+    }
+
+    for (int i = 3; i < 6; i++)
+    {
+        if(FT_KAI[i]<0.05&&FT_KAI[i]>0)
+            FT_KAI[i] = 20*FT_KAI[i]*FT_KAI[i];//In KAI Coordinate
+        else if(FT_KAI[i]<0&&FT_KAI[i]>-0.05)
+            FT_KAI[i] = -20*FT_KAI[i]*FT_KAI[i];//In KAI Coordinate
+    }
+
 
     double FT_YANG[6];
     FT_YANG[0]=FT_KAI[2];FT_YANG[1]=-FT_KAI[1];FT_YANG[2]=FT_KAI[0];
@@ -925,20 +940,20 @@ auto MovePressure::executeRT(PlanTarget &target)->int
 
 
     dX[2] = 1 * (FmInWorld[2]-(5)) / 820000;
-   // dX[3] = 1 * (FmInWorld[3]) / 4000;
-   // dX[4] = 1 * (FmInWorld[4]) / 4000;
-    //dX[5] = 1 * (FmInWorld[5]) / 4000;
+    dX[3] = 1 * (FmInWorld[3]) / 4000;
+    dX[4] = 1 * (FmInWorld[4]) / 4000;
+    dX[5] = 1 * (FmInWorld[5]) / 4000;
 
-    /*  SHANGHAI DIANQI EXP
+    /*//  SHANGHAI DIANQI EXP
     dX[0] = 1 * (FmInWorld[0]) / 40000;
     dX[1] = 1 * (FmInWorld[1]) / 40000;
     dX[2] = 1 * (FmInWorld[2]) / 40000;
     dX[3] = 1 * (FmInWorld[3]) / 4000;
     dX[4] = 1 * (FmInWorld[4]) / 4000;
     dX[5] = 1 * (FmInWorld[5]) / 4000;
-    */
+*/
 
-/*
+
    if(target.count >23000)
         dX[0]=-0.00001;
    if(target.count >45000)
@@ -950,7 +965,7 @@ auto MovePressure::executeRT(PlanTarget &target)->int
    if(target.count >111000)
         dX[0]=-0.00001;
    if(target.count >133000)
-        dX[0]=0.00001;*/
+        dX[0]=0.00001;
 
 	if (target.count % 100 == 0)
 	{
@@ -1231,7 +1246,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 
 	for (int j = 0; j < 6; j++)
 	{
-		double A[3][3], B[3], CutFreq = 35;//SHANGHAI DIANQI EXP
+        double A[3][3], B[3], CutFreq = 15;//SHANGHAI DIANQI EXP
 		
 		A[0][0] = 0; A[0][1] = 1; A[0][2] = 0;
 		A[1][0] = 0; A[1][1] = 0; A[1][2] = 1;
@@ -1367,7 +1382,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 
 
 
-    //FmInWorld[0]=0; FmInWorld[1]=10; FmInWorld[2]=0; FmInWorld[3]=0; FmInWorld[4]=0; FmInWorld[5]=0;
+    FmInWorld[0]=-2; FmInWorld[1]=0; FmInWorld[2]=0; FmInWorld[3]=0; FmInWorld[4]=0; FmInWorld[5]=0;
 	double JoinTau[6] = { 0 };
     s_mm(6, 1, 6, JacobEndTrans, FmInWorld, JoinTau);
     if (target.count % 100 == 0)
@@ -1380,10 +1395,15 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
         cout << std::endl;
 
     }
-	for (int i = 0;i < 6;i++)
-        dTheta[i] = JoinTau[i] / 10000;
+    //for (int i = 0;i < 6;i++)
+       // dTheta[i] = JoinTau[i] / 10000;
 
-
+     dTheta[0] = JoinTau[0] / 10000;
+     dTheta[1] = JoinTau[1] / 8000;
+     dTheta[2] = JoinTau[2] / 8000;
+     dTheta[3] = JoinTau[3] / 2000;
+     dTheta[4] = JoinTau[4] / 2000;
+     dTheta[5] = JoinTau[5] / 2000;
 	for (int i = 0; i < 6; i++)
 	{
 		if (dTheta[i] > 0.003)
