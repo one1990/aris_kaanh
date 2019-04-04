@@ -25,7 +25,7 @@ int main(int argc, char *argv[])
 	auto port = argc < 2 ? 5866 : std::stoi(argv[1]);
 
 	//生成rokae.xml文档
-    /*
+/*
 	cs.resetController(kaanh::createControllerRokaeXB4().release());
 	cs.resetModel(aris::dynamic::createModelRokaeXB4().release());
 	cs.resetPlanRoot(kaanh::createPlanRootRokaeXB4().release());
@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
 	cs.model().solverPool()[0].allocateMemory();
 
 	cs.saveXmlFile(xmlpath.string().c_str());
-    */
+*/
 
 
     kaanh::registerPlan();
