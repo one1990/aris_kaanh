@@ -463,12 +463,13 @@ auto MoveDistal::executeRT(PlanTarget &target)->int
 				step_pjs[i] = target.model->motionPool()[i].mp();
 			}
 	}
+    param.period=30;
 
-            step_pjs[4] = begin_pjs[4] + 2*ampVar * (std::sin(2 * aris::PI / param.period *target.count/1000));
-           // target.model->motionPool().at(4).setMp(step_pjs[4]);
+            step_pjs[4] = begin_pjs[4] + 3*ampVar * (std::sin(2 * aris::PI / param.period *target.count/1000));
+            target.model->motionPool().at(4).setMp(step_pjs[4]);
 
-            step_pjs[5] = begin_pjs[5] + 2*ampVar * (std::sin(2 * aris::PI / param.period *target.count/1000));
-            target.model->motionPool().at(5).setMp(step_pjs[5]);
+            step_pjs[5] = begin_pjs[5] + 4*ampVar * (std::sin(2 * aris::PI / param.period *target.count/1000));
+            //target.model->motionPool().at(5).setMp(step_pjs[5]);
 	
     if (!target.model->solverPool().at(1).kinPos())return -1;
 
@@ -549,8 +550,8 @@ MoveDistal::MoveDistal(const std::string &name) :Plan(name)
 	command().loadXmlStr(
 		"<Command name=\"mvDistal\">"
 		"	<GroupParam>"
-        "		<Param name=\"period\"default=\"1.0\"/>"
-        "		<Param name=\"amplitude\"default=\"0.2\"/>"
+        "		<Param name=\"period\"default=\"10.0\"/>"
+        "		<Param name=\"amplitude\"default=\"0.4\"/>"
 		"	</GroupParam>"
 		"</Command>");
 
