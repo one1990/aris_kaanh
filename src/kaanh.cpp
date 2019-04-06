@@ -2759,6 +2759,7 @@ namespace kaanh
 		plan_root->planPool().add<MoveDistal>();
 		plan_root->planPool().add<SetTool>();
 		plan_root->planPool().add<MovePressure>();
+		plan_root->planPool().add<MoveFeed>();
 		plan_root->planPool().add<MovePressureTool>();
 
 		plan_root->planPool().add<cplan::MoveCircle>();
@@ -2806,6 +2807,7 @@ namespace kaanh
 		aris::core::Object::registerTypeGlobal<MoveDistal>();
 		aris::core::Object::registerTypeGlobal<SetTool>();
 		aris::core::Object::registerTypeGlobal<MovePressure>();
+		aris::core::Object::registerTypeGlobal<MoveFeed>();
 		aris::core::Object::registerTypeGlobal<MovePressureTool>();
 
 		aris::core::Object::registerTypeGlobal<cplan::MoveCircle>();
