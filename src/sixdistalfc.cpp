@@ -12,8 +12,8 @@ using namespace sixDistalDynamicsInt;
 
 robotconfig robotDemo;
 sixdistaldynamics sixDistalMatrix;
-double estParas[GroupDim];
-
+double estParas[GroupDim]={0};
+double StatisError[6]={0,0,0,0,0,0};
 
 std::vector<double> PositionList_vec(6 * SampleNum);
 auto PositionList = PositionList_vec.data();
@@ -459,12 +459,12 @@ auto MoveDistal::executeRT(PlanTarget &target)->int
 				step_pjs[i] = target.model->motionPool()[i].mp();
 			}
 	}
-    param.period=60;
+    //param.period=60;
 
             step_pjs[4] = begin_pjs[4] + 4*ampVar * (std::sin(2 * aris::PI / param.period *target.count/1000));
-            target.model->motionPool().at(4).setMp(step_pjs[4]);
+            //target.model->motionPool().at(4).setMp(step_pjs[4]);
 
-            step_pjs[5] = begin_pjs[5] + 4*ampVar * (std::sin(2 * aris::PI / param.period *target.count/1000));
+            step_pjs[5] = begin_pjs[5] + 1*ampVar * (std::sin(2 * aris::PI / param.period *target.count/1000));
             target.model->motionPool().at(5).setMp(step_pjs[5]);
 	
     if (!target.model->solverPool().at(1).kinPos())return -1;
@@ -486,16 +486,16 @@ auto MoveDistal::executeRT(PlanTarget &target)->int
 
 	// 打印电流 //
 	auto &cout = controller->mout();
-    if (target.count % 1 == 0)
+    if (target.count % 100 == 0)
 	{
         for (int i = 0; i < 6; i++)
         {
-            //cout << "pos" << i + 1 << ":" << target.model->motionPool()[i].mp() << "  ";
+            cout <<param.period<<"***"<<param.amplitude<< "  ";
             //cout << "vel" << i + 1 << ":" << target.model->motionPool()[i].mv() << "  ";
             //cout << "cur" << i + 1 << ":" << target.model->motionPool()[i].ma() << "  ";
         }
      //   cout << target.count << "  ";
-        //cout << std::endl;
+        cout << std::endl;
 	}
 
     auto &lout = controller->lout();
@@ -522,16 +522,22 @@ auto MoveDistal::executeRT(PlanTarget &target)->int
     return SampleNum-target.count;
 }
 
+
+
+
+
+
 auto MoveDistal::collectNrt(aris::plan::PlanTarget &target)->void
 {
-    double StatisError[6];
+
   //  auto controller = target.controller;
    // auto &lout = controller->lout();
     std::cout<<"collect"<<std::endl;
+
     sixDistalMatrix.RLS(PositionList, SensorList, estParas,StatisError);
-std::cout<<"collect"<<std::endl;
-    for(int i=0;i<GroupDim;i++)
-        cout<<estParas[i]<<",";
+//std::cout<<"collect"<<std::endl;
+    //for(int i=0;i<GroupDim;i++)
+       // cout<<estParas[i]<<",";
 
     std::cout<<endl;
     std::cout<<"*****************************Statictic Model Error*****************************************"<<std::endl;
@@ -547,8 +553,8 @@ MoveDistal::MoveDistal(const std::string &name) :Plan(name)
 	command().loadXmlStr(
 		"<Command name=\"mvDistal\">"
 		"	<GroupParam>"
-        "		<Param name=\"period\"default=\"10.0\"/>"
-        "		<Param name=\"amplitude\"default=\"0.4\"/>"
+        "		<Param name=\"period\"default=\"20.0\"/>"
+        "		<Param name=\"amplitude\" default=\"0.2\"/>"
 		"	</GroupParam>"
 		"</Command>");
 
@@ -743,12 +749,6 @@ SetTool::SetTool(const std::string &name) :Plan(name)
 
 }
 
-
-
-
-
-
-
 struct MovePressureParam
 {
 	double PressF;
@@ -804,7 +804,7 @@ auto MovePressure::executeRT(PlanTarget &target)->int
 	static double step_pjs[6];
 	static double stateTor0[6][3], stateTor1[6][3];
     static float FT0[6],FT_be[6];
-
+    static double SumFtErr[6];
 	// 访问主站 //
 	auto controller = target.controller;
 
@@ -815,6 +815,7 @@ auto MovePressure::executeRT(PlanTarget &target)->int
 		{
 			step_pjs[i] = target.model->motionPool()[i].mp();
 			// controller->motionPool().at(i).setModeOfOperation(10);	//切换到电流控制
+            SumFtErr[i]=0;
 		}
 	}
 
@@ -937,9 +938,12 @@ auto MovePressure::executeRT(PlanTarget &target)->int
     FmInWorld[4] = o[0] * FT_YANG[3] + o[1] * FT_YANG[4] + o[2] * FT_YANG[5];
     FmInWorld[5] = a[0] * FT_YANG[3] + a[1] * FT_YANG[4] + a[2] * FT_YANG[5];
 
+    //for(int i=0;i<6;i++)
+        //SumFtErr[i]=SumFtErr[i]+
+    if(abs(FmInWorld[2])>2)
+       SumFtErr[2]=SumFtErr[2]+(FmInWorld[2]-(5))*DT;
 
-
-    dX[2] = 1 * (FmInWorld[2]-(5)) / 820000;
+    dX[2] = 1 * (FmInWorld[2]-(5)+0*SumFtErr[2]) / 820000;
     dX[3] = 1 * (FmInWorld[3]) / 4000;
     dX[4] = 1 * (FmInWorld[4]) / 4000;
     dX[5] = 1 * (FmInWorld[5]) / 4000;
@@ -970,7 +974,7 @@ auto MovePressure::executeRT(PlanTarget &target)->int
 	if (target.count % 100 == 0)
 	{
 
-        cout << FmInWorld[2]<<"***"<<dX[3]<<"***"<<dX[4]<<"***"<<dX[5]<<"***"<<FT0[2]<<endl;
+        cout << FmInWorld[2]<<"***"<<SumFtErr[2]<<"***"<<dX[4]<<"***"<<dX[5]<<"***"<<FT0[2]<<endl;
 
        //cout <<  FT_KAI[0]<<"***"<<FmInWorld[2]<<endl;
 
@@ -1288,10 +1292,10 @@ auto MovePressureTool::executeRT(PlanTarget &target)->int
 	}
 
 	double dXpid[6] = { 0,0,0,0,0,0 };
-    dXpid[2] = 1 * (FT_KAI[2] - (-5)) / 820000;
-    dXpid[3] = 1 * (FT_KAI[3]) / 10000;
-    dXpid[4] = 1 * (FT_KAI[4]) / 10000;
-    dXpid[5] = 1 * (FT_KAI[5]) / 10000;
+    dXpid[2] = 1 * (FT_KAI[2] - (-5)) / 620000;
+    dXpid[3] = 1 * (FT_KAI[3]) / 6000;
+    dXpid[4] = 1 * (FT_KAI[4]) / 6000;
+    dXpid[5] = 1 * (FT_KAI[5]) / 6000;
 
 	double FT_YANG[6];
 	FT_YANG[0] = dXpid[2];FT_YANG[1] = -dXpid[1];FT_YANG[2] = dXpid[0];
@@ -1320,20 +1324,20 @@ auto MovePressureTool::executeRT(PlanTarget &target)->int
 	for (int i = 0;i < 6;i++)
 		dX[i] = FmInWorld[i];
 
-    /*
+
     if (target.count > 23000)
 		dX[0] = -0.00001;
     if (target.count > 45000)
 		dX[0] = 0.00001;
     if (target.count > 67000)
 		dX[0] = -0.00001;
-    if (target.count > 79000)
+    if (target.count > 89000)
 		dX[0] = 0.00001;
     if (target.count > 91000)
 		dX[0] = -0.00001;
     if (target.count > 113000)
 		dX[0] = 0.00001;
-*/
+
 
 	if (target.count % 100 == 0)
 	{
@@ -1490,8 +1494,6 @@ MovePressureTool::MovePressureTool(const std::string &name) :Plan(name)
 		"</Command>");
 
 }
-
-
 
 struct MoveJointParam
 {

@@ -252,7 +252,7 @@ void distalMatrix(const double* q, const double* dq, const double* ddq, const do
 
     for (int i = 0; i < 6; i++)
         for (int j = 0; j < GroupDim; j++)
-           distalVec[46 * i + j] = A0[i][j];
+           distalVec[GroupDim * i + j] = A0[i][j];
 
 }
 
@@ -355,12 +355,7 @@ void sixdistaldynamics::RLS(const double *positionL, const double *sensorL, doub
         }
         //std::cout<<i<<std::endl;
     }
-    /*
-    double regressorVector[6 * SampleNum*GroupDim];
-    for (int i = 0;i < 6 * SampleNum;i++)
-        for (int j = 0;j < GroupDim;j++)
-            regressorVector[i*GroupDim+j] = regressorMatrix[i][j];
-            */
+
     // 求解 A的广义逆pinv 和 x
     std::vector<double> pinv_vec(6 * SampleNum*GroupDim);
     auto pinv = pinv_vec.data();
@@ -382,9 +377,10 @@ void sixdistaldynamics::RLS(const double *positionL, const double *sensorL, doub
     s_householder_utp2pinv( 6 * SampleNum,GroupDim, rank, U, tau, p, pinv, tau2, 1e-10);
     // 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A)*b //
     s_mm(GroupDim, 1, 6 * SampleNum, pinv, regressorForces, estParas);
- std::cout<<"1"<<std::endl;
+
+
     for(int i=0;i<GroupDim;i++)
-        std::cout<<estParas[i]<<",";
+        std::cout<<estParas[i]<<std::endl;
     //Calculate Model Error
     std::vector<double> Error_vec(6 * SampleNum);
     auto Error = Error_vec.data();
@@ -400,6 +396,11 @@ void sixdistaldynamics::RLS(const double *positionL, const double *sensorL, doub
 
     for(int j=0;j<6;j++)
         StatisError[j]= sqrt(SumError[j])/SampleNum;
+
+    for(int i=0;i<6;i++)
+        std::cout<<StatisError[i]<<std::endl;
+
+
 
     }
 
