@@ -1293,9 +1293,9 @@ auto MovePressureTool::executeRT(PlanTarget &target)->int
 
 	double dXpid[6] = { 0,0,0,0,0,0 };
     dXpid[2] = 1 * (FT_KAI[2] - (-5)) / 620000;
-    dXpid[3] = 1 * (FT_KAI[3]) / 4000;
-    dXpid[4] = 1 * (FT_KAI[4]) / 4000;
-    dXpid[5] = 1 * (FT_KAI[5]) / 4000;
+    dXpid[3] = 1 * (FT_KAI[3]) / 2000;
+    dXpid[4] = 1 * (FT_KAI[4]) / 2000;
+    dXpid[5] = 1 * (FT_KAI[5]) / 2000;
 
 	double FT_YANG[6];
 	FT_YANG[0] = dXpid[2];FT_YANG[1] = -dXpid[1];FT_YANG[2] = dXpid[0];
@@ -1324,19 +1324,20 @@ auto MovePressureTool::executeRT(PlanTarget &target)->int
 	for (int i = 0;i < 6;i++)
 		dX[i] = FmInWorld[i];
 
+     int start=15000,interval=35000;
 
-    if (target.count > 23000)
-		dX[0] = -0.00001;
-    if (target.count > 45000)
-		dX[0] = 0.00001;
-    if (target.count > 67000)
-		dX[0] = -0.00001;
-    if (target.count > 89000)
-		dX[0] = 0.00001;
-    if (target.count > 91000)
-		dX[0] = -0.00001;
-    if (target.count > 113000)
-		dX[0] = 0.00001;
+    if (target.count > start)
+        dX[0] = 0.00001;
+    if (target.count > (start+1*interval))
+        dX[0] = -0.00001;
+    if (target.count > (start+2*interval))
+        dX[0] = 0.00001;
+    if (target.count > (start+3*interval))
+        dX[0] = -0.00001;
+    if (target.count > (start+4*interval))
+        dX[0] = 0.00001;
+    if (target.count > (start+5*interval))
+        dX[0] = -0.00001;
 
 
 	if (target.count % 100 == 0)
