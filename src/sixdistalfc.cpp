@@ -1293,9 +1293,9 @@ auto MovePressureTool::executeRT(PlanTarget &target)->int
 
 	double dXpid[6] = { 0,0,0,0,0,0 };
     dXpid[2] = 1 * (FT_KAI[2] - (-5)) / 620000;
-    dXpid[3] = 1 * (FT_KAI[3]) / 6000;
-    dXpid[4] = 1 * (FT_KAI[4]) / 6000;
-    dXpid[5] = 1 * (FT_KAI[5]) / 6000;
+    dXpid[3] = 1 * (FT_KAI[3]) / 4000;
+    dXpid[4] = 1 * (FT_KAI[4]) / 4000;
+    dXpid[5] = 1 * (FT_KAI[5]) / 4000;
 
 	double FT_YANG[6];
 	FT_YANG[0] = dXpid[2];FT_YANG[1] = -dXpid[1];FT_YANG[2] = dXpid[0];
@@ -1692,19 +1692,34 @@ auto MoveFeed::executeRT(PlanTarget &target)->int
 	//if (abs(FmInWorld[2]) > 2)
 	//	SumFtErr[2] = SumFtErr[2] + (FmInWorld[2] - (5))*DT;
 	double ContactForceXY = 0,ThetaXY=0,dXY=0;
+    static bool FreeFlag=true;
 	ContactForceXY = sqrt(FmInWorld[0] * FmInWorld[0] + FmInWorld[1] * FmInWorld[1]);
-	ThetaXY = atan(FmInWorld[1] / FmInWorld[0]);
-	dXY = 1 * (ContactForceXY - (5)) / 820000;
 
-	dX[0] = dXY * cos(ThetaXY);
-	dX[1] = dXY * sin(ThetaXY);
+    if(ContactForceXY>1||FreeFlag==false)
+    {
+        if(abs(FmInWorld[0])>0.01)
+              ThetaXY = atan(FmInWorld[1] / FmInWorld[0]);
+        else
+               ThetaXY =1.57;
+    dXY = 1 * (FmInWorld[1] - (-5)) / 820000;
+
+    dX[0] = 0.00001;
+    dX[1] = dXY;
 	dX[2] = 0 * (FmInWorld[2] - (5) + 0 * SumFtErr[2]) / 820000;
 	dX[3] = 0 * (FmInWorld[3]) / 4000;
 	dX[4] = 0 * (FmInWorld[4]) / 4000;
 	dX[5] = 0 * (FmInWorld[5]) / 4000;
+    FreeFlag=false;
+    }
+
+    if(ContactForceXY<1&&FreeFlag)
+    {
+        dX[0] = 0.00001;
+        dX[1] = 0.00001;
+    }
 
 
-
+/*
 	if (target.count > 23000)
 		dX[0] = -0.00001;
 	if (target.count > 45000)
@@ -1717,11 +1732,11 @@ auto MoveFeed::executeRT(PlanTarget &target)->int
 		dX[0] = -0.00001;
 	if (target.count > 133000)
 		dX[0] = 0.00001;
-
-	if (target.count % 100 == 0)
+*/
+    if (target.count % 100 == 0)
 	{
-
-		cout << FmInWorld[2] << "***" << SumFtErr[2] << "***" << dX[4] << "***" << dX[5] << "***" << FT0[2] << endl;
+        cout <<"******"<<endl;
+        cout << FmInWorld[1] << "***" << ThetaXY << "***" << dX[0] << "***" << dX[1] << "***" << FT0[2] << endl;
 
 		//cout <<  FT_KAI[0]<<"***"<<FmInWorld[2]<<endl;
 
@@ -1840,7 +1855,7 @@ auto MoveFeed::executeRT(PlanTarget &target)->int
 	for (int i = 0; i < 6; i++)
 	{
 		step_pjs[i] = step_pjs[i] + dTheta[i];
-		target.model->motionPool().at(i).setMp(step_pjs[i]);
+        target.model->motionPool().at(i).setMp(step_pjs[i]);
 	}
 
 

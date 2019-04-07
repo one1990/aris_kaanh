@@ -93,7 +93,7 @@ public:
 	//auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
 
 	explicit MoveFeed(const std::string &name = "MoveFeed");
-	
+    ARIS_REGISTER_TYPE("MoveFeed");
 };
 
 
