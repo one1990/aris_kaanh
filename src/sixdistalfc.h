@@ -43,6 +43,7 @@ public:
 	//auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
 
 	explicit MoveJoint(const std::string &name = "MoveJoint");
+	ARIS_REGISTER_TYPE("MoveJoint");
 };
 
 
@@ -95,6 +96,20 @@ public:
 	explicit MoveFeed(const std::string &name = "MoveFeed");
     ARIS_REGISTER_TYPE("MoveFeed");
 };
+
+
+//与Meng交换数据
+class GetForce : public aris::plan::Plan
+{
+public:
+	auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+    auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+
+	explicit GetForce(const std::string &name = "GetForce");
+	ARIS_REGISTER_TYPE("GetForce");
+};
+
+
 
 
 #endif

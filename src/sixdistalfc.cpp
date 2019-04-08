@@ -1,5 +1,7 @@
 ﻿#include "sixdistalfc.h"
 #include <math.h>
+#include"kaanh.h"
+#include <algorithm>
 #include"robotconfig.h"
 #include"sixdistaldynamics.h"
 #include <vector>
@@ -20,7 +22,7 @@ auto PositionList = PositionList_vec.data();
 std::vector<double> SensorList_vec(6 * SampleNum);
 auto SensorList = SensorList_vec.data();
 
-
+double ForceToMeng=0;
 
 struct MoveXYZParam
 {
@@ -1134,6 +1136,7 @@ struct MovePressureToolParam
 
 };
 
+
 auto MovePressureTool::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 {
 	MovePressureToolParam param;
@@ -1274,6 +1277,7 @@ auto MovePressureTool::executeRT(PlanTarget &target)->int
 		FT_KAI[i] = stateTor1[i][0] - FT0[i];//In KAI Coordinate
 	}
 
+	ForceToMeng = FT_KAI[2];
 
 	for (int i = 0; i < 3; i++)
 	{
@@ -1495,6 +1499,36 @@ MovePressureTool::MovePressureTool(const std::string &name) :Plan(name)
 		"</Command>");
 
 }
+
+
+auto GetForce::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+{
+
+	double FT=1;
+
+	std::any cur_a = double(0);
+	target.server->getRtData([&](aris::server::ControlServer& cs, std::any &data)->void
+	{
+		FT = ForceToMeng;
+		//std::any_cast<double&>(data) = cs.controller().motionPool().at(i).actualCur();
+	}, cur_a);
+
+	
+	std::string ret(reinterpret_cast<char*>(&FT),1 * sizeof(double));
+	target.ret = ret;
+	target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_PRINT_CMD_INFO | NOT_PRINT_CMD_INFO;
+}
+auto GetForce::collectNrt(PlanTarget &target)->void {}
+GetForce::GetForce(const std::string &name) : Plan(name)
+{
+	command().loadXmlStr(
+		"<Command name=\"GetForce\">"
+		"</Command>");
+}
+
+
+
+
 
 
 
