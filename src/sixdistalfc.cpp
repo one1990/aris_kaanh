@@ -1293,9 +1293,9 @@ auto MovePressureTool::executeRT(PlanTarget &target)->int
 
 	double dXpid[6] = { 0,0,0,0,0,0 };
     dXpid[2] = 1 * (FT_KAI[2] - (-5)) / 620000;
-    dXpid[3] = 1 * (FT_KAI[3]) / 2000;
-    dXpid[4] = 1 * (FT_KAI[4]) / 2000;
-    dXpid[5] = 1 * (FT_KAI[5]) / 2000;
+    dXpid[3] = 0 * (FT_KAI[3]) / 2000;
+    dXpid[4] = 0 * (FT_KAI[4]) / 2000;
+    dXpid[5] = 0 * (FT_KAI[5]) / 2000;
 
 	double FT_YANG[6];
 	FT_YANG[0] = dXpid[2];FT_YANG[1] = -dXpid[1];FT_YANG[2] = dXpid[0];
@@ -1463,7 +1463,7 @@ auto MovePressureTool::executeRT(PlanTarget &target)->int
 	for (int i = 0; i < 6; i++)
 	{
 		step_pjs[i] = step_pjs[i] + dTheta[i];
-        target.model->motionPool().at(i).setMp(step_pjs[i]);
+        //target.model->motionPool().at(i).setMp(step_pjs[i]);
 	}
 
 
