@@ -1324,20 +1324,20 @@ auto MovePressureTool::executeRT(PlanTarget &target)->int
 	for (int i = 0;i < 6;i++)
 		dX[i] = FmInWorld[i];
 
-     int start=15000,interval=35000;
+     int start=15000,interval=3000;
 
     if (target.count > start)
-        dX[0] = 0.00001;
+        dX[1] = 0.00001;
     if (target.count > (start+1*interval))
-        dX[0] = -0.00001;
+        dX[1] = -0.00001;
     if (target.count > (start+2*interval))
-        dX[0] = 0.00001;
+        dX[1] = 0.00001;
     if (target.count > (start+3*interval))
-        dX[0] = -0.00001;
+        dX[1] = -0.00001;
     if (target.count > (start+4*interval))
-        dX[0] = 0.00001;
+        dX[1] = 0.00001;
     if (target.count > (start+5*interval))
-        dX[0] = -0.00001;
+        dX[1] = -0.00001;
 
 
 	if (target.count % 100 == 0)
@@ -1463,7 +1463,7 @@ auto MovePressureTool::executeRT(PlanTarget &target)->int
 	for (int i = 0; i < 6; i++)
 	{
 		step_pjs[i] = step_pjs[i] + dTheta[i];
-        //target.model->motionPool().at(i).setMp(step_pjs[i]);
+        target.model->motionPool().at(i).setMp(step_pjs[i]);
 	}
 
 
