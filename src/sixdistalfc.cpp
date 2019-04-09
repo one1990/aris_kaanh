@@ -467,7 +467,7 @@ auto MoveDistal::executeRT(PlanTarget &target)->int
             //target.model->motionPool().at(4).setMp(step_pjs[4]);
 
             step_pjs[5] = begin_pjs[5] + 1*ampVar * (std::sin(2 * aris::PI / param.period *target.count/1000));
-            target.model->motionPool().at(5).setMp(step_pjs[5]);
+            //target.model->motionPool().at(5).setMp(step_pjs[5]);
 	
     if (!target.model->solverPool().at(1).kinPos())return -1;
 
@@ -1183,7 +1183,8 @@ auto MovePressureTool::executeRT(PlanTarget &target)->int
 	double X2[3];
 	static double begin_pjs[6];
 	static double step_pjs[6];
-	static double stateTor0[6][3], stateTor1[6][3];
+    static double stateTor0[6][3], stateTor1[6][3],EndP0[3];
+    static double sT0[6][3], sT1[6][3];
 	static float FT0[6], FT_be[6];
 
 	// 访问主站 //
@@ -1244,6 +1245,8 @@ auto MovePressureTool::executeRT(PlanTarget &target)->int
 			FT0[j] = FT[j];
 			FT_be[j] = FT[j];
 		}
+        for (int i = 0;i < 3;i++)
+            EndP0[i] = PqEnd[i];
 	}
 
 	for (int j = 0; j < 6; j++)
@@ -1255,7 +1258,7 @@ auto MovePressureTool::executeRT(PlanTarget &target)->int
 
 	for (int j = 0; j < 6; j++)
 	{
-		double A[3][3], B[3], CutFreq = 35;//SHANGHAI DIANQI EXP
+        double A[3][3], B[3], CutFreq = 35;//SHANGHAI DIANQI EXP
 		//CutFreq = 85;
 		A[0][0] = 0; A[0][1] = 1; A[0][2] = 0;
 		A[1][0] = 0; A[1][1] = 0; A[1][2] = 1;
@@ -1277,7 +1280,6 @@ auto MovePressureTool::executeRT(PlanTarget &target)->int
 		FT_KAI[i] = stateTor1[i][0] - FT0[i];//In KAI Coordinate
 	}
 
-	ForceToMeng = FT_KAI[2];
 
 	for (int i = 0; i < 3; i++)
 	{
@@ -1295,11 +1297,13 @@ auto MovePressureTool::executeRT(PlanTarget &target)->int
 			FT_KAI[i] = -20 * FT_KAI[i] * FT_KAI[i];//In KAI Coordinate
 	}
 
+
+
 	double dXpid[6] = { 0,0,0,0,0,0 };
-    dXpid[2] = 1 * (FT_KAI[2] - (-5)) / 620000;
-    dXpid[3] = 0 * (FT_KAI[3]) / 2000;
-    dXpid[4] = 0 * (FT_KAI[4]) / 2000;
-    dXpid[5] = 0 * (FT_KAI[5]) / 2000;
+    dXpid[2] = 1 * (FT_KAI[2] - (-10)) / 620000;
+    dXpid[3] = 1 * (FT_KAI[3]) / 2000;
+    dXpid[4] = 1 * (FT_KAI[4]) / 2000;
+    dXpid[5] = 1 * (FT_KAI[5]) / 2000;
 
 	double FT_YANG[6];
 	FT_YANG[0] = dXpid[2];FT_YANG[1] = -dXpid[1];FT_YANG[2] = dXpid[0];
@@ -1328,26 +1332,181 @@ auto MovePressureTool::executeRT(PlanTarget &target)->int
 	for (int i = 0;i < 6;i++)
 		dX[i] = FmInWorld[i];
 
-     int start=15000,interval=3000;
 
-    if (target.count > start)
-        dX[1] = 0.00001;
-    if (target.count > (start+1*interval))
-        dX[1] = -0.00001;
-    if (target.count > (start+2*interval))
-        dX[1] = 0.00001;
-    if (target.count > (start+3*interval))
-        dX[1] = -0.00001;
-    if (target.count > (start+4*interval))
-        dX[1] = 0.00001;
-    if (target.count > (start+5*interval))
-        dX[1] = -0.00001;
+   /*
+     int start=15000,intervalA=500,intervalD=2000;
+     double VelX=0.00003;
 
+     for (int i = 0;i < 3;i++)
+         EndP[i] = PqEnd[i];
+     static bool flag=true;
+     static int inc=0,dec=0;
+if (target.count > start)
+{
+    if(flag==true)
+    {
+        if(EndP[0]<0)
+        {
+            if(abs(dX[0])<VelX)
+             {
+                dX[0] =VelX/intervalA*inc;
+                inc++;
+             }
+            else
+              dX[0] =VelX;
+        }
+         //dX[0] = (abs(EndP[0]-EndP0[0]))/((abs(EndP0[0]))/intervalA)*VelX/intervalA;
+
+        if(EndP[0]>0&&EndP[0]<0.085)
+        {
+            dX[0] = VelX-(EndP[0]+0)/((0.085+0)/intervalD)*VelX/intervalD;
+            if(EndP[0]>0.084)
+            {
+                flag=false;
+                inc=0;
+                dX[0] =0;
+            }
+        }
+    }
+
+    else
+    {
+        if(EndP[0]>0)
+        {
+            if(abs(dX[0])<VelX)
+                dX[0] = -(VelX-(EndP[0]+0)/((0.085+0)/intervalD)*VelX/intervalD);
+            else
+                 dX[0] = -VelX;
+        }
+
+       if(EndP[0]<0&&EndP[0]>-0.08)
+           dX[0] = -VelX;
+
+
+        if(EndP[0]<-0.08)
+         {    //dX[0] = -(VelX-abs(EndP[0]+0.07)/(abs(EndP0[0]+0.07)/intervalA)*VelX/intervalA);
+            //if(EndP[0]<(EndP0[0]+0.002))
+            //{
+                flag=true;
+                dX[0]=0;
+
+            //}
+        }
+
+    }
+}
+*/
+
+     int start=11000,interval=5500,StopInt=1000;
+     double VelX=0.00005;
+    if (target.count > start&&target.count < (start+1*interval-StopInt))
+        dX[0] = VelX;
+    if (target.count > (start+1*interval-StopInt)&&target.count < (start+1*interval))
+        dX[0] = 0;
+
+
+    if (target.count > (start+1*interval)&&target.count < (start+2*interval-StopInt))
+        dX[0] = -VelX;
+    if (target.count > (start+2*interval-StopInt)&&target.count < (start+2*interval))
+        dX[0] = 0;
+
+
+    if (target.count > (start+2*interval)&&target.count < (start+3*interval-StopInt))
+        dX[0] = VelX;
+    if (target.count > (start+3*interval-StopInt)&&target.count < (start+3*interval))
+        dX[0] = 0;
+
+
+    if (target.count > (start+3*interval)&&target.count < (start+4*interval-StopInt))
+        dX[0] = -VelX;
+    if (target.count > (start+4*interval-StopInt)&&target.count < (start+4*interval))
+        dX[0] = 0;
+
+
+    if (target.count > (start+4*interval)&&target.count < (start+5*interval-StopInt))
+        dX[0] = VelX;
+    if (target.count > (start+5*interval-StopInt)&&target.count < (start+5*interval))
+        dX[0] = 0;
+
+    if (target.count > (start+5*interval)&&target.count < (start+6*interval-StopInt))
+        dX[0] = -VelX;
+    if (target.count > (start+6*interval-StopInt)&&target.count < (start+6*interval))
+        dX[0] = 0;
+
+
+    if (target.count > (start+6*interval)&&target.count < (start+7*interval-StopInt))
+        dX[0] = VelX;
+    if (target.count > (start+7*interval-StopInt)&&target.count < (start+7*interval))
+        dX[0] = 0;
+
+
+    if (target.count > (start+7*interval)&&target.count < (start+8*interval-StopInt))
+        dX[0] = -VelX;
+    if (target.count > (start+8*interval-StopInt)&&target.count < (start+8*interval))
+        dX[0] = 0;
+
+
+    if (target.count > (start+8*interval)&&target.count < (start+9*interval-StopInt))
+        dX[0] = VelX;
+    if (target.count > (start+9*interval-StopInt)&&target.count < (start+9*interval))
+        dX[0] = 0;
+
+/*
+    if (target.count > (start+10*interval)&&target.count < (start+11*interval-StopInt))
+        dX[0] = -VelX;
+    if (target.count > (start+11*interval-StopInt)&&target.count < (start+11*interval))
+        dX[0] = 0;
+
+
+    if (target.count > (start+11*interval)&&target.count < (start+12*interval-StopInt))
+        dX[0] = VelX;
+    if (target.count > (start+12*interval-StopInt)&&target.count < (start+12*interval))
+        dX[0] = 0;
+*/
+
+
+
+    if (target.count > (start+9*interval))
+        dX[0] = 0;
+
+    //if(FT_KAI[2]<-12.5)
+      //  ForceToMeng =9.38;
+   // else
+
+    for (int j = 0; j < 6; j++)
+    {
+        double A[3][3], B[3], CutFreq = 10;//SHANGHAI DIANQI EXP
+        //CutFreq = 85;
+        A[0][0] = 0; A[0][1] = 1; A[0][2] = 0;
+        A[1][0] = 0; A[1][1] = 0; A[1][2] = 1;
+        A[2][0] = -CutFreq * CutFreq * CutFreq;
+        A[2][1] = -2 * CutFreq * CutFreq;
+        A[2][2] = -2 * CutFreq;
+        B[0] = 0; B[1] = 0;
+        B[2] = -A[2][0];
+        double intDT = 0.001;
+        if(target.count > start&&target.count < (start+1*interval-StopInt))
+        {
+        if(FT_KAI[j]<-14)
+            FT_KAI[j]=-10.59+sin(target.count);
+        if(FT_KAI[j]>-7)
+            FT_KAI[j]=-9.37+sin(target.count);
+        }
+        sT1[j][0] = sT0[j][0] + intDT * (A[0][0] * sT0[j][0] + A[0][1] * sT0[j][1] + A[0][2] * sT0[j][2] + B[0] * FT_KAI[j]);
+        sT1[j][1] = sT0[j][1] + intDT * (A[1][0] * sT0[j][0] + A[1][1] * sT0[j][1] + A[1][2] * sT0[j][2] + B[1] * FT_KAI[j]);
+        sT1[j][2] = sT0[j][2] + intDT * (A[2][0] * sT0[j][0] + A[2][1] * sT0[j][1] + A[2][2] * sT0[j][2] + B[2] * FT_KAI[j]);
+    }
+
+    ForceToMeng = sT1[2][0];
+    if(ForceToMeng<-14)
+        ForceToMeng=-11.59;
+    if(ForceToMeng>-8)
+        ForceToMeng=-9.37;
 
 	if (target.count % 100 == 0)
 	{
 
-        cout << FT_KAI[2] << "*" << dX[1] << "*" << dX[2] << "*" << FT_KAI[3] << "*" << FT_KAI[4] << "*" << FT_KAI[5] << "*" << FT0[2] << endl;
+        cout << FT_KAI[2] << "*" << EndP[0] << "*" << dX[0] << "*" << EndP0[0] << "*" << FT_KAI[5] << "*" << FT0[2] << endl;
 
 
 		//cout <<  FT_KAI[0]<<"***"<<FmInWorld[2]<<endl;
@@ -1383,9 +1542,9 @@ auto MovePressureTool::executeRT(PlanTarget &target)->int
 	//lout << FT[2] << ",";lout << dX[2] << ",";
 	//lout << FmInWorld[2] << ",";lout << FT0[2] << ",";
 
-	lout << FmInWorld[0] << ",";lout << FmInWorld[1] << ",";
-	lout << FmInWorld[2] << ",";lout << FmInWorld[3] << ",";
-    lout << FmInWorld[4] << ",";lout << FmInWorld[5] << ",";
+    lout << stateTor1[0][0] << ",";lout << stateTor1[1][0] << ",";
+    lout << stateTor1[2][0] << ",";lout << stateTor1[3][0] << ",";
+    lout << stateTor1[4][0] << ",";lout << stateTor1[5][0] << ",";
     lout << FT_KAI[0] << ",";lout << FT_KAI[1] << ",";
     lout << FT_KAI[2] << ",";lout << FT_KAI[3] << ",";
     lout << FT_KAI[4] << ",";lout << FT_KAI[5] << ",";
@@ -1397,9 +1556,9 @@ auto MovePressureTool::executeRT(PlanTarget &target)->int
 	// lout << dX[0] << ",";
 
 	// lout << dX[0] << ",";
-	// lout << FT[1] << ",";lout << FT[2] << ",";
-	// lout << FT[3] << ",";lout << FT[4] << ",";
-	// lout << FT[5] << ",";lout << FT[6] << ",";
+     lout << FT[0] << ",";lout << FT[1] << ",";
+     lout << FT[2] << ",";lout << FT[3] << ",";
+     lout << FT[4] << ",";lout << FT[5] << ",";
 	lout << std::endl;
 
 
@@ -1478,6 +1637,11 @@ auto MovePressureTool::executeRT(PlanTarget &target)->int
 		stateTor0[i][0] = stateTor1[i][0];
 		stateTor0[i][1] = stateTor1[i][1];
 		stateTor0[i][2] = stateTor1[i][2];
+
+        sT0[i][0] = sT1[i][0];
+        sT0[i][1] = sT1[i][1];
+        sT0[i][2] = sT1[i][2];
+
 	}
 
 	for (int j = 0; j < 6; j++)

@@ -371,7 +371,7 @@ void sixdistaldynamics::RLS(const double *positionL, const double *sensorL, doub
     // 根据 A 求出中间变量，相当于做 QR 分解 //
     // 请对 U 的对角线元素做处理
     s_householder_utp(6*SampleNum, GroupDim, regressorVector, U, tau, p, rank, 1e-10);
-
+/*
     // 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A) //
     double tau2[GroupDim];
     s_householder_utp2pinv( 6 * SampleNum,GroupDim, rank, U, tau, p, pinv, tau2, 1e-10);
@@ -379,8 +379,8 @@ void sixdistaldynamics::RLS(const double *positionL, const double *sensorL, doub
     s_mm(GroupDim, 1, 6 * SampleNum, pinv, regressorForces, estParas);
 
 
-    for(int i=0;i<GroupDim;i++)
-        std::cout<<estParas[i]<<std::endl;
+    //for(int i=0;i<GroupDim;i++)
+       // std::cout<<estParas[i]<<std::endl;
     //Calculate Model Error
     std::vector<double> Error_vec(6 * SampleNum);
     auto Error = Error_vec.data();
@@ -400,7 +400,7 @@ void sixdistaldynamics::RLS(const double *positionL, const double *sensorL, doub
     for(int i=0;i<6;i++)
         std::cout<<StatisError[i]<<std::endl;
 
-
+*/
 
     }
 

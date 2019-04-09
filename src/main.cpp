@@ -39,7 +39,7 @@ int main(int argc, char *argv[])
     cs.model().generalMotionPool()[0].makI().fatherPart(),
     pe);
 
-    pe[0] += 0.0;
+    pe[0] += 0.06;
 	cs.model().generalMotionPool()[0].makI().setPrtPe(pe);
 	cs.model().generalMotionPool()[0].makJ();
 	cs.model().solverPool()[0].allocateMemory();
@@ -62,8 +62,8 @@ int main(int argc, char *argv[])
 		std::string msg_data = msg.toString();
 
 		static int cout_count = 0;
-		if (++cout_count % 10 == 0)
-			std::cout << "recv:" << msg_data << std::endl;
+        //if (++cout_count % 10 == 0)
+        //	std::cout << "recv:" << msg_data << std::endl;
 
 		LOG_INFO << "the request is cmd:"
 			<< msg.header().msg_size_ << "&"
