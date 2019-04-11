@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
 
 		static int cout_count = 0;
 		if (++cout_count % 10 == 0)
-			std::cout << "recv:" << msg_data << std::endl;
+			//std::cout << "recv:" << msg_data << std::endl;
 
 		LOG_INFO << "the request is cmd:"
 			<< msg.header().msg_size_ << "&"

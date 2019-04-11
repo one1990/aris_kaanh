@@ -230,6 +230,59 @@ namespace kaanh
 			"</Command>");
 	}
 
+
+	// 获取末端位置 //
+	auto Get_ee_pq::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		auto ee_pq_vec = std::make_any<std::vector<double> >(7);
+		target.server->getRtData([](aris::server::ControlServer& cs, std::any& data)
+		{
+			cs.model().generalMotionPool().at(0).getMpq(std::any_cast<std::vector<double>&>(data).data());
+		}, ee_pq_vec);
+		auto pq = std::any_cast<std::vector<double>&>(ee_pq_vec);
+
+		std::string ret(reinterpret_cast<char*>(pq.data()), pq.size() * sizeof(double));
+		target.ret = ret;
+		target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_PRINT_CMD_INFO | NOT_PRINT_CMD_INFO;
+	}
+	auto Get_ee_pq::collectNrt(PlanTarget &target)->void {}
+	Get_ee_pq::Get_ee_pq(const std::string &name) : Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"get_ee_pq\">"
+			"</Command>");
+	}
+
+
+	// 获取电机电流 //
+	auto Get_cur::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		auto i = std::stoi(params.at("which_motor"));
+		std::any cur_a = double(0);
+		target.server->getRtData([&](aris::server::ControlServer& cs, std::any &data)->void
+		{
+			std::any_cast<double&>(data) = cs.controller().motionPool().at(i).actualCur();
+		}, cur_a);
+
+		//auto cur = std::any_cast<double&>(cur_a);
+		static double cur = 0.0;
+		static int counter = 1;
+		cur = 10 * std::sin(2*PI*counter++/100);
+
+		std::string ret(reinterpret_cast<char*>(&cur), 1 * sizeof(double));
+		target.ret = ret;
+		target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_PRINT_CMD_INFO | NOT_PRINT_CMD_INFO;
+	}
+	auto Get_cur::collectNrt(PlanTarget &target)->void {}
+	Get_cur::Get_cur(const std::string &name) : Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"get_cur\">"
+			"		<Param name=\"which_motor\" default=\"1\"/>"
+			"</Command>");
+	}
+
+
 	// 末端四元数xyz方向余弦轨迹；速度前馈//
 	struct MoveXParam
 	{
@@ -338,6 +391,7 @@ namespace kaanh
 			"	</GroupParam>"
 			"</Command>");
 	}
+
 
 	// 单关节正弦往复轨迹 //
 	struct MoveJSParam
@@ -1727,8 +1781,9 @@ namespace kaanh
 		std::vector<double> term_begin_pe_vec;
 		std::vector<double> term_target_pe_vec;
 		std::vector<double> term_input_pe_vec;
-		double x, y, z, a, b, c, vel, acc, dec, term_offset_pe;;
+		aris::Size cor;
 		aris::Size move_type;
+		double x, y, z, a, b, c, vel, acc, dec, term_offset_pe;	
 	};
 	auto MovePoint::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 		{
@@ -1739,9 +1794,16 @@ namespace kaanh
 			param.term_offset_pe = 0;
 			param.term_input_pe_vec.resize(6, 0.0);
 
+			std::string ret = "ok";
+			target.ret = ret;
+
 			for (auto &p : params)
 			{
-				if (p.first == "x")
+				if (p.first == "cor")
+				{
+					param.cor = std::stoi(p.second);
+				}
+				else if (p.first == "x")
 				{
 					param.x = std::stod(p.second);
 					param.move_type = 0;
@@ -1817,17 +1879,27 @@ namespace kaanh
 			auto &param = std::any_cast<MovePointParam&>(target.param);
 			static aris::Size total_count = 1;
 
-			char eu_type[4]{ '1' + param.move_type - 3 , '1' + (param.move_type - 2) % 3 , '1' + param.move_type - 3 , '\0' };
+			char eu_type[4]{ '1', '2', '3', '\0' };
 			
 			if (target.count == 1)
-			{	
+			{
 				// 绕大地坐标系x，y，z轴旋转 //
 				if (param.move_type >= 3)
 				{
 					target.model->generalMotionPool().at(0).getMpe(param.term_begin_pe_vec.data(), eu_type);
 					target.model->generalMotionPool().at(0).getMpe(param.term_target_pe_vec.data(), eu_type);
 					target.model->generalMotionPool().at(0).getMpe(param.term_input_pe_vec.data(), eu_type);
-					param.term_target_pe_vec[3] = param.term_begin_pe_vec[3] + param.term_offset_pe;
+
+					//绝对坐标系
+					if (param.cor == 0)
+					{
+						param.term_target_pe_vec[3] = param.term_begin_pe_vec[3] + param.term_offset_pe;
+					}
+					//工件坐标系
+					else if (param.cor == 1)
+					{
+						param.term_target_pe_vec[5] = param.term_begin_pe_vec[5] + param.term_offset_pe;
+					}
 				}
 				// 沿大地坐标系坐标轴x,y,z平动 //
 				else
@@ -1836,19 +1908,39 @@ namespace kaanh
 					target.model->generalMotionPool().at(0).getMpe(param.term_target_pe_vec.data());
 					target.model->generalMotionPool().at(0).getMpe(param.term_input_pe_vec.data());
 					param.term_target_pe_vec[param.move_type] = param.term_begin_pe_vec[param.move_type] + param.term_offset_pe;
-				}	
+				}
 			}
 			// 梯形轨迹规划 //
 			double p, v, a;
 			aris::Size t_count;
 			if (param.move_type >= 3)
 			{
-				aris::plan::moveAbsolute(target.count, param.term_begin_pe_vec[3], param.term_target_pe_vec[3], param.vel / 1000
+				aris::plan::moveAbsolute(target.count, 0, param.term_offset_pe, param.vel / 1000
 					, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
 				total_count = std::max(total_count, t_count);
 
-				param.term_input_pe_vec[3] = p;
-				target.model->generalMotionPool().at(0).setMpe(param.term_input_pe_vec.data(), eu_type);
+				//double pe[6]{ 0,0,0,p,0,0 }, pm[16];
+				//s_pe2pm(pe, pm, eu_type);
+
+				double pe[6]{ 0,0,0,0,0,0 }, pm[16];
+				pe[param.move_type] = p;
+				s_pe2pm(pe, pm, "123");
+
+				double begin_pm[16], target_pm[16];
+				s_pe2pm(param.term_begin_pe_vec.data(), begin_pm, eu_type);
+				
+				//绝对坐标系
+				if (param.cor == 0)
+				{
+					s_pm_dot_pm(pm, begin_pm, target_pm);
+				}
+				//工件坐标系
+				else if (param.cor == 1)
+				{
+					s_pm_dot_pm(begin_pm, pm, target_pm);
+				}	
+				target.model->generalMotionPool().at(0).setMpm(target_pm);
+				
 			}
 			else
 			{
@@ -1905,6 +1997,7 @@ namespace kaanh
 		command().loadXmlStr(
 			"<Command name=\"movePoint\">"
 			"	<GroupParam>"
+			"		<Param name=\"cor\" default=\"0\"/>"
 			"		<Param name=\"vel\" default=\"0.2\" abbreviation=\"v\"/>"
 			"		<Param name=\"acc\" default=\"0.4\" abbreviation=\"a\"/>"
 			"		<Param name=\"dec\" default=\"0.4\" abbreviation=\"d\"/>"
@@ -2608,6 +2701,7 @@ namespace kaanh
 			
 	}
 
+
 	// 力传感器信号测试 //
 	struct FSParam
 	{
@@ -2730,6 +2824,8 @@ namespace kaanh
 		plan_root->planPool().add<aris::plan::MoveJ>();
 		plan_root->planPool().add<aris::plan::Show>();
 		plan_root->planPool().add<kaanh::MoveInit>();
+		plan_root->planPool().add<kaanh::Get_ee_pq>();
+		plan_root->planPool().add<kaanh::Get_cur>();
 		plan_root->planPool().add<kaanh::MoveX>();
 		plan_root->planPool().add<kaanh::MoveJS>();
 		plan_root->planPool().add<kaanh::MoveJSN>();
@@ -2776,6 +2872,8 @@ namespace kaanh
 		aris::core::Object::registerTypeGlobal<aris::plan::MoveJ>();
 		aris::core::Object::registerTypeGlobal<aris::plan::Show>();
 		aris::core::Object::registerTypeGlobal<kaanh::MoveInit>();
+		aris::core::Object::registerTypeGlobal<kaanh::Get_ee_pq>();
+		aris::core::Object::registerTypeGlobal<kaanh::Get_cur>();
 		aris::core::Object::registerTypeGlobal<kaanh::MoveX>();
 		aris::core::Object::registerTypeGlobal<kaanh::MoveJS>();
 		aris::core::Object::registerTypeGlobal<kaanh::MoveJSN>();
