@@ -46,7 +46,7 @@ void distalMatrix(const double* q, const double* dq, const double* ddq, const do
     double dq1, dq2, dq3, dq4, dq5, dq6;
     double ddq1, ddq2, ddq3, ddq4, ddq5, ddq6;
     double ts1, ts2, ts3, ts4, ts5, ts6;
-    double g = 9.81;
+    double g = -9.81;
 
     q1 = q[0];
     q2 = q[1];
@@ -397,8 +397,7 @@ void sixdistaldynamics::RLS(const double *positionL, const double *sensorL, doub
     for(int j=0;j<6;j++)
         StatisError[j]= sqrt(SumError[j])/SampleNum;
 
-    for(int i=0;i<6;i++)
-        std::cout<<StatisError[i]<<std::endl;
+
 
 
 

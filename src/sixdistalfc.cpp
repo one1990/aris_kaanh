@@ -461,13 +461,45 @@ auto MoveDistal::executeRT(PlanTarget &target)->int
 				step_pjs[i] = target.model->motionPool()[i].mp();
 			}
 	}
-    //param.period=60;
+   param.period=60;
 
-            step_pjs[4] = begin_pjs[4] + 4*ampVar * (std::sin(2 * aris::PI / param.period *target.count/1000));
-            //target.model->motionPool().at(4).setMp(step_pjs[4]);
+   static bool flag4=true,flag5=true;
+   double dTheta=0.0001;
+            if(flag4)
+            {
+                if(step_pjs[4]<1.40)
+                    step_pjs[4] = step_pjs[4] + dTheta;
+                else
+                    flag4=false;
+            }
+            if(flag4==false)
+            {
+                if(step_pjs[4]>-1.40)
+                    step_pjs[4] = step_pjs[4] - dTheta;
+                else
+                    flag4=true;
+            }
 
-            step_pjs[5] = begin_pjs[5] + 1*ampVar * (std::sin(2 * aris::PI / param.period *target.count/1000));
-            //target.model->motionPool().at(5).setMp(step_pjs[5]);
+
+            target.model->motionPool().at(4).setMp(step_pjs[4]);
+
+            if(flag5)
+            {
+                if(step_pjs[5]<1.40)
+                    step_pjs[5] = step_pjs[5] + dTheta;
+                else
+                    flag5=false;
+            }
+            if(flag5==false)
+            {
+                if(step_pjs[5]>-1.40)
+                    step_pjs[5] = step_pjs[5] - dTheta;
+                else
+                    flag5=true;
+            }
+            target.model->motionPool().at(5).setMp(step_pjs[5]);
+
+
 	
     if (!target.model->solverPool().at(1).kinPos())return -1;
 
@@ -490,9 +522,9 @@ auto MoveDistal::executeRT(PlanTarget &target)->int
 	auto &cout = controller->mout();
     if (target.count % 100 == 0)
 	{
-        for (int i = 0; i < 6; i++)
+        //for (int i = 0; i < 6; i++)
         {
-            cout <<param.period<<"***"<<param.amplitude<< "  ";
+            cout <<step_pjs[4]<<"***"<<flag4<< "  ";
             //cout << "vel" << i + 1 << ":" << target.model->motionPool()[i].mv() << "  ";
             //cout << "cur" << i + 1 << ":" << target.model->motionPool()[i].ma() << "  ";
         }
@@ -538,8 +570,8 @@ auto MoveDistal::collectNrt(aris::plan::PlanTarget &target)->void
 
     sixDistalMatrix.RLS(PositionList, SensorList, estParas,StatisError);
 //std::cout<<"collect"<<std::endl;
-    //for(int i=0;i<GroupDim;i++)
-       // cout<<estParas[i]<<",";
+    for(int i=0;i<GroupDim;i++)
+        cout<<estParas[i]<<",";
 
     std::cout<<endl;
     std::cout<<"*****************************Statictic Model Error*****************************************"<<std::endl;
