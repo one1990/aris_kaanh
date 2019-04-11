@@ -20,7 +20,7 @@ namespace CONFIG
 		void forceTransform(const double* q, const float* FmInEnd, double* FmInWorld);
 	};
 
-        const int SampleNum = 60000;
+        const int SampleNum = 6000;
 	    const double ConRad = PII / 180;
         const double ConAng = 180 / PII;
         const int GroupDim = 16;

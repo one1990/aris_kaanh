@@ -572,6 +572,22 @@ auto MoveDistal::collectNrt(aris::plan::PlanTarget &target)->void
 //std::cout<<"collect"<<std::endl;
     for(int i=0;i<GroupDim;i++)
         cout<<estParas[i]<<",";
+	
+	//Save Estimated Paras
+	ofstream outfile("C:/Users/gk/Desktop/Kaanh_gk/EstParas.txt");
+	if (!outfile)
+	{
+		cout << "Unable to open otfile";
+		exit(1); // terminate with error
+	}
+
+	for (int k = 0; k < GroupDim; k++)
+	{
+		outfile << estParas[k] << "   " << std::endl;
+		//cout << "success outfile " << endl;
+	}
+	outfile.close();
+
 
     std::cout<<endl;
     std::cout<<"*****************************Statictic Model Error*****************************************"<<std::endl;
