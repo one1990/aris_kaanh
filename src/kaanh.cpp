@@ -1118,11 +1118,10 @@ namespace kaanh
 		target.param = param;
 /*
 		target.option |=
-			Plan::USE_TARGET_POS;
+            Plan::USE_TARGET_POS;
 */
-/*
+
 		target.option |=
-#ifdef WIN32
 			Plan::NOT_CHECK_POS_MIN |
 			Plan::NOT_CHECK_POS_MAX |
 			Plan::NOT_CHECK_POS_CONTINUOUS |
@@ -1130,13 +1129,12 @@ namespace kaanh
 			Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
 			Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
 			Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
-#endif
 			Plan::NOT_CHECK_VEL_MIN |
 			Plan::NOT_CHECK_VEL_MAX |
 			Plan::NOT_CHECK_VEL_CONTINUOUS |
 			Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
 			Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
-*/
+
 	}
 	auto MoveJRT::executeRT(PlanTarget &target)->int
 	{
@@ -1164,8 +1162,8 @@ namespace kaanh
 				double p, v, a;
 				aris::Size t_count;
 				aris::plan::moveAbsolute(target.count, param.begin_pos, param.begin_pos + param.target_pos, param.vel / 1000, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
-				//controller->motionAtAbs(i).setTargetPos(p);
-				target.model->motionPool().at(i).setMp(p);
+                controller->motionAtAbs(i).setTargetPos(p);
+                //target.model->motionPool().at(i).setMp(p);
 				total_count = std::max(total_count, t_count);
 			}
 		}

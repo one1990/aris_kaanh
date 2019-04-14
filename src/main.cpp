@@ -19,7 +19,9 @@ const std::string xmlfile = "rokae.xml";
 
 int main(int argc, char *argv[])
 {
-	xmlpath = xmlpath / xmlfile;
+    std::cout <<"new"<<std::endl;
+
+    xmlpath = xmlpath / xmlfile;
     std::cout<< xmlpath <<std::endl;
 	auto&cs = aris::server::ControlServer::instance();
 	auto port = argc < 2 ? 5866 : std::stoi(argv[1]);
