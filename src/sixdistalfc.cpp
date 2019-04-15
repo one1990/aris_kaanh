@@ -1254,9 +1254,18 @@ auto MovePressureTool::executeRT(PlanTarget &target)->int
 
 	///* Using Jacobian, TransMatrix from ARIS
 	double EndW[3], EndP[3], BaseV[3];
-	double PqEnd[7], TransVector[16];
+    double PqEnd[7], TransVector[16],NormalVector[3],CosNormalAng,SinNormalAng,NormalAng;
+    double XBase[3]={1,0,0},YBase[3]={0,1,0},ZBase[3]={0,0,1};
+    double CrossNormalZbase[3]={0};
+
 	target.model->generalMotionPool().at(0).getMpm(TransVector);
 	target.model->generalMotionPool().at(0).getMpq(PqEnd);
+    NormalVector[0]=TransVector[0];NormalVector[1]=TransVector[4];NormalVector[2]=TransVector[8];
+
+    crossVector(NormalVector,ZBase,CrossNormalZbase);
+    CosNormalAng=NormalVector[2]/sqrt(NormalVector[0]*NormalVector[0]+NormalVector[1]*NormalVector[1]+NormalVector[2]*NormalVector[2]);
+    SinNormalAng=sqrt(CrossNormalZbase[0]*CrossNormalZbase[0]+CrossNormalZbase[1]*CrossNormalZbase[1]+CrossNormalZbase[2]*CrossNormalZbase[2])/sqrt(NormalVector[0]*NormalVector[0]+NormalVector[1]*NormalVector[1]+NormalVector[2]*NormalVector[2]);
+    NormalAng=atan2(SinNormalAng,CosNormalAng);
 
 	double dX[6] = { 0.00000, -0.0000, -0.0000, -0.0000, -0.0000, -0.0000 };
 	double dTheta[6] = { 0 };
@@ -1348,7 +1357,7 @@ auto MovePressureTool::executeRT(PlanTarget &target)->int
 
 
 	double dXpid[6] = { 0,0,0,0,0,0 };
-    dXpid[2] = 1 * (FT_KAI[2] - (-10)) / 620000;
+    dXpid[2] = 1 * (FT_KAI[2] - (-5)) / 620000;
     dXpid[3] = 1 * (FT_KAI[3]) / 2000;
     dXpid[4] = 1 * (FT_KAI[4]) / 2000;
     dXpid[5] = 1 * (FT_KAI[5]) / 2000;
@@ -1443,7 +1452,7 @@ if (target.count > start)
 
     }
 }
-*/
+
 
      int start=11000,interval=5500,StopInt=1000;
      double VelX=0.00005;
@@ -1499,7 +1508,7 @@ if (target.count > start)
     if (target.count > (start+9*interval-StopInt)&&target.count < (start+9*interval))
         dX[0] = 0;
 
-/*
+
     if (target.count > (start+10*interval)&&target.count < (start+11*interval-StopInt))
         dX[0] = -VelX;
     if (target.count > (start+11*interval-StopInt)&&target.count < (start+11*interval))
@@ -1510,17 +1519,24 @@ if (target.count > start)
         dX[0] = VelX;
     if (target.count > (start+12*interval-StopInt)&&target.count < (start+12*interval))
         dX[0] = 0;
-*/
+
 
 
 
     if (target.count > (start+9*interval))
         dX[0] = 0;
+*/
+    double VelX=0.00001;
+    if (target.count > 15000)
+    {
 
+        dX[0] =VelX*cos(aris::PI-NormalAng);
+        dX[2] =dX[2]+VelX*sin(aris::PI-NormalAng);
+    }
     //if(FT_KAI[2]<-12.5)
       //  ForceToMeng =9.38;
    // else
-
+/*
     for (int j = 0; j < 6; j++)
     {
         double A[3][3], B[3], CutFreq = 10;//SHANGHAI DIANQI EXP
@@ -1533,6 +1549,7 @@ if (target.count > start)
         B[0] = 0; B[1] = 0;
         B[2] = -A[2][0];
         double intDT = 0.001;
+
         if(target.count > start&&target.count < (start+1*interval-StopInt))
         {
         if(FT_KAI[j]<-14)
@@ -1543,7 +1560,7 @@ if (target.count > start)
         sT1[j][0] = sT0[j][0] + intDT * (A[0][0] * sT0[j][0] + A[0][1] * sT0[j][1] + A[0][2] * sT0[j][2] + B[0] * FT_KAI[j]);
         sT1[j][1] = sT0[j][1] + intDT * (A[1][0] * sT0[j][0] + A[1][1] * sT0[j][1] + A[1][2] * sT0[j][2] + B[1] * FT_KAI[j]);
         sT1[j][2] = sT0[j][2] + intDT * (A[2][0] * sT0[j][0] + A[2][1] * sT0[j][1] + A[2][2] * sT0[j][2] + B[2] * FT_KAI[j]);
-    }
+    }*/
 
     ForceToMeng = sT1[2][0];
     if(ForceToMeng<-14)
@@ -1554,8 +1571,11 @@ if (target.count > start)
 	if (target.count % 100 == 0)
 	{
 
-        cout << FT_KAI[2] << "*" << EndP[0] << "*" << dX[0] << "*" << EndP0[0] << "*" << FT_KAI[5] << "*" << FT0[2] << endl;
+        cout << FT_KAI[2] << "*" << NormalAng << "*" << NormalVector[0] << "*" << NormalVector[1] << "*" << NormalVector[2] << "*" << FT0[2] << endl;
 
+//cout << FT_KAI[2] << "*" << NormalAng << "*" << TransVector[0] << "*" << TransVector[1] << "*" << TransVector[2] << "*" << FT0[2] << endl;
+//cout << FT_KAI[2] << "*" << NormalAng << "*" << TransVector[4] << "*" << TransVector[5] << "*" << TransVector[6] << "*" << FT0[2] << endl;
+//cout << FT_KAI[2] << "*" << NormalAng << "*" << TransVector[8] << "*" << TransVector[9] << "*" << TransVector[10] << "*" << FT0[2] << endl;
 
 		//cout <<  FT_KAI[0]<<"***"<<FmInWorld[2]<<endl;
 
@@ -1674,7 +1694,7 @@ if (target.count > start)
 	for (int i = 0; i < 6; i++)
 	{
 		step_pjs[i] = step_pjs[i] + dTheta[i];
-        target.model->motionPool().at(i).setMp(step_pjs[i]);
+        //target.model->motionPool().at(i).setMp(step_pjs[i]);
 	}
 
 
