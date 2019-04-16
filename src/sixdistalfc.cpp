@@ -1390,149 +1390,213 @@ auto MovePressureTool::executeRT(PlanTarget &target)->int
 		dX[i] = FmInWorld[i];
 
 
-   /*
-     int start=15000,intervalA=500,intervalD=2000;
-     double VelX=0.00003;
+	double TangentArc[3] = { 0 };
+	static double TangentArc0[3] = { 0 };
+	static double TangentArc1[3] = { 0 };
+	static double TangentArc2[3] = { 0 };
+	static bool MoveDirection = true;
+	static bool MoveDirectionChange = false;
+	static int StartCount = 1000;
+	double CosTheta1, CosTheta2;
+	
 
-     for (int i = 0;i < 3;i++)
-         EndP[i] = PqEnd[i];
-     static bool flag=true;
-     static int inc=0,dec=0;
-if (target.count > start)
-{
-    if(flag==true)
+
+
+	static double pArc, vArc, aArc,vArcMax=0.05;
+	aris::Size t_count;
+
+	static double MoveXlength = 0;
+	double DecLength = 0.05, XlengthT = 0.3, XlengthF = -0.1;//XlengthT>XlengthF
+	double DecTime = 0, Dec = 0;
+	static int count_offsetT=StartCount, count_offsetF = StartCount;
+	static double vArcEndT = 0, vArcEndF = 0;
+	
+
+
+	if (target.count == StartCount)
+	{
+		MoveXlength = PqEnd[0];
+		if (abs(NormalVector[2]) < 0.01)
+		{
+			if (MoveDirection)
+			{
+				TangentArc0[0] = 1; TangentArc0[1] = 0; TangentArc0[2] = 0;
+				for (int i = 0;i < 3;i++)
+					TangentArc[i] = TangentArc0[i];
+			}
+			else
+			{
+				TangentArc0[0] = -1; TangentArc0[1] = 0; TangentArc0[2] = 0;
+				for (int i = 0;i < 3;i++)
+					TangentArc[i] = TangentArc0[i];
+
+			}
+		}
+		else
+		{
+			if (MoveDirection)
+			{
+				TangentArc0[0] = 1 / sqrt(1 + (NormalVector[0] * NormalVector[0]) / (NormalVector[2] * NormalVector[2]));
+				TangentArc0[1] = 0;
+				TangentArc0[2] = -NormalVector[0] / NormalVector[2] * TangentArc0[0];
+				for (int i = 0;i < 3;i++)
+					TangentArc[i] = TangentArc0[i];
+			}
+			else
+			{
+				TangentArc0[0] = -1 / sqrt(1 + (NormalVector[0] * NormalVector[0]) / (NormalVector[2] * NormalVector[2]));
+				TangentArc0[1] = 0;
+				TangentArc0[2] = -NormalVector[0] / NormalVector[2] * TangentArc0[0];
+				for (int i = 0;i < 3;i++)
+					TangentArc[i] = TangentArc0[i];
+			}
+		}
+	}
+
+	if (target.count > StartCount)
+	{
+		if (abs(NormalVector[2]) < 0.01)
+		{
+			
+			TangentArc1[0] = 1; TangentArc1[1] = 0; TangentArc1[2] = 0;
+			CosTheta1 = TangentArc1[0] * TangentArc0[0] + TangentArc1[1] * TangentArc0[1] + TangentArc1[2] * TangentArc0[2];
+
+			TangentArc2[0] = -1; TangentArc2[1] = 0; TangentArc2[2] = 0;
+			CosTheta2 = TangentArc2[0] * TangentArc0[0] + TangentArc2[1] * TangentArc0[1] + TangentArc2[2] * TangentArc0[2];
+
+			if (CosTheta1 > CosTheta2&&MoveDirectionChange==false)
+				for (int i = 0;i < 3;i++)
+					TangentArc[i] = TangentArc1[i];
+
+			if (CosTheta1 > CosTheta2&&MoveDirectionChange == true)
+			{
+				for (int i = 0;i < 3;i++)
+					TangentArc[i] = TangentArc2[i];
+				MoveDirectionChange = false;
+			}
+
+			if (CosTheta1 < CosTheta2&&MoveDirectionChange == false)
+				for (int i = 0;i < 3;i++)
+					TangentArc[i] = TangentArc2[i];
+
+			if (CosTheta1 < CosTheta2&&MoveDirectionChange == true)
+			{
+				for (int i = 0;i < 3;i++)
+					TangentArc[i] = TangentArc1[i];
+				MoveDirectionChange = false;
+			}
+			
+		}
+		else
+		{
+			TangentArc1[0] = 1 / sqrt(1 + (NormalVector[0] * NormalVector[0]) / (NormalVector[2] * NormalVector[2]));
+			TangentArc1[1] = 0;
+			TangentArc1[2] = -NormalVector[0] / NormalVector[2] * TangentArc1[0];
+			CosTheta1 = TangentArc1[0] * TangentArc0[0] + TangentArc1[1] * TangentArc0[1] + TangentArc1[2] * TangentArc0[2];
+
+			TangentArc2[0] = -1 / sqrt(1 + (NormalVector[0] * NormalVector[0]) / (NormalVector[2] * NormalVector[2]));
+			TangentArc2[1] = 0;
+			TangentArc2[2] = -NormalVector[0] / NormalVector[2] * TangentArc2[0];
+			CosTheta2 = TangentArc2[0] * TangentArc0[0] + TangentArc2[1] * TangentArc0[1] + TangentArc2[2] * TangentArc0[2];
+
+			if (CosTheta1 > CosTheta2&&MoveDirectionChange == false)
+				for (int i = 0;i < 3;i++)
+					TangentArc[i] = TangentArc1[i];
+
+			if (CosTheta1 > CosTheta2&&MoveDirectionChange == true)
+			{
+				for (int i = 0;i < 3;i++)
+					TangentArc[i] = TangentArc2[i];
+				MoveDirectionChange = false;
+			}
+
+			if (CosTheta1 < CosTheta2&&MoveDirectionChange == false)
+				for (int i = 0;i < 3;i++)
+					TangentArc[i] = TangentArc2[i];
+
+			if (CosTheta1 < CosTheta2&&MoveDirectionChange == true)
+			{
+				for (int i = 0;i < 3;i++)
+					TangentArc[i] = TangentArc1[i];
+				MoveDirectionChange = false;
+			}
+		}
+
+
+		if (MoveDirection)
+			if (MoveXlength < XlengthT - DecLength)
+			{
+				aris::plan::moveAbsolute(target.count - count_offsetF + 1, 0, 1000, vArcMax / 1000, 0.05 / 1000 / 1000, 0.05 / 1000 / 1000, pArc, vArc, aArc, t_count);
+				vArc = vArc * 1000;
+				vArcEndT = vArc;
+			}
+			else
+			{
+				
+				//DecTime = 2 * DecLength / vArcMax;
+				//Dec = vArcMax / DecTime;
+				//vArc = vArc - Dec / 1000;
+
+				vArc = vArcEndT - 5*(DecLength-(XlengthT-MoveXlength)) / DecLength * vArcEndT;
+
+				if (abs(vArc) < 0.0001)
+				{
+					MoveDirection = false;
+					count_offsetT = target.count;
+					MoveDirectionChange = true;
+				}
+			}
+
+		if (!MoveDirection)
+			if (MoveXlength > (XlengthF + DecLength))
+			{
+				aris::plan::moveAbsolute(target.count - count_offsetT + 1, 0, 1000, vArcMax / 1000, 0.05 / 1000 / 1000, 0.05 / 1000 / 1000, pArc, vArc, aArc, t_count);
+				vArc = vArc * 1000;
+				vArcEndF = vArc;
+			}
+			else
+			{
+				//DecTime = 2 * DecLength / vArcMax;
+				//Dec = vArcMax / DecTime;
+				//vArc = vArc - Dec / 1000;
+
+				vArc = vArcEndF - 5*(DecLength - (MoveXlength-XlengthF))/ DecLength * vArcEndF;
+
+				if (abs(vArc) < 0.0001)
+				{
+					MoveDirection = true;
+					count_offsetF = target.count;
+					MoveDirectionChange = true;
+				}
+			}
+
+	}
+
+
+    if (target.count > StartCount)
     {
-        if(EndP[0]<0)
-        {
-            if(abs(dX[0])<VelX)
-             {
-                dX[0] =VelX/intervalA*inc;
-                inc++;
-             }
-            else
-              dX[0] =VelX;
-        }
-         //dX[0] = (abs(EndP[0]-EndP0[0]))/((abs(EndP0[0]))/intervalA)*VelX/intervalA;
+		if (MoveDirection)
+		{
+			dX[0] = vArc * TangentArc[0]/1000;
+			dX[2] = dX[2] + vArc * TangentArc[2] / 1000;
+			dX[1] = 0;
+			dX[2] = 0;
+		}
+		else
+		{
+			dX[0] = vArc * TangentArc[0] / 1000;
+			dX[2] = dX[2] + vArc * TangentArc[2] / 1000;
+			dX[2] = 0;
+			dX[1] = 0;
+		}
 
-        if(EndP[0]>0&&EndP[0]<0.085)
-        {
-            dX[0] = VelX-(EndP[0]+0)/((0.085+0)/intervalD)*VelX/intervalD;
-            if(EndP[0]>0.084)
-            {
-                flag=false;
-                inc=0;
-                dX[0] =0;
-            }
-        }
+		MoveXlength = MoveXlength + dX[0];
     }
 
-    else
-    {
-        if(EndP[0]>0)
-        {
-            if(abs(dX[0])<VelX)
-                dX[0] = -(VelX-(EndP[0]+0)/((0.085+0)/intervalD)*VelX/intervalD);
-            else
-                 dX[0] = -VelX;
-        }
-
-       if(EndP[0]<0&&EndP[0]>-0.08)
-           dX[0] = -VelX;
-
-
-        if(EndP[0]<-0.08)
-         {    //dX[0] = -(VelX-abs(EndP[0]+0.07)/(abs(EndP0[0]+0.07)/intervalA)*VelX/intervalA);
-            //if(EndP[0]<(EndP0[0]+0.002))
-            //{
-                flag=true;
-                dX[0]=0;
-
-            //}
-        }
-
-    }
-}
-
-
-     int start=11000,interval=5500,StopInt=1000;
-     double VelX=0.00005;
-    if (target.count > start&&target.count < (start+1*interval-StopInt))
-        dX[0] = VelX;
-    if (target.count > (start+1*interval-StopInt)&&target.count < (start+1*interval))
-        dX[0] = 0;
-
-
-    if (target.count > (start+1*interval)&&target.count < (start+2*interval-StopInt))
-        dX[0] = -VelX;
-    if (target.count > (start+2*interval-StopInt)&&target.count < (start+2*interval))
-        dX[0] = 0;
-
-
-    if (target.count > (start+2*interval)&&target.count < (start+3*interval-StopInt))
-        dX[0] = VelX;
-    if (target.count > (start+3*interval-StopInt)&&target.count < (start+3*interval))
-        dX[0] = 0;
-
-
-    if (target.count > (start+3*interval)&&target.count < (start+4*interval-StopInt))
-        dX[0] = -VelX;
-    if (target.count > (start+4*interval-StopInt)&&target.count < (start+4*interval))
-        dX[0] = 0;
-
-
-    if (target.count > (start+4*interval)&&target.count < (start+5*interval-StopInt))
-        dX[0] = VelX;
-    if (target.count > (start+5*interval-StopInt)&&target.count < (start+5*interval))
-        dX[0] = 0;
-
-    if (target.count > (start+5*interval)&&target.count < (start+6*interval-StopInt))
-        dX[0] = -VelX;
-    if (target.count > (start+6*interval-StopInt)&&target.count < (start+6*interval))
-        dX[0] = 0;
-
-
-    if (target.count > (start+6*interval)&&target.count < (start+7*interval-StopInt))
-        dX[0] = VelX;
-    if (target.count > (start+7*interval-StopInt)&&target.count < (start+7*interval))
-        dX[0] = 0;
-
-
-    if (target.count > (start+7*interval)&&target.count < (start+8*interval-StopInt))
-        dX[0] = -VelX;
-    if (target.count > (start+8*interval-StopInt)&&target.count < (start+8*interval))
-        dX[0] = 0;
-
-
-    if (target.count > (start+8*interval)&&target.count < (start+9*interval-StopInt))
-        dX[0] = VelX;
-    if (target.count > (start+9*interval-StopInt)&&target.count < (start+9*interval))
-        dX[0] = 0;
-
-
-    if (target.count > (start+10*interval)&&target.count < (start+11*interval-StopInt))
-        dX[0] = -VelX;
-    if (target.count > (start+11*interval-StopInt)&&target.count < (start+11*interval))
-        dX[0] = 0;
-
-
-    if (target.count > (start+11*interval)&&target.count < (start+12*interval-StopInt))
-        dX[0] = VelX;
-    if (target.count > (start+12*interval-StopInt)&&target.count < (start+12*interval))
-        dX[0] = 0;
 
 
 
 
-    if (target.count > (start+9*interval))
-        dX[0] = 0;
-*/
-    double VelX=0.00001;
-    if (target.count > 15000)
-    {
-
-        dX[0] =VelX*cos(aris::PI-NormalAng);
-        dX[2] =dX[2]+VelX*sin(aris::PI-NormalAng);
-    }
     //if(FT_KAI[2]<-12.5)
       //  ForceToMeng =9.38;
    // else
@@ -1568,10 +1632,11 @@ if (target.count > start)
     if(ForceToMeng>-8)
         ForceToMeng=-9.37;
 
+	ForceToMeng = vArc;
 	if (target.count % 100 == 0)
 	{
 
-        cout << FT_KAI[2] << "*" << NormalAng << "*" << NormalVector[0] << "*" << NormalVector[1] << "*" << NormalVector[2] << "*" << FT0[2] << endl;
+        cout << FT_KAI[2] << "*" << vArc << "*" << MoveXlength <<"*"<< TangentArc[0]<< endl;
 
 //cout << FT_KAI[2] << "*" << NormalAng << "*" << TransVector[0] << "*" << TransVector[1] << "*" << TransVector[2] << "*" << FT0[2] << endl;
 //cout << FT_KAI[2] << "*" << NormalAng << "*" << TransVector[4] << "*" << TransVector[5] << "*" << TransVector[6] << "*" << FT0[2] << endl;
@@ -1618,12 +1683,6 @@ if (target.count > start)
     lout << FT_KAI[4] << ",";lout << FT_KAI[5] << ",";
 
 
-
-
-	 //lout << stateTor1[2][0] << ",";lout << FT0[3] << ",";
-	// lout << dX[0] << ",";
-
-	// lout << dX[0] << ",";
      lout << FT[0] << ",";lout << FT[1] << ",";
      lout << FT[2] << ",";lout << FT[3] << ",";
      lout << FT[4] << ",";lout << FT[5] << ",";
@@ -1694,7 +1753,7 @@ if (target.count > start)
 	for (int i = 0; i < 6; i++)
 	{
 		step_pjs[i] = step_pjs[i] + dTheta[i];
-        //target.model->motionPool().at(i).setMp(step_pjs[i]);
+        target.model->motionPool().at(i).setMp(step_pjs[i]);
 	}
 
 
@@ -1716,6 +1775,11 @@ if (target.count > start)
 	{
 		FT_be[j] = FT[j];
 	}
+	for (int j = 0; j < 3; j++)
+	{
+		TangentArc0[j] = TangentArc[j];
+	}
+
 	return 150000000 - target.count;
 
 }
