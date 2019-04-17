@@ -47,7 +47,7 @@ namespace forcecontrol
 		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
 
 		explicit MoveJRC(const std::string &name = "MoveJRC_plan");
-		ARIS_REGISTER_TYPE("MoveJRC");
+		ARIS_REGISTER_TYPE(MoveJRC);
 	};
 
 	class MovePQCrash : public aris::plan::Plan
@@ -58,7 +58,7 @@ namespace forcecontrol
 		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
 
 		explicit MovePQCrash(const std::string &name = "MovePQCrash_plan");
-		ARIS_REGISTER_TYPE("MovePQCrash");
+		ARIS_REGISTER_TYPE(MovePQCrash);
 	};
 
 	class MovePQB : public aris::plan::Plan
@@ -69,7 +69,7 @@ namespace forcecontrol
 		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
 
 		explicit MovePQB(const std::string &name = "MovePQB_plan");
-		ARIS_REGISTER_TYPE("MovePQB");
+		ARIS_REGISTER_TYPE(MovePQB);
 	};
 
 	class MoveJCrash : public aris::plan::Plan
@@ -80,7 +80,7 @@ namespace forcecontrol
 		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
 
 		explicit MoveJCrash(const std::string &name = "MoveJCrash_plan");
-		ARIS_REGISTER_TYPE("MoveJCrash");
+		ARIS_REGISTER_TYPE(MoveJCrash);
 	};
 
 	class MoveJF : public aris::plan::Plan
@@ -91,7 +91,7 @@ namespace forcecontrol
 		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
 
 		explicit MoveJF(const std::string &name = "MoveJF_plan");
-		ARIS_REGISTER_TYPE("MoveJF");
+		ARIS_REGISTER_TYPE(MoveJF);
 	};
 
 	class MoveJFB : public aris::plan::Plan
@@ -102,7 +102,7 @@ namespace forcecontrol
 		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
 
 		explicit MoveJFB(const std::string &name = "MoveJFB_plan");
-		ARIS_REGISTER_TYPE("MoveJFB");
+		ARIS_REGISTER_TYPE(MoveJFB);
 	};
 
 	class MoveJPID : public aris::plan::Plan
@@ -113,7 +113,7 @@ namespace forcecontrol
 		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
 
 		explicit MoveJPID(const std::string &name = "MoveJPID_plan");
-		ARIS_REGISTER_TYPE("MoveJPID");
+		ARIS_REGISTER_TYPE(MoveJPID);
 	};
 
 	class MoveStop : public aris::plan::Plan
@@ -121,7 +121,7 @@ namespace forcecontrol
 	public:
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
 		explicit MoveStop(const std::string &name = "MoveStop_plan");
-		ARIS_REGISTER_TYPE("MoveStop");
+		ARIS_REGISTER_TYPE(MoveStop);
 	};
 
 	class MoveSPQ : public aris::plan::Plan
@@ -129,7 +129,7 @@ namespace forcecontrol
 	public:
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
 		explicit MoveSPQ(const std::string &name = "MoveSPQ_plan");
-		ARIS_REGISTER_TYPE("MoveSPQ");
+		ARIS_REGISTER_TYPE(MoveSPQ);
 	};
 }
 
