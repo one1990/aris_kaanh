@@ -14,7 +14,7 @@ int data_num = 0, data_num_send = 0;
 std::vector<std::vector<std::string>> plantrack(6, std::vector<std::string>());
 std::atomic_int which_di = 0;
 
-auto xmlpath = std::filesystem::absolute(".");
+auto xmlpath = std::filesystem::absolute(".");//获取当前工程所在的路径
 const std::string xmlfile = "rokae.xml";
 
 int main(int argc, char *argv[])
@@ -47,9 +47,8 @@ int main(int argc, char *argv[])
 	cs.saveXmlFile(xmlpath.string().c_str());
 	*/
 
-	kaanh::registerPlan();
+	//kaanh::registerPlan();
 	cs.loadXmlFile(xmlpath.string().c_str());
-
 	cs.start();
 
 	// interaction //
