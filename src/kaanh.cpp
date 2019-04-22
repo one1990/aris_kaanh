@@ -2866,6 +2866,7 @@ namespace kaanh
 
 
 		plan_root->planPool().add<MoveXYZ>();
+		plan_root->planPool().add<MoveJoint>();
 		plan_root->planPool().add<MoveDistal>();
 		plan_root->planPool().add<SetTool>();
 		plan_root->planPool().add<MovePressure>();
