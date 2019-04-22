@@ -1,5 +1,6 @@
 ﻿#include"forcecontrol.h"
 #include <atomic>
+#include <array>
 
 
 using namespace aris::dynamic;
