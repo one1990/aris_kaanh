@@ -24,6 +24,8 @@ int main(int argc, char *argv[])
 	auto&cs = aris::server::ControlServer::instance();
 	auto port = argc < 2 ? 5866 : std::stoi(argv[1]);
 
+
+	//cs.saveXmlFile("C:/Users/qianch_kaanh_cn/Desktop/build_qianch/rokae.xml");
 	//生成rokae.xml文档
 	/*
 	cs.resetController(kaanh::createControllerRokaeXB4().release());
@@ -62,7 +64,7 @@ int main(int argc, char *argv[])
 
 		static int cout_count = 0;
 		if (++cout_count % 10 == 0)
-			std::cout << "recv:" << msg_data << std::endl;
+			//std::cout << "recv:" << msg_data << std::endl;
 
 		LOG_INFO << "the request is cmd:"
 			<< msg.header().msg_size_ << "&"
@@ -295,7 +297,7 @@ int main(int argc, char *argv[])
 			target->finished.get();
 			if (auto str = std::any_cast<std::string>(&target->ret))
 			{
-				std::cout << *str << std::endl;
+				//std::cout << *str << std::endl;
 			}
 		}
 		catch (std::exception &e)

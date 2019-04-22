@@ -4,6 +4,7 @@ using namespace std;
 using namespace aris::plan;
 using namespace aris::dynamic;
 
+
 /// \brief
 namespace cplan
 {
@@ -548,7 +549,10 @@ namespace cplan
 	{
 		OpenFileParam p;
 		p.vn = params.at("vn");
-		//p.updt = std::stoi(params.at("updt"));
+		p.updt = std::stoi(params.at("updt"));
+		auto&cs = aris::server::ControlServer::instance();
+		vector<string> files;
+		
 		string filePath = "C:/Users/qianch_kaanh_cn/Desktop/build_qianch/";
 		//string filePath = "C:/Users/qianch_kaanh_cn/Desktop/myplan/src/rokae/";
 		//C:\Users\qianch_kaanh_cn\Desktop\build_qianch
@@ -557,7 +561,7 @@ namespace cplan
 		//char * filePath = "/home/kaanh/Desktop/build-kaanh-Desktop_Qt_5_11_2_GCC_64bit-Default/log/";//自己设置目录
 
 		//string filePath = "C:/Users/qianch_kaanh_cn/Desktop/build_qianch/log/";
-		vector<string> files;
+		
 		//获取该路径下的所有文件  
 		files.clear();
 		getFiles2(filePath, files);
@@ -582,7 +586,7 @@ namespace cplan
 		target.option = NOT_RUN_EXECUTE_FUNCTION;
 		//rfind(".")+1
 
-		cout << "target.ret  " << files[num].substr(46, files[num].rfind(".") - 46) << endl;
+		//cout << "target.ret  " << files[num].substr(46, files[num].rfind(".") - 46) << endl;
 
 		/*int t12 = 56;
 		string PP1 = std::to_string(t12);
@@ -591,20 +595,16 @@ namespace cplan
 		//测试xml文件名，成功
 		//target.ret = files[num].substr(46, files[num].rfind(".") - 46);
 
-		
+		if (p.updt == 0)
+		{
 		int num_xml = files.size();//xml文件的个数
 		aris::core::XmlDocument doc;
-		
-		auto &cs = aris::server::ControlServer::instance();
-		
+		//auto &cs = aris::server::ControlServer::instance();		
 		//std::cout << target.server->root().xmlString() <<std::endl;
-
-		std::cout << cs.root().xmlString() << std::endl;
-
+		//std::cout << cs.root().xmlString() << std::endl;
 		//target.server->interfaceRoot().saveXmlDoc(doc);这是从interfaceroot这个节点开始保存
-		//target.server->root().saveXmlDoc(doc);
-		
-		cs.saveXmlDoc(doc);
+		target.server->root().saveXmlDoc(doc);	
+		//cs.root().saveXmlDoc(doc);
 
 		//auto panel = doc.FirstChildElement("ControlServer")->FirstChildElement("InterfaceRoot");
 		//auto panel = doc.FirstChildElement("ControlServer");
@@ -626,11 +626,17 @@ namespace cplan
 		};
 
 		auto panel_1 = get_ele_by_id(panel3, "id_1");
-
-		auto panel_2 = get_ele_by_id(panel_1, "id_11");
-		auto ele_tab = get_ele_by_id(panel_2, "id_12");
+		//auto panel_10 = get_ele_by_id(panel_1, "id_2");
 		//删除所有的子节点
-		ele_tab->DeleteChildren();
+		panel_1->DeleteChildren();
+
+		
+		auto ele_tab = doc.NewElement("Tabs");
+		ele_tab->SetAttribute("id", "id_12");
+		ele_tab->SetAttribute("text", "Tab");
+		panel_1->InsertEndChild(ele_tab);
+		//删除所有的子节点
+		
 
 		//先不采用for循环
 		/*
@@ -661,12 +667,12 @@ namespace cplan
 			//ss >> s;
 
 			auto user_node_2 = doc.NewElement("Panel");			
-			user_node_2->SetAttribute("text", ("robot_x "+  std::to_string(i)).c_str());
+			user_node_2->SetAttribute("text", ("robot_y"+  std::to_string(i)).c_str());
 			user_node->InsertEndChild(user_node_2);
 
 			auto user_node_3 = doc.NewElement("Button");
-			user_node_3->SetAttribute("text", ("load robot_x " + std::to_string(i)).c_str());
-			user_node_3->SetAttribute("cmd", ("opFi --updt = " + std::to_string(i + 1)).c_str());
+			user_node_3->SetAttribute("text", ("load robot_y" + std::to_string(i)).c_str());
+			user_node_3->SetAttribute("cmd", ("start;opFi --updt=" + std::to_string(i+1)).c_str());
 			user_node_2->InsertEndChild(user_node_3);
 			//XMLElement* userNode = doc.NewElement("Li");
 			//	XMLElement* userNode1 = doc.NewElement("Panel");
@@ -677,73 +683,69 @@ namespace cplan
 			//doc.InsertEndChild(userNode);
 		}
 		//doc.SaveFile(xmlPath);
-		//doc.SaveFile("C:/Users/qianch_kaanh_cn/Desktop/abcd/rokae.xml");	
+
+
+		target.server->stop();
+		//doc.SaveFile("C:/Users/qianch_kaanh_cn/Desktop/build_qianch/rokae.xml");	
+		
 		//target.ret = files[num].substr(46, files[num].rfind(".")-46);
+		
+		
 		//以下为廖的尝试保存覆盖xml文件
 		//target.server->root().loadXmlDoc(doc);
 		//target.server->saveXmlFile("C:/Users/qianch_kaanh_cn/Desktop/build_qianch/rokae.xml");
-		cs.stop();
-		cs.loadXmlDoc(doc);
-		cs.saveXmlFile("C:/Users/qianch_kaanh_cn/Desktop/build_qianch/rokae.xml");
-		
+		//cs.stop();
+		//cs.root.loadXmlDoc(doc);
+		//cs.root.saveXmlFile("C:/Users/qianch_kaanh_cn/Desktop/build_qianch/rokae.xml");
+
+		//target.ret = std::string("update_ui");
+
+
+		tinyxml2::XMLPrinter printer;
+		doc.Print(&printer);
+
+		std::string str(printer.CStr());
+		//std::cout << "str1234" << str << std::endl;
+
+
+		string update_UI = "UpdateUI@" + str;
 		
 
-		target.ret = std::string("update_ui");
-		/*
+		
+		
+			//cs.loadXmlFile(xmlpath.c_str());
+			target.ret = update_UI;
+		}
+		//updt
 		if (p.updt == 1)
-		{
-			auto&cs = aris::server::ControlServer::instance();
-			auto xmlpath = std::filesystem::absolute(".");
-			//const std::string xmlfile = "rokae.xml";
-			const std::string xmlfile = files[0].substr(46);
-			xmlpath = xmlpath / xmlfile;
-			cs.loadXmlFile(xmlpath.string().c_str());
+		{			
+			const std::string xmlpath = files[0];
+			cout << "xmlpath" << files[0] << endl;
+			cs.stop();
+			cs.loadXmlFile(xmlpath.c_str());
 			target.ret = std::string("1");
 		}
 		if (p.updt == 2)
 		{
-			auto&cs = aris::server::ControlServer::instance();
-			auto xmlpath = std::filesystem::absolute(".");
-			//const std::string xmlfile = "rokae.xml";
-			const std::string xmlfile = files[1].substr(46);
-			xmlpath = xmlpath / xmlfile;
-			cs.loadXmlFile(xmlpath.string().c_str());
+			const std::string xmlpath = files[1];
+			cs.stop();
+			cs.loadXmlFile(xmlpath.c_str());
 			target.ret = std::string("1");
 		}
 		if (p.updt == 3)
 		{
-			auto&cs = aris::server::ControlServer::instance();
-			auto xmlpath = std::filesystem::absolute(".");
-			//const std::string xmlfile = "rokae.xml";
-			const std::string xmlfile = files[2].substr(46);
-			xmlpath = xmlpath / xmlfile;
-			cs.loadXmlFile(xmlpath.string().c_str());
+			const std::string xmlpath = files[2];
+			cs.stop();
+			cs.loadXmlFile(xmlpath.c_str());
 			target.ret = std::string("1");
 		}
-		if (p.updt == 4)
-		{
-			auto&cs = aris::server::ControlServer::instance();
-			auto xmlpath = std::filesystem::absolute(".");
-			//const std::string xmlfile = "rokae.xml";
-			const std::string xmlfile = files[3].substr(46);
-			xmlpath = xmlpath / xmlfile;
-			cs.loadXmlFile(xmlpath.string().c_str());
-			target.ret = std::string("1");
-		}
-		if (p.updt == 5)
-		{
-			auto&cs = aris::server::ControlServer::instance();
-			auto xmlpath = std::filesystem::absolute(".");
-			//const std::string xmlfile = "rokae.xml";
-			const std::string xmlfile = files[4].substr(46);
-			xmlpath = xmlpath / xmlfile;
-			cs.loadXmlFile(xmlpath.string().c_str());
-			target.ret = std::string("1");
-		}
+		
+
+		target.option |= NOT_RUN_COLLECT_FUNCTION;
 		//cout << files[num].substr(46, files[num].rfind(".")-46)<<endl;
 		//cout << files[num].erase(",xml").substr(46) << endl;
 		//target.ret = std::string("this is ret msg");
-		*/
+		
 	}
 	
 	//  auto OpenFile::OpenFile(PlanTarget &target)-> void
