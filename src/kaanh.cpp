@@ -2771,6 +2771,7 @@ namespace kaanh
 		return plan_root;
 	}
 	
+	/*
 	auto registerPlan()->void
 	{
 		aris::core::Object::registerTypeGlobal<aris::plan::MoveL>();
@@ -2814,4 +2815,5 @@ namespace kaanh
 		aris::core::Object::registerTypeGlobal<cplan::FMovePath>();
 		aris::core::Object::registerTypeGlobal<cplan::OpenFile>();
 	}
+	*/
 }
