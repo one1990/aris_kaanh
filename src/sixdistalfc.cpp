@@ -23,6 +23,7 @@ std::vector<double> SensorList_vec(6 * SampleNum);
 auto SensorList = SensorList_vec.data();
 
 double ForceToMeng=0;
+double TimeToMeng = 0;
 
 struct MoveXYZParam
 {
@@ -1405,28 +1406,29 @@ auto MovePressureTool::executeRT(PlanTarget &target)->int
 	static double pArc, vArc, aArc,vArcMax=0.05;
 	aris::Size t_count;
 
-	static double MoveXlength = 0;
-	double DecLength = 0.05, XlengthT = 0.3, XlengthF = -0.1;//XlengthT>XlengthF
+	static double MoveLength = 0;
+	double DecLength = 0.05, LengthT = 0.1, LengthF = -0.0;//LengthT>LengthF
 	double DecTime = 0, Dec = 0;
 	static int count_offsetT=StartCount, count_offsetF = StartCount;
 	static double vArcEndT = 0, vArcEndF = 0;
 	
-
+	double ExtendSurface[3] = {1,0,0 };
+	double Ktemp, temp0, temp1;
 
 	if (target.count == StartCount)
 	{
-		MoveXlength = PqEnd[0];
+		MoveLength = PqEnd[0];
 		if (abs(NormalVector[2]) < 0.01)
 		{
 			if (MoveDirection)
 			{
-				TangentArc0[0] = 1; TangentArc0[1] = 0; TangentArc0[2] = 0;
+				TangentArc0[0] = ExtendSurface[0]; TangentArc0[1] = ExtendSurface[1]; TangentArc0[2] = ExtendSurface[2];
 				for (int i = 0;i < 3;i++)
 					TangentArc[i] = TangentArc0[i];
 			}
 			else
 			{
-				TangentArc0[0] = -1; TangentArc0[1] = 0; TangentArc0[2] = 0;
+				TangentArc0[0] = -ExtendSurface[0]; TangentArc0[1] = ExtendSurface[1]; TangentArc0[2] = ExtendSurface[2];
 				for (int i = 0;i < 3;i++)
 					TangentArc[i] = TangentArc0[i];
 
@@ -1436,17 +1438,27 @@ auto MovePressureTool::executeRT(PlanTarget &target)->int
 		{
 			if (MoveDirection)
 			{
-				TangentArc0[0] = 1 / sqrt(1 + (NormalVector[0] * NormalVector[0]) / (NormalVector[2] * NormalVector[2]));
-				TangentArc0[1] = 0;
-				TangentArc0[2] = -NormalVector[0] / NormalVector[2] * TangentArc0[0];
+				
+				temp0 = ExtendSurface[0] * ExtendSurface[0] + ExtendSurface[1] * ExtendSurface[1];
+				temp1 = (ExtendSurface[0] * NormalVector[0] + ExtendSurface[1] * NormalVector[1]) / NormalVector[2];
+				Ktemp = 1 / sqrt(temp0 + temp1 * temp1);
+
+				TangentArc0[0] = Ktemp * ExtendSurface[0];
+				TangentArc0[1] = Ktemp * ExtendSurface[1];
+				TangentArc0[2] = -(NormalVector[0] * TangentArc0[0] + NormalVector[1] * TangentArc0[1] )/ NormalVector[2];
 				for (int i = 0;i < 3;i++)
 					TangentArc[i] = TangentArc0[i];
 			}
 			else
 			{
-				TangentArc0[0] = -1 / sqrt(1 + (NormalVector[0] * NormalVector[0]) / (NormalVector[2] * NormalVector[2]));
-				TangentArc0[1] = 0;
-				TangentArc0[2] = -NormalVector[0] / NormalVector[2] * TangentArc0[0];
+				
+				temp0 = ExtendSurface[0] * ExtendSurface[0] + ExtendSurface[1] * ExtendSurface[1];
+				temp1 = (ExtendSurface[0] * NormalVector[0] + ExtendSurface[1] * NormalVector[1]) / NormalVector[2];
+				Ktemp = -1 / sqrt(temp0 + temp1 * temp1);
+
+				TangentArc0[0] = Ktemp * ExtendSurface[0];
+				TangentArc0[1] = Ktemp * ExtendSurface[1];
+				TangentArc0[2] = -(NormalVector[0] * TangentArc0[0] + NormalVector[1] * TangentArc0[1]) / NormalVector[2];
 				for (int i = 0;i < 3;i++)
 					TangentArc[i] = TangentArc0[i];
 			}
@@ -1458,10 +1470,10 @@ auto MovePressureTool::executeRT(PlanTarget &target)->int
 		if (abs(NormalVector[2]) < 0.01)
 		{
 			
-			TangentArc1[0] = 1; TangentArc1[1] = 0; TangentArc1[2] = 0;
+			TangentArc1[0] = ExtendSurface[0]; TangentArc1[1] = ExtendSurface[1]; TangentArc1[2] = ExtendSurface[2];
 			CosTheta1 = TangentArc1[0] * TangentArc0[0] + TangentArc1[1] * TangentArc0[1] + TangentArc1[2] * TangentArc0[2];
 
-			TangentArc2[0] = -1; TangentArc2[1] = 0; TangentArc2[2] = 0;
+			TangentArc2[0] = -ExtendSurface[0]; TangentArc2[1] = ExtendSurface[1]; TangentArc2[2] = ExtendSurface[2];
 			CosTheta2 = TangentArc2[0] * TangentArc0[0] + TangentArc2[1] * TangentArc0[1] + TangentArc2[2] * TangentArc0[2];
 
 			if (CosTheta1 > CosTheta2&&MoveDirectionChange==false)
@@ -1489,14 +1501,23 @@ auto MovePressureTool::executeRT(PlanTarget &target)->int
 		}
 		else
 		{
-			TangentArc1[0] = 1 / sqrt(1 + (NormalVector[0] * NormalVector[0]) / (NormalVector[2] * NormalVector[2]));
-			TangentArc1[1] = 0;
-			TangentArc1[2] = -NormalVector[0] / NormalVector[2] * TangentArc1[0];
+			temp0 = ExtendSurface[0] * ExtendSurface[0] + ExtendSurface[1] * ExtendSurface[1];
+			temp1 = (ExtendSurface[0] * NormalVector[0] + ExtendSurface[1] * NormalVector[1]) / NormalVector[2];
+			Ktemp = 1 / sqrt(temp0 + temp1 * temp1);
+
+			TangentArc1[0] = Ktemp * ExtendSurface[0];
+			TangentArc1[1] = Ktemp * ExtendSurface[1];
+			TangentArc1[2] = -(NormalVector[0] * TangentArc0[0] + NormalVector[1] * TangentArc0[1]) / NormalVector[2];
+
 			CosTheta1 = TangentArc1[0] * TangentArc0[0] + TangentArc1[1] * TangentArc0[1] + TangentArc1[2] * TangentArc0[2];
 
-			TangentArc2[0] = -1 / sqrt(1 + (NormalVector[0] * NormalVector[0]) / (NormalVector[2] * NormalVector[2]));
-			TangentArc2[1] = 0;
-			TangentArc2[2] = -NormalVector[0] / NormalVector[2] * TangentArc2[0];
+			temp0 = ExtendSurface[0] * ExtendSurface[0] + ExtendSurface[1] * ExtendSurface[1];
+			temp1 = (ExtendSurface[0] * NormalVector[0] + ExtendSurface[1] * NormalVector[1]) / NormalVector[2];
+			Ktemp = -1 / sqrt(temp0 + temp1 * temp1);
+
+			TangentArc2[0] = Ktemp * ExtendSurface[0];
+			TangentArc2[1] = Ktemp * ExtendSurface[1];
+			TangentArc2[2] = -(NormalVector[0] * TangentArc0[0] + NormalVector[1] * TangentArc0[1]) / NormalVector[2];
 			CosTheta2 = TangentArc2[0] * TangentArc0[0] + TangentArc2[1] * TangentArc0[1] + TangentArc2[2] * TangentArc0[2];
 
 			if (CosTheta1 > CosTheta2&&MoveDirectionChange == false)
@@ -1524,7 +1545,7 @@ auto MovePressureTool::executeRT(PlanTarget &target)->int
 
 
 		if (MoveDirection)
-			if (MoveXlength < XlengthT - DecLength)
+			if (MoveLength < LengthT - DecLength)
 			{
 				aris::plan::moveAbsolute(target.count - count_offsetF + 1, 0, 1000, vArcMax / 1000, 0.05 / 1000 / 1000, 0.05 / 1000 / 1000, pArc, vArc, aArc, t_count);
 				vArc = vArc * 1000;
@@ -1537,7 +1558,7 @@ auto MovePressureTool::executeRT(PlanTarget &target)->int
 				//Dec = vArcMax / DecTime;
 				//vArc = vArc - Dec / 1000;
 
-				vArc = vArcEndT - 5*(DecLength-(XlengthT-MoveXlength)) / DecLength * vArcEndT;
+				vArc = vArcEndT - 5*(DecLength-(LengthT-MoveLength)) / DecLength * vArcEndT;
 
 				if (abs(vArc) < 0.0001)
 				{
@@ -1548,7 +1569,7 @@ auto MovePressureTool::executeRT(PlanTarget &target)->int
 			}
 
 		if (!MoveDirection)
-			if (MoveXlength > (XlengthF + DecLength))
+			if (MoveLength > (LengthF + DecLength))
 			{
 				aris::plan::moveAbsolute(target.count - count_offsetT + 1, 0, 1000, vArcMax / 1000, 0.05 / 1000 / 1000, 0.05 / 1000 / 1000, pArc, vArc, aArc, t_count);
 				vArc = vArc * 1000;
@@ -1560,7 +1581,7 @@ auto MovePressureTool::executeRT(PlanTarget &target)->int
 				//Dec = vArcMax / DecTime;
 				//vArc = vArc - Dec / 1000;
 
-				vArc = vArcEndF - 5*(DecLength - (MoveXlength-XlengthF))/ DecLength * vArcEndF;
+				vArc = vArcEndF - 5*(DecLength - (MoveLength-LengthF))/ DecLength * vArcEndF;
 
 				if (abs(vArc) < 0.0001)
 				{
@@ -1579,18 +1600,21 @@ auto MovePressureTool::executeRT(PlanTarget &target)->int
 		{
 			dX[0] = vArc * TangentArc[0]/1000;
 			dX[2] = dX[2] + vArc * TangentArc[2] / 1000;
-			dX[1] = 0;
 			dX[2] = 0;
+			dX[1] = vArc * TangentArc[1] / 1000;
 		}
 		else
 		{
 			dX[0] = vArc * TangentArc[0] / 1000;
 			dX[2] = dX[2] + vArc * TangentArc[2] / 1000;
 			dX[2] = 0;
-			dX[1] = 0;
+			dX[1] = vArc * TangentArc[1] / 1000;
 		}
 
-		MoveXlength = MoveXlength + dX[0];
+		if(MoveDirection)
+		     MoveLength = MoveLength + sqrt(dX[0]*dX[0]+ dX[1] * dX[1]);
+		else
+			MoveLength = MoveLength - sqrt(dX[0] * dX[0] + dX[1] * dX[1]);
     }
 
 
@@ -1633,10 +1657,11 @@ auto MovePressureTool::executeRT(PlanTarget &target)->int
         ForceToMeng=-9.37;
 
 	ForceToMeng = vArc;
+	TimeToMeng = target.count/1000.0;
 	if (target.count % 100 == 0)
 	{
 
-        cout << FT_KAI[2] << "*" << vArc << "*" << MoveXlength <<"*"<< TangentArc[0]<< endl;
+        cout << FT_KAI[2] << "*" << vArc << "*" << MoveLength <<"*"<< TangentArc[0]<< endl;
 
 //cout << FT_KAI[2] << "*" << NormalAng << "*" << TransVector[0] << "*" << TransVector[1] << "*" << TransVector[2] << "*" << FT0[2] << endl;
 //cout << FT_KAI[2] << "*" << NormalAng << "*" << TransVector[4] << "*" << TransVector[5] << "*" << TransVector[6] << "*" << FT0[2] << endl;
@@ -1670,23 +1695,23 @@ auto MovePressureTool::executeRT(PlanTarget &target)->int
 	 //lout << target.model->motionPool()[3].mp() << ",";
 	 //lout << target.model->motionPool()[4].mp() << ",";
 	 //lout << target.model->motionPool()[5].mp() << ",";
-
-	lout << FTnum << ",";
+	lout << vArc << endl;
+	//lout << FTnum << ",";
 	//lout << FT[2] << ",";lout << dX[2] << ",";
 	//lout << FmInWorld[2] << ",";lout << FT0[2] << ",";
 
-    lout << stateTor1[0][0] << ",";lout << stateTor1[1][0] << ",";
-    lout << stateTor1[2][0] << ",";lout << stateTor1[3][0] << ",";
-    lout << stateTor1[4][0] << ",";lout << stateTor1[5][0] << ",";
-    lout << FT_KAI[0] << ",";lout << FT_KAI[1] << ",";
-    lout << FT_KAI[2] << ",";lout << FT_KAI[3] << ",";
-    lout << FT_KAI[4] << ",";lout << FT_KAI[5] << ",";
+    //lout << stateTor1[0][0] << ",";lout << stateTor1[1][0] << ",";
+    //lout << stateTor1[2][0] << ",";lout << stateTor1[3][0] << ",";
+   // lout << stateTor1[4][0] << ",";lout << stateTor1[5][0] << ",";
+   // lout << FT_KAI[0] << ",";lout << FT_KAI[1] << ",";
+    //lout << FT_KAI[2] << ",";lout << FT_KAI[3] << ",";
+    //lout << FT_KAI[4] << ",";lout << FT_KAI[5] << ",";
 
 
-     lout << FT[0] << ",";lout << FT[1] << ",";
-     lout << FT[2] << ",";lout << FT[3] << ",";
-     lout << FT[4] << ",";lout << FT[5] << ",";
-	lout << std::endl;
+     //lout << FT[0] << ",";lout << FT[1] << ",";
+     //lout << FT[2] << ",";lout << FT[3] << ",";
+     //lout << FT[4] << ",";lout << FT[5] << ",";
+	//lout << std::endl;
 
 
 
@@ -1800,17 +1825,18 @@ MovePressureTool::MovePressureTool(const std::string &name) :Plan(name)
 auto GetForce::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 {
 
-	double FT=1;
+	double FT[2] = { 0,0 };
 
 	std::any cur_a = double(0);
 	target.server->getRtData([&](aris::server::ControlServer& cs, std::any &data)->void
 	{
-		FT = ForceToMeng;
+		FT[0] = TimeToMeng;
+		FT[1] = ForceToMeng;
 		//std::any_cast<double&>(data) = cs.controller().motionPool().at(i).actualCur();
 	}, cur_a);
 
 	
-	std::string ret(reinterpret_cast<char*>(&FT),1 * sizeof(double));
+	std::string ret(reinterpret_cast<char*>(&FT),2 * sizeof(double));
 	target.ret = ret;
 	target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_PRINT_CMD_INFO | NOT_PRINT_CMD_INFO;
 }
