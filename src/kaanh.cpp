@@ -125,6 +125,15 @@ namespace kaanh
 		auto &makJ = model->ground().markerPool().add<Marker>("ee_makJ", pm_ee_j);
 		auto &ee = model->generalMotionPool().add<aris::dynamic::GeneralMotion>("ee", &makI, &makJ, false);
 
+		/*
+		makI.prtPm();
+		makI.pm();
+
+		double pq_ee_i[]{ 0.5, 0.0, 0.6295, 0.0, 0.0, 0.0, 1.0 };
+		auto &tool1 = p6.markerPool().add<Marker>("tool1", pm_ee_i);
+		tool1.prtPm();
+		*/
+
 		// change robot pose //
 		if (robot_pm)
 		{
@@ -859,141 +868,144 @@ namespace kaanh
 		std::vector<bool> joint_active_vec;
 	};
 	auto MoveJR::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
-		{
-			auto c = target.controller;
-			MoveJRParam param;
+	{
+		auto c = target.controller;
+		MoveJRParam param;
 
-			for (auto cmd_param : params)
+		for (auto cmd_param : params)
+		{
+			if (cmd_param.first == "all")
 			{
-				if (cmd_param.first == "all")
+				param.joint_active_vec.resize(target.model->motionPool().size(), true);
+			}
+			else if (cmd_param.first == "none")
+			{
+				param.joint_active_vec.resize(target.model->motionPool().size(), false);
+			}
+			else if (cmd_param.first == "motion_id")
+			{
+				param.joint_active_vec.resize(target.model->motionPool().size(), false);
+				param.joint_active_vec.at(std::stoi(cmd_param.second)) = true;
+			}
+			else if (cmd_param.first == "physical_id")
+			{
+				param.joint_active_vec.resize(c->motionPool().size(), false);
+				param.joint_active_vec.at(c->motionAtPhy(std::stoi(cmd_param.second)).phyId()) = true;
+			}
+			else if (cmd_param.first == "slave_id")
+			{
+				param.joint_active_vec.resize(c->motionPool().size(), false);
+				param.joint_active_vec.at(c->motionAtPhy(std::stoi(cmd_param.second)).slaId()) = true;
+			}
+			else if (cmd_param.first == "pos")
+			{
+				aris::core::Matrix mat = target.model->calculator().calculateExpression(cmd_param.second);
+				if (mat.size() == 1)param.joint_pos_vec.resize(c->motionPool().size(), mat.toDouble());
+				else
 				{
-					param.joint_active_vec.resize(target.model->motionPool().size(), true);
-				}
-				else if (cmd_param.first == "none")
-				{
-					param.joint_active_vec.resize(target.model->motionPool().size(), false);
-				}
-				else if (cmd_param.first == "motion_id")
-				{
-					param.joint_active_vec.resize(target.model->motionPool().size(), false);
-					param.joint_active_vec.at(std::stoi(cmd_param.second)) = true;
-				}
-				else if (cmd_param.first == "physical_id")
-				{
-					param.joint_active_vec.resize(c->motionPool().size(), false);
-					param.joint_active_vec.at(c->motionAtPhy(std::stoi(cmd_param.second)).phyId()) = true;
-				}
-				else if (cmd_param.first == "slave_id")
-				{
-					param.joint_active_vec.resize(c->motionPool().size(), false);
-					param.joint_active_vec.at(c->motionAtPhy(std::stoi(cmd_param.second)).slaId()) = true;
-				}
-				else if (cmd_param.first == "pos")
-				{
-					aris::core::Matrix mat = target.model->calculator().calculateExpression(cmd_param.second);
-					if (mat.size() == 1)param.joint_pos_vec.resize(c->motionPool().size(), mat.toDouble());
-					else
-					{
-						param.joint_pos_vec.resize(mat.size());
-						std::copy(mat.begin(), mat.end(), param.joint_pos_vec.begin());
-					}
-				}
-				else if (cmd_param.first == "vel")
-				{
-					param.vel = std::stod(cmd_param.second);
-				}
-				else if (cmd_param.first == "acc")
-				{
-					param.acc = std::stod(cmd_param.second);
-				}
-				else if (cmd_param.first == "dec")
-				{
-					param.dec = std::stod(cmd_param.second);
+					param.joint_pos_vec.resize(mat.size());
+					std::copy(mat.begin(), mat.end(), param.joint_pos_vec.begin());
 				}
 			}
-
-			param.begin_joint_pos_vec.resize(target.model->motionPool().size());
-
-			target.param = param;
-
-			target.option |=
-				Plan::USE_TARGET_POS |
-				Plan::USE_VEL_OFFSET |
-#ifdef WIN32
-				Plan::NOT_CHECK_POS_MIN |
-				Plan::NOT_CHECK_POS_MAX |
-				Plan::NOT_CHECK_POS_CONTINUOUS |
-				Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
-				Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
-#endif
-				Plan::NOT_CHECK_VEL_MIN |
-				Plan::NOT_CHECK_VEL_MAX |
-				Plan::NOT_CHECK_VEL_CONTINUOUS |
-				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
-
+			else if (cmd_param.first == "vel")
+			{
+				param.vel = std::stod(cmd_param.second);
+			}
+			else if (cmd_param.first == "acc")
+			{
+				param.acc = std::stod(cmd_param.second);
+			}
+			else if (cmd_param.first == "dec")
+			{
+				param.dec = std::stod(cmd_param.second);
+			}
 		}
+
+		param.begin_joint_pos_vec.resize(target.model->motionPool().size());
+
+		target.param = param;
+
+		target.option |=
+//				Plan::USE_TARGET_POS |
+			Plan::USE_VEL_OFFSET |
+#ifdef WIN32
+			Plan::NOT_CHECK_POS_MIN |
+			Plan::NOT_CHECK_POS_MAX |
+			Plan::NOT_CHECK_POS_CONTINUOUS |
+			Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
+			Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
+			Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
+			Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
+#endif
+			Plan::NOT_CHECK_VEL_MIN |
+			Plan::NOT_CHECK_VEL_MAX |
+			Plan::NOT_CHECK_VEL_CONTINUOUS |
+			Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
+			Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+
+	}
 	auto MoveJR::executeRT(PlanTarget &target)->int
+	{
+		auto &param = std::any_cast<MoveJRParam&>(target.param);
+		auto controller = target.controller;
+
+		if (target.count == 1)
 		{
-			auto &param = std::any_cast<MoveJRParam&>(target.param);
-			auto controller = target.controller;
-
-			if (target.count == 1)
-			{
-				for (Size i = 0; i < param.joint_active_vec.size(); ++i)
-				{
-					if (param.joint_active_vec[i])
-					{
-						param.begin_joint_pos_vec[i] = target.model->motionPool()[i].mp();
-					}
-				}
-			}
-
-			aris::Size total_count{ 1 };
 			for (Size i = 0; i < param.joint_active_vec.size(); ++i)
 			{
 				if (param.joint_active_vec[i])
 				{
-					double p, v, a;
-					aris::Size t_count;
-					aris::plan::moveAbsolute(target.count, param.begin_joint_pos_vec[i], param.begin_joint_pos_vec[i]+param.joint_pos_vec[i], param.vel / 1000, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
-					target.model->motionPool().at(i).setMp(p);
-					target.model->motionPool().at(i).setMv(v*1000);
-					total_count = std::max(total_count, t_count);
+					param.begin_joint_pos_vec[i] = controller->motionAtAbs(i).actualPos();
 				}
 			}
+		}
 
-			if (!target.model->solverPool().at(1).kinPos())return -1;
-
-			// 打印电流 //
-			auto &cout = controller->mout();
-			if (target.count % 100 == 0)
+		aris::Size total_count{ 1 };
+		for (Size i = 0; i < param.joint_active_vec.size(); ++i)
+		{
+			if (param.joint_active_vec[i])
 			{
-				for (Size i = 0; i < 6; i++)
-				{
-                    cout << "mp" << i + 1 << ":" << target.model->motionPool()[i].mp() << "  ";
-                    cout << "pos" << i + 1 << ":" << controller->motionAtAbs(i).targetPos() << "  ";
-					cout << "vel" << i + 1 << ":" << controller->motionAtAbs(i).actualVel() << "  ";
-					cout << "cur" << i + 1 << ":" << controller->motionAtAbs(i).actualCur() << "  ";
-				}
-				cout << std::endl;
-			}
+				double p, v, a;
+				aris::Size t_count;
+				aris::plan::moveAbsolute(target.count, param.begin_joint_pos_vec[i], param.begin_joint_pos_vec[i]+param.joint_pos_vec[i], param.vel / 1000, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
+				controller->motionAtAbs(i).setTargetPos(p);
+				controller->motionAtAbs(i).setTargetVel(v*1000);
+				total_count = std::max(total_count, t_count);
 
-			// log 电流 //
-			auto &lout = controller->lout();
+				target.model->motionPool().at(i).setMp(p);
+			}
+		}
+
+		//controller与模型同步，保证3D仿真模型同步显示
+		if (!target.model->solverPool().at(1).kinPos())return -1;
+
+		// 打印电流 //
+		auto &cout = controller->mout();
+		if (target.count % 100 == 0)
+		{
 			for (Size i = 0; i < 6; i++)
 			{
-				lout << controller->motionAtAbs(i).targetPos() << ",";
-				lout << controller->motionAtAbs(i).actualPos() << ",";
-				lout << controller->motionAtAbs(i).actualVel() << ",";
-				lout << controller->motionAtAbs(i).actualCur() << ",";
+                cout << "mp" << i + 1 << ":" << target.model->motionPool()[i].mp() << "  ";
+                cout << "pos" << i + 1 << ":" << controller->motionAtAbs(i).targetPos() << "  ";
+				cout << "vel" << i + 1 << ":" << controller->motionAtAbs(i).actualVel() << "  ";
+				cout << "cur" << i + 1 << ":" << controller->motionAtAbs(i).actualCur() << "  ";
 			}
-			lout << std::endl;
-
-			return total_count - target.count;
+			cout << std::endl;
 		}
+
+		// log 电流 //
+		auto &lout = controller->lout();
+		for (Size i = 0; i < 6; i++)
+		{
+			lout << controller->motionAtAbs(i).targetPos() << ",";
+			lout << controller->motionAtAbs(i).actualPos() << ",";
+			lout << controller->motionAtAbs(i).actualVel() << ",";
+			lout << controller->motionAtAbs(i).actualCur() << ",";
+		}
+		lout << std::endl;
+
+		return total_count - target.count;
+	}
 	auto MoveJR::collectNrt(PlanTarget &target)->void {}
 	MoveJR::MoveJR(const std::string &name) :Plan(name)
 	{
