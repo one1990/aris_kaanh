@@ -21,7 +21,7 @@ public:
 	auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
 
 	explicit MoveDistal(const std::string &name = "MoveDistal");
-	ARIS_REGISTER_TYPE("MoveDistal");
+	ARIS_REGISTER_TYPE(MoveDistal);
 };
 
 class MoveXYZ : public aris::plan::Plan
@@ -32,7 +32,7 @@ public:
     //auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
 
     explicit MoveXYZ(const std::string &name = "MoveXYZ");
-	ARIS_REGISTER_TYPE("MoveXYZ");
+	ARIS_REGISTER_TYPE(MoveXYZ);
 };
 
 class MoveJoint : public aris::plan::Plan
@@ -43,7 +43,7 @@ public:
 	//auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
 
 	explicit MoveJoint(const std::string &name = "MoveJoint");
-	ARIS_REGISTER_TYPE("MoveJoint");
+	ARIS_REGISTER_TYPE(MoveJoint);
 };
 
 
@@ -56,7 +56,7 @@ public:
 	auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
 
 	explicit SetTool(const std::string &name = "SetTool");
-	ARIS_REGISTER_TYPE("SetTool");
+	ARIS_REGISTER_TYPE(SetTool);
 };
 
 
@@ -72,7 +72,7 @@ public:
     //auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
 
     explicit MovePressure(const std::string &name = "MovePressure");
-	ARIS_REGISTER_TYPE("MovePressure");
+	ARIS_REGISTER_TYPE(MovePressure);
 };
 
 class MovePressureTool : public aris::plan::Plan
@@ -83,7 +83,7 @@ public:
 	//auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
 
 	explicit MovePressureTool(const std::string &name = "MovePressureTool");
-	ARIS_REGISTER_TYPE("MovePressureTool");
+	ARIS_REGISTER_TYPE(MovePressureTool);
 };
 
 class MoveFeed : public aris::plan::Plan
@@ -94,7 +94,7 @@ public:
 	//auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
 
 	explicit MoveFeed(const std::string &name = "MoveFeed");
-    ARIS_REGISTER_TYPE("MoveFeed");
+    ARIS_REGISTER_TYPE(MoveFeed);
 };
 
 
@@ -106,7 +106,7 @@ public:
     auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
 
 	explicit GetForce(const std::string &name = "GetForce");
-	ARIS_REGISTER_TYPE("GetForce");
+	ARIS_REGISTER_TYPE(GetForce);
 };
 
 
