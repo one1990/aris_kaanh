@@ -20,10 +20,10 @@ namespace CONFIG
 		void forceTransform(const double* q, const float* FmInEnd, double* FmInWorld);
 	};
 
-        const int SampleNum = 30000;
+        const int SampleNum = 6000;
 	    const double ConRad = PII / 180;
         const double ConAng = 180 / PII;
-        const int GroupDim = 46;
+        const int GroupDim = 16;
         const int RobotAxis = 6;
         const double DT = 0.001;
         const double CutoffFrequency = 5;
