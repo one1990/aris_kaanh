@@ -43,7 +43,7 @@ public:
 	//auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
 
 	explicit MoveJoint(const std::string &name = "MoveJoint");
-	ARIS_REGISTER_TYPE("MoveJoint");
+	ARIS_REGISTER_TYPE(MoveJoint);
 };
 
 
@@ -83,7 +83,7 @@ public:
 	//auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
 
 	explicit MovePressureTool(const std::string &name = "MovePressureTool");
-	ARIS_REGISTER_TYPE("MovePressureTool");
+	ARIS_REGISTER_TYPE(MovePressureTool);
 };
 
 class MoveFeed : public aris::plan::Plan
@@ -94,7 +94,7 @@ public:
 	//auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
 
 	explicit MoveFeed(const std::string &name = "MoveFeed");
-    ARIS_REGISTER_TYPE("MoveFeed");
+    ARIS_REGISTER_TYPE(MoveFeed);
 };
 
 
@@ -106,7 +106,7 @@ public:
     auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
 
 	explicit GetForce(const std::string &name = "GetForce");
-	ARIS_REGISTER_TYPE("GetForce");
+	ARIS_REGISTER_TYPE(GetForce);
 };
 
 
