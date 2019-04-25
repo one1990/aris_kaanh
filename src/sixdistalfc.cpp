@@ -1407,17 +1407,17 @@ auto MovePressureTool::executeRT(PlanTarget &target)->int
 	static double pArc, vArc, aArc,vArcMax=0.05;
 	aris::Size t_count;
 
-	double Square[4][3] = { {0.22,0.22,0},
-							{0,0,0},
-							{-0.22,0.22,0},
-							{0,0.4399,0} };
+	double Square[4][3] = { {0,0.22,0.22},
+							{0,0.22,0.42},
+							{0,-0.22,0.42},
+							{0,-0.22,0.22}};
 
 
 	static double MoveLength = 0;
 	static double DecLength = 0.01, LengthT = 0.2, LengthF = 0.05;//LengthT>LengthF
 
-	LengthT = sqrt((Square[0][0] - Square[1][0])*(Square[0][0] - Square[1][0]) + (Square[0][1] - Square[1][1])*(Square[0][1] - Square[1][1]));
-	double CountFmax = sqrt((Square[2][0] - Square[1][0])*(Square[2][0] - Square[1][0]) + (Square[2][1] - Square[1][1])*(Square[2][1] - Square[1][1])) / LengthF;
+	LengthT = sqrt((Square[0][1] - Square[1][1])*(Square[0][1] - Square[1][1]) + (Square[0][2] - Square[1][2])*(Square[0][2] - Square[1][2]));
+	double CountFmax = sqrt((Square[2][1] - Square[1][1])*(Square[2][1] - Square[1][1]) + (Square[2][2] - Square[1][2])*(Square[2][2] - Square[1][2])) / LengthF;
 
 
 	double DecTime = 0, Dec = 0;
@@ -1426,13 +1426,14 @@ auto MovePressureTool::executeRT(PlanTarget &target)->int
 	static int CountT = 0, CountF = 0;
 
 	double Ktemp, temp0, temp1;
-	double CrossSurface[3] = { 0,0,0 };
-	double ExtendSurface[3] = {0,0,0 };
-	temp0 = Square[1][0] - Square[0][0];temp1 = Square[1][1] - Square[0][1];
-	ExtendSurface[0] = temp0 / sqrt(temp0*temp0 + temp1 * temp1); ExtendSurface[1] = temp1 / sqrt(temp0*temp0 + temp1 * temp1); ExtendSurface[2] = 0;
+	double CrossSurface[3] = { 0,1,0 };//YZ
+	double ExtendSurface[3] = {0,0,-1 };
+	temp0 = Square[1][1] - Square[0][1];temp1 = Square[1][2] - Square[0][2];
+	ExtendSurface[1] = temp0 / sqrt(temp0*temp0 + temp1 * temp1); ExtendSurface[2] = temp1 / sqrt(temp0*temp0 + temp1 * temp1); ExtendSurface[0] = 0;
 
-	temp0 = Square[2][0] - Square[1][0];temp1 = Square[2][1] - Square[1][1];
-	CrossSurface[0] = temp0 / sqrt(temp0*temp0 + temp1 * temp1); CrossSurface[1] = temp1 / sqrt(temp0*temp0 + temp1 * temp1); CrossSurface[2] = 0;
+
+	temp0 = Square[2][1] - Square[1][1];temp1 = Square[2][2] - Square[1][2];
+	CrossSurface[1] = temp0 / sqrt(temp0*temp0 + temp1 * temp1); CrossSurface[2] = temp1 / sqrt(temp0*temp0 + temp1 * temp1); CrossSurface[0] = 0;
 
 
 	
@@ -1453,11 +1454,11 @@ auto MovePressureTool::executeRT(PlanTarget &target)->int
 			if (LengthT > 0)
 				LengthT = -LengthT;
          */
-		if (abs(NormalVector[2]) < 0.01)
+		if (abs(NormalVector[0]) < 0.01)
 		{
 			TangentArc1[0] = ExtendSurface[0]; TangentArc1[1] = ExtendSurface[1]; TangentArc1[2] = ExtendSurface[2];
 
-			TangentArc2[0] = -ExtendSurface[0]; TangentArc2[1] = ExtendSurface[1]; TangentArc2[2] = ExtendSurface[2];
+			TangentArc2[0] = ExtendSurface[0]; TangentArc2[1] = -ExtendSurface[1]; TangentArc2[2] = -ExtendSurface[2];
 
 			if (MoveDirection==true)
 				for (int i = 0;i < 3;i++)
@@ -1473,23 +1474,23 @@ auto MovePressureTool::executeRT(PlanTarget &target)->int
 		}
 		else
 		{
-			temp0 = ExtendSurface[0] * ExtendSurface[0] + ExtendSurface[1] * ExtendSurface[1];
-			temp1 = (ExtendSurface[0] * NormalVector[0] + ExtendSurface[1] * NormalVector[1]) / NormalVector[2];
+			temp0 = ExtendSurface[1] * ExtendSurface[1] + ExtendSurface[2] * ExtendSurface[2];
+			temp1 = (ExtendSurface[1] * NormalVector[1] + ExtendSurface[2] * NormalVector[2]) / NormalVector[0];
 			Ktemp = 1 / sqrt(temp0 + temp1 * temp1);
 
-			TangentArc1[0] = Ktemp * ExtendSurface[0];
 			TangentArc1[1] = Ktemp * ExtendSurface[1];
-			TangentArc1[2] = -(NormalVector[0] * TangentArc0[0] + NormalVector[1] * TangentArc0[1]) / NormalVector[2];
+			TangentArc1[2] = Ktemp * ExtendSurface[2];
+			TangentArc1[0] = -(NormalVector[1] * TangentArc0[1] + NormalVector[2] * TangentArc0[2]) / NormalVector[0];
 
 			CosTheta1 = TangentArc1[0] * TangentArc0[0] + TangentArc1[1] * TangentArc0[1] + TangentArc1[2] * TangentArc0[2];
 
-			temp0 = ExtendSurface[0] * ExtendSurface[0] + ExtendSurface[1] * ExtendSurface[1];
-			temp1 = (ExtendSurface[0] * NormalVector[0] + ExtendSurface[1] * NormalVector[1]) / NormalVector[2];
+			temp0 = ExtendSurface[1] * ExtendSurface[1] + ExtendSurface[2] * ExtendSurface[2];
+			temp1 = (ExtendSurface[1] * NormalVector[1] + ExtendSurface[2] * NormalVector[2]) / NormalVector[0];
 			Ktemp = -1 / sqrt(temp0 + temp1 * temp1);
 
-			TangentArc2[0] = Ktemp * ExtendSurface[0];
 			TangentArc2[1] = Ktemp * ExtendSurface[1];
-			TangentArc2[2] = -(NormalVector[0] * TangentArc0[0] + NormalVector[1] * TangentArc0[1]) / NormalVector[2];
+			TangentArc2[2] = Ktemp * ExtendSurface[2];
+			TangentArc2[0] = -(NormalVector[1] * TangentArc0[1] + NormalVector[2] * TangentArc0[2]) / NormalVector[0];
 
 			if (MoveDirection == true)
 				for (int i = 0;i < 3;i++)
@@ -1558,7 +1559,7 @@ auto MovePressureTool::executeRT(PlanTarget &target)->int
 		{
 			MoveDirection = true;
 		}
-		if (abs(NormalVector[2]) < 0.01)
+		if (abs(NormalVector[0]) < 0.01)
 		{
 			TangentArc1[0] = CrossSurface[0]; TangentArc1[1] = CrossSurface[1]; TangentArc1[2] = CrossSurface[2];
 			CosTheta1 = TangentArc1[0] * TangentArc0[0] + TangentArc1[1] * TangentArc0[1] + TangentArc1[2] * TangentArc0[2];
@@ -1568,13 +1569,13 @@ auto MovePressureTool::executeRT(PlanTarget &target)->int
 		}
 		else
 		{
-			temp0 = CrossSurface[0] * CrossSurface[0] + CrossSurface[1] * CrossSurface[1];
-			temp1 = (CrossSurface[0] * NormalVector[0] + CrossSurface[1] * NormalVector[1]) / NormalVector[2];
+			temp0 = CrossSurface[1] * CrossSurface[1] + CrossSurface[2] * CrossSurface[2];
+			temp1 = (CrossSurface[1] * NormalVector[1] + CrossSurface[2] * NormalVector[2]) / NormalVector[0];
 			Ktemp = 1 / sqrt(temp0 + temp1 * temp1);
 
-			TangentArc1[0] = Ktemp * CrossSurface[0];
 			TangentArc1[1] = Ktemp * CrossSurface[1];
-			TangentArc1[2] = -(NormalVector[0] * TangentArc0[0] + NormalVector[1] * TangentArc0[1]) / NormalVector[2];
+			TangentArc1[2] = Ktemp * CrossSurface[2];
+			TangentArc1[0] = -(NormalVector[1] * TangentArc0[1] + NormalVector[2] * TangentArc0[2]) / NormalVector[0];
 
 				for (int i = 0;i < 3;i++)
 					TangentArc[i] = TangentArc1[i];
@@ -1600,29 +1601,32 @@ auto MovePressureTool::executeRT(PlanTarget &target)->int
 	
 
 	}
+	if(CountF > CountFmax-1)
+	{
+		vArc = 0;
+	}
 
 
     if (target.count > StartCount)
     {
 		if (MoveDirection)
 		{
-			dX[0] = vArc * TangentArc[0]/1000;
-			dX[2] = dX[2] + vArc * TangentArc[2] / 1000;
-			dX[2] = 0;
+			dX[0] = 0*vArc * TangentArc[0]/1000;
 			dX[1] = vArc * TangentArc[1] / 1000;
+			dX[2] =  vArc * TangentArc[2] / 1000;
+			
 		}
 		else
 		{
-			dX[0] = vArc * TangentArc[0] / 1000;
-			dX[2] = dX[2] + vArc * TangentArc[2] / 1000;
-			dX[2] = 0;
+			dX[0] = 0 * vArc * TangentArc[0] / 1000;
 			dX[1] = vArc * TangentArc[1] / 1000;
+			dX[2] = vArc * TangentArc[2] / 1000;
 		}
 		if (target.count > StartCount&&MoveDirectionT == true && MoveDirectionF == false)
 			if(MoveDirection)
-				MoveLength = MoveLength + sqrt(dX[0]*dX[0]+ dX[1] * dX[1]);
+				MoveLength = MoveLength + sqrt(dX[1] * dX[1] + dX[2] * dX[2]);
 			else
-				MoveLength = MoveLength - sqrt(dX[0] * dX[0] + dX[1] * dX[1]);
+				MoveLength = MoveLength - sqrt(dX[1] * dX[1] + dX[2] * dX[2]);
     }
 
 

@@ -1,7 +1,8 @@
 ﻿#include <algorithm>
 #include"kaanh.h"
 #include "sixdistalfc.h"
-#include<array>
+
+#include <array>
 
 
 using namespace aris::dynamic;

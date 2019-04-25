@@ -2,6 +2,7 @@
 #include <math.h>
 #include <array>
 
+
 using namespace std;
 using namespace aris::plan;
 using namespace aris::dynamic;
