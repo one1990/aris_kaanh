@@ -14,16 +14,20 @@ int data_num = 0, data_num_send = 0;
 std::vector<std::vector<std::string>> plantrack(6, std::vector<std::string>());
 std::atomic_int which_di = 0;
 
-auto xmlpath = std::filesystem::absolute(".");
+auto xmlpath = std::filesystem::absolute(".");//获取当前工程所在的路径
 const std::string xmlfile = "rokae.xml";
 
 int main(int argc, char *argv[])
 {
-	xmlpath = xmlpath / xmlfile;
+    std::cout <<"new"<<std::endl;
+
+    xmlpath = xmlpath / xmlfile;
     std::cout<< xmlpath <<std::endl;
 	auto&cs = aris::server::ControlServer::instance();
 	auto port = argc < 2 ? 5866 : std::stoi(argv[1]);
 
+
+	//cs.saveXmlFile("C:/Users/qianch_kaanh_cn/Desktop/build_qianch/rokae.xml");
 	//生成rokae.xml文档
 /*
 	cs.resetController(kaanh::createControllerRokaeXB4().release());
@@ -48,9 +52,11 @@ int main(int argc, char *argv[])
 */
 
 
-    kaanh::registerPlan();
     cs.loadXmlFile(xmlpath.string().c_str());
-    cs.start();
+
+
+
+	cs.start();
 
 	// interaction //
 	std::list<std::tuple<aris::core::Msg, std::shared_ptr<aris::plan::PlanTarget>>> result_list;
@@ -62,8 +68,9 @@ int main(int argc, char *argv[])
 		std::string msg_data = msg.toString();
 
 		static int cout_count = 0;
-        //if (++cout_count % 10 == 0)
-        //	std::cout << "recv:" << msg_data << std::endl;
+
+		if (++cout_count % 10 == 0)
+			//std::cout << "recv:" << msg_data << std::endl;
 
 		LOG_INFO << "the request is cmd:"
 			<< msg.header().msg_size_ << "&"

@@ -1,6 +1,7 @@
 ﻿#include <algorithm>
 #include"kaanh.h"
 #include "sixdistalfc.h"
+#include<array>
 
 
 using namespace aris::dynamic;
@@ -230,6 +231,59 @@ namespace kaanh
 			"</Command>");
 	}
 
+
+	// 获取末端位置 //
+	auto Get_ee_pq::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		auto ee_pq_vec = std::make_any<std::vector<double> >(7);
+		target.server->getRtData([](aris::server::ControlServer& cs, std::any& data)
+		{
+			cs.model().generalMotionPool().at(0).getMpq(std::any_cast<std::vector<double>&>(data).data());
+		}, ee_pq_vec);
+		auto pq = std::any_cast<std::vector<double>&>(ee_pq_vec);
+
+		std::string ret(reinterpret_cast<char*>(pq.data()), pq.size() * sizeof(double));
+		target.ret = ret;
+		target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_PRINT_CMD_INFO | NOT_PRINT_CMD_INFO;
+	}
+	auto Get_ee_pq::collectNrt(PlanTarget &target)->void {}
+	Get_ee_pq::Get_ee_pq(const std::string &name) : Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"get_ee_pq\">"
+			"</Command>");
+	}
+
+
+	// 获取电机电流 //
+	auto Get_cur::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		auto i = std::stoi(params.at("which_motor"));
+		std::any cur_a = double(0);
+		target.server->getRtData([&](aris::server::ControlServer& cs, std::any &data)->void
+		{
+			std::any_cast<double&>(data) = cs.controller().motionPool().at(i).actualCur();
+		}, cur_a);
+
+		//auto cur = std::any_cast<double&>(cur_a);
+		static double cur = 0.0;
+		static int counter = 1;
+		cur = 10 * std::sin(2*PI*counter++/100);
+
+		std::string ret(reinterpret_cast<char*>(&cur), 1 * sizeof(double));
+		target.ret = ret;
+		target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_PRINT_CMD_INFO | NOT_PRINT_CMD_INFO;
+	}
+	auto Get_cur::collectNrt(PlanTarget &target)->void {}
+	Get_cur::Get_cur(const std::string &name) : Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"get_cur\">"
+			"		<Param name=\"which_motor\" default=\"1\"/>"
+			"</Command>");
+	}
+
+
 	// 末端四元数xyz方向余弦轨迹；速度前馈//
 	struct MoveXParam
 	{
@@ -338,6 +392,7 @@ namespace kaanh
 			"	</GroupParam>"
 			"</Command>");
 	}
+
 
 	// 单关节正弦往复轨迹 //
 	struct MoveJSParam
@@ -955,10 +1010,76 @@ namespace kaanh
 			"		<Param name=\"vel\" default=\"0.5\"/>"
 			"		<Param name=\"acc\" default=\"1\"/>"
 			"		<Param name=\"dec\" default=\"1\"/>"
+			"		<UniqueParam default=\"check_none\">"
+			"			<Param name=\"check_all\"/>"
+			"			<Param name=\"check_none\"/>"
+			"			<GroupParam>"
+			"				<UniqueParam default=\"check_pos\">"
+			"					<Param name=\"check_pos\"/>"
+			"					<Param name=\"not_check_pos\"/>"
+			"					<GroupParam>"
+			"						<UniqueParam default=\"check_pos_max\">"
+			"							<Param name=\"check_pos_max\"/>"
+			"							<Param name=\"not_check_pos_max\"/>"
+			"						</UniqueParam>"
+			"						<UniqueParam default=\"check_pos_min\">"
+			"							<Param name=\"check_pos_min\"/>"
+			"							<Param name=\"not_check_pos_min\"/>"
+			"						</UniqueParam>"
+			"						<UniqueParam default=\"check_pos_continuous\">"
+			"							<Param name=\"check_pos_continuous\"/>"
+			"							<Param name=\"not_check_pos_continuous\"/>"
+			"						</UniqueParam>"
+			"						<UniqueParam default=\"check_pos_continuous_at_start\">"
+			"							<Param name=\"check_pos_continuous_at_start\"/>"
+			"							<Param name=\"not_check_pos_continuous_at_start\"/>"
+			"						</UniqueParam>"
+			"						<UniqueParam default=\"check_pos_continuous_second_order\">"
+			"							<Param name=\"check_pos_continuous_second_order\"/>"
+			"							<Param name=\"not_check_pos_continuous_second_order\"/>"
+			"						</UniqueParam>"
+			"						<UniqueParam default=\"check_pos_continuous_second_order_at_start\">"
+			"							<Param name=\"check_pos_continuous_second_order_at_start\"/>"
+			"							<Param name=\"not_check_pos_continuous_second_order_at_start\"/>"
+			"						</UniqueParam>"
+			"						<UniqueParam default=\"check_pos_following_error\">"
+			"							<Param name=\"check_pos_following_error\"/>"
+			"							<Param name=\"not_check_pos_following_error\"/>"
+			"						</UniqueParam>"
+			"					</GroupParam>"
+			"				</UniqueParam>"
+			"				<UniqueParam default=\"check_vel\">"
+			"					<Param name=\"check_vel\"/>"
+			"					<Param name=\"not_check_vel\"/>"
+			"					<GroupParam>"
+			"						<UniqueParam default=\"check_vel_max\">"
+			"							<Param name=\"check_vel_max\"/>"
+			"							<Param name=\"not_check_vel_max\"/>"
+			"						</UniqueParam>"
+			"						<UniqueParam default=\"check_vel_min\">"
+			"							<Param name=\"check_vel_min\"/>"
+			"							<Param name=\"not_check_vel_min\"/>"
+			"						</UniqueParam>"
+			"						<UniqueParam default=\"check_vel_continuous\">"
+			"							<Param name=\"check_vel_continuous\"/>"
+			"							<Param name=\"not_check_vel_continuous\"/>"
+			"						</UniqueParam>"
+			"						<UniqueParam default=\"check_vel_continuous_at_start\">"
+			"							<Param name=\"check_vel_continuous_at_start\"/>"
+			"							<Param name=\"not_check_vel_continuous_at_start\"/>"
+			"						</UniqueParam>"
+			"						<UniqueParam default=\"check_vel_following_error\">"
+			"							<Param name=\"check_vel_following_error\"/>"
+			"							<Param name=\"not_check_vel_following_error\"/>"
+			"						</UniqueParam>"
+			"					</GroupParam>"
+			"				</UniqueParam>"
+			"			</GroupParam>"
+			"		</UniqueParam>"
 			"	</GroupParam>"
 			"</Command>");
 	}
-
+	
 
 	// 梯形轨迹2测试--输入单个关节，角度位置；关节按照梯形速度轨迹执行；速度前馈//
 	struct MoveTTTParam
@@ -1725,23 +1846,31 @@ namespace kaanh
 	struct MovePointParam
 	{
 		std::vector<double> term_begin_pe_vec;
-		std::vector<double> term_target_pe_vec;
-		std::vector<double> term_input_pe_vec;
-		double x, y, z, a, b, c, vel, acc, dec, term_offset_pe;;
+		std::vector<double> begin_pm;
+		std::vector<double> target_pm;
+		aris::Size cor;
 		aris::Size move_type;
+		double x, y, z, a, b, c, vel, acc, dec, term_offset_pe;	
 	};
 	auto MovePoint::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 		{
 			auto c = target.controller;
 			MovePointParam param;
 			param.term_begin_pe_vec.resize(6, 0.0);
-			param.term_target_pe_vec.resize(6, 0.0);
+			param.begin_pm.resize(16, 0.0);
 			param.term_offset_pe = 0;
-			param.term_input_pe_vec.resize(6, 0.0);
+			param.target_pm.resize(16, 0.0);
+
+			std::string ret = "ok";
+			target.ret = ret;
 
 			for (auto &p : params)
 			{
-				if (p.first == "x")
+				if (p.first == "cor")
+				{
+					param.cor = std::stoi(p.second);
+				}
+				else if (p.first == "x")
 				{
 					param.x = std::stod(p.second);
 					param.move_type = 0;
@@ -1817,83 +1946,61 @@ namespace kaanh
 			auto &param = std::any_cast<MovePointParam&>(target.param);
 			static aris::Size total_count = 1;
 
-			char eu_type[4]{ '1' + param.move_type - 3 , '1' + (param.move_type - 2) % 3 , '1' + param.move_type - 3 , '\0' };
+			char eu_type[4]{ '1', '2', '3', '\0' };
 			
 			if (target.count == 1)
-			{	
-				// 绕大地坐标系x，y，z轴旋转 //
-				if (param.move_type >= 3)
-				{
-					target.model->generalMotionPool().at(0).getMpe(param.term_begin_pe_vec.data(), eu_type);
-					target.model->generalMotionPool().at(0).getMpe(param.term_target_pe_vec.data(), eu_type);
-					target.model->generalMotionPool().at(0).getMpe(param.term_input_pe_vec.data(), eu_type);
-					param.term_target_pe_vec[3] = param.term_begin_pe_vec[3] + param.term_offset_pe;
-				}
-				// 沿大地坐标系坐标轴x,y,z平动 //
-				else
-				{
-					target.model->generalMotionPool().at(0).getMpe(param.term_begin_pe_vec.data());
-					target.model->generalMotionPool().at(0).getMpe(param.term_target_pe_vec.data());
-					target.model->generalMotionPool().at(0).getMpe(param.term_input_pe_vec.data());
-					param.term_target_pe_vec[param.move_type] = param.term_begin_pe_vec[param.move_type] + param.term_offset_pe;
-				}	
+			{
+				// 获取起始欧拉角位姿 //
+				target.model->generalMotionPool().at(0).getMpe(param.term_begin_pe_vec.data(), eu_type);
 			}
 			// 梯形轨迹规划 //
 			double p, v, a;
 			aris::Size t_count;
-			if (param.move_type >= 3)
-			{
-				aris::plan::moveAbsolute(target.count, param.term_begin_pe_vec[3], param.term_target_pe_vec[3], param.vel / 1000
-					, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
-				total_count = std::max(total_count, t_count);
+			aris::plan::moveAbsolute(target.count, 0, param.term_offset_pe, param.vel / 1000
+				, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
+			total_count = std::max(total_count, t_count);
 
-				param.term_input_pe_vec[3] = p;
-				target.model->generalMotionPool().at(0).setMpe(param.term_input_pe_vec.data(), eu_type);
-			}
-			else
-			{
-				aris::plan::moveAbsolute(target.count, param.term_begin_pe_vec[param.move_type], param.term_target_pe_vec[param.move_type], param.vel / 1000
-					, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
-				total_count = std::max(total_count, t_count);
+			double pe[6]{ 0,0,0,0,0,0 }, pm[16];
+			pe[param.move_type] = p;
+			s_pe2pm(pe, pm, eu_type);
 
-				param.term_input_pe_vec[param.move_type] = p;
-				target.model->generalMotionPool().at(0).setMpe(param.term_input_pe_vec.data());
+			s_pe2pm(param.term_begin_pe_vec.data(), param.begin_pm.data(), eu_type);
+				
+			//绝对坐标系
+			if (param.cor == 0)
+			{
+				s_pm_dot_pm(pm, param.begin_pm.data(), param.target_pm.data());
 			}
+			//工件坐标系
+			else if (param.cor == 1)
+			{
+				s_pm_dot_pm(param.begin_pm.data(), pm, param.target_pm.data());
+			}	
+			target.model->generalMotionPool().at(0).setMpm(param.target_pm.data());
+				
 
 			// 运动学反解 //
 			if (!target.model->solverPool().at(0).kinPos())return -1;
 
-			// 打印电流 //
+			// 打印 //
 			auto &cout = controller->mout();
-			if (target.count == 1)
+
+			if (target.count % 200 == 0)
 			{
-				for (Size i = 0; i < 6; i++)
+				for (Size i = 0; i < 16; i++)
 				{
-					cout << param.term_input_pe_vec[i] << "  ";
+					cout << param.target_pm[i] << "  ";
 				}
 				cout << std::endl;
 			}
 
-			if (target.count % 100 == 0)
-			{
-				for (Size i = 0; i < 6; i++)
-				{
-					cout << param.term_input_pe_vec[i] << "  ";
-				}
-				cout << std::endl;
-			}
-
-			// log 电流 //
+			// log //
 			auto &lout = controller->lout();
 			for (Size i = 0; i < 6; i++)
 			{
 				lout << controller->motionAtAbs(i).actualPos() << " ";
 				lout << controller->motionAtAbs(i).actualVel() << " ";
 				lout << controller->motionAtAbs(i).actualCur() << " ";
-			}
-			for (Size i = 0; i < 6; i++)
-			{
-				lout << param.term_input_pe_vec[i] << " ";
 			}
 			lout << std::endl;
 
@@ -1905,6 +2012,7 @@ namespace kaanh
 		command().loadXmlStr(
 			"<Command name=\"movePoint\">"
 			"	<GroupParam>"
+			"		<Param name=\"cor\" default=\"0\"/>"
 			"		<Param name=\"vel\" default=\"0.2\" abbreviation=\"v\"/>"
 			"		<Param name=\"acc\" default=\"0.4\" abbreviation=\"a\"/>"
 			"		<Param name=\"dec\" default=\"0.4\" abbreviation=\"d\"/>"
@@ -2608,6 +2716,7 @@ namespace kaanh
 			
 	}
 
+
 	// 力传感器信号测试 //
 	struct FSParam
 	{
@@ -2730,6 +2839,8 @@ namespace kaanh
 		plan_root->planPool().add<aris::plan::MoveJ>();
 		plan_root->planPool().add<aris::plan::Show>();
 		plan_root->planPool().add<kaanh::MoveInit>();
+		plan_root->planPool().add<kaanh::Get_ee_pq>();
+		plan_root->planPool().add<kaanh::Get_cur>();
 		plan_root->planPool().add<kaanh::MoveX>();
 		plan_root->planPool().add<kaanh::MoveJS>();
 		plan_root->planPool().add<kaanh::MoveJSN>();
@@ -2773,51 +2884,5 @@ namespace kaanh
 
 		return plan_root;
 	}
-	
-	auto registerPlan()->void
-	{
-		aris::core::Object::registerTypeGlobal<aris::plan::MoveL>();
-		aris::core::Object::registerTypeGlobal<aris::plan::MoveJ>();
-		aris::core::Object::registerTypeGlobal<aris::plan::Show>();
-		aris::core::Object::registerTypeGlobal<kaanh::MoveInit>();
-		aris::core::Object::registerTypeGlobal<kaanh::MoveX>();
-		aris::core::Object::registerTypeGlobal<kaanh::MoveJS>();
-		aris::core::Object::registerTypeGlobal<kaanh::MoveJSN>();
-		aris::core::Object::registerTypeGlobal<kaanh::MoveJR>();
-		aris::core::Object::registerTypeGlobal<kaanh::MoveTTT>();
-		aris::core::Object::registerTypeGlobal<forcecontrol::MoveJRC>();
-		aris::core::Object::registerTypeGlobal<forcecontrol::MovePQCrash>();
-		aris::core::Object::registerTypeGlobal<forcecontrol::MovePQB>();
-		aris::core::Object::registerTypeGlobal<forcecontrol::MoveJCrash>();
-		aris::core::Object::registerTypeGlobal<forcecontrol::MoveJF>();
-		aris::core::Object::registerTypeGlobal<forcecontrol::MoveJFB>();
-		aris::core::Object::registerTypeGlobal<forcecontrol::MoveJPID>();
-		aris::core::Object::registerTypeGlobal<forcecontrol::MoveStop>();
-		aris::core::Object::registerTypeGlobal<forcecontrol::MoveSPQ>();
-		aris::core::Object::registerTypeGlobal<kaanh::MoveJM>();
-		aris::core::Object::registerTypeGlobal<kaanh::MoveJI>();
-		aris::core::Object::registerTypeGlobal<kaanh::MovePoint>();
-		aris::core::Object::registerTypeGlobal<kaanh::Grasp>();
-		aris::core::Object::registerTypeGlobal<kaanh::ListenDI>();
-		aris::core::Object::registerTypeGlobal<kaanh::MoveEA>();
-		aris::core::Object::registerTypeGlobal<kaanh::MoveEAP>();
-		aris::core::Object::registerTypeGlobal<kaanh::FSSignal>();
 
-		aris::core::Object::registerTypeGlobal<MoveXYZ>();
-		aris::core::Object::registerTypeGlobal<MoveJoint>();
-		aris::core::Object::registerTypeGlobal<MoveDistal>();
-		aris::core::Object::registerTypeGlobal<SetTool>();
-		aris::core::Object::registerTypeGlobal<MovePressure>();
-		aris::core::Object::registerTypeGlobal<MoveFeed>();
-		aris::core::Object::registerTypeGlobal<MovePressureTool>();
-		aris::core::Object::registerTypeGlobal<GetForce>();
-
-		aris::core::Object::registerTypeGlobal<cplan::MoveCircle>();
-		aris::core::Object::registerTypeGlobal<cplan::MoveTroute>();
-		aris::core::Object::registerTypeGlobal<cplan::MoveFile>();
-		aris::core::Object::registerTypeGlobal<cplan::RemoveFile>();
-		aris::core::Object::registerTypeGlobal<cplan::MoveinModel>();
-		aris::core::Object::registerTypeGlobal<cplan::FMovePath>();
-		aris::core::Object::registerTypeGlobal<cplan::OpenFile>();
-	}
 }

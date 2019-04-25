@@ -1,5 +1,6 @@
 ﻿#include"forcecontrol.h"
 #include <atomic>
+#include <array>
 
 
 using namespace aris::dynamic;
@@ -534,6 +535,7 @@ namespace forcecontrol
 		{
 			auto &param = std::any_cast<MovePQCrashParam&>(target.param);
 			auto controller = target.controller;
+			
             bool is_running{ true };
 			static double vinteg[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 			static double vproportion[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
@@ -685,6 +687,7 @@ namespace forcecontrol
 
 					ft_offset[i] = (ft_friction[i] + ft_dynamic[i] + ft_pid[i])*f2c_index[i];
 					controller->motionAtAbs(i).setTargetCur(ft_offset[i]);
+
 				}
 			}
 
