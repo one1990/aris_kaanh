@@ -2718,7 +2718,6 @@ namespace kaanh
 	// 力传感器信号测试 //
 	struct FSParam
 	{
-		bool real_data;
         int time;
         uint16_t datanum;
         float Fx,Fy,Fz,Mx,My,Mz;
@@ -2728,11 +2727,7 @@ namespace kaanh
 			FSParam param;
 			for (auto &p : params)
 			{
-				if (p.first == "real_data")
-				{
-					param.real_data = std::stod(p.second);
-				}
-				else if (p.first == "time")
+				if (p.first == "time")
 				{
 					param.time = std::stoi(p.second);
 				}
@@ -2767,26 +2762,15 @@ namespace kaanh
 			auto &param = std::any_cast<FSParam&>(target.param);
 			// 访问主站 //
 			auto controller = dynamic_cast<aris::control::EthercatController*>(target.controller);
-			if (param.real_data)
-			{
-                controller->ecSlavePool().at(6).readPdo(0x6030, 0x00, &param.datanum ,16);
-                controller->ecSlavePool().at(6).readPdo(0x6030, 0x01, &param.Fx ,32);
-                controller->ecSlavePool().at(6).readPdo(0x6030, 0x02, &param.Fy, 32);
-                controller->ecSlavePool().at(6).readPdo(0x6030, 0x03, &param.Fz, 32);
-                controller->ecSlavePool().at(6).readPdo(0x6030, 0x04, &param.Mx, 32);
-                controller->ecSlavePool().at(6).readPdo(0x6030, 0x05, &param.My, 32);
-                controller->ecSlavePool().at(6).readPdo(0x6030, 0x06, &param.Mz, 32);
-			}
-			else
-			{
-                controller->ecSlavePool().at(6).readPdo(0x6030, 0x00, &param.datanum ,16);
-                controller->ecSlavePool().at(6).readPdo(0x6020, 0x01, &param.Fx, 32);
-                controller->ecSlavePool().at(6).readPdo(0x6020, 0x02, &param.Fy, 32);
-                controller->ecSlavePool().at(6).readPdo(0x6020, 0x03, &param.Fz, 32);
-                controller->ecSlavePool().at(6).readPdo(0x6020, 0x04, &param.Mx, 32);
-                controller->ecSlavePool().at(6).readPdo(0x6020, 0x05, &param.My, 32);
-                controller->ecSlavePool().at(6).readPdo(0x6020, 0x06, &param.Mz, 32);
-			}
+
+            controller->ecSlavePool().at(6).readPdo(0x6030, 0x00, &param.datanum ,16);
+            controller->ecSlavePool().at(6).readPdo(0x6030, 0x01, &param.Fx ,32);
+            controller->ecSlavePool().at(6).readPdo(0x6030, 0x02, &param.Fy, 32);
+            controller->ecSlavePool().at(6).readPdo(0x6030, 0x03, &param.Fz, 32);
+            controller->ecSlavePool().at(6).readPdo(0x6030, 0x04, &param.Mx, 32);
+            controller->ecSlavePool().at(6).readPdo(0x6030, 0x05, &param.My, 32);
+            controller->ecSlavePool().at(6).readPdo(0x6030, 0x06, &param.Mz, 32);
+			
 			
 			//print//
 			auto &cout = controller->mout();
@@ -2823,7 +2807,6 @@ namespace kaanh
 		command().loadXmlStr(
 			"<Command name=\"fssignal\">"
 			"	<GroupParam>"
-			"		<Param name=\"real_data\" default=\"1\"/>"
 			"		<Param name=\"time\" default=\"100000\"/>"
 			"	</GroupParam>"
 			"</Command>");
