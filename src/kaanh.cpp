@@ -2853,7 +2853,8 @@ namespace kaanh
 		plan_root->planPool().add<SetTool>();
 		plan_root->planPool().add<MovePressure>();
 		plan_root->planPool().add<MoveFeed>();
-		plan_root->planPool().add<MovePressureTool>();
+		plan_root->planPool().add<MovePressureToolYZ>();
+		plan_root->planPool().add<MovePressureToolXY>();
 		plan_root->planPool().add<GetForce>();
 
 		plan_root->planPool().add<cplan::MoveCircle>();
