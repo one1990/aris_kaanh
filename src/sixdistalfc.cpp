@@ -1685,10 +1685,10 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
 
 	for (int j = 0; j < 6; j++)
 	{
-		if (dX[j] > 0.00025)
-			dX[j] = 0.00025;
-		if (dX[j] < -0.00025)
-			dX[j] = -0.00025;
+        if (dX[j] > 0.00025)
+            dX[j] = 0.00025;
+        if (dX[j] < -0.00025)
+            dX[j] = -0.00025;
 	}
 
 
@@ -1822,7 +1822,7 @@ MovePressureToolYZ::MovePressureToolYZ(const std::string &name) :Plan(name)
 {
 
 	command().loadXmlStr(
-		"<Command name=\"mvPreT\">"
+        "<Command name=\"mvPreTYZ\">"
 		"	<GroupParam>"
 		"       <Param name=\"PressF\" default=\"0\"/>"
 		"   </GroupParam>"
@@ -2052,23 +2052,23 @@ auto MovePressureToolXY::executeRT(PlanTarget &target)->int
 	static bool MoveDirection = true;
 	static bool MoveDirectionT = true, MoveDirectionF = false;
 	static bool MoveDirectionChange = false;
-	static int StartCount = 1000;
+    static int StartCount = 15000;
 	double CosTheta1, CosTheta2;
 
 
 
 
-	static double pArc, vArc, aArc, vArcMax = 0.05;
+    static double pArc, vArc, aArc, vArcMax = 0.05;
 	aris::Size t_count;
 
-	double Square[4][3] = { {0.22,0.22,0},
-							{0,0,0},
-							{-0.22,0.22,0},
-							{0,0.4399,0} };
+    double Square[4][3] = { {-0.1,0.46,0},
+                            {0.2,0.46,0},
+                            {0.2,0.50,0},
+                            {-0.1,0.50,0} };
 
 
 	static double MoveLength = 0;
-	static double DecLength = 0.01, LengthT = 0.2, LengthF = 0.05;//LengthT>LengthF
+    static double DecLength = 0.01, LengthT = 0.2, LengthF = 0.00005;//LengthT>LengthF
 
 	LengthT = sqrt((Square[0][0] - Square[1][0])*(Square[0][0] - Square[1][0]) + (Square[0][1] - Square[1][1])*(Square[0][1] - Square[1][1]));
 	double CountFmax = sqrt((Square[2][0] - Square[1][0])*(Square[2][0] - Square[1][0]) + (Square[2][1] - Square[1][1])*(Square[2][1] - Square[1][1])) / LengthF;
@@ -2256,28 +2256,25 @@ auto MovePressureToolXY::executeRT(PlanTarget &target)->int
 	}
 
 
-	if (target.count > StartCount)
-	{
+
 		if (MoveDirection)
 		{
-			dX[0] = vArc * TangentArc[0] / 1000;
-			dX[2] = dX[2] + vArc * TangentArc[2] / 1000;
-			dX[2] = 0;
-			dX[1] = vArc * TangentArc[1] / 1000;
+            dX[0] = dX[0]+vArc * TangentArc[0] / 1000;
+            dX[2] = dX[2]+vArc * TangentArc[2] / 1000;
+            dX[1] = dX[1]+vArc * TangentArc[1] / 1000;
 		}
 		else
 		{
-			dX[0] = vArc * TangentArc[0] / 1000;
-			dX[2] = dX[2] + vArc * TangentArc[2] / 1000;
-			dX[2] = 0;
-			dX[1] = vArc * TangentArc[1] / 1000;
+            dX[0] = dX[0]+vArc * TangentArc[0] / 1000;
+            dX[2] = dX[2]+vArc * TangentArc[2] / 1000;
+            dX[1] = dX[1]+vArc * TangentArc[1] / 1000;
 		}
 		if (target.count > StartCount&&MoveDirectionT == true && MoveDirectionF == false)
 			if (MoveDirection)
 				MoveLength = MoveLength + sqrt(dX[0] * dX[0] + dX[1] * dX[1]);
 			else
 				MoveLength = MoveLength - sqrt(dX[0] * dX[0] + dX[1] * dX[1]);
-	}
+
 
 
 
@@ -2313,17 +2310,14 @@ auto MovePressureToolXY::executeRT(PlanTarget &target)->int
 	}*/
 
 	ForceToMeng = sT1[2][0];
-	if (ForceToMeng < -14)
-		ForceToMeng = -11.59;
-	if (ForceToMeng > -8)
-		ForceToMeng = -9.37;
+
 
 	ForceToMeng = vArc;
 	TimeToMeng = target.count / 1000.0;
 	if (target.count % 300 == 0)
 	{
 
-		cout << FT_KAI[2] << "*" << vArc << "*" << MoveDirection << "*" << MoveLength << endl;
+        cout << FT_KAI[2] << "*" << TangentArc[0] <<"*"<<TangentArc[1] << "*" << TangentArc[2] << "*" << FT0[2] << endl;
 
 		//cout << FT_KAI[2] << "*" << NormalAng << "*" << TransVector[0] << "*" << TransVector[1] << "*" << TransVector[2] << "*" << FT0[2] << endl;
 		//cout << FT_KAI[2] << "*" << NormalAng << "*" << TransVector[4] << "*" << TransVector[5] << "*" << TransVector[6] << "*" << FT0[2] << endl;
@@ -2338,10 +2332,10 @@ auto MovePressureToolXY::executeRT(PlanTarget &target)->int
 
 	for (int j = 0; j < 6; j++)
 	{
-		if (dX[j] > 0.00025)
-			dX[j] = 0.00025;
-		if (dX[j] < -0.00025)
-			dX[j] = -0.00025;
+        if (dX[j] > 0.00025)
+            dX[j] = 0.00025;
+        if (dX[j] < -0.00025)
+            dX[j] = -0.00025;
 	}
 
 
@@ -2365,9 +2359,9 @@ auto MovePressureToolXY::executeRT(PlanTarget &target)->int
 	//lout << stateTor1[0][0] << ",";lout << stateTor1[1][0] << ",";
 	//lout << stateTor1[2][0] << ",";lout << stateTor1[3][0] << ",";
    // lout << stateTor1[4][0] << ",";lout << stateTor1[5][0] << ",";
-   // lout << FT_KAI[0] << ",";lout << FT_KAI[1] << ",";
-	//lout << FT_KAI[2] << ",";lout << FT_KAI[3] << ",";
-	//lout << FT_KAI[4] << ",";lout << FT_KAI[5] << ",";
+    lout << FT_KAI[0] << ",";lout << FT_KAI[1] << ",";
+    lout << FT_KAI[2] << ",";lout << FT_KAI[3] << ",";
+    lout << FT_KAI[4] << ",";lout << FT_KAI[5] << ",";
 
 
 	 //lout << FT[0] << ",";lout << FT[1] << ",";
