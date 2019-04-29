@@ -150,8 +150,18 @@ namespace kaanh
 		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
 		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
 
+		virtual ~MovePoint();
 		explicit MovePoint(const std::string &name = "MovePoint_plan");
 		ARIS_REGISTER_TYPE(MovePoint);
+		MovePoint(const MovePoint &);
+		MovePoint(MovePoint &);
+		MovePoint& operator=(const MovePoint &);
+		MovePoint& operator=(MovePoint &&);
+		
+
+	private:
+		struct Imp;
+		aris::core::ImpPtr<Imp> imp_;
 	};
 
 	class Grasp : public aris::plan::Plan
