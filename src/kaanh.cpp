@@ -1849,6 +1849,7 @@ namespace kaanh
 		static std::atomic_int32_t vel_percent;
 		static std::atomic_int32_t is_increase;
 		static std::atomic_int32_t move_type;
+		static std::atomic_bool input_label;
 
 		std::vector<double> begin_pm, target_pm;
 		double vel, acc, dec;
@@ -1859,6 +1860,7 @@ namespace kaanh
 	std::atomic_int32_t MovePoint::Imp::vel_percent = 10;
 	std::atomic_int32_t MovePoint::Imp::is_increase = 0;
 	std::atomic_int32_t MovePoint::Imp::move_type = 0;
+	std::atomic_bool MovePoint::Imp::input_label = false;
 	auto MovePoint::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
 		auto c = target.controller;
@@ -1880,10 +1882,11 @@ namespace kaanh
 				Imp::cor_system.store(0);
 				Imp::vel_percent.store(10);
 				Imp::move_type.store(0);
+				Imp::input_label.store(true);
 
 				imp_->increase_count = std::stoi(params.at("increase_count"));
 				if (imp_->increase_count < 0 || imp_->increase_count>1e5)THROW_FILE_AND_LINE("");
-				imp_->vel = std::stod(params.at("vel"))*(1.0*Imp::vel_percent.load()) / 100.0;
+				imp_->vel = std::stod(params.at("vel"));
 				imp_->acc = std::stod(params.at("acc"));
 				imp_->dec = std::stod(params.at("dec"));
 
@@ -1914,6 +1917,7 @@ namespace kaanh
 				int increase_num;
 				increase_num = std::stod(p.second);
 				Imp::move_type.store(0);
+				Imp::input_label.store(true);
 				increase_num = std::max(std::min(1, increase_num), -1) * imp_->increase_count;
 				Imp::is_increase.store(increase_num);
 				target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION | NOT_PRINT_CMD_INFO | NOT_LOG_CMD_INFO;
@@ -1924,6 +1928,7 @@ namespace kaanh
 				int increase_num;
 				increase_num = std::stod(p.second);
 				Imp::move_type.store(1);
+				Imp::input_label.store(true);
 				increase_num = std::max(std::min(1, increase_num), -1) * imp_->increase_count;
 				Imp::is_increase.store(increase_num);
 				target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION | NOT_PRINT_CMD_INFO | NOT_LOG_CMD_INFO;
@@ -1934,6 +1939,7 @@ namespace kaanh
 				int increase_num;
 				increase_num = std::stod(p.second);
 				Imp::move_type.store(2);
+				Imp::input_label.store(true);
 				increase_num = std::max(std::min(1, increase_num), -1) * imp_->increase_count;
 				Imp::is_increase.store(increase_num);
 				target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION | NOT_PRINT_CMD_INFO | NOT_LOG_CMD_INFO;
@@ -1944,6 +1950,7 @@ namespace kaanh
 			int increase_num;
 			increase_num = std::stod(p.second);
 			Imp::move_type.store(3);
+			Imp::input_label.store(true);
 			increase_num = std::max(std::min(1, increase_num), -1) * imp_->increase_count;
 			Imp::is_increase.store(increase_num);
 			target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION | NOT_PRINT_CMD_INFO | NOT_LOG_CMD_INFO;
@@ -1954,6 +1961,7 @@ namespace kaanh
 			int increase_num;
 			increase_num = std::stod(p.second);
 			Imp::move_type.store(4);
+			Imp::input_label.store(true);
 			increase_num = std::max(std::min(1, increase_num), -1) * imp_->increase_count;
 			Imp::is_increase.store(increase_num);
 			target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION | NOT_PRINT_CMD_INFO | NOT_LOG_CMD_INFO;
@@ -1964,6 +1972,7 @@ namespace kaanh
 			int increase_num;
 			increase_num = std::stod(p.second);
 			Imp::move_type.store(5);
+			Imp::input_label.store(true);
 			increase_num = std::max(std::min(1, increase_num), -1) * imp_->increase_count;
 			Imp::is_increase.store(increase_num);
 			target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION | NOT_PRINT_CMD_INFO | NOT_LOG_CMD_INFO;
@@ -1990,40 +1999,35 @@ namespace kaanh
 		
 
 		// init status //
-		static int increase_status;
-		static std::array<double, 6> target_pe{ 0,0,0,0,0,0 };
-		if (target.count == 1)
+		static int increase_status = 0;
+		if (Imp::input_label.load())
 		{
-			increase_status = 0;
-			std::copy_n(pe_now, 6, target_pe.data());
-			std::fill_n(ve_now, 6, 0.0);
-			std::fill_n(ae_now, 6, 0.0);
+			increase_status = Imp::is_increase.load();
+			Imp::input_label.store(false);
 		}
-		
-		// get is_increase //
-		increase_status = Imp::is_increase.load();
-		
-		// calculate target pe //
-		double target_pos_new;
-		imp_->vel = 1.0*Imp::vel_percent.load() / 100.0;
-		
-		target_pos_new = target_pe[Imp::move_type.load()] + aris::dynamic::s_sgn(increase_status)*imp_->vel * 1e-3;
-		increase_status -= aris::dynamic::s_sgn(increase_status);
 
-		std::swap(target_pe[Imp::move_type.load()], target_pos_new);
+		if (increase_status)
+		{
+			std::cout << increase_status << std::endl;
+		}
+
+		// calculate target pos and max vel //
+		double target_pos, max_vel;
+		max_vel = imp_->vel*1.0*Imp::vel_percent.load() / 100.0;
+		target_pos = pe_now[Imp::move_type.load()] + aris::dynamic::s_sgn(increase_status)*max_vel * 1e-3;
+		increase_status -= aris::dynamic::s_sgn(increase_status);
 		
 		// 梯形轨迹规划 calculate real value //
 		double p_next, v_next, a_next;
 		{
 			aris::Size t;
 			aris::plan::moveAbsolute2(pe_now[Imp::move_type.load()], ve_now[Imp::move_type.load()], ae_now[Imp::move_type.load()]
-				, target_pe[Imp::move_type.load()], 0.0, 0.0
-				, imp_->vel, imp_->acc, imp_->dec
+				, target_pos, 0.0, 0.0
+				, max_vel, imp_->acc, imp_->dec
 				, 1e-3, 1e-10, p_next, v_next, a_next, t);
 		}
 		
-		// 获取位姿矩阵 //
-		
+		// 获取位姿矩阵 //	
 		double pe[6]{ 0,0,0,0,0,0 }, pm[16];
 		pe[Imp::move_type.load()] = p_next - pe_now[Imp::move_type.load()];
 		s_pe2pm(pe, pm, eu_type);
@@ -2051,7 +2055,7 @@ namespace kaanh
 		// 打印 //
 		auto &cout = controller->mout();
 
-		if (target.count % 200 == 0)
+		if (target.count % 1000 == 0)
 		{
 			for (Size i = 0; i < 16; i++)
 			{
@@ -2083,9 +2087,9 @@ namespace kaanh
 			"			<GroupParam name=\"start_group\">"
 			"				<Param name=\"start\"/>"
 			"				<Param name=\"increase_count\" default=\"50\"/>"
-			"				<Param name=\"vel\" default=\"0.1\" abbreviation=\"v\"/>"
-			"				<Param name=\"acc\" default=\"0.2\" abbreviation=\"a\"/>"
-			"				<Param name=\"dec\" default=\"0.2\" abbreviation=\"d\"/>"
+			"				<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
+			"				<Param name=\"acc\" default=\"20\" abbreviation=\"a\"/>"
+			"				<Param name=\"dec\" default=\"20\" abbreviation=\"d\"/>"
 			"			</GroupParam>"
 			"			<Param name=\"stop\"/>"
 			"			<GroupParam>"
