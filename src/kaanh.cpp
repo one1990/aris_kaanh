@@ -2088,8 +2088,8 @@ namespace kaanh
 			"				<Param name=\"start\"/>"
 			"				<Param name=\"increase_count\" default=\"50\"/>"
 			"				<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
-			"				<Param name=\"acc\" default=\"20\" abbreviation=\"a\"/>"
-			"				<Param name=\"dec\" default=\"20\" abbreviation=\"d\"/>"
+			"				<Param name=\"acc\" default=\"10\" abbreviation=\"a\"/>"
+			"				<Param name=\"dec\" default=\"10\" abbreviation=\"d\"/>"
 			"			</GroupParam>"
 			"			<Param name=\"stop\"/>"
 			"			<GroupParam>"
@@ -2125,6 +2125,7 @@ namespace kaanh
 		static std::atomic_bool input_label;
 
 		double vel, acc, dec;
+		double p_now[6], v_now[6], a_now[6];
 		int increase_count;
 	};
 	std::atomic_bool MoveJP::Imp::movejp_is_running = false;
@@ -2256,14 +2257,17 @@ namespace kaanh
 		auto &param = std::any_cast<MoveJPParam&>(target.param);
 
 		// get current pe //
-		double p_now[6], v_now[6], a_now[6];
-		for (Size i = 0; i < 6; ++i)
+		//double p_now[6], v_now[6], a_now[6];
+		if (target.count == 1)
 		{
-			p_now[i] = target.model->motionPool().at(i).mp();
-			v_now[i] = target.model->motionPool().at(i).mv();
-			a_now[i] = target.model->motionPool().at(i).ma();
+			for (Size i = 0; i < 6; ++i)
+			{
+				imp_->p_now[i] = target.model->motionPool().at(i).mp();
+				imp_->v_now[i] = target.model->motionPool().at(i).mv();
+				imp_->a_now[i] = target.model->motionPool().at(i).ma();
+			}
 		}
-		for (int i = 3; i < 6; ++i) if (p_now[i] > aris::PI) p_now[i] -= 2 * PI;
+		for (int i = 3; i < 6; ++i) if (imp_->p_now[i] > aris::PI) imp_->p_now[i] -= 2 * PI;
 
 		// init status //
 		static int increase_status = 0;
@@ -2276,44 +2280,44 @@ namespace kaanh
 		// calculate target pos and max vel //
 		double target_pos, max_vel;
 		max_vel = imp_->vel*1.0*Imp::vel_percent.load() / 100.0;
-		target_pos = p_now[Imp::move_type.load()] + aris::dynamic::s_sgn(increase_status)*max_vel * 1e-3;
+		target_pos = imp_->p_now[Imp::move_type.load()] + aris::dynamic::s_sgn(increase_status)*max_vel * 1e-3;
 		increase_status -= aris::dynamic::s_sgn(increase_status);
 
 		// 梯形轨迹规划 calculate real value //
 		double p_next, v_next, a_next;
 		{
 			aris::Size t;
-			aris::plan::moveAbsolute2(p_now[Imp::move_type.load()], v_now[Imp::move_type.load()], a_now[Imp::move_type.load()]
+			aris::plan::moveAbsolute2(imp_->p_now[Imp::move_type.load()], imp_->v_now[Imp::move_type.load()], imp_->a_now[Imp::move_type.load()]
 				, target_pos, 0.0, 0.0
 				, max_vel, imp_->acc, imp_->dec
 				, 1e-3, 1e-10, p_next, v_next, a_next, t);
 		}
 		target.model->motionPool().at(Imp::move_type.load()).setMp(p_next);
-
+		imp_->p_now[Imp::move_type.load()] = p_next;
+		imp_->v_now[Imp::move_type.load()] = v_next;
+		imp_->a_now[Imp::move_type.load()] = a_next;
 		// 运动学反解 //
 		if (!target.model->solverPool().at(1).kinPos())return -1;
 
 		// 打印 //
 		auto &cout = controller->mout();
-		if (target.count % 1000 == 0)
+		if (target.count % 300 == 0)
 		{
 			cout << p_next << "  ";
+			cout << v_next << "  ";
+			cout << a_next << "  ";
 			cout << std::endl;
-			for (Size i = 0; i < 6; i++)
-			{
-				cout << p_now[i] << "  ";
-			}
+			cout << imp_->p_now[Imp::move_type.load()] << "  ";
+			cout << imp_->v_now[Imp::move_type.load()] << "  ";
+			cout << imp_->a_now[Imp::move_type.load()] << "  ";
 			cout << std::endl;
 		}
 
 		// log //
 		auto &lout = controller->lout();
-		for (Size i = 0; i < 6; i++)
-		{
-			lout << controller->motionAtAbs(i).actualPos() << " ";
-			lout << controller->motionAtAbs(i).actualVel() << " ";
-			lout << controller->motionAtAbs(i).actualCur() << " ";
-		}
+		lout << target.model->motionPool().at(Imp::move_type.load()).mp() << " ";
+		lout << v_next << " ";
+		lout << a_next << " ";
 		lout << std::endl;
 
 		return Imp::movejp_is_running.load() ? 1 : 0;

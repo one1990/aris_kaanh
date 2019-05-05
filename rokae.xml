@@ -1548,8 +1548,8 @@
                                 <Param name="start"/>
                                 <Param name="increase_count" default="50"/>
                                 <Param name="vel" abbreviation="v" default="1"/>
-                                <Param name="acc" abbreviation="a" default="20"/>
-                                <Param name="dec" abbreviation="d" default="20"/>
+                                <Param name="acc" abbreviation="a" default="10"/>
+                                <Param name="dec" abbreviation="d" default="10"/>
                             </GroupParam>
                             <Param name="stop"/>
                             <GroupParam>
@@ -1576,8 +1576,8 @@
                                 <Param name="start"/>
                                 <Param name="increase_count" default="50"/>
                                 <Param name="vel" abbreviation="v" default="1"/>
-                                <Param name="acc" abbreviation="a" default="20"/>
-                                <Param name="dec" abbreviation="d" default="20"/>
+                                <Param name="acc" abbreviation="a" default="10"/>
+                                <Param name="dec" abbreviation="d" default="10"/>
                             </GroupParam>
                             <Param name="stop"/>
                             <GroupParam>
