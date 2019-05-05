@@ -2269,17 +2269,23 @@ namespace kaanh
 		}
 		for (int i = 3; i < 6; ++i) if (imp_->p_now[i] > aris::PI) imp_->p_now[i] -= 2 * PI;
 
-		// init status //
+		// init status and calculate target pos and max vel //
 		static int increase_status = 0;
+		double target_pos, target_vel, target_acc, max_vel;
 		if (Imp::input_label.load())
 		{
 			increase_status = Imp::is_increase.load();
 			Imp::input_label.store(false);
+			max_vel = imp_->vel*1.0*Imp::vel_percent.load() / 100.0;
+			target_vel = max_vel;
+			target_acc = imp_->a_now[Imp::move_type.load()];
 		}
-
-		// calculate target pos and max vel //
-		double target_pos, max_vel;
-		max_vel = imp_->vel*1.0*Imp::vel_percent.load() / 100.0;
+		else 
+		{
+			max_vel = imp_->vel*1.0*Imp::vel_percent.load() / 100.0;
+			target_vel = 0.0;
+			target_acc = 0.0;
+		}
 		target_pos = imp_->p_now[Imp::move_type.load()] + aris::dynamic::s_sgn(increase_status)*max_vel * 1e-3;
 		increase_status -= aris::dynamic::s_sgn(increase_status);
 
@@ -2288,7 +2294,7 @@ namespace kaanh
 		{
 			aris::Size t;
 			aris::plan::moveAbsolute2(imp_->p_now[Imp::move_type.load()], imp_->v_now[Imp::move_type.load()], imp_->a_now[Imp::move_type.load()]
-				, target_pos, 0.0, 0.0
+				, target_pos, target_vel, target_acc
 				, max_vel, imp_->acc, imp_->dec
 				, 1e-3, 1e-10, p_next, v_next, a_next, t);
 		}
@@ -2301,7 +2307,7 @@ namespace kaanh
 
 		// 打印 //
 		auto &cout = controller->mout();
-		if (target.count % 300 == 0)
+		if (target.count % 200 == 0)
 		{
 			cout << p_next << "  ";
 			cout << v_next << "  ";
@@ -2315,9 +2321,10 @@ namespace kaanh
 
 		// log //
 		auto &lout = controller->lout();
-		lout << target.model->motionPool().at(Imp::move_type.load()).mp() << " ";
-		lout << v_next << " ";
-		lout << a_next << " ";
+		lout << Imp::input_label.load() << " ";
+		lout << imp_->p_now[Imp::move_type.load()] << " ";
+		lout << imp_->v_now[Imp::move_type.load()] << " ";
+		lout << imp_->a_now[Imp::move_type.load()] << " ";
 		lout << std::endl;
 
 		return Imp::movejp_is_running.load() ? 1 : 0;
