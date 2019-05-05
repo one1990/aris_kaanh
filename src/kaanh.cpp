@@ -2322,7 +2322,7 @@ namespace kaanh
 		// log //
 		auto &lout = controller->lout();
 		lout << Imp::input_label.load() << " ";
-		lout << imp_->p_now[Imp::move_type.load()] << " ";
+		lout << target.model->motionPool().at(Imp::move_type.load()).mp() << " ";
 		lout << imp_->v_now[Imp::move_type.load()] << " ";
 		lout << imp_->a_now[Imp::move_type.load()] << " ";
 		lout << std::endl;
