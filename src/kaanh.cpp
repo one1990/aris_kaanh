@@ -2173,7 +2173,7 @@ namespace kaanh
 				if (!Imp::movejp_is_running.load())throw std::runtime_error("manual mode not started, when pe");
 
 				auto velocity = std::stoi(params.at("vel_percent"));
-				velocity = std::max(std::min(100, velocity), -100);
+				//velocity = std::max(std::min(100, velocity), -100);
 				Imp::vel_percent.store(velocity);
 
 				target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION | NOT_PRINT_CMD_INFO | NOT_LOG_CMD_INFO;
