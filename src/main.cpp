@@ -1,5 +1,5 @@
 ﻿#include <iostream>
-#include <aris.h>
+#include <aris.hpp>
 #include "kaanh.h"
 #include<atomic>
 #include<string>
@@ -14,128 +14,98 @@ int data_num = 0, data_num_send = 0;
 std::vector<std::vector<std::string>> plantrack(6, std::vector<std::string>());
 std::atomic_int which_di = 0;
 
-auto xmlpath = std::filesystem::absolute(".");
-const std::string xmlfile = "plan.xml";
+auto xmlpath = std::filesystem::absolute(".");//获取当前工程所在的路径
+const std::string xmlfile = "rokae.xml";
 
 int main(int argc, char *argv[])
 {
-	xmlpath = xmlpath / xmlfile;
+    std::cout <<"new"<<std::endl;
+
+    xmlpath = xmlpath / xmlfile;
     std::cout<< xmlpath <<std::endl;
 	auto&cs = aris::server::ControlServer::instance();
 	auto port = argc < 2 ? 5866 : std::stoi(argv[1]);
 
+
+	//cs.saveXmlFile("C:/Users/qianch_kaanh_cn/Desktop/build_qianch/rokae.xml");
+	//生成rokae.xml文档
+	/*
 	cs.resetController(kaanh::createControllerRokaeXB4().release());
 	cs.resetModel(aris::dynamic::createModelRokaeXB4().release());
 	cs.resetPlanRoot(kaanh::createPlanRootRokaeXB4().release());
 	cs.resetSensorRoot(new aris::sensor::SensorRoot);
 
+	//std::cout << cs.controller().xmlString() << std::endl;
+
 	//末端位置加0.1的工件长度//
-	
 	double pe[6];
 	cs.model().generalMotionPool()[0].makI().getPe(
-		cs.model().generalMotionPool()[0].makI().fatherPart(),
-		pe);
+    cs.model().generalMotionPool()[0].makI().fatherPart(),
+    pe);
 
-	pe[0] += 0.3;
+    pe[0] += 0.06;
 	cs.model().generalMotionPool()[0].makI().setPrtPe(pe);
 	cs.model().generalMotionPool()[0].makJ();
-
 	cs.model().solverPool()[0].allocateMemory();
 
-	aris::core::Socket socket;
-	socket.setConnectType(aris::core::Socket::WEB);
+	cs.saveXmlFile(xmlpath.string().c_str());
+	*/
 
-	//创建一个di信号监控线程//
-	std::thread watch_di_thread;
 
+    cs.loadXmlFile(xmlpath.string().c_str());
+
+
+
+	cs.start();
+
+	// interaction //
+	std::list<std::tuple<aris::core::Msg, std::shared_ptr<aris::plan::PlanTarget>>> result_list;
+	std::mutex result_mutex;
+
+	aris::core::Socket socket("server", "", "5866", aris::core::Socket::WEB);
 	socket.setOnReceivedMsg([&](aris::core::Socket *socket, aris::core::Msg &msg)->int
 	{
 		std::string msg_data = msg.toString();
 
-		//std::cout << "recv:" << msg_data << std::endl;
+		static int cout_count = 0;
 
-		if (msg.header().msg_id_ == M_RUN)
+		if (++cout_count % 10 == 0)
+			//std::cout << "recv:" << msg_data << std::endl;
+
+		LOG_INFO << "the request is cmd:"
+			<< msg.header().msg_size_ << "&"
+			<< msg.header().msg_id_ << "&"
+			<< msg.header().msg_type_ << "&"
+			<< msg.header().reserved1_ << "&"
+			<< msg.header().reserved2_ << "&"
+			<< msg.header().reserved3_ << ":"
+			<< msg_data << std::endl;
+
+		try
 		{
-			LOG_INFO << "the request is cmd:"
-				<< msg.header().msg_size_ << "&"
-				<< msg.header().msg_id_ << "&"
-				<< msg.header().msg_type_ << "&"
-				<< msg.header().reserved1_ << "&"
-				<< msg.header().reserved2_ << "&"
-				<< msg.header().reserved3_ << ":"
-				<< msg_data << std::endl;
-
-			std::cout << "M_RUN id:" << msg.header().msg_id_ << std::endl;
-			//socket->sendMsg(aris::core::Msg(msg_data));
-			try
+			std::stringstream ss(msg_data);
+			for (std::string cmd; std::getline(ss, cmd);)
 			{
-				try
-				{
-					auto id = cs.executeCmd(aris::core::Msg(msg_data));
-					std::cout << "command id:" << id << std::endl;
-					aris::core::Msg msg;
-					msg.header().msg_id_ = M_RUN;
-					socket->sendMsg(msg);
-				}
-				catch (std::exception &e)
-				{
-					std::cout << e.what() << std::endl;
-					LOG_ERROR << e.what() << std::endl;
-					aris::core::Msg msg = aris::core::Msg(e.what());
-					msg.header().msg_id_ = M_RUN;
-					socket->sendMsg(msg);
-				}
-			}
-			catch (std::exception &e)
-			{
-				std::cout << e.what() << std::endl;
-				LOG_ERROR << e.what() << std::endl;
-			}
+				auto result = cs.executeCmd(aris::core::Msg(cmd));
 
+				std::unique_lock<std::mutex> l(result_mutex);
+				result_list.push_back(std::make_tuple(msg, result));
+			}
 		}
-		else if (msg.header().msg_id_ == READ_RT_DATA)
+		catch (std::exception &e)
 		{
-			LOG_INFO_EVERY_N(10) << "socket receive request msg:"
-				<< msg.header().msg_size_ << "&"
-				<< msg.header().msg_id_ << "&"
-				<< msg.header().msg_type_ << "&"
-				<< msg.header().reserved1_ << "&"
-				<< msg.header().reserved2_ << "&"
-				<< msg.header().reserved3_ << ":"
-				<< msg_data << std::endl;
+			std::cout << e.what() << std::endl;
+			LOG_ERROR << e.what() << std::endl;
 
-			//std::cout << "READ_RT_DATA id:" << msg.header().msg_id_ << std::endl;
-
-			auto part_pm_vec = std::make_any<std::vector<double> >(cs.model().partPool().size() * 16);
-			cs.getRtData([](aris::server::ControlServer& cs, std::any& data)
-			{
-				for (aris::Size i(-1); ++i < cs.model().partPool().size();)
-					cs.model().partPool().at(i).getPm(std::any_cast<std::vector<double>&>(data).data() + i * 16);
-				// rt copy fce data //
-				std::copy_n(fce_data, data_num, fce_send);
-				// clear data num //
-				data_num_send = data_num;
-				data_num = 0;
-
-			}, part_pm_vec);
-
-			std::vector<double> part_pq(cs.model().partPool().size() * 7);
-			for (aris::Size i(-1); ++i < cs.model().partPool().size();)
-			{
-				aris::dynamic::s_pm2pq(std::any_cast<std::vector<double>&>(part_pm_vec).data() + i * 16, part_pq.data() + i * 7);
-			}
-			//// return binary ////
-			aris::core::Msg msg;
-			msg.header().msg_id_ = READ_RT_DATA;
-			msg.copy(part_pq.data(), part_pq.size() * 8);
-			msg.copyMore(&data_num_send, 4);
-			msg.copyMore(fce_send, data_num_send * 8);
 			try
 			{
-				socket->sendMsg(msg);
-				//调试打印//
-				//std::string msg_data = msg.toString();
-				//std::cout <<"rt data length:"<< msg_data.length() << std::endl;
+				aris::core::Msg m;
+				m.setMsgID(msg.header().msg_id_);
+				m.setType(msg.header().msg_type_);
+				m.header().reserved1_ = msg.header().reserved1_;
+				m.header().reserved2_ = msg.header().reserved2_;
+				m.header().reserved3_ = msg.header().reserved3_;
+				socket->sendMsg(m);
 			}
 			catch (std::exception &e)
 			{
@@ -143,364 +113,7 @@ int main(int argc, char *argv[])
 				LOG_ERROR << e.what() << std::endl;
 			}
 		}
-		else if (msg.header().msg_id_ == READ_XML)
-		{
-			LOG_INFO << "the request is cmd:"
-				<< msg.header().msg_size_ << "&"
-				<< msg.header().msg_id_ << "&"
-				<< msg.header().msg_type_ << "&"
-				<< msg.header().reserved1_ << "&"
-				<< msg.header().reserved2_ << "&"
-				<< msg.header().reserved3_ << ":"
-				<< msg_data << std::endl;
-			
-			std::cout << "READ_XML id:" << msg.header().msg_id_ << std::endl;
-			try
-			{
-				try
-				{
-					tinyxml2::XMLDocument xml_data;
-					tinyxml2::XMLPrinter printer;
-					xml_data.LoadFile(xmlpath.string().c_str());
-					xml_data.Print(&printer);
-					aris::core::Msg msg = aris::core::Msg(printer.CStr());
-					msg.header().msg_id_ = READ_XML;
-					socket->sendMsg(msg);
-				}
-				catch (std::exception &e)
-				{
-					std::cout << e.what() << std::endl;
-					LOG_ERROR << e.what() << std::endl;
-					aris::core::Msg msg = aris::core::Msg(e.what());
-					msg.header().msg_id_ = READ_XML;
-					socket->sendMsg(msg);
-				}
-			}
-			catch (std::exception &e)
-			{
-				std::cout << e.what() << std::endl;
-				LOG_ERROR << e.what() << std::endl;
-			}
-		}
-		else if (msg.header().msg_id_ == A_RUN)
-		{
-		if (is_automatic) return 0;
-			LOG_INFO << "switch to automatic mode:"
-				<< msg.header().msg_size_ << "&"
-				<< msg.header().msg_id_ << "&"
-				<< msg.header().msg_type_ << "&"
-				<< msg.header().reserved1_ << "&"
-				<< msg.header().reserved2_ << "&"
-				<< msg.header().reserved3_ << ":"
-				<< msg_data << std::endl;
 
-			std::cout << "A_RUN id:" << msg.header().msg_id_ << std::endl;
-
-			//读取字符串并将其存储在xmlpath指定的路径下//	
-			try
-			{
-				try
-				{
-					tinyxml2::XMLDocument xml_data;
-					xml_data.Parse(msg_data.c_str());
-					xml_data.SaveFile(xmlpath.string().c_str());
-				}
-				catch (std::exception &e)
-				{
-					std::cout << e.what() << std::endl;
-					LOG_ERROR << e.what() << std::endl;
-					aris::core::Msg msg = aris::core::Msg(e.what());
-					msg.header().msg_id_ = A_RUN;
-					socket->sendMsg(msg);
-				}
-			}
-			catch (std::exception &e)
-			{
-				std::cout << e.what() << std::endl;
-				LOG_ERROR << e.what() << std::endl;
-			}
-
-			std::cout << "save xml successed:" << std::endl;
-			//加载指定路径下的xml文件//
-			tinyxml2::XMLDocument doc;
-			tinyxml2::XMLError errXml = doc.LoadFile(xmlpath.string().c_str());
-			if (errXml != tinyxml2::XML_SUCCESS)
-			{
-				std::cout << errXml << std::endl;
-				LOG_ERROR << errXml << std::endl;
-				aris::core::Msg msg = aris::core::Msg(errXml);
-				msg.header().msg_id_ = A_RUN;
-				socket->sendMsg(msg);
-				return false;
-			}
-			tinyxml2::XMLElement* root = doc.RootElement();
-			tinyxml2::XMLElement* CmdListNode = root->FirstChildElement("CmdList");
-			while (CmdListNode != NULL)
-			{
-				if (0 == strcmp("1", (CmdListNode->Attribute("CH"))))
-				{
-					tinyxml2::XMLElement* cmdNode = CmdListNode->FirstChildElement("cmd");
-					for (std::int16_t i = 0; i < atoi(CmdListNode->Attribute("Count")); i++)
-					{
-						plantrack[0].push_back(cmdNode->GetText());
-						cmdNode = cmdNode->NextSiblingElement();
-					}
-				}
-				else if (0 == strcmp("2", (CmdListNode->Attribute("CH"))))
-				{
-					tinyxml2::XMLElement* cmdNode = CmdListNode->FirstChildElement("cmd");
-					for (std::int16_t i = 0; i < atoi(CmdListNode->Attribute("Count")); i++)
-					{
-						plantrack[1].push_back(cmdNode->GetText());
-						cmdNode = cmdNode->NextSiblingElement();
-					}
-				}
-				else if (0 == strcmp("3", (CmdListNode->Attribute("CH"))))
-				{
-					tinyxml2::XMLElement* cmdNode = CmdListNode->FirstChildElement("cmd");
-					for (std::int16_t i = 0; i < atoi(CmdListNode->Attribute("Count")); i++)
-					{
-						plantrack[2].push_back(cmdNode->GetText());
-						cmdNode = cmdNode->NextSiblingElement();
-					}
-				}
-				else if (0 == strcmp("4", (CmdListNode->Attribute("CH"))))
-				{
-					tinyxml2::XMLElement* cmdNode = CmdListNode->FirstChildElement("cmd");
-					for (std::int16_t i = 0; i < atoi(CmdListNode->Attribute("Count")); i++)
-					{
-						plantrack[3].push_back(cmdNode->GetText());
-						cmdNode = cmdNode->NextSiblingElement();
-					}
-				}
-				else if (0 == strcmp("5", (CmdListNode->Attribute("CH"))))
-				{
-					tinyxml2::XMLElement* cmdNode = CmdListNode->FirstChildElement("cmd");
-					for (std::int16_t i = 0; i < atoi(CmdListNode->Attribute("Count")); i++)
-					{
-						plantrack[4].push_back(cmdNode->GetText());
-						cmdNode = cmdNode->NextSiblingElement();
-					}
-				}
-				else if (0 == strcmp("6", (CmdListNode->Attribute("CH"))))
-				{
-					tinyxml2::XMLElement* cmdNode = CmdListNode->FirstChildElement("cmd");
-					for (std::int16_t i = 0; i < atoi(CmdListNode->Attribute("Count")); i++)
-					{
-						plantrack[5].push_back(cmdNode->GetText());
-						cmdNode = cmdNode->NextSiblingElement();
-					}
-				}
-		
-				CmdListNode = CmdListNode->NextSiblingElement();	
-			}
-			std::cout << "load xml successed:" << std::endl;
-
-			//自动模式判断标志位，true为自动，false切出自动//
-			is_automatic = true;
-
-			//di信号监控线程实现//
-			watch_di_thread = std::thread([&]()->void {
-				
-				while (is_automatic)
-				{
-					int which_di_local = which_di.load();
-					
-					switch (which_di_local)
-					{
-					case 0:
-						break;
-					case 1:
-					{
-						for (std::uint16_t i = 0; i < plantrack[which_di_local - 1].size(); i++)
-						{
-							auto id = cs.executeCmd(aris::core::Msg(plantrack[which_di_local - 1][i]));
-						}		
-						which_di.store(0);
-						try
-						{
-							std::cout << "CH1 plan finished ,start listening DI signal again" << std::endl;
-							auto id = cs.executeCmd(aris::core::Msg("listenDI"));
-							std::cout << "command id:" << id << std::endl;
-						}
-						catch (std::exception &e)
-						{
-							std::cout << e.what() << std::endl;
-							LOG_ERROR << e.what() << std::endl;
-						}
-						break;
-					}
-					case 2:
-					{
-						for (std::uint16_t i = 0; i < plantrack[which_di_local - 1].size(); i++)
-						{
-							auto id = cs.executeCmd(aris::core::Msg(plantrack[which_di_local - 1][i]));
-						}
-						which_di.store(0);
-						try
-						{
-							std::cout << "CH2 plan finished ,start listening DI signal again" << std::endl;
-							auto id = cs.executeCmd(aris::core::Msg("listenDI"));
-							std::cout << "command id:" << id << std::endl;
-						}
-						catch (std::exception &e)
-						{
-							std::cout << e.what() << std::endl;
-							LOG_ERROR << e.what() << std::endl;
-						}
-						break;
-					}
-					case 3:
-					{
-						for (std::uint16_t i = 0; i < plantrack[which_di_local - 1].size(); i++)
-						{
-							auto id = cs.executeCmd(aris::core::Msg(plantrack[which_di_local - 1][i]));
-						}
-						which_di.store(0);
-						try
-						{
-							std::cout << "CH3 plan finished ,start listening DI signal again" << std::endl;
-							auto id = cs.executeCmd(aris::core::Msg("listenDI"));
-							std::cout << "command id:" << id << std::endl;
-						}
-						catch (std::exception &e)
-						{
-							std::cout << e.what() << std::endl;
-							LOG_ERROR << e.what() << std::endl;
-						}
-						break;
-					}
-					case 4:
-					{
-						for (std::uint16_t i = 0; i < plantrack[which_di_local - 1].size(); i++)
-						{
-							auto id = cs.executeCmd(aris::core::Msg(plantrack[which_di_local - 1][i]));
-						}
-						which_di.store(0);
-						try
-						{
-							std::cout << "CH4 plan finished ,start listening DI signal again" << std::endl;
-							auto id = cs.executeCmd(aris::core::Msg("listenDI"));
-							std::cout << "command id:" << id << std::endl;
-						}
-						catch (std::exception &e)
-						{
-							std::cout << e.what() << std::endl;
-							LOG_ERROR << e.what() << std::endl;
-						}
-						break;
-					}
-					case 5:
-					{
-						for (std::uint16_t i = 0; i < plantrack[which_di_local - 1].size(); i++)
-						{
-							auto id = cs.executeCmd(aris::core::Msg(plantrack[which_di_local - 1][i]));
-						}
-						which_di.store(0);
-						try
-						{
-							std::cout << "CH5 plan finished ,start listening DI signal again" << std::endl;
-							auto id = cs.executeCmd(aris::core::Msg("listenDI"));
-							std::cout << "command id:" << id << std::endl;
-						}
-						catch (std::exception &e)
-						{
-							std::cout << e.what() << std::endl;
-							LOG_ERROR << e.what() << std::endl;
-						}
-						break;
-					}
-					case 6:
-					{
-						for (std::uint16_t i = 0; i < plantrack[which_di_local - 1].size(); i++)
-						{
-							auto id = cs.executeCmd(aris::core::Msg(plantrack[which_di_local - 1][i]));
-						}
-						which_di.store(0);
-						try
-						{
-							std::cout << "CH6 plan finished ,start listening DI signal again" << std::endl;
-							auto id = cs.executeCmd(aris::core::Msg("listenDI"));
-							std::cout << "command id:" << id << std::endl;
-						}
-						catch (std::exception &e)
-						{
-							std::cout << e.what() << std::endl;
-							LOG_ERROR << e.what() << std::endl;
-						}
-						break;
-					}
-					default:
-						;
-					}
-					
-					//实时线程休息1ms//
-					std::this_thread::sleep_for(std::chrono::milliseconds(1));
-				}
-			});
-			
-			//开启di信号实时监控//
-			try
-			{
-				std::cout << "start listening DI signal" << std::endl;
-				auto id = cs.executeCmd(aris::core::Msg("listenDI"));
-				std::cout << "command id:" << id << std::endl;
-			}
-			catch (std::exception &e)
-			{
-				std::cout << e.what() << std::endl;
-				LOG_ERROR << e.what() << std::endl;
-			}
-		}
-		else if (msg.header().msg_id_ == A_QUIT)
-		{
-			LOG_INFO << "quit automatic mode:" 
-				<< msg.header().msg_id_ << "&"
-				<< msg_data << std::endl;
-
-			std::cout << "A_QUIT id:" << msg.header().msg_id_ << std::endl;
-			
-			//回收栈资源//
-			if (is_automatic)
-			{
-				is_automatic = false;
-				watch_di_thread.join();
-			}
-			for (std::int16_t i = 0; i < 6; i++)
-			{
-				plantrack[i].clear();
-			}
-			
-		}
-		else
-		{
-			LOG_INFO << "undefined msg_id:" 
-				<< msg.header().msg_size_ << "&"
-				<< msg.header().msg_id_ << "&"
-				<< msg.header().msg_type_ << "&"
-				<< msg.header().reserved1_ << "&"
-				<< msg.header().reserved2_ << "&"
-				<< msg.header().reserved3_ << ":"
-				<< msg_data << std::endl;
-			std::cout << "undefined msg id:" << msg.header().msg_id_ << std::endl;
-			try
-			{
-				try
-				{
-					socket->sendMsg(msg);
-				}
-				catch (std::exception &e)
-				{
-					std::cout << e.what() << std::endl;
-					LOG_ERROR << e.what() << std::endl;
-				}
-			}
-			catch (std::exception &e)
-			{
-				std::cout << e.what() << std::endl;
-				LOG_ERROR << e.what() << std::endl;
-			}
-		}
 		return 0;
 	});
 	socket.setOnReceivedConnection([](aris::core::Socket *sock, const char *ip, int port)->int
@@ -534,39 +147,159 @@ int main(int argc, char *argv[])
 
 		return 0;
 	});
-	
-	cs.start();
 	socket.startServer(std::to_string(port));
-	//try 
-	//{
-	//	cs.executeCmd(aris::core::Msg("moveJS"));
-	//}
-	//catch (std::exception &e)
-	//{
-	//	std::cout << e.what() << std::endl;
-	//	//1LOG_ERROR << e.what() << std::endl;
-	//}
-	
+
+	std::thread result_thread([&]()
+	{
+		while (true)
+		{
+			std::unique_lock<std::mutex> lck(result_mutex);
+			for (auto result = result_list.begin(); result != result_list.end();)
+			{
+				auto cmd_ret = std::get<1>(*result);
+				if (cmd_ret->finished.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready)
+				{
+					auto ret = cmd_ret->ret;
+					auto &msg = std::get<0>(*result);
+
+					if (auto str = std::any_cast<std::string>(&ret))
+					{
+						try
+						{
+							aris::core::Msg ret_msg(*str);
+
+							ret_msg.setMsgID(msg.header().msg_id_);
+							ret_msg.setType(msg.header().msg_type_);
+							ret_msg.header().reserved1_ = msg.header().reserved1_;
+							ret_msg.header().reserved2_ = msg.header().reserved2_;
+							ret_msg.header().reserved3_ = msg.header().reserved3_;
+							socket.sendMsg(ret_msg);
+						}
+						catch (std::exception &e)
+						{
+							std::cout << e.what() << std::endl;
+							LOG_ERROR << e.what() << std::endl;
+						}
+					}
+					else
+					{
+						try
+						{
+							aris::core::Msg ret_msg;
+							ret_msg.setMsgID(msg.header().msg_id_);
+							ret_msg.setType(msg.header().msg_type_);
+							ret_msg.header().reserved1_ = msg.header().reserved1_;
+							ret_msg.header().reserved2_ = msg.header().reserved2_;
+							ret_msg.header().reserved3_ = msg.header().reserved3_;
+							socket.sendMsg(ret_msg);
+						}
+						catch (std::exception &e)
+						{
+							std::cout << e.what() << std::endl;
+							LOG_ERROR << e.what() << std::endl;
+						}
+					}
+				}
+
+				result_list.erase(result++);
+			}
+			lck.unlock();
+
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+		}
+	});
+
+	/*
+	aris::core::Socket udp_socket("server", "", "5867", aris::core::Socket::UDP_RAW);
+	udp_socket.setOnReceivedRawData([&](aris::core::Socket *socket, const char *data, int size)->int
+	{
+		try
+		{
+			std::string msg_data(data, size);
+
+			aris::core::Calculator c;
+			auto mat = c.calculateExpression(msg_data);
+
+			double value[6]{ 2147483647, 2147483647, 2147483647, 2147483647, 2147483647, 2147483647 };
+			s_vs(6, value, mat.data());
+			s_nv(6, 1.0 / 2147483647.0, mat.data());
+
+			// xy 客户和simtool不一样 //
+			std::swap(mat.data()[0], mat.data()[1]);
+			mat.data()[0] = -mat.data()[0];
+
+			std::swap(mat.data()[3], mat.data()[4]);
+			mat.data()[3] = -mat.data()[3];
+
+			mat.data()[0] *= 0.035;
+			mat.data()[1] *= 0.035;
+			mat.data()[2] *= 0.037;
+			mat.data()[3] *= 0.08;
+			mat.data()[4] *= 0.08;
+			mat.data()[5] *= 0.04;
+
+			// 向上的轴加1.0，为默认位置 //
+			mat.data()[2] += 0.513;
+			mat.data()[1] -= 0.0103;
+
+			auto cmd = "am --pe=" + mat.toString();
+
+			static int i = 0;
+			if (++i % 100 == 0)
+			{
+				std::cout << cmd << std::endl;
+			}
+
+
+			cs.executeCmd(aris::core::Msg(cmd));
+		}
+		catch (std::runtime_error &e)
+		{
+			std::cout << e.what() << std::endl;
+		}
+
+		return 0;
+	});
+	udp_socket.setOnReceivedConnection([](aris::core::Socket *sock, const char *ip, int port)->int
+	{
+		std::cout << "socket receive connection" << std::endl;
+		LOG_INFO << "socket receive connection:\n"
+			<< std::setw(aris::core::LOG_SPACE_WIDTH) << "|" << "  ip:" << ip << "\n"
+			<< std::setw(aris::core::LOG_SPACE_WIDTH) << "|" << "port:" << port << std::endl;
+		return 0;
+	});
+	udp_socket.setOnLoseConnection([](aris::core::Socket *socket)
+	{
+		std::cout << "socket lose connection" << std::endl;
+		LOG_INFO << "socket lose connection" << std::endl;
+		for (;;)
+		{
+			try
+			{
+				socket->startServer("5866");
+				break;
+			}
+			catch (std::runtime_error &e)
+			{
+				std::cout << e.what() << std::endl << "will try to restart server socket in 1s" << std::endl;
+				LOG_ERROR << e.what() << std::endl << "will try to restart server socket in 1s" << std::endl;
+				std::this_thread::sleep_for(std::chrono::seconds(1));
+			}
+		}
+		std::cout << "socket restart successful" << std::endl;
+		LOG_INFO << "socket restart successful" << std::endl;
+
+		return 0;
+	});
+	udp_socket.startServer();
+	*/
+
 	// 接收命令 //
 	for (std::string command_in; std::getline(std::cin, command_in);)
 	{
 		try
 		{
-			if (command_in == "start")
-			{
-				cs.start();
-				socket.startServer(std::to_string(port));
-			}
-			else if (command_in == "stop")
-			{
-				cs.stop();
-				socket.stop();
-			}
-			else
-			{
-				auto id = cs.executeCmd(aris::core::Msg(command_in));
-				std::cout << "command id:" << id << std::endl;
-			}
+			auto target = cs.executeCmd(aris::core::Msg(command_in));
 		}
 		catch (std::exception &e)
 		{
