@@ -2,6 +2,8 @@
 #include"kaanh.h"
 #include "sixdistalfc.h"
 
+#include <array>
+
 
 using namespace aris::dynamic;
 using namespace aris::plan;
@@ -33,15 +35,6 @@ namespace kaanh
 			"			</Pdo>"
 			"		</SyncManager>"
 			"		<SyncManager is_tx=\"true\">"
-			"			<Pdo index=\"0x1A02\" is_tx=\"true\">"
-            "				<PdoEntry name=\"Int_Input_DataNo\" index=\"0x6020\" subindex=\"0x00\" size=\"16\"/>"
-            "				<PdoEntry name=\"Int_Input_Fx\" index=\"0x6020\" subindex=\"0x01\" size=\"32\"/>"
-            "				<PdoEntry name=\"Int_Input_Fy\" index=\"0x6020\" subindex=\"0x02\" size=\"32\"/>"
-            "				<PdoEntry name=\"Int_Input_Fz\" index=\"0x6020\" subindex=\"0x03\" size=\"32\"/>"
-            "				<PdoEntry name=\"Int_Input_Mx\" index=\"0x6020\" subindex=\"0x04\" size=\"32\"/>"
-            "				<PdoEntry name=\"Int_Input_My\" index=\"0x6020\" subindex=\"0x05\" size=\"32\"/>"
-            "				<PdoEntry name=\"Int_Input_Mz\" index=\"0x6020\" subindex=\"0x06\" size=\"32\"/>"
-			"			</Pdo>"
 			"			<Pdo index=\"0x1A03\" is_tx=\"true\">"
             "				<PdoEntry name=\"Real_Input_DataNo\" index=\"0x6030\" subindex=\"0x00\" size=\"16\"/>"
             "				<PdoEntry name=\"Real_Input_Fx\" index=\"0x6030\" subindex=\"0x01\" size=\"32\"/>"
@@ -50,11 +43,6 @@ namespace kaanh
             "				<PdoEntry name=\"Real_Input_Mx\" index=\"0x6030\" subindex=\"0x04\" size=\"32\"/>"
             "				<PdoEntry name=\"Real_Input_My\" index=\"0x6030\" subindex=\"0x05\" size=\"32\"/>"
             "				<PdoEntry name=\"Real_Input_Mz\" index=\"0x6030\" subindex=\"0x06\" size=\"32\"/>"
-			"			</Pdo>"
-			"			<Pdo index=\"0x1A04\" is_tx=\"true\">"
-			"				<PdoEntry name=\"Res_Instruction\" index=\"0x6040\" subindex=\"0x01\" size=\"16\"/>"
-			"				<PdoEntry name=\"Res_Para1\" index=\"0x6040\" subindex=\"0x02\" size=\"16\"/>"
-			"				<PdoEntry name=\"Res_Para2\" index=\"0x6040\" subindex=\"0x03\" size=\"16\"/>"
 			"			</Pdo>"
 			"		</SyncManager>"
 			"	</SyncManagerPoolObject>"
@@ -123,6 +111,15 @@ namespace kaanh
 		auto &makI = p6.markerPool().add<Marker>("ee_makI", pm_ee_i);
 		auto &makJ = model->ground().markerPool().add<Marker>("ee_makJ", pm_ee_j);
 		auto &ee = model->generalMotionPool().add<aris::dynamic::GeneralMotion>("ee", &makI, &makJ, false);
+
+		/*
+		makI.prtPm();
+		makI.pm();
+
+		double pq_ee_i[]{ 0.5, 0.0, 0.6295, 0.0, 0.0, 0.0, 1.0 };
+		auto &tool1 = p6.markerPool().add<Marker>("tool1", pm_ee_i);
+		tool1.prtPm();
+		*/
 
 		// change robot pose //
 		if (robot_pm)
@@ -229,6 +226,59 @@ namespace kaanh
 			"<Command name=\"moveInit\">"
 			"</Command>");
 	}
+
+
+	// 获取末端位置 //
+	auto Get_ee_pq::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		auto ee_pq_vec = std::make_any<std::vector<double> >(7);
+		target.server->getRtData([](aris::server::ControlServer& cs, std::any& data)
+		{
+			cs.model().generalMotionPool().at(0).getMpq(std::any_cast<std::vector<double>&>(data).data());
+		}, ee_pq_vec);
+		auto pq = std::any_cast<std::vector<double>&>(ee_pq_vec);
+
+		std::string ret(reinterpret_cast<char*>(pq.data()), pq.size() * sizeof(double));
+		target.ret = ret;
+		target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_PRINT_CMD_INFO | NOT_PRINT_CMD_INFO;
+	}
+	auto Get_ee_pq::collectNrt(PlanTarget &target)->void {}
+	Get_ee_pq::Get_ee_pq(const std::string &name) : Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"get_ee_pq\">"
+			"</Command>");
+	}
+
+
+	// 获取电机电流 //
+	auto Get_cur::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		auto i = std::stoi(params.at("which_motor"));
+		std::any cur_a = double(0);
+		target.server->getRtData([&](aris::server::ControlServer& cs, std::any &data)->void
+		{
+			std::any_cast<double&>(data) = cs.controller().motionPool().at(i).actualCur();
+		}, cur_a);
+
+		//auto cur = std::any_cast<double&>(cur_a);
+		static double cur = 0.0;
+		static int counter = 1;
+		cur = 10 * std::sin(2*PI*counter++/100);
+
+		std::string ret(reinterpret_cast<char*>(&cur), 1 * sizeof(double));
+		target.ret = ret;
+		target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_PRINT_CMD_INFO | NOT_PRINT_CMD_INFO;
+	}
+	auto Get_cur::collectNrt(PlanTarget &target)->void {}
+	Get_cur::Get_cur(const std::string &name) : Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"get_cur\">"
+			"		<Param name=\"which_motor\" default=\"1\"/>"
+			"</Command>");
+	}
+
 
 	// 末端四元数xyz方向余弦轨迹；速度前馈//
 	struct MoveXParam
@@ -338,6 +388,7 @@ namespace kaanh
 			"	</GroupParam>"
 			"</Command>");
 	}
+
 
 	// 单关节正弦往复轨迹 //
 	struct MoveJSParam
@@ -804,141 +855,144 @@ namespace kaanh
 		std::vector<bool> joint_active_vec;
 	};
 	auto MoveJR::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
-		{
-			auto c = target.controller;
-			MoveJRParam param;
+	{
+		auto c = target.controller;
+		MoveJRParam param;
 
-			for (auto cmd_param : params)
+		for (auto cmd_param : params)
+		{
+			if (cmd_param.first == "all")
 			{
-				if (cmd_param.first == "all")
+				param.joint_active_vec.resize(target.model->motionPool().size(), true);
+			}
+			else if (cmd_param.first == "none")
+			{
+				param.joint_active_vec.resize(target.model->motionPool().size(), false);
+			}
+			else if (cmd_param.first == "motion_id")
+			{
+				param.joint_active_vec.resize(target.model->motionPool().size(), false);
+				param.joint_active_vec.at(std::stoi(cmd_param.second)) = true;
+			}
+			else if (cmd_param.first == "physical_id")
+			{
+				param.joint_active_vec.resize(c->motionPool().size(), false);
+				param.joint_active_vec.at(c->motionAtPhy(std::stoi(cmd_param.second)).phyId()) = true;
+			}
+			else if (cmd_param.first == "slave_id")
+			{
+				param.joint_active_vec.resize(c->motionPool().size(), false);
+				param.joint_active_vec.at(c->motionAtPhy(std::stoi(cmd_param.second)).slaId()) = true;
+			}
+			else if (cmd_param.first == "pos")
+			{
+				aris::core::Matrix mat = target.model->calculator().calculateExpression(cmd_param.second);
+				if (mat.size() == 1)param.joint_pos_vec.resize(c->motionPool().size(), mat.toDouble());
+				else
 				{
-					param.joint_active_vec.resize(target.model->motionPool().size(), true);
-				}
-				else if (cmd_param.first == "none")
-				{
-					param.joint_active_vec.resize(target.model->motionPool().size(), false);
-				}
-				else if (cmd_param.first == "motion_id")
-				{
-					param.joint_active_vec.resize(target.model->motionPool().size(), false);
-					param.joint_active_vec.at(std::stoi(cmd_param.second)) = true;
-				}
-				else if (cmd_param.first == "physical_id")
-				{
-					param.joint_active_vec.resize(c->motionPool().size(), false);
-					param.joint_active_vec.at(c->motionAtPhy(std::stoi(cmd_param.second)).phyId()) = true;
-				}
-				else if (cmd_param.first == "slave_id")
-				{
-					param.joint_active_vec.resize(c->motionPool().size(), false);
-					param.joint_active_vec.at(c->motionAtPhy(std::stoi(cmd_param.second)).slaId()) = true;
-				}
-				else if (cmd_param.first == "pos")
-				{
-					aris::core::Matrix mat = target.model->calculator().calculateExpression(cmd_param.second);
-					if (mat.size() == 1)param.joint_pos_vec.resize(c->motionPool().size(), mat.toDouble());
-					else
-					{
-						param.joint_pos_vec.resize(mat.size());
-						std::copy(mat.begin(), mat.end(), param.joint_pos_vec.begin());
-					}
-				}
-				else if (cmd_param.first == "vel")
-				{
-					param.vel = std::stod(cmd_param.second);
-				}
-				else if (cmd_param.first == "acc")
-				{
-					param.acc = std::stod(cmd_param.second);
-				}
-				else if (cmd_param.first == "dec")
-				{
-					param.dec = std::stod(cmd_param.second);
+					param.joint_pos_vec.resize(mat.size());
+					std::copy(mat.begin(), mat.end(), param.joint_pos_vec.begin());
 				}
 			}
-
-			param.begin_joint_pos_vec.resize(target.model->motionPool().size());
-
-			target.param = param;
-
-			target.option |=
-				Plan::USE_TARGET_POS |
-				Plan::USE_VEL_OFFSET |
-#ifdef WIN32
-				Plan::NOT_CHECK_POS_MIN |
-				Plan::NOT_CHECK_POS_MAX |
-				Plan::NOT_CHECK_POS_CONTINUOUS |
-				Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
-				Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
-#endif
-				Plan::NOT_CHECK_VEL_MIN |
-				Plan::NOT_CHECK_VEL_MAX |
-				Plan::NOT_CHECK_VEL_CONTINUOUS |
-				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
-
+			else if (cmd_param.first == "vel")
+			{
+				param.vel = std::stod(cmd_param.second);
+			}
+			else if (cmd_param.first == "acc")
+			{
+				param.acc = std::stod(cmd_param.second);
+			}
+			else if (cmd_param.first == "dec")
+			{
+				param.dec = std::stod(cmd_param.second);
+			}
 		}
+
+		param.begin_joint_pos_vec.resize(target.model->motionPool().size());
+
+		target.param = param;
+
+		target.option |=
+//				Plan::USE_TARGET_POS |
+			Plan::USE_VEL_OFFSET |
+#ifdef WIN32
+			Plan::NOT_CHECK_POS_MIN |
+			Plan::NOT_CHECK_POS_MAX |
+			Plan::NOT_CHECK_POS_CONTINUOUS |
+			Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
+			Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
+			Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
+			Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
+#endif
+			Plan::NOT_CHECK_VEL_MIN |
+			Plan::NOT_CHECK_VEL_MAX |
+			Plan::NOT_CHECK_VEL_CONTINUOUS |
+			Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
+			Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+
+	}
 	auto MoveJR::executeRT(PlanTarget &target)->int
+	{
+		auto &param = std::any_cast<MoveJRParam&>(target.param);
+		auto controller = target.controller;
+
+		if (target.count == 1)
 		{
-			auto &param = std::any_cast<MoveJRParam&>(target.param);
-			auto controller = target.controller;
-
-			if (target.count == 1)
-			{
-				for (Size i = 0; i < param.joint_active_vec.size(); ++i)
-				{
-					if (param.joint_active_vec[i])
-					{
-						param.begin_joint_pos_vec[i] = target.model->motionPool()[i].mp();
-					}
-				}
-			}
-
-			aris::Size total_count{ 1 };
 			for (Size i = 0; i < param.joint_active_vec.size(); ++i)
 			{
 				if (param.joint_active_vec[i])
 				{
-					double p, v, a;
-					aris::Size t_count;
-					aris::plan::moveAbsolute(target.count, param.begin_joint_pos_vec[i], param.begin_joint_pos_vec[i]+param.joint_pos_vec[i], param.vel / 1000, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
-					target.model->motionPool().at(i).setMp(p);
-					target.model->motionPool().at(i).setMv(v*1000);
-					total_count = std::max(total_count, t_count);
+					param.begin_joint_pos_vec[i] = controller->motionAtAbs(i).actualPos();
 				}
 			}
+		}
 
-			if (!target.model->solverPool().at(1).kinPos())return -1;
-
-			// 打印电流 //
-			auto &cout = controller->mout();
-			if (target.count % 100 == 0)
+		aris::Size total_count{ 1 };
+		for (Size i = 0; i < param.joint_active_vec.size(); ++i)
+		{
+			if (param.joint_active_vec[i])
 			{
-				for (Size i = 0; i < 6; i++)
-				{
-                    cout << "mp" << i + 1 << ":" << target.model->motionPool()[i].mp() << "  ";
-                    cout << "pos" << i + 1 << ":" << controller->motionAtAbs(i).targetPos() << "  ";
-					cout << "vel" << i + 1 << ":" << controller->motionAtAbs(i).actualVel() << "  ";
-					cout << "cur" << i + 1 << ":" << controller->motionAtAbs(i).actualCur() << "  ";
-				}
-				cout << std::endl;
-			}
+				double p, v, a;
+				aris::Size t_count;
+				aris::plan::moveAbsolute(target.count, param.begin_joint_pos_vec[i], param.begin_joint_pos_vec[i]+param.joint_pos_vec[i], param.vel / 1000, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
+				controller->motionAtAbs(i).setTargetPos(p);
+				controller->motionAtAbs(i).setTargetVel(v*1000);
+				total_count = std::max(total_count, t_count);
 
-			// log 电流 //
-			auto &lout = controller->lout();
+				target.model->motionPool().at(i).setMp(p);
+			}
+		}
+
+		//controller与模型同步，保证3D仿真模型同步显示
+		if (!target.model->solverPool().at(1).kinPos())return -1;
+
+		// 打印电流 //
+		auto &cout = controller->mout();
+		if (target.count % 100 == 0)
+		{
 			for (Size i = 0; i < 6; i++)
 			{
-				lout << controller->motionAtAbs(i).targetPos() << ",";
-				lout << controller->motionAtAbs(i).actualPos() << ",";
-				lout << controller->motionAtAbs(i).actualVel() << ",";
-				lout << controller->motionAtAbs(i).actualCur() << ",";
+                cout << "mp" << i + 1 << ":" << target.model->motionPool()[i].mp() << "  ";
+                cout << "pos" << i + 1 << ":" << controller->motionAtAbs(i).targetPos() << "  ";
+				cout << "vel" << i + 1 << ":" << controller->motionAtAbs(i).actualVel() << "  ";
+				cout << "cur" << i + 1 << ":" << controller->motionAtAbs(i).actualCur() << "  ";
 			}
-			lout << std::endl;
-
-			return total_count - target.count;
+			cout << std::endl;
 		}
+
+		// log 电流 //
+		auto &lout = controller->lout();
+		for (Size i = 0; i < 6; i++)
+		{
+			lout << controller->motionAtAbs(i).targetPos() << ",";
+			lout << controller->motionAtAbs(i).actualPos() << ",";
+			lout << controller->motionAtAbs(i).actualVel() << ",";
+			lout << controller->motionAtAbs(i).actualCur() << ",";
+		}
+		lout << std::endl;
+
+		return total_count - target.count;
+	}
 	auto MoveJR::collectNrt(PlanTarget &target)->void {}
 	MoveJR::MoveJR(const std::string &name) :Plan(name)
 	{
@@ -955,10 +1009,76 @@ namespace kaanh
 			"		<Param name=\"vel\" default=\"0.5\"/>"
 			"		<Param name=\"acc\" default=\"1\"/>"
 			"		<Param name=\"dec\" default=\"1\"/>"
+			"		<UniqueParam default=\"check_none\">"
+			"			<Param name=\"check_all\"/>"
+			"			<Param name=\"check_none\"/>"
+			"			<GroupParam>"
+			"				<UniqueParam default=\"check_pos\">"
+			"					<Param name=\"check_pos\"/>"
+			"					<Param name=\"not_check_pos\"/>"
+			"					<GroupParam>"
+			"						<UniqueParam default=\"check_pos_max\">"
+			"							<Param name=\"check_pos_max\"/>"
+			"							<Param name=\"not_check_pos_max\"/>"
+			"						</UniqueParam>"
+			"						<UniqueParam default=\"check_pos_min\">"
+			"							<Param name=\"check_pos_min\"/>"
+			"							<Param name=\"not_check_pos_min\"/>"
+			"						</UniqueParam>"
+			"						<UniqueParam default=\"check_pos_continuous\">"
+			"							<Param name=\"check_pos_continuous\"/>"
+			"							<Param name=\"not_check_pos_continuous\"/>"
+			"						</UniqueParam>"
+			"						<UniqueParam default=\"check_pos_continuous_at_start\">"
+			"							<Param name=\"check_pos_continuous_at_start\"/>"
+			"							<Param name=\"not_check_pos_continuous_at_start\"/>"
+			"						</UniqueParam>"
+			"						<UniqueParam default=\"check_pos_continuous_second_order\">"
+			"							<Param name=\"check_pos_continuous_second_order\"/>"
+			"							<Param name=\"not_check_pos_continuous_second_order\"/>"
+			"						</UniqueParam>"
+			"						<UniqueParam default=\"check_pos_continuous_second_order_at_start\">"
+			"							<Param name=\"check_pos_continuous_second_order_at_start\"/>"
+			"							<Param name=\"not_check_pos_continuous_second_order_at_start\"/>"
+			"						</UniqueParam>"
+			"						<UniqueParam default=\"check_pos_following_error\">"
+			"							<Param name=\"check_pos_following_error\"/>"
+			"							<Param name=\"not_check_pos_following_error\"/>"
+			"						</UniqueParam>"
+			"					</GroupParam>"
+			"				</UniqueParam>"
+			"				<UniqueParam default=\"check_vel\">"
+			"					<Param name=\"check_vel\"/>"
+			"					<Param name=\"not_check_vel\"/>"
+			"					<GroupParam>"
+			"						<UniqueParam default=\"check_vel_max\">"
+			"							<Param name=\"check_vel_max\"/>"
+			"							<Param name=\"not_check_vel_max\"/>"
+			"						</UniqueParam>"
+			"						<UniqueParam default=\"check_vel_min\">"
+			"							<Param name=\"check_vel_min\"/>"
+			"							<Param name=\"not_check_vel_min\"/>"
+			"						</UniqueParam>"
+			"						<UniqueParam default=\"check_vel_continuous\">"
+			"							<Param name=\"check_vel_continuous\"/>"
+			"							<Param name=\"not_check_vel_continuous\"/>"
+			"						</UniqueParam>"
+			"						<UniqueParam default=\"check_vel_continuous_at_start\">"
+			"							<Param name=\"check_vel_continuous_at_start\"/>"
+			"							<Param name=\"not_check_vel_continuous_at_start\"/>"
+			"						</UniqueParam>"
+			"						<UniqueParam default=\"check_vel_following_error\">"
+			"							<Param name=\"check_vel_following_error\"/>"
+			"							<Param name=\"not_check_vel_following_error\"/>"
+			"						</UniqueParam>"
+			"					</GroupParam>"
+			"				</UniqueParam>"
+			"			</GroupParam>"
+			"		</UniqueParam>"
 			"	</GroupParam>"
 			"</Command>");
 	}
-
+	
 
 	// 梯形轨迹2测试--输入单个关节，角度位置；关节按照梯形速度轨迹执行；速度前馈//
 	struct MoveTTTParam
@@ -1725,23 +1845,31 @@ namespace kaanh
 	struct MovePointParam
 	{
 		std::vector<double> term_begin_pe_vec;
-		std::vector<double> term_target_pe_vec;
-		std::vector<double> term_input_pe_vec;
-		double x, y, z, a, b, c, vel, acc, dec, term_offset_pe;;
+		std::vector<double> begin_pm;
+		std::vector<double> target_pm;
+		aris::Size cor;
 		aris::Size move_type;
+		double x, y, z, a, b, c, vel, acc, dec, term_offset_pe;	
 	};
 	auto MovePoint::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 		{
 			auto c = target.controller;
 			MovePointParam param;
 			param.term_begin_pe_vec.resize(6, 0.0);
-			param.term_target_pe_vec.resize(6, 0.0);
+			param.begin_pm.resize(16, 0.0);
 			param.term_offset_pe = 0;
-			param.term_input_pe_vec.resize(6, 0.0);
+			param.target_pm.resize(16, 0.0);
+
+			std::string ret = "ok";
+			target.ret = ret;
 
 			for (auto &p : params)
 			{
-				if (p.first == "x")
+				if (p.first == "cor")
+				{
+					param.cor = std::stoi(p.second);
+				}
+				else if (p.first == "x")
 				{
 					param.x = std::stod(p.second);
 					param.move_type = 0;
@@ -1817,83 +1945,61 @@ namespace kaanh
 			auto &param = std::any_cast<MovePointParam&>(target.param);
 			static aris::Size total_count = 1;
 
-			char eu_type[4]{ '1' + param.move_type - 3 , '1' + (param.move_type - 2) % 3 , '1' + param.move_type - 3 , '\0' };
+			char eu_type[4]{ '1', '2', '3', '\0' };
 			
 			if (target.count == 1)
-			{	
-				// 绕大地坐标系x，y，z轴旋转 //
-				if (param.move_type >= 3)
-				{
-					target.model->generalMotionPool().at(0).getMpe(param.term_begin_pe_vec.data(), eu_type);
-					target.model->generalMotionPool().at(0).getMpe(param.term_target_pe_vec.data(), eu_type);
-					target.model->generalMotionPool().at(0).getMpe(param.term_input_pe_vec.data(), eu_type);
-					param.term_target_pe_vec[3] = param.term_begin_pe_vec[3] + param.term_offset_pe;
-				}
-				// 沿大地坐标系坐标轴x,y,z平动 //
-				else
-				{
-					target.model->generalMotionPool().at(0).getMpe(param.term_begin_pe_vec.data());
-					target.model->generalMotionPool().at(0).getMpe(param.term_target_pe_vec.data());
-					target.model->generalMotionPool().at(0).getMpe(param.term_input_pe_vec.data());
-					param.term_target_pe_vec[param.move_type] = param.term_begin_pe_vec[param.move_type] + param.term_offset_pe;
-				}	
+			{
+				// 获取起始欧拉角位姿 //
+				target.model->generalMotionPool().at(0).getMpe(param.term_begin_pe_vec.data(), eu_type);
 			}
 			// 梯形轨迹规划 //
 			double p, v, a;
 			aris::Size t_count;
-			if (param.move_type >= 3)
-			{
-				aris::plan::moveAbsolute(target.count, param.term_begin_pe_vec[3], param.term_target_pe_vec[3], param.vel / 1000
-					, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
-				total_count = std::max(total_count, t_count);
+			aris::plan::moveAbsolute(target.count, 0, param.term_offset_pe, param.vel / 1000
+				, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
+			total_count = std::max(total_count, t_count);
 
-				param.term_input_pe_vec[3] = p;
-				target.model->generalMotionPool().at(0).setMpe(param.term_input_pe_vec.data(), eu_type);
-			}
-			else
-			{
-				aris::plan::moveAbsolute(target.count, param.term_begin_pe_vec[param.move_type], param.term_target_pe_vec[param.move_type], param.vel / 1000
-					, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
-				total_count = std::max(total_count, t_count);
+			double pe[6]{ 0,0,0,0,0,0 }, pm[16];
+			pe[param.move_type] = p;
+			s_pe2pm(pe, pm, eu_type);
 
-				param.term_input_pe_vec[param.move_type] = p;
-				target.model->generalMotionPool().at(0).setMpe(param.term_input_pe_vec.data());
+			s_pe2pm(param.term_begin_pe_vec.data(), param.begin_pm.data(), eu_type);
+				
+			//绝对坐标系
+			if (param.cor == 0)
+			{
+				s_pm_dot_pm(pm, param.begin_pm.data(), param.target_pm.data());
 			}
+			//工件坐标系
+			else if (param.cor == 1)
+			{
+				s_pm_dot_pm(param.begin_pm.data(), pm, param.target_pm.data());
+			}	
+			target.model->generalMotionPool().at(0).setMpm(param.target_pm.data());
+				
 
 			// 运动学反解 //
 			if (!target.model->solverPool().at(0).kinPos())return -1;
 
-			// 打印电流 //
+			// 打印 //
 			auto &cout = controller->mout();
-			if (target.count == 1)
+
+			if (target.count % 200 == 0)
 			{
-				for (Size i = 0; i < 6; i++)
+				for (Size i = 0; i < 16; i++)
 				{
-					cout << param.term_input_pe_vec[i] << "  ";
+					cout << param.target_pm[i] << "  ";
 				}
 				cout << std::endl;
 			}
 
-			if (target.count % 100 == 0)
-			{
-				for (Size i = 0; i < 6; i++)
-				{
-					cout << param.term_input_pe_vec[i] << "  ";
-				}
-				cout << std::endl;
-			}
-
-			// log 电流 //
+			// log //
 			auto &lout = controller->lout();
 			for (Size i = 0; i < 6; i++)
 			{
 				lout << controller->motionAtAbs(i).actualPos() << " ";
 				lout << controller->motionAtAbs(i).actualVel() << " ";
 				lout << controller->motionAtAbs(i).actualCur() << " ";
-			}
-			for (Size i = 0; i < 6; i++)
-			{
-				lout << param.term_input_pe_vec[i] << " ";
 			}
 			lout << std::endl;
 
@@ -1905,6 +2011,7 @@ namespace kaanh
 		command().loadXmlStr(
 			"<Command name=\"movePoint\">"
 			"	<GroupParam>"
+			"		<Param name=\"cor\" default=\"0\"/>"
 			"		<Param name=\"vel\" default=\"0.2\" abbreviation=\"v\"/>"
 			"		<Param name=\"acc\" default=\"0.4\" abbreviation=\"a\"/>"
 			"		<Param name=\"dec\" default=\"0.4\" abbreviation=\"d\"/>"
@@ -2608,10 +2715,10 @@ namespace kaanh
 			
 	}
 
+
 	// 力传感器信号测试 //
 	struct FSParam
 	{
-		bool real_data;
         int time;
         uint16_t datanum;
         float Fx,Fy,Fz,Mx,My,Mz;
@@ -2621,11 +2728,7 @@ namespace kaanh
 			FSParam param;
 			for (auto &p : params)
 			{
-				if (p.first == "real_data")
-				{
-					param.real_data = std::stod(p.second);
-				}
-				else if (p.first == "time")
+				if (p.first == "time")
 				{
 					param.time = std::stoi(p.second);
 				}
@@ -2660,26 +2763,15 @@ namespace kaanh
 			auto &param = std::any_cast<FSParam&>(target.param);
 			// 访问主站 //
 			auto controller = dynamic_cast<aris::control::EthercatController*>(target.controller);
-			if (param.real_data)
-			{
-                controller->ecSlavePool().at(6).readPdo(0x6030, 0x00, &param.datanum ,16);
-                controller->ecSlavePool().at(6).readPdo(0x6030, 0x01, &param.Fx ,32);
-                controller->ecSlavePool().at(6).readPdo(0x6030, 0x02, &param.Fy, 32);
-                controller->ecSlavePool().at(6).readPdo(0x6030, 0x03, &param.Fz, 32);
-                controller->ecSlavePool().at(6).readPdo(0x6030, 0x04, &param.Mx, 32);
-                controller->ecSlavePool().at(6).readPdo(0x6030, 0x05, &param.My, 32);
-                controller->ecSlavePool().at(6).readPdo(0x6030, 0x06, &param.Mz, 32);
-			}
-			else
-			{
-                controller->ecSlavePool().at(6).readPdo(0x6030, 0x00, &param.datanum ,16);
-                controller->ecSlavePool().at(6).readPdo(0x6020, 0x01, &param.Fx, 32);
-                controller->ecSlavePool().at(6).readPdo(0x6020, 0x02, &param.Fy, 32);
-                controller->ecSlavePool().at(6).readPdo(0x6020, 0x03, &param.Fz, 32);
-                controller->ecSlavePool().at(6).readPdo(0x6020, 0x04, &param.Mx, 32);
-                controller->ecSlavePool().at(6).readPdo(0x6020, 0x05, &param.My, 32);
-                controller->ecSlavePool().at(6).readPdo(0x6020, 0x06, &param.Mz, 32);
-			}
+
+            controller->ecSlavePool().at(6).readPdo(0x6030, 0x00, &param.datanum ,16);
+            controller->ecSlavePool().at(6).readPdo(0x6030, 0x01, &param.Fx ,32);
+            controller->ecSlavePool().at(6).readPdo(0x6030, 0x02, &param.Fy, 32);
+            controller->ecSlavePool().at(6).readPdo(0x6030, 0x03, &param.Fz, 32);
+            controller->ecSlavePool().at(6).readPdo(0x6030, 0x04, &param.Mx, 32);
+            controller->ecSlavePool().at(6).readPdo(0x6030, 0x05, &param.My, 32);
+            controller->ecSlavePool().at(6).readPdo(0x6030, 0x06, &param.Mz, 32);
+			
 			
 			//print//
 			auto &cout = controller->mout();
@@ -2716,7 +2808,6 @@ namespace kaanh
 		command().loadXmlStr(
 			"<Command name=\"fssignal\">"
 			"	<GroupParam>"
-			"		<Param name=\"real_data\" default=\"1\"/>"
 			"		<Param name=\"time\" default=\"100000\"/>"
 			"	</GroupParam>"
 			"</Command>");
@@ -2730,6 +2821,8 @@ namespace kaanh
 		plan_root->planPool().add<aris::plan::MoveJ>();
 		plan_root->planPool().add<aris::plan::Show>();
 		plan_root->planPool().add<kaanh::MoveInit>();
+		plan_root->planPool().add<kaanh::Get_ee_pq>();
+		plan_root->planPool().add<kaanh::Get_cur>();
 		plan_root->planPool().add<kaanh::MoveX>();
 		plan_root->planPool().add<kaanh::MoveJS>();
 		plan_root->planPool().add<kaanh::MoveJSN>();
@@ -2759,6 +2852,9 @@ namespace kaanh
 		plan_root->planPool().add<MoveDistal>();
 		plan_root->planPool().add<SetTool>();
 		plan_root->planPool().add<MovePressure>();
+		plan_root->planPool().add<MoveFeed>();
+		plan_root->planPool().add<MovePressureTool>();
+		plan_root->planPool().add<GetForce>();
 
 		plan_root->planPool().add<cplan::MoveCircle>();
 		plan_root->planPool().add<cplan::MoveTroute>();
@@ -2770,50 +2866,5 @@ namespace kaanh
 
 		return plan_root;
 	}
-	
-	/*
-	auto registerPlan()->void
-	{
-		aris::core::Object::registerTypeGlobal<aris::plan::MoveL>();
-		aris::core::Object::registerTypeGlobal<aris::plan::MoveJ>();
-		aris::core::Object::registerTypeGlobal<aris::plan::Show>();
-		aris::core::Object::registerTypeGlobal<kaanh::MoveInit>();
-		aris::core::Object::registerTypeGlobal<kaanh::MoveX>();
-		aris::core::Object::registerTypeGlobal<kaanh::MoveJS>();
-		aris::core::Object::registerTypeGlobal<kaanh::MoveJSN>();
-		aris::core::Object::registerTypeGlobal<kaanh::MoveJR>();
-		aris::core::Object::registerTypeGlobal<kaanh::MoveTTT>();
-		aris::core::Object::registerTypeGlobal<forcecontrol::MoveJRC>();
-		aris::core::Object::registerTypeGlobal<forcecontrol::MovePQCrash>();
-		aris::core::Object::registerTypeGlobal<forcecontrol::MovePQB>();
-		aris::core::Object::registerTypeGlobal<forcecontrol::MoveJCrash>();
-		aris::core::Object::registerTypeGlobal<forcecontrol::MoveJF>();
-		aris::core::Object::registerTypeGlobal<forcecontrol::MoveJFB>();
-		aris::core::Object::registerTypeGlobal<forcecontrol::MoveJPID>();
-		aris::core::Object::registerTypeGlobal<forcecontrol::MoveStop>();
-		aris::core::Object::registerTypeGlobal<forcecontrol::MoveSPQ>();
-		aris::core::Object::registerTypeGlobal<kaanh::MoveJM>();
-		aris::core::Object::registerTypeGlobal<kaanh::MoveJI>();
-		aris::core::Object::registerTypeGlobal<kaanh::MovePoint>();
-		aris::core::Object::registerTypeGlobal<kaanh::Grasp>();
-		aris::core::Object::registerTypeGlobal<kaanh::ListenDI>();
-		aris::core::Object::registerTypeGlobal<kaanh::MoveEA>();
-		aris::core::Object::registerTypeGlobal<kaanh::MoveEAP>();
-		aris::core::Object::registerTypeGlobal<kaanh::FSSignal>();
 
-		aris::core::Object::registerTypeGlobal<MoveXYZ>();
-		aris::core::Object::registerTypeGlobal<MoveJoint>();
-		aris::core::Object::registerTypeGlobal<MoveDistal>();
-		aris::core::Object::registerTypeGlobal<SetTool>();
-		aris::core::Object::registerTypeGlobal<MovePressure>();
-
-		aris::core::Object::registerTypeGlobal<cplan::MoveCircle>();
-		aris::core::Object::registerTypeGlobal<cplan::MoveTroute>();
-		aris::core::Object::registerTypeGlobal<cplan::MoveFile>();
-		aris::core::Object::registerTypeGlobal<cplan::RemoveFile>();
-		aris::core::Object::registerTypeGlobal<cplan::MoveinModel>();
-		aris::core::Object::registerTypeGlobal<cplan::FMovePath>();
-		aris::core::Object::registerTypeGlobal<cplan::OpenFile>();
-	}
-	*/
 }
