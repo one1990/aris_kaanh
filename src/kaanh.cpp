@@ -1230,7 +1230,7 @@ namespace kaanh
 
 			target.option |=
 				Plan::USE_TARGET_POS |
-#ifdef WIN32
+#ifdef WIN32target_pos
 				Plan::NOT_CHECK_POS_MIN |
 				Plan::NOT_CHECK_POS_MAX |
 				Plan::NOT_CHECK_POS_CONTINUOUS |
@@ -2270,8 +2270,11 @@ namespace kaanh
 		for (int i = 3; i < 6; ++i) if (imp_->p_now[i] > aris::PI) imp_->p_now[i] -= 2 * PI;
 
 		// init status and calculate target pos and max vel //
+        auto which_joint = Imp::move_type.load();
+
+
 		static int increase_status = 0;
-        static double target_pos, target_vel, target_acc, max_vel;
+        static double target_pos, max_vel;
 		if (Imp::input_label.load())
 		{
             Imp::input_label.store(false);
@@ -2279,22 +2282,15 @@ namespace kaanh
 		}
 
         max_vel = imp_->vel*1.0*Imp::vel_percent.load() / 100.0;
-		target_pos = imp_->p_now[Imp::move_type.load()] + aris::dynamic::s_sgn(increase_status)*max_vel * 1e-3;
+        target_pos = imp_->p_now[Imp::move_type.load()] + increase_status*max_vel * 1e-3;
         increase_status -= aris::dynamic::s_sgn(increase_status);
-        target_vel = max_vel;
-        target_acc = imp_->a_now[Imp::move_type.load()];
-        if(increase_status<=20)
-        {
-            target_vel = 0;
-            target_acc = 0;
-        }
 
 		// 梯形轨迹规划 calculate real value //
 		double p_next, v_next, a_next;
 		{
 			aris::Size t;
 			aris::plan::moveAbsolute2(imp_->p_now[Imp::move_type.load()], imp_->v_now[Imp::move_type.load()], imp_->a_now[Imp::move_type.load()]
-				, target_pos, target_vel, target_acc
+                , target_pos, 0.0, 0.0
 				, max_vel, imp_->acc, imp_->dec
 				, 1e-3, 1e-10, p_next, v_next, a_next, t);
 		}
@@ -2313,8 +2309,6 @@ namespace kaanh
             cout << Imp::vel_percent.load() << "  ";
             cout << max_vel << "  ";
             cout << target_pos << "  ";
-            cout << target_vel << "  ";
-            cout << target_acc << "  ";
 			cout << p_next << "  ";
 			cout << v_next << "  ";
 			cout << a_next << "  ";
