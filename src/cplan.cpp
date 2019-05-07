@@ -622,9 +622,9 @@ namespace cplan
 				user_node_2->InsertEndChild(user_node_3);
 			}
 			target.server->stop();
-			target.server->saveXmlFile("C:/Users/qianch_kaanh_cn/Desktop/build_qianch/rokae.xml");//save的结果还是有问题，但是输出的结果是正确的
+			//target.server->saveXmlFile("C:/Users/qianch_kaanh_cn/Desktop/build_qianch/rokae.xml");//save的结果还是有问题，但是输出的结果是正确的
 			//以下是错误的保存方式
-			doc.SaveFile("C:/Users/qianch_kaanh_cn/Desktop/abcd/rokae_doc.xml");	
+			doc.SaveFile("C:/Users/qianch_kaanh_cn/Desktop/build_qianch/rokae.xml");	
 
 			//以下先停止server再load，再保存xml
 			//cs.stop();
@@ -680,6 +680,7 @@ namespace cplan
 	//测试xml文件名，成功
     //target.ret = files[num].substr(46, files[num].rfind(".") - 46);
     //auto &cs = aris::server::ControlServer::instance();	
+
 
 
 	//直接给14维数组
