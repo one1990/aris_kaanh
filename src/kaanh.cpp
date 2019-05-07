@@ -2129,7 +2129,6 @@ namespace kaanh
 		double p_now[6], v_now[6], a_now[6], p_start[6];
 		int increase_count;
 	};
-
 	std::atomic_bool is_changing = false;
 	auto MoveJP::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{

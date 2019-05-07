@@ -45,6 +45,7 @@
 			<Id name="id_42"  value="id_42"/>
 			<Id name="id_43"  value="id_43"/>
 			<Id name="id_44"  value="id_44"/>
+			<Id name="id_45"  value="id_45"/>
 		</UiIdPoolObject>
 		<CmdInterfacePoolObject>
 			<Panel text="My CMD|CMD" id="id_1">
@@ -1576,20 +1577,18 @@
                                 <Param name="start"/>
                                 <Param name="increase_count" default="50"/>
                                 <Param name="vel" abbreviation="v" default="1"/>
-                                <Param name="acc" abbreviation="a" default="10"/>
-                                <Param name="dec" abbreviation="d" default="10"/>
+                                <Param name="acc" abbreviation="a" default="20"/>
+                                <Param name="dec" abbreviation="d" default="20"/>
                             </GroupParam>
                             <Param name="stop"/>
                             <GroupParam>
                                 <Param name="vel_percent" default="10"/>
-                                <UniqueParam>
-                                    <Param name="j0" default="0"/>
-                                    <Param name="j1" default="0"/>
-                                    <Param name="j2" default="0"/>
-                                    <Param name="j3" default="0"/>
-                                    <Param name="j4" default="0"/>
-                                    <Param name="j5" default="0"/>
-                                </UniqueParam>
+                                <Param name="j0" default="0"/>
+                                <Param name="j1" default="0"/>
+                                <Param name="j2" default="0"/>
+                                <Param name="j3" default="0"/>
+                                <Param name="j4" default="0"/>
+                                <Param name="j5" default="0"/>
                             </GroupParam>
                         </UniqueParam>
                     </GroupParam>
