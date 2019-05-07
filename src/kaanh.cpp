@@ -1,7 +1,7 @@
 ﻿#include <algorithm>
 #include"kaanh.h"
 #include "sixdistalfc.h"
-
+#include "jointfc.h"
 #include <array>
 
 
@@ -2856,6 +2856,9 @@ namespace kaanh
 		plan_root->planPool().add<MovePressureToolYZ>();
 		plan_root->planPool().add<MovePressureToolXY>();
 		plan_root->planPool().add<GetForce>();
+		//plan_root->planPool().add<GetError>();
+		plan_root->planPool().add<JointDyna>();
+		plan_root->planPool().add<LoadDyna>();
 
 		plan_root->planPool().add<cplan::MoveCircle>();
 		plan_root->planPool().add<cplan::MoveTroute>();
