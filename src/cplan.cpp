@@ -181,7 +181,6 @@ namespace cplan
 		//输入排序后的结果
 		for (auto &p : loc_files)
 		{
-
 			std::cout << p << std::endl;
 		}
 		//flies和local_files是两个类的成员，所以要重新使用local_files对files赋值；
@@ -200,38 +199,6 @@ namespace cplan
 		std::cout << std::endl;
 	}
 
-	//以下只能在C++中使用
-	//void getFiles(string path, vector<string>& files)
-	//{
-	//	//文件句柄  
-	//	long   hFile = 0;
-	//	//文件信息，声明一个存储文件信息的结构体  
-	//	struct _finddata_t fileinfo;
-	//	string p;//字符串，存放路径
-	//	if ((hFile = _findfirst(p.assign(path).append("\\*").c_str(), &fileinfo)) != -1)//若查找成功，则进入
-	//	{
-	//		do
-	//		{
-	//			//如果是目录,迭代之（即文件夹内还有文件夹）  
-	//			if ((fileinfo.attrib &  _A_SUBDIR))
-	//			{
-	//				//文件名不等于"."&&文件名不等于".."
-	//					//.表示当前目录
-	//					//..表示当前目录的父目录
-	//					//判断时，两者都要忽略，不然就无限递归跳不出去了！
-	//				if (strcmp(fileinfo.name, ".") != 0 && strcmp(fileinfo.name, "..") != 0)
-	//					getFiles(p.assign(path).append("\\").append(fileinfo.name), files);
-	//			}
-	//			//如果不是,加入列表  
-	//			else
-	//			{
-	//				files.push_back(p.assign(path).append("\\").append(fileinfo.name));
-	//			}
-	//		} while (_findnext(hFile, &fileinfo) == 0);
-	//		//_findclose函数结束查找
-	//		_findclose(hFile);
-	//	}
-	//}
 	/// \brief 类MoveFile申明
 	/// 在类MoveFile中,完成对现有的.txt文件中的位置数据的提取，通过程序控制机器人的各关节按照数据位置变化来运动
 	/// ### 类MoveFile
@@ -245,8 +212,6 @@ namespace cplan
 	/// @return 返回值为空
 	auto MoveFile::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
-
-
 		MoveFileParam p;
 		p.total_time = std::stoi(params.at("total_time"));
 		p.vel = std::stod(params.at("vel"));
@@ -299,19 +264,6 @@ namespace cplan
 		cout << p.file;
 
 
-		//清理前50个文件
-		//std::filesystem::space_info devi = std::filesystem::space("log");
-		//std::cout << ".        Capacity       Free      Available\n"
-		//	<< "/log:   " << devi.capacity << "   "
-		//	<< devi.free << "   " << devi.available << '\n';
-		////如果可用内存小于10g;
-		//if (devi.available < 10737418240)
-		//{
-		//	for (int i = 0; i < 50; i++)
-		//	{
-		//		std::filesystem::remove(files[i]);
-		//	}		
-		//}
 
 
 		//string site = "/home/kaanh/Desktop/build-kaanh-Desktop_Qt_5_11_2_GCC_64bit-Default/" + p.file;
@@ -466,11 +418,8 @@ namespace cplan
 		//p.filePath = "C:/Users/qianch_kaanh_cn/Desktop/myplan/src/rokae/";
 
 
-
-		//string filePath = "/home/kaanh/Desktop/build-kaanh-Desktop_Qt_5_11_2_GCC_64bit-Default/log/";//自己设置目录
-
-		//char * filePath = "/home/kaanh/Desktop/build-kaanh-Desktop_Qt_5_11_2_GCC_64bit-Default/log/";//自己设置目录
-
+		//以下保留，方便在Linux系统下进行修改路径
+		//string filePath = "/home/kaanh/Desktop/build-kaanh-Desktop_Qt_5_11_2_GCC_64bit-Default/log/";
 		//string filePath = "C:/Users/qianch_kaanh_cn/Desktop/build_qianch/log/";
 		vector<string> files;
 		//获取该路径下的所有文件  
@@ -495,11 +444,6 @@ namespace cplan
 				std::cout << files[0] << "  ";
 			}
 		}
-		// if (devi.available < 10737418240 * 4)
-
-
-
-		 //std::filesystem::remove(files[0]);
 		target.param = p;
 		target.option =
 			//aris::plan::Plan::USE_TARGET_POS |
@@ -519,7 +463,6 @@ namespace cplan
 		std::cout << "before" << std::endl;
 		auto &p = std::any_cast<MoveFileParam&>(target.param);
 		std::cout << "after" << std::endl;
-
 		return 0;
 	}
 
@@ -555,6 +498,24 @@ namespace cplan
 		getFiles2(filePath, files);
 
 
+		/*
+		int num = p.vn == "back" ? files.size() - 1 : std::stoi(p.vn);
+		cout << "num:  " << num << endl;
+		//以下代码为打开files中的最新的一个xml文件，并完整输出xml文件中的内容
+		fstream fin;
+		fin.open(files[ num ].c_str(), ios::in);
+		vector<string> v;
+		string tmp;
+		while (getline(fin, tmp))
+		{
+			v.push_back(tmp);
+		}
+		for (auto x : v)
+		cout << x << endl;
+		fin.close();
+		fin.clear();
+		*/
+
 		target.option |= NOT_RUN_COLLECT_FUNCTION;
 		target.param = p;
 		target.option |= NOT_RUN_EXECUTE_FUNCTION;
@@ -573,6 +534,7 @@ namespace cplan
 
 	aris::core::XmlDocument doc;
 
+	//UpdateUI用于更新孟博的UI界面
 	struct UpdateUIParam
 	{
 		string vn;//数组中的序号
@@ -586,34 +548,10 @@ namespace cplan
 		p.updt = std::stoi(params.at("updt"));
 		auto&cs = aris::server::ControlServer::instance();
 
-		/*
-		string filePath = "C:/Users/qianch_kaanh_cn/Desktop/build_qianch/";
-		//获取该路径下的所有文件
-		files.clear();
-		getFiles2(filePath, files);
-		int num = p.vn == "back" ? files.size() - 1 : std::stoi(p.vn);
-		cout << "num:  " << num << endl;
-		//以下代码为打开files中的最新的一个xml文件，并完整输出xml文件中的内容
-		fstream fin;
-		fin.open(files[ num ].c_str(), ios::in);
-		vector<string> v;
-		string tmp;
-		while (getline(fin, tmp))
-		{
-			v.push_back(tmp);
-		}
-		for (auto x : v)
-		cout << x << endl;
-		fin.close();
-		fin.clear();
-		*/
-
 		if (p.updt == 0)
 		{
 			int num_xml = files.size();//xml文件的个数
 			cout << "num_xml" << num_xml << endl;
-
-
 			target.server->root().saveXmlDoc(doc);
 
 			auto panel5 = doc.FirstChildElement("ControlServer")->FirstChildElement("InterfaceRoot");
@@ -713,21 +651,18 @@ namespace cplan
 
 
 	struct SaveFileParam
-	{
-		
+	{		
 	};
 
 	auto SaveFile::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{		
 		auto&cs = aris::server::ControlServer::instance();
 
-			//target.server->stop();
-			//target.server->saveXmlFile("C:/Users/qianch_kaanh_cn/Desktop/build_qianch/rokae.xml");
-			
-			doc.SaveFile("C:/Users/qianch_kaanh_cn/Desktop/build_qianch/rokae.xml");
+		//target.server->stop();
+		//target.server->saveXmlFile("C:/Users/qianch_kaanh_cn/Desktop/build_qianch/rokae.xml");
 
+		doc.SaveFile("C:/Users/qianch_kaanh_cn/Desktop/build_qianch/rokae.xml");
 		target.option |= NOT_RUN_COLLECT_FUNCTION;
-
 		target.option |= NOT_RUN_EXECUTE_FUNCTION;
 	}
 
