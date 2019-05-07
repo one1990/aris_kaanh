@@ -2116,23 +2116,21 @@ namespace kaanh
 
 	// 示教运动--输入末端大地坐标系的位姿pe，控制动作 //
 	struct MoveJPParam {};
+	struct LocalStruct 
+	{
+		bool movejp_is_running = false;
+		int vel_percent;
+		std::array<int, 6> is_increase;
+	};
 	struct MoveJP::Imp
 	{
-		static std::atomic_bool movejp_is_running;
-		static std::atomic_int32_t vel_percent;
-		static std::atomic_int32_t is_increase;
-		static std::atomic_int32_t move_type;
-		static std::atomic_bool input_label;
-
+		LocalStruct s1_rt, s2_nrt;
 		double vel, acc, dec;
-		double p_now[6], v_now[6], a_now[6];
+		double p_now[6], v_now[6], a_now[6], p_start[6];
 		int increase_count;
 	};
-	std::atomic_bool MoveJP::Imp::movejp_is_running = false;
-	std::atomic_int32_t MoveJP::Imp::vel_percent = 10;
-	std::atomic_int32_t MoveJP::Imp::is_increase = 0;
-	std::atomic_int32_t MoveJP::Imp::move_type = 0;
-	std::atomic_bool MoveJP::Imp::input_label = false;
+
+	std::atomic_bool is_changing = false;
 	auto MoveJP::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
 		auto c = target.controller;
@@ -2145,13 +2143,15 @@ namespace kaanh
 		{
 			if (p.first == "start")
 			{
-				if (Imp::movejp_is_running.load())throw std::runtime_error("auto mode already started");
+				if (imp_->s1_rt.movejp_is_running)throw std::runtime_error("auto mode already started");
 
-				Imp::movejp_is_running.store(true);
-				Imp::is_increase.store(0);
-				Imp::vel_percent.store(10);
-				Imp::move_type.store(0);
-				Imp::input_label.store(true);
+				imp_->s2_nrt.movejp_is_running = true;
+				std::fill_n(imp_->s2_nrt.is_increase.data(), 6, 0);
+				imp_->s2_nrt.vel_percent = 10;
+
+				imp_->s1_rt.movejp_is_running = true;
+				std::fill_n(imp_->s1_rt.is_increase.data(), 6, 0);
+				imp_->s1_rt.vel_percent = 10;
 
 				imp_->increase_count = std::stoi(params.at("increase_count"));
 				if (imp_->increase_count < 0 || imp_->increase_count>1e5)THROW_FILE_AND_LINE("");
@@ -2163,86 +2163,33 @@ namespace kaanh
 			}
 			else if (p.first == "stop")
 			{
-				if (!Imp::movejp_is_running.load())throw std::runtime_error("manual mode not started, when stop");
+				if (!imp_->s1_rt.movejp_is_running)throw std::runtime_error("manual mode not started, when stop");
 
-				Imp::movejp_is_running.store(0);
+				imp_->s2_nrt.movejp_is_running = false;
+
 				target.option |= WAIT_FOR_COLLECTION;
+				is_changing = true;
+				while (is_changing.load())std::this_thread::sleep_for(std::chrono::milliseconds(1));
 			}
 			else if (p.first == "vel_percent")
 			{
-				if (!Imp::movejp_is_running.load())throw std::runtime_error("manual mode not started, when pe");
+				if (!imp_->s1_rt.movejp_is_running)throw std::runtime_error("manual mode not started, when pe");
 
 				auto velocity = std::stoi(params.at("vel_percent"));
-				//velocity = std::max(std::min(100, velocity), -100);
-				Imp::vel_percent.store(velocity);
+				velocity = std::max(std::min(100, velocity), -100);
+				imp_->s2_nrt.vel_percent = velocity;
+				imp_->s2_nrt.is_increase[0] = std::max(std::min(1, std::stoi(params.at("j0"))), -1) * imp_->increase_count;
+				imp_->s2_nrt.is_increase[1] = std::max(std::min(1, std::stoi(params.at("j1"))), -1) * imp_->increase_count;
+				imp_->s2_nrt.is_increase[2] = std::max(std::min(1, std::stoi(params.at("j2"))), -1) * imp_->increase_count;
+				imp_->s2_nrt.is_increase[3] = std::max(std::min(1, std::stoi(params.at("j3"))), -1) * imp_->increase_count;
+				imp_->s2_nrt.is_increase[4] = std::max(std::min(1, std::stoi(params.at("j4"))), -1) * imp_->increase_count;
+				imp_->s2_nrt.is_increase[5] = std::max(std::min(1, std::stoi(params.at("j5"))), -1) * imp_->increase_count;
+
+				imp_->s2_nrt.movejp_is_running = true;	
 
 				target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION | NOT_PRINT_CMD_INFO | NOT_LOG_CMD_INFO;
-			}
-			else if (p.first == "j0")
-			{
-				if (!Imp::movejp_is_running.load())throw std::runtime_error("manual mode not started, when pe");
-				int increase_num;
-				increase_num = std::stod(p.second);
-				Imp::move_type.store(0);
-				Imp::input_label.store(true);
-				increase_num = std::max(std::min(1, increase_num), -1) * imp_->increase_count;
-				Imp::is_increase.store(increase_num);
-				target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION | NOT_PRINT_CMD_INFO | NOT_LOG_CMD_INFO;
-			}
-			else if (p.first == "j1")
-			{
-				if (!Imp::movejp_is_running.load())throw std::runtime_error("manual mode not started, when pe");
-				int increase_num;
-				increase_num = std::stod(p.second);
-				Imp::move_type.store(1);
-				Imp::input_label.store(true);
-				increase_num = std::max(std::min(1, increase_num), -1) * imp_->increase_count;
-				Imp::is_increase.store(increase_num);
-				target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION | NOT_PRINT_CMD_INFO | NOT_LOG_CMD_INFO;
-			}
-			else if (p.first == "j2")
-			{
-				if (!Imp::movejp_is_running.load())throw std::runtime_error("manual mode not started, when pe");
-				int increase_num;
-				increase_num = std::stod(p.second);
-				Imp::move_type.store(2);
-				Imp::input_label.store(true);
-				increase_num = std::max(std::min(1, increase_num), -1) * imp_->increase_count;
-				Imp::is_increase.store(increase_num);
-				target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION | NOT_PRINT_CMD_INFO | NOT_LOG_CMD_INFO;
-			}
-			else if (p.first == "j3")
-			{
-				if (!Imp::movejp_is_running.load())throw std::runtime_error("manual mode not started, when pe");
-				int increase_num;
-				increase_num = std::stod(p.second);
-				Imp::move_type.store(3);
-				Imp::input_label.store(true);
-				increase_num = std::max(std::min(1, increase_num), -1) * imp_->increase_count;
-				Imp::is_increase.store(increase_num);
-				target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION | NOT_PRINT_CMD_INFO | NOT_LOG_CMD_INFO;
-			}
-			else if (p.first == "j4")
-			{
-				if (!Imp::movejp_is_running.load())throw std::runtime_error("manual mode not started, when pe");
-				int increase_num;
-				increase_num = std::stod(p.second);
-				Imp::move_type.store(4);
-				Imp::input_label.store(true);
-				increase_num = std::max(std::min(1, increase_num), -1) * imp_->increase_count;
-				Imp::is_increase.store(increase_num);
-				target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION | NOT_PRINT_CMD_INFO | NOT_LOG_CMD_INFO;
-			}
-			else if (p.first == "j5")
-			{
-				if (!Imp::movejp_is_running.load())throw std::runtime_error("manual mode not started, when pe");
-				int increase_num;
-				increase_num = std::stod(p.second);
-				Imp::move_type.store(5);
-				Imp::input_label.store(true);
-				increase_num = std::max(std::min(1, increase_num), -1) * imp_->increase_count;
-				Imp::is_increase.store(increase_num);
-				target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION | NOT_PRINT_CMD_INFO | NOT_LOG_CMD_INFO;
+				is_changing = true;
+				while (is_changing.load())std::this_thread::sleep_for(std::chrono::milliseconds(1));
 			}
 		}
 
@@ -2257,11 +2204,11 @@ namespace kaanh
 		auto &param = std::any_cast<MoveJPParam&>(target.param);
 
 		// get current pe //
-		//double p_now[6], v_now[6], a_now[6];
 		if (target.count == 1)
 		{
 			for (Size i = 0; i < 6; ++i)
 			{
+				imp_->p_start[i] = target.model->motionPool().at(i).mp();
 				imp_->p_now[i] = target.model->motionPool().at(i).mp();
 				imp_->v_now[i] = target.model->motionPool().at(i).mv();
 				imp_->a_now[i] = target.model->motionPool().at(i).ma();
@@ -2270,64 +2217,81 @@ namespace kaanh
 		for (int i = 3; i < 6; ++i) if (imp_->p_now[i] > aris::PI) imp_->p_now[i] -= 2 * PI;
 
 		// init status and calculate target pos and max vel //
-        auto which_joint = Imp::move_type.load();
-
-
-		static int increase_status = 0;
-        static double target_pos, max_vel;
-		if (Imp::input_label.load())
+		static int increase_status[6];
+        static double target_pos[6], max_vel[6];
+		if (is_changing)
 		{
-            Imp::input_label.store(false);
-			increase_status = Imp::is_increase.load();
+			imp_->s1_rt = imp_->s2_nrt;
+			is_changing.store(false);
+			for (int i = 0; i < 6; i++)
+			{
+				increase_status[i] = imp_->s1_rt.is_increase[i];
+			}	
 		}
-
-        max_vel = imp_->vel*1.0*Imp::vel_percent.load() / 100.0;
-        target_pos = imp_->p_now[Imp::move_type.load()] + increase_status*max_vel * 1e-3;
-        increase_status -= aris::dynamic::s_sgn(increase_status);
-
-		// 梯形轨迹规划 calculate real value //
+		for (int i = 0; i < 6; i++)
+		{
+			max_vel[i] = imp_->vel*1.0*imp_->s1_rt.vel_percent / 100.0;
+			target_pos[i] = imp_->p_start[i] + aris::dynamic::s_sgn(increase_status[i])*max_vel[i] * 1e-3;
+			increase_status[i] -= aris::dynamic::s_sgn(increase_status[i]);
+		}
+		std::copy_n(target_pos, 6, imp_->p_start);
+		// 梯形轨迹规划 //
 		double p_next, v_next, a_next;
+		for(int i=0; i<6; i++)
 		{
 			aris::Size t;
-			aris::plan::moveAbsolute2(imp_->p_now[Imp::move_type.load()], imp_->v_now[Imp::move_type.load()], imp_->a_now[Imp::move_type.load()]
-                , target_pos, 0.0, 0.0
-				, max_vel, imp_->acc, imp_->dec
+			aris::plan::moveAbsolute2(imp_->p_now[i], imp_->v_now[i], imp_->a_now[i]
+                , target_pos[i], 0.0, 0.0
+				, max_vel[i], imp_->acc, imp_->dec
 				, 1e-3, 1e-10, p_next, v_next, a_next, t);
+
+			target.model->motionPool().at(i).setMp(p_next);
+			imp_->p_now[i] = p_next;
+			imp_->v_now[i] = v_next;
+			imp_->a_now[i] = a_next;
 		}
-		target.model->motionPool().at(Imp::move_type.load()).setMp(p_next);
-		imp_->p_now[Imp::move_type.load()] = p_next;
-		imp_->v_now[Imp::move_type.load()] = v_next;
-		imp_->a_now[Imp::move_type.load()] = a_next;
+
 		// 运动学反解 //
 		if (!target.model->solverPool().at(1).kinPos())return -1;
 
 		// 打印 //
 		auto &cout = controller->mout();
-        if (target.count % 50 == 0)
+        if (target.count % 200 == 0)
 		{
-            cout << increase_status << "  ";
-            cout << Imp::vel_percent.load() << "  ";
-            cout << max_vel << "  ";
-            cout << target_pos << "  ";
-			cout << p_next << "  ";
-			cout << v_next << "  ";
-			cout << a_next << "  ";
+			for (int i = 0; i < 6; i++)
+			{
+				cout << increase_status[i] << "  ";
+			}
 			cout << std::endl;
-			cout << imp_->p_now[Imp::move_type.load()] << "  ";
-			cout << imp_->v_now[Imp::move_type.load()] << "  ";
-			cout << imp_->a_now[Imp::move_type.load()] << "  ";
+			for (int i = 0; i < 6; i++)
+			{
+				cout << target_pos[i] << "  ";
+			}
 			cout << std::endl;
+			for (int i = 0; i < 6; i++)
+			{
+				cout << imp_->p_now[i] << "  ";
+			}
+			cout << std::endl;
+			for (int i = 0; i < 6; i++)
+			{
+				cout << imp_->v_now[i] << "  ";
+			}
+			cout << std::endl;
+			cout << "------------------------------------------" <<std::endl;
 		}
 
 		// log //
 		auto &lout = controller->lout();
-		lout << Imp::input_label.load() << " ";
-		lout << target.model->motionPool().at(Imp::move_type.load()).mp() << " ";
-		lout << imp_->v_now[Imp::move_type.load()] << " ";
-		lout << imp_->a_now[Imp::move_type.load()] << " ";
+		for (int i = 0; i < 6; i++)
+		{
+			lout << target.model->motionPool().at(i).mp() << " ";
+			lout << target.model->motionPool().at(i).mv() << " ";
+			lout << target.model->motionPool().at(i).ma() << " ";
+		}
 		lout << std::endl;
 
-		return Imp::movejp_is_running.load() ? 1 : 0;
+		return imp_->s1_rt.movejp_is_running ? 1 : 0;
 	}
 	auto MoveJP::collectNrt(PlanTarget &target)->void {}
 	MoveJP::~MoveJP() = default;
@@ -2347,14 +2311,12 @@ namespace kaanh
 			"			<Param name=\"stop\"/>"
 			"			<GroupParam>"
 			"				<Param name=\"vel_percent\" default=\"10\"/>"
-			"				<UniqueParam>"
-			"					<Param name=\"j0\" default=\"0\"/>"
-			"					<Param name=\"j1\" default=\"0\"/>"
-			"					<Param name=\"j2\" default=\"0\"/>"
-			"					<Param name=\"j3\" default=\"0\"/>"
-			"					<Param name=\"j4\" default=\"0\"/>"
-			"					<Param name=\"j5\" default=\"0\"/>"
-			"				</UniqueParam>"
+			"				<Param name=\"j0\" default=\"0\"/>"
+			"				<Param name=\"j1\" default=\"0\"/>"
+			"				<Param name=\"j2\" default=\"0\"/>"
+			"				<Param name=\"j3\" default=\"0\"/>"
+			"				<Param name=\"j4\" default=\"0\"/>"
+			"				<Param name=\"j5\" default=\"0\"/>"
 			"			</GroupParam>"
 			"		</UniqueParam>"
 			"	</GroupParam>"
