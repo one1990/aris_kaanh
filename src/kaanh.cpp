@@ -2284,9 +2284,13 @@ namespace kaanh
 		auto &lout = controller->lout();
 		for (int i = 0; i < 6; i++)
 		{
-			lout << target.model->motionPool().at(i).mp() << " ";
-			lout << target.model->motionPool().at(i).mv() << " ";
-			lout << target.model->motionPool().at(i).ma() << " ";
+
+            lout << target_pos[i] << " ";
+            lout << imp_->v_now[i] << " ";
+            lout << imp_->a_now[i] << " ";
+            lout << controller->motionAtAbs(i).actualPos() << " ";
+            lout << controller->motionAtAbs(i).actualVel() << " ";
+            lout << controller->motionAtAbs(i).actualCur() << " ";
 		}
 		lout << std::endl;
 
