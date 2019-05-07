@@ -96,5 +96,22 @@ public:
 	explicit OpenFile(const std::string &name = "OpenFile");
 	ARIS_REGISTER_TYPE(OpenFile);
 };
+
+class UpdateUI : public aris::plan::Plan
+{
+public:
+	auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+	explicit UpdateUI(const std::string &name = "UpdateUI");
+	ARIS_REGISTER_TYPE(UpdateUI);
+};
+
+class SaveFile : public aris::plan::Plan
+{
+public:
+	auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+	explicit SaveFile(const std::string &name = "SaveFile");
+	ARIS_REGISTER_TYPE(SaveFile);
+};
+
 }
 #endif

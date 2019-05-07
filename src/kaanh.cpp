@@ -2863,7 +2863,8 @@ namespace kaanh
 		plan_root->planPool().add<cplan::MoveinModel>();
 		plan_root->planPool().add<cplan::FMovePath>();
 		plan_root->planPool().add<cplan::OpenFile>();
-
+		plan_root->planPool().add<cplan::SaveFile>();
+		plan_root->planPool().add<cplan::UpdateUI>();
 		return plan_root;
 	}
 

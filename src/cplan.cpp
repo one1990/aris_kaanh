@@ -52,27 +52,27 @@ namespace cplan
 		std::copy_n(beginpq, 7, pq);
 		//对变量的第一个参数进行运动规划
 		double theta = 1.0*(1 - std::cos(1.0*target.count / p.total_time * 1 * aris::PI));
-		pq[1] = beginpq[1] + p.radius*(std::cos(-aris::PI/2+1.0* theta * 5 * 2 * aris::PI)) + p.detal * theta * 5000;//Y轴，水平轴,走完5个圆
-		pq[2] = beginpq[2] + p.radius*(std::sin(-aris::PI/2+1.0*theta * 5 * 2 * aris::PI)) + p.radius;//Z轴竖直轴
-		if(target.count %500 ==0)target.controller->mout()<< pq[1] <<"  "<<pq[2]<< std::endl;
+		pq[1] = beginpq[1] + p.radius*(std::cos(-aris::PI / 2 + 1.0* theta * 5 * 2 * aris::PI)) + p.detal * theta * 5000;//Y轴，水平轴,走完5个圆
+		pq[2] = beginpq[2] + p.radius*(std::sin(-aris::PI / 2 + 1.0*theta * 5 * 2 * aris::PI)) + p.radius;//Z轴竖直轴
+		if (target.count % 500 == 0)target.controller->mout() << pq[1] << "  " << pq[2] << std::endl;
 		//将变量的值赋值给model中模型的末端位置
 		target.model->generalMotionPool()[0].setMpq(pq);
 		//求运动学反解需要调用求解器solverpool，0是反解，1是正解，kinPos是位置反解，kinVel是速度反解
-		if(target.model->solverPool()[0].kinPos() == 0 && target.count %500 ==0)target.controller->mout()<< "kin failed"<<std::endl;
+		if (target.model->solverPool()[0].kinPos() == 0 && target.count % 500 == 0)target.controller->mout() << "kin failed" << std::endl;
 		return p.total_time - target.count;
 	}
 
 	MoveCircle::MoveCircle(const std::string &name) :Plan(name)
-		{
-			command().loadXmlStr(
-				"<Command name=\"mvEE\">"
-				"	<GroupParam>"
-				"	    <Param name=\"total_time\" default=\"5000\"/>" //默认5000
-				"       <Param name=\"radius\" default=\"0.01\"/>"
-				"       <Param name=\"detal\" default=\"0.1/5000\"/>"//5秒走10cm
-				"   </GroupParam>"
-				"</Command>");
-		}
+	{
+		command().loadXmlStr(
+			"<Command name=\"mvEE\">"
+			"	<GroupParam>"
+			"	    <Param name=\"total_time\" default=\"5000\"/>" //默认5000
+			"       <Param name=\"radius\" default=\"0.01\"/>"
+			"       <Param name=\"detal\" default=\"0.1/5000\"/>"//5秒走10cm
+			"   </GroupParam>"
+			"</Command>");
+	}
 
 
 
@@ -141,7 +141,7 @@ namespace cplan
 	struct MoveFileParam
 	{
 		int total_time;
-     
+
 		double vel;
 		double acc;
 		double dec;
@@ -155,14 +155,14 @@ namespace cplan
 	vector<vector<double>  > POS2;
 	//读取指定文件夹的所有文件名，并存储在容器vector files[]中；
 	//getfiles2的作用是读取路径下的所有的文件名，并进行排序和输出
-	void getFiles2(string path, vector<string>& files)  
+	void getFiles2(string path, vector<string>& files)
 	{
 		std::vector<std::filesystem::path> loc_files;
-	
+
 		for (auto &p : std::filesystem::directory_iterator(path))  //遍历元素，p为局部变量"log"；
 		{
-			if(p.is_regular_file())loc_files.push_back(p.path());//检查p是否常规的文件，.path()是将路径输出的函数；
-			
+			if (p.is_regular_file())loc_files.push_back(p.path());//检查p是否常规的文件，.path()是将路径输出的函数；
+
 		}
 		//先输出正常的文件顺序
 		//for (auto &p : loc_files)   
@@ -176,12 +176,12 @@ namespace cplan
 			//p1和p2是指待排序的vector中的前两个对象，此处采用"冒泡排序"算法，进行挨个对比排序
 			//以下的return是指lamda函数的,sort函数本身是定义好的，在此处不需要再指明返回值
 			return std::filesystem::last_write_time(p1) < std::filesystem::last_write_time(p2);//返回布尔结果，true或者false;
-		});	
+		});
 		std::cout << "---------------------------------------------------------------------------" << std::endl << std::endl;
 		//输入排序后的结果
 		for (auto &p : loc_files)
 		{
-			
+
 			std::cout << p << std::endl;
 		}
 		//flies和local_files是两个类的成员，所以要重新使用local_files对files赋值；
@@ -195,7 +195,7 @@ namespace cplan
 			{
 				files.push_back(p.string());//p是path,给path写类的人写了一个函数string()；
 			}
-			
+
 		}
 		std::cout << std::endl;
 	}
@@ -245,8 +245,8 @@ namespace cplan
 	/// @return 返回值为空
 	auto MoveFile::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
-	
-	
+
+
 		MoveFileParam p;
 		p.total_time = std::stoi(params.at("total_time"));
 		p.vel = std::stod(params.at("vel"));
@@ -268,7 +268,7 @@ namespace cplan
 			POS[j].clear();
 		}
 		//string site = "C:/Users/qianch_kaanh_cn/Desktop/myplan/src/rokae/" + p.file;
-    
+
 
 		//char * filePath = "/home/kaanh/Desktop/build-kaanh-Desktop_Qt_5_11_2_GCC_64bit-Default/log/";//自己设置目录 
 		string filePath = "C:/Users/qianch_kaanh_cn/Desktop/build_qianch/log/";
@@ -297,7 +297,7 @@ namespace cplan
 		}
 		p.file = files[effpos.back()].c_str();
 		cout << p.file;
-	
+
 
 		//清理前50个文件
 		//std::filesystem::space_info devi = std::filesystem::space("log");
@@ -335,7 +335,7 @@ namespace cplan
 			{
 				double data;
 				oplog >> data;
-				POS[j].push_back(data);          
+				POS[j].push_back(data);
 			}
 		}
 		oplog.close();
@@ -354,7 +354,7 @@ namespace cplan
 			aris::plan::Plan::NOT_CHECK_VEL_FOLLOWING_ERROR |
 			aris::plan::Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START | // 开始不检查速度连续
 			aris::plan::Plan::NOT_CHECK_VEL_CONTINUOUS;
-			NOT_RUN_EXECUTE_FUNCTION;
+		NOT_RUN_EXECUTE_FUNCTION;
 	}
 	/// \brief 实时核函数executeRT
 	/// @param PlanTarget 命名空间aris::plan中定义的结构体，target是它的引用
@@ -395,7 +395,7 @@ namespace cplan
 			for (int i = 0; i < 6; i++)
 			{
 				// 在第一个周期走梯形规划复位
-				aris::plan::moveAbsolute(target.count, begin_pos[i], POS[3 * i ][0], p.vel / 1000, p.acc / 1000 / 1000, p.dec / 1000 / 1000, ptt, v, a, t_count);
+				aris::plan::moveAbsolute(target.count, begin_pos[i], POS[3 * i][0], p.vel / 1000, p.acc / 1000 / 1000, p.dec / 1000 / 1000, ptt, v, a, t_count);
 				controller->motionAtAbs(i).setTargetPos(ptt);
 				total_count = std::max(total_count, t_count);
 			}
@@ -415,7 +415,7 @@ namespace cplan
 		auto &lout = controller->lout();
 		for (int i = 0; i < 6; i++)
 		{
-			lout << POS[3*i][target.count - 1] << endl;//第一列数字必须是位置
+			lout << POS[3 * i][target.count - 1] << endl;//第一列数字必须是位置
 		}
 		auto &cout = controller->mout();
 		//以下验证读取文件的正确性；
@@ -433,22 +433,22 @@ namespace cplan
 	/// + 类构造函数MoveFile实时读取xml文件信息
 	///
 	MoveFile::MoveFile(const std::string &name) :Plan(name)
-		{
-			command().loadXmlStr(
-				"<Command name=\"mvFi\">"
-				"	<GroupParam>"
-				"	    <Param name=\"total_time\" default=\"5000\"/>" // 默认5000
-			   // "		<m type=\"Param\" default=\"59815\"/>"  // 行数
-				//"		<n type=\"Param\" default=\"24\"/>"
-				"		<Param name=\"vel\" default=\"0.04\"/>"
-				"		<Param name=\"acc\" default=\"0.08\"/>"
-				"		<Param name=\"dec\" default=\"0.08\"/>"
-				"		<Param name=\"choose\" default=\"0\"/>"
-				"		<Param name=\"pt\" default=\"{0.0,0.0,0.0,0.0,0.0,0.0}\"/>"
-				"		<Param name=\"file\" default=\"1.txt\" abbreviation=\"f\"/>"
-				"	</GroupParam>"
-				"</Command>");
-		}
+	{
+		command().loadXmlStr(
+			"<Command name=\"mvFi\">"
+			"	<GroupParam>"
+			"	    <Param name=\"total_time\" default=\"5000\"/>" // 默认5000
+		   // "		<m type=\"Param\" default=\"59815\"/>"  // 行数
+			//"		<n type=\"Param\" default=\"24\"/>"
+			"		<Param name=\"vel\" default=\"0.04\"/>"
+			"		<Param name=\"acc\" default=\"0.08\"/>"
+			"		<Param name=\"dec\" default=\"0.08\"/>"
+			"		<Param name=\"choose\" default=\"0\"/>"
+			"		<Param name=\"pt\" default=\"{0.0,0.0,0.0,0.0,0.0,0.0}\"/>"
+			"		<Param name=\"file\" default=\"1.txt\" abbreviation=\"f\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
 
 
 	struct RemoveFileParam
@@ -461,16 +461,16 @@ namespace cplan
 	{
 		RemoveFileParam p;
 
-		p.memo= std::stoi(params.at("memo"));
-		p.filePath = params.at("filePath"); 
+		p.memo = std::stoi(params.at("memo"));
+		p.filePath = params.at("filePath");
 		//p.filePath = "C:/Users/qianch_kaanh_cn/Desktop/myplan/src/rokae/";
 
 
 
 		//string filePath = "/home/kaanh/Desktop/build-kaanh-Desktop_Qt_5_11_2_GCC_64bit-Default/log/";//自己设置目录
-    
+
 		//char * filePath = "/home/kaanh/Desktop/build-kaanh-Desktop_Qt_5_11_2_GCC_64bit-Default/log/";//自己设置目录
-	
+
 		//string filePath = "C:/Users/qianch_kaanh_cn/Desktop/build_qianch/log/";
 		vector<string> files;
 		//获取该路径下的所有文件  
@@ -494,12 +494,12 @@ namespace cplan
 				//std::cout<<"success123456";
 				std::cout << files[0] << "  ";
 			}
-		} 
-	   // if (devi.available < 10737418240 * 4)
-	
-       
-	
-		//std::filesystem::remove(files[0]);
+		}
+		// if (devi.available < 10737418240 * 4)
+
+
+
+		 //std::filesystem::remove(files[0]);
 		target.param = p;
 		target.option =
 			//aris::plan::Plan::USE_TARGET_POS |
@@ -529,38 +529,71 @@ namespace cplan
 
 			"<Command name=\"rmFi\">"
 			"	<GroupParam>"
-			"	    <Param name=\"filePath\" default=\"C:/Users/qianch_kaanh_cn/Desktop/build_qianch/log/\" abbreviation=\"f\" />" 	
+			"	    <Param name=\"filePath\" default=\"C:/Users/qianch_kaanh_cn/Desktop/build_qianch/log/\" abbreviation=\"f\" />"
 			"	    <Param name=\"memo\" default=\"40\" abbreviation=\"m\" />"
 			"	</GroupParam>"
 			"</Command>");
 	}
 
 
+
+	vector<string> files;
+
 	struct OpenFileParam
 	{
-		string vn;//数组中的序号
-		int updt;//决定是否更新xml，=0时候更新，=1的时候不更新，返回值不一样
 	};
 
 	auto OpenFile::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
 		OpenFileParam p;
-		p.vn = params.at("vn");
-		p.updt = std::stoi(params.at("updt"));
-		auto&cs = aris::server::ControlServer::instance();
-		vector<string> files;		
+
+
 		string filePath = "C:/Users/qianch_kaanh_cn/Desktop/build_qianch/";
 
 		//获取该路径下的所有文件  
 		files.clear();
 		getFiles2(filePath, files);
-	
+
+
+		target.option |= NOT_RUN_COLLECT_FUNCTION;
+		target.param = p;
+		target.option |= NOT_RUN_EXECUTE_FUNCTION;
+	}
+
+	OpenFile::OpenFile(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"opFi\">"
+			"</Command>");
+	}
+
+	//测试xml文件名，成功
+	//target.ret = files[num].substr(46, files[num].rfind(".") - 46);
+	//auto &cs = aris::server::ControlServer::instance();	
+
+	aris::core::XmlDocument doc;
+
+	struct UpdateUIParam
+	{
+		string vn;//数组中的序号
+		int updt;//决定是否更新xml，=0时候更新，=1的时候不更新，返回值不一样
+	};
+
+	auto UpdateUI::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		UpdateUIParam p;
+		p.vn = params.at("vn");
+		p.updt = std::stoi(params.at("updt"));
+		auto&cs = aris::server::ControlServer::instance();
+
+		/*
+		string filePath = "C:/Users/qianch_kaanh_cn/Desktop/build_qianch/";
+		//获取该路径下的所有文件
+		files.clear();
+		getFiles2(filePath, files);
 		int num = p.vn == "back" ? files.size() - 1 : std::stoi(p.vn);
 		cout << "num:  " << num << endl;
-	
-		
-		//以下代码为打开files中的最新的一个xml文件，并完整输出xml文件中的内容		
-		/*
+		//以下代码为打开files中的最新的一个xml文件，并完整输出xml文件中的内容
 		fstream fin;
 		fin.open(files[ num ].c_str(), ios::in);
 		vector<string> v;
@@ -570,16 +603,16 @@ namespace cplan
 			v.push_back(tmp);
 		}
 		for (auto x : v)
-        cout << x << endl;
+		cout << x << endl;
 		fin.close();
 		fin.clear();
 		*/
-		
+
 		if (p.updt == 0)
 		{
 			int num_xml = files.size();//xml文件的个数
 			cout << "num_xml" << num_xml << endl;
-			aris::core::XmlDocument doc;
+
 
 			target.server->root().saveXmlDoc(doc);
 
@@ -622,9 +655,9 @@ namespace cplan
 				user_node_2->InsertEndChild(user_node_3);
 			}
 			target.server->stop();
-			//target.server->saveXmlFile("C:/Users/qianch_kaanh_cn/Desktop/build_qianch/rokae.xml");//save的结果还是有问题，但是输出的结果是正确的
-			//以下是错误的保存方式
-			doc.SaveFile("C:/Users/qianch_kaanh_cn/Desktop/build_qianch/rokae.xml");	
+			//target.server->saveXmlFile("C:/Users/qianch_kaanh_cn/Desktop/build_qianch/rokae.xml");
+
+			doc.SaveFile("C:/Users/qianch_kaanh_cn/Desktop/build_qianch/rokae.xml");
 
 			//以下先停止server再load，再保存xml
 			//cs.stop();
@@ -643,7 +676,7 @@ namespace cplan
 		{
 			const std::string xmlpath = files[0];
 			cout << "xmlpath" << files[0] << endl;
-			cs.stop();
+			//cs.stop();
 			cs.loadXmlFile(xmlpath.c_str());
 			target.ret = std::string("1");
 		}
@@ -665,11 +698,11 @@ namespace cplan
 		target.param = p;
 		target.option |= NOT_RUN_EXECUTE_FUNCTION;
 	}
-	
-	OpenFile::OpenFile(const std::string &name) :Plan(name)
+
+	UpdateUI::UpdateUI(const std::string &name) :Plan(name)
 	{
 		command().loadXmlStr(
-			"<Command name=\"opFi\">"
+			"<Command name=\"updtUI\">"
 			"	<GroupParam>"
 			"	    <Param name=\"vn\" default=\"back\"/>"
 			"	    <Param name=\"updt\" default=\"0\"/>"
@@ -677,21 +710,44 @@ namespace cplan
 			"</Command>");
 	}
 
-	//测试xml文件名，成功
-    //target.ret = files[num].substr(46, files[num].rfind(".") - 46);
-    //auto &cs = aris::server::ControlServer::instance();	
 
+
+	struct SaveFileParam
+	{
+		
+	};
+
+	auto SaveFile::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{		
+		auto&cs = aris::server::ControlServer::instance();
+
+			//target.server->stop();
+			//target.server->saveXmlFile("C:/Users/qianch_kaanh_cn/Desktop/build_qianch/rokae.xml");
+			
+			doc.SaveFile("C:/Users/qianch_kaanh_cn/Desktop/build_qianch/rokae.xml");
+
+		target.option |= NOT_RUN_COLLECT_FUNCTION;
+
+		target.option |= NOT_RUN_EXECUTE_FUNCTION;
+	}
+
+	SaveFile::SaveFile(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"svFi\">"			
+			"</Command>");
+	}
 
 
 	//直接给14维数组
 	auto load_pq2(aris::Size count, aris::Size &start_count)->std::array<double, 14>
 	{
 		std::array<double, 14> temp = { -0.122203,0.396206,0.0139912,-0.492466,0.474288,0.511942,0.520041,0,0,0,0,0,0,0 };
-        std::array<double, 7> targetpos1 = { -0.122203,0.396206,0.01,-0.492466,0.474288,0.511942,0.520041 };
-        std::array<double, 7> targetpos2 = { -0.122203,0.466206,0.01,-0.492466,0.474288,0.511942,0.520041 };
-        std::array<double, 7> targetpos3 = { 0.162203,0.466206,0.01,-0.492466,0.474288,0.511942,0.520041 };
-        std::array<double, 7> targetpos4 = { 0.162203,0.396206,0.01,-0.492466,0.474288,0.511942,0.520041 };
-        std::array<double, 7> targetpos5 = { -0.122203,0.396206,0.01,-0.492466,0.474288,0.511942,0.520041 };
+		std::array<double, 7> targetpos1 = { -0.122203,0.396206,0.01,-0.492466,0.474288,0.511942,0.520041 };
+		std::array<double, 7> targetpos2 = { -0.122203,0.466206,0.01,-0.492466,0.474288,0.511942,0.520041 };
+		std::array<double, 7> targetpos3 = { 0.162203,0.466206,0.01,-0.492466,0.474288,0.511942,0.520041 };
+		std::array<double, 7> targetpos4 = { 0.162203,0.396206,0.01,-0.492466,0.474288,0.511942,0.520041 };
+		std::array<double, 7> targetpos5 = { -0.122203,0.396206,0.01,-0.492466,0.474288,0.511942,0.520041 };
 		double vel = 0.1, acc = 0.2, dec = 0.2, v, a;
 		aris::Size t_count;
 		static aris::Size count_last = 0, count_last2 = 0, count_last3 = 0, count_last4 = 0;//上个轨迹完成共消耗的count ,每个阶段单独的时间
@@ -936,7 +992,7 @@ namespace cplan
 		{
 			POS[j].pop_back();
 		}
-	
+
 		///以下定义二位数组POS2，是从POS中间隔取点
 		//先定义取点的间隔p_space
 		/*
@@ -946,13 +1002,13 @@ namespace cplan
 		*/
 
 		//std::vector<std::vector<double>>POS2(25);
-	
+
 		/*for (int i = 0; i < 25; i++)
 		{
 			POS2[i].clear();
 		}*/
 		int row = POS[0].size();//总行数
-	
+
 		int step_wave = 2;//滤波间隔；
 		for (int j = 0; j < row - step_wave; j++)
 		{
@@ -987,7 +1043,7 @@ namespace cplan
 			//std::cout << "POS2[20][j]" << POS2[20][j] << std::endl;
 		}
 
-		for (int i = 0; i< POS[0].size()- step_wave; i++)
+		for (int i = 0; i < POS[0].size() - step_wave; i++)
 		{
 			double tangent[3] = { POS[18][i + step_wave] - POS[18][i],POS[19][i + step_wave] - POS[19][i] ,POS[20][i + step_wave] - POS[20][i] };
 			double tangL = sqrt(tangent[0] * tangent[0] + tangent[1] * tangent[1] + tangent[2] * tangent[2]);
@@ -1035,7 +1091,7 @@ namespace cplan
 
 				double theta = atan(vert0[0] / vert0[2]);
 				theta2.push_back(theta);
- 				double pe[6] = { POS[18][i] ,POS[19][i] ,POS[20][i],atan(1) * 2 ,atan(1) * 2 , theta };
+				double pe[6] = { POS[18][i] ,POS[19][i] ,POS[20][i],atan(1) * 2 ,atan(1) * 2 , theta };
 
 				//绝对
 				//double pe[6] = { POS[18][i] ,POS[19][i] ,POS[20][i], atan(1) * 2,-atan(1) * 2 , theta };
@@ -1076,7 +1132,7 @@ namespace cplan
 		//}
 		//std::cout << "POS2[18][0]" << POS2[18][0] << "   " << "POS2[19][0]" << POS2[19][0] << "   " << "POS2[20][0]" << POS2[20][0] << std::endl;
 		//int step_i = 1;
-	
+
 		std::cout << "pq[0][0]" << pq[0][0] << "    " << "pq[1][0]" << pq[1][0] << "    " << "pq[2][0]" << pq[2][0] << "pq[3][0]" << pq[3][0] << "    " << "pq[4][0]" << pq[4][0] << "    " << "pq[5][0]" << pq[5][0] << "    " << "pq[6][0]" << pq[6][0] << std::endl;
 		//std::cout << "pq size:" << pq[0].size() << std::endl;
 
@@ -1142,15 +1198,15 @@ namespace cplan
 		}
 		for (int i = 0; i < row - 1; i++)
 		{
-			  double cccc = sqrt((POS[18][i + 1] - POS[18][i])*(POS[18][i + 1] - POS[18][i]) + (POS[19][i + 1] - POS[19][i])*(POS[19][i + 1] - POS[19][i]) + (POS[20][i + 1] - POS[20][i])*(POS[20][i + 1] - POS[20][i]));
-			  ds = ds + cccc;
-			  if (cccc > 10e-8)
-			  {
-				  S_P[0].push_back(ds);
-				  S_P[1].push_back(POS[18][i + 1]);
-				  S_P[2].push_back(POS[19][i + 1]);
-				  S_P[3].push_back(POS[20][i + 1]);
-			  }
+			double cccc = sqrt((POS[18][i + 1] - POS[18][i])*(POS[18][i + 1] - POS[18][i]) + (POS[19][i + 1] - POS[19][i])*(POS[19][i + 1] - POS[19][i]) + (POS[20][i + 1] - POS[20][i])*(POS[20][i + 1] - POS[20][i]));
+			ds = ds + cccc;
+			if (cccc > 10e-8)
+			{
+				S_P[0].push_back(ds);
+				S_P[1].push_back(POS[18][i + 1]);
+				S_P[2].push_back(POS[19][i + 1]);
+				S_P[3].push_back(POS[20][i + 1]);
+			}
 		}
 		cout << "ds:   " << ds << endl;
 		int row_SP = S_P[0].size();
@@ -1171,19 +1227,19 @@ namespace cplan
 		s_akima(row_SP, S_P[0].data(), S_P[1].data(), p11.data(), p12.data(), p13.data());
 		s_akima(row_SP, S_P[0].data(), S_P[2].data(), p21.data(), p22.data(), p23.data());
 		s_akima(row_SP, S_P[0].data(), S_P[3].data(), p31.data(), p32.data(), p33.data());
-	
-	
+
+
 		int point_sum = 5000;//数据均匀等分个数
-	
-	
+
+
 		double s_step = 0.0;
 		vector<vector<double>> XYZ(3);
 		for (int i = 0; i < point_sum; i++)
 		{
-			s_step = s_step + (i+1) * ds / point_sum;
-			double x_s=s_akima_at(row_SP, S_P[0].data(), S_P[1].data(), p11.data(), p12.data(), p13.data(), s_step, '0');
+			s_step = s_step + (i + 1) * ds / point_sum;
+			double x_s = s_akima_at(row_SP, S_P[0].data(), S_P[1].data(), p11.data(), p12.data(), p13.data(), s_step, '0');
 			double y_s = s_akima_at(row_SP, S_P[0].data(), S_P[2].data(), p21.data(), p22.data(), p23.data(), s_step, '0');
-			double z_s = s_akima_at(row_SP, S_P[0].data(), S_P[3].data(), p31.data(), p32.data(), p33.data(), s_step, '0');		
+			double z_s = s_akima_at(row_SP, S_P[0].data(), S_P[3].data(), p31.data(), p32.data(), p33.data(), s_step, '0');
 			XYZ[0].push_back(x_s);
 			XYZ[1].push_back(y_s);
 			XYZ[2].push_back(z_s);
@@ -1199,7 +1255,7 @@ namespace cplan
 		cout << "XYZ[0].size()验证是否是5000（point_sum）:    " << XYZ[0].size() << endl;
 		for (int i = 0; i < 5000; i++)
 		{
-			cout << "XYZ[0][i]" << XYZ[0][i]<<"   " << "XYZ[1][i]" << XYZ[1][i] << "   " << "XYZ[2][i]" << XYZ[2][i] << endl;
+			cout << "XYZ[0][i]" << XYZ[0][i] << "   " << "XYZ[1][i]" << XYZ[1][i] << "   " << "XYZ[2][i]" << XYZ[2][i] << endl;
 		}
 		cout << "XYZ[1][2]" << XYZ[1][2] << endl;
 		cout << "p1[2]" << p1[2] << endl;
@@ -1214,9 +1270,9 @@ namespace cplan
 		double Kz4 = s_akima_at(5, A, B, p1.data(), p2.data(), p3.data(), 8.5, '1');
 		double Kz5 = s_akima_at(5, A, B, p1.data(), p2.data(), p3.data(), 12, '1');
 		std::cout << "Kz1" << Kz1 << "   " << "Kz2" << Kz2 << "   " << "Kz3" << Kz3 << "Kz4" << Kz4 << "   " << "Kz5" << Kz5 << std::endl;*/
-		double runtime = point_sum/1000;//5s内走完所有的轨迹
+		double runtime = point_sum / 1000;//5s内走完所有的轨迹
 		double zsite = POS[20][0];//将Z的位置进行初始化
-		for (int i = 0; i < runtime*1000 - step_wave; i++)
+		for (int i = 0; i < runtime * 1000 - step_wave; i++)
 		{
 
 			//double xsite = POS[18][0] + (POS[18][row - 1] - POS[18][0]) / runtime / 1000.0000*(i + 1);
@@ -1224,7 +1280,7 @@ namespace cplan
 			//Kz是Z轴的斜率
 			double Kz = s_akima_at(row_xyz, XYZ[0].data(), XYZ[2].data(), p1.data(), p2.data(), p3.data(), xsite, '1');
 			cout << "  Kz:   " << Kz << endl;
-			double tangent[3] = {1,0 ,Kz };
+			double tangent[3] = { 1,0 ,Kz };
 			//zsite = zsite + Kz * (POS[18][row - 1] - POS[18][0]) / runtime / 1000.0000;
 			/*if (i <= 3000)
 				tangent[0] = 0.0001;
@@ -1309,273 +1365,273 @@ namespace cplan
 				pq[j].push_back(pq0[j]);
 			}
 		}
-		
-	
-		
-			//int step_i = 1;
-			std::cout << "pq[0].size():  " << pq[0].size() << endl;
-			std::cout << "pq[0][0]" << pq[0][0] << "    " << "pq[1][0]" << pq[1][0] << "    " << "pq[2][0]" << pq[2][0] << "pq[3][0]" << pq[3][0] << "    " << "pq[4][0]" << pq[4][0] << "    " << "pq[5][0]" << pq[5][0] << "    " << "pq[6][0]" << pq[6][0] << std::endl;
-			//std::cout << "pq size:" << pq[0].size() << std::endl;
-		}
+
+
+
+		//int step_i = 1;
+		std::cout << "pq[0].size():  " << pq[0].size() << endl;
+		std::cout << "pq[0][0]" << pq[0][0] << "    " << "pq[1][0]" << pq[1][0] << "    " << "pq[2][0]" << pq[2][0] << "pq[3][0]" << pq[3][0] << "    " << "pq[4][0]" << pq[4][0] << "    " << "pq[5][0]" << pq[5][0] << "    " << "pq[6][0]" << pq[6][0] << std::endl;
+		//std::cout << "pq size:" << pq[0].size() << std::endl;
+	}
 
 
 	//采用桂凯的方法，走由sin加直线组成的标准曲线的3D打印件
 	//load_pq14对应的是打磨的时候磨头经过曲面的速度恒定
 	//load_pq12对应的是打磨的时候水平速度恒定
-    auto load_pq12()->void
+	auto load_pq12()->void
+	{
+		vector<vector<double>> XYZ(3);
+		for (int i = 0; i < 3; i++)
 		{
-			vector<vector<double>> XYZ(3);
-			for (int i = 0; i < 3; i++)
+			XYZ[i].clear();
+		}
+		//清除pq，防止多次调用累积增加
+		for (int i = 0; i < 7; i++)
+		{
+			pq[i].clear();
+		}
+		//定义总的运行时间为6s
+		int run_time = 4;//default6s
+		double distance_x = 0.360;//工件总长度x轴跨度360mm长度
+		double v_x = distance_x / (run_time*1.0000);
+		double distance_sin = 0.250;//sin曲线跨度250mm长度
+		double distance_l_tilted = 0.0761254;//斜直线跨度
+		double k_l_tilted = 0.37699;//斜直线的斜率
+		//以下定义圆角过渡曲线，在此处约定，圆角只能为一小半圆弧，即圆弧对应的角度不可超过180度，超过时报错
+		double distance_c = 0.0070551;//圆角跨度
+		double center_x = 0.3331805;//相对于工件的加工起始点而言，圆弧圆心x坐标
+		double center_z = 9.9843*0.001;
+		double radius_c = 0.020;//圆弧的半径
+		int root;//定义开根号的系数，只为1或者-1，具体在走圆弧的时候确定
+		if (distance_c > radius_c * 2.0 *0.8)
+		{
+			throw std::runtime_error("The arc to be travelled cannot be a large semi-arc");
+			//圆角只能为一小半圆弧，即圆弧对应的角度不可超过180度，超过时报错
+		}
+		double distance_l_horizontal = 0.0218195;//水平直线的跨度
+		double lateral_step = 0.01;//侧向步长，在数模中显示为y轴方向的步长
+		double distance_lateral = 0.12;//数模的侧向总长度
+		int loop_total = int(distance_lateral / lateral_step);
+		cout << "loop_total验证是否为整数" << loop_total << endl;
+		//loop_count为打磨的循环次数计数器
+		int loop_count = 0;
+		double distance_avoid = 0.1; //default0.15回刀循环过程中的避让距离，在数模中为Z轴方向的抬升高度
+
+
+		//定义待加工件上起始加工点的初始位置坐标
+		double x0 = -0.12424, y0 = 0.47118, z0 = 0.0294;
+		double xa = x0;
+
+		for (int i = 0; i < run_time * 1000; i++)
+		{
+			double time = i * 0.001;
+			xa = xa + v_x * 0.001;//x在循环中的实际位置
+			//cout << "xa:   " << xa << endl;
+			double pi = 3.1415926;
+			double tangent[3] = { v_x / 1000, 0 ,0 };
+			//以下状态走sin曲线
+			if (i <= (distance_sin / v_x * 1000.00))
+				tangent[2] = v_x * 0.001 * (6 * pi) * (cos(2 * pi*(xa - x0) / 0.25)) / 50.0;
+			else if (i > (distance_sin / v_x * 1000.00) && i <= ((distance_sin + distance_l_tilted) / v_x * 1000.00))
+				tangent[2] = k_l_tilted * v_x * 0.001;
+			//以下经过圆角
+			else if (i > ((distance_sin + distance_l_tilted) / v_x * 1000.00) && i <= ((distance_sin + distance_l_tilted + distance_c) / v_x * 1000.00))
 			{
-				XYZ[i].clear();
+				if (center_z > XYZ[2][i - 1])
+					root = -1;
+				else if (center_z < XYZ[2][i - 1])
+					root = 1;
+				else if (std::abs(center_z - XYZ[2][i - 1]) < radius_c * 0.3)
+					throw std::runtime_error("The slope of the arc to be traveled is too large");
+				tangent[2] = -(root * 1.00000) * (xa - center_x - x0) / sqrt(radius_c * radius_c - (xa - center_x - x0) * (xa - center_x - x0))* v_x * 0.001;
 			}
-			//清除pq，防止多次调用累积增加
-			for (int i = 0; i < 7; i++)
+
+			else if (i > ((distance_sin + distance_l_tilted + distance_c) / v_x * 1000.00))
+				tangent[2] = 0;
+			//定义起始点为0
+			if (i == 0)
 			{
-				pq[i].clear();
+				XYZ[0].push_back(x0);
+				XYZ[1].push_back(y0);
+				XYZ[2].push_back(z0);
 			}
-			//定义总的运行时间为6s
-			int run_time = 4;//default6s
-			double distance_x = 0.360;//工件总长度x轴跨度360mm长度
-			double v_x = distance_x / (run_time*1.0000);
-			double distance_sin = 0.250;//sin曲线跨度250mm长度
-			double distance_l_tilted = 0.0761254;//斜直线跨度
-			double k_l_tilted = 0.37699;//斜直线的斜率
-			//以下定义圆角过渡曲线，在此处约定，圆角只能为一小半圆弧，即圆弧对应的角度不可超过180度，超过时报错
-			double distance_c = 0.0070551;//圆角跨度
-			double center_x = 0.3331805;//相对于工件的加工起始点而言，圆弧圆心x坐标
-			double center_z = 9.9843*0.001;
-			double radius_c = 0.020;//圆弧的半径
-			int root;//定义开根号的系数，只为1或者-1，具体在走圆弧的时候确定
-			if (distance_c > radius_c * 2.0 *0.8)
+			else
 			{
-				throw std::runtime_error("The arc to be travelled cannot be a large semi-arc");
-				//圆角只能为一小半圆弧，即圆弧对应的角度不可超过180度，超过时报错
+				XYZ[0].push_back(XYZ[0][i - 1] + tangent[0]);
+				XYZ[1].push_back(y0);
+				//POS[19][i] = POS[19][i - 1];
+				XYZ[2].push_back(XYZ[2][i - 1] + tangent[2]);
+				//cout << "i:  "<<i<<"    " << "XYZ[0][i]: " << XYZ[0][i] << "tangent[2]: " << tangent[2] << "XYZ[2][i]:   " << XYZ[2][i] << endl;
 			}
-			double distance_l_horizontal = 0.0218195;//水平直线的跨度
-			double lateral_step = 0.01;//侧向步长，在数模中显示为y轴方向的步长
-			double distance_lateral = 0.12;//数模的侧向总长度
-			int loop_total = int(distance_lateral / lateral_step);
-			cout << "loop_total验证是否为整数" << loop_total << endl;
-			//loop_count为打磨的循环次数计数器
-			int loop_count = 0;
-			double distance_avoid = 0.1; //default0.15回刀循环过程中的避让距离，在数模中为Z轴方向的抬升高度
 
 
-			//定义待加工件上起始加工点的初始位置坐标
-			double x0 = -0.12424, y0 = 0.47118, z0 = 0.0294;
-			double xa = x0;
+			double tangL = sqrt(tangent[0] * tangent[0] + tangent[1] * tangent[1] + tangent[2] * tangent[2]);
+			//cout << "tangL:   " << tangL << endl;
+			if (tangL < 5 * 10e-17)//-6************************************************************************
+				continue;
+			else
+			{
 
-			for (int i = 0; i < run_time * 1000; i++)
-			{			
-				double time = i * 0.001;
-				xa = xa + v_x * 0.001;//x在循环中的实际位置
-				//cout << "xa:   " << xa << endl;
-				double pi = 3.1415926;
-				double tangent[3] = { v_x / 1000, 0 ,0 };
-				//以下状态走sin曲线
-				if (i <= (distance_sin / v_x * 1000.00))
-					tangent[2] = v_x * 0.001 * (6 * pi) * (cos(2 * pi*(xa - x0) / 0.25)) / 50.0;
-				else if (i > (distance_sin / v_x * 1000.00) && i <= ((distance_sin + distance_l_tilted) / v_x * 1000.00))
-					tangent[2] = k_l_tilted * v_x * 0.001;
-				//以下经过圆角
-				else if (i > ((distance_sin + distance_l_tilted) / v_x * 1000.00) && i <= ((distance_sin + distance_l_tilted + distance_c) / v_x * 1000.00))
+				double x[3] = { 1, 0, 0 };
+				double y[3] = { 0, 1, 0 };
+				double z[3] = { 0, 0, -1 };
+				//求取切线与y轴的公法线向量
+				double vert[3] = { 0,0,0 };
+				//叉乘
+				s_c3(tangent, y, vert);
+				//先求出垂直向量的模，再除以模长求出单位向量；
+
+
+				double sq = sqrt(vert[0] * vert[0] + vert[1] * vert[1] + vert[2] * vert[2]);
+
+				//std::cout << "sq" << sq << std::endl;
+
+				double vert0[3] = { 0,0,0 };
+				for (int j = 0; j < 3; j++)
 				{
-					if (center_z > XYZ[2][i - 1])
-						root = -1;
-					else if (center_z < XYZ[2][i - 1])
-						root = 1;
-					else if (std::abs(center_z - XYZ[2][i - 1]) < radius_c * 0.3 )
-						throw std::runtime_error("The slope of the arc to be traveled is too large");
-					tangent[2] = -(root * 1.00000) * (xa - center_x - x0) / sqrt(radius_c * radius_c - (xa - center_x - x0) * (xa - center_x - x0))* v_x * 0.001;
-				}
-				
-				else if (i > ((distance_sin + distance_l_tilted + distance_c) / v_x * 1000.00))
-					tangent[2] = 0;
-				//定义起始点为0
-				if (i == 0)
-				{
-					XYZ[0].push_back(x0);
-					XYZ[1].push_back(y0);
-					XYZ[2].push_back(z0);
-				}
-				else
-				{
-					XYZ[0].push_back(XYZ[0][i - 1] + tangent[0]);
-					XYZ[1].push_back(y0);
-					//POS[19][i] = POS[19][i - 1];
-					XYZ[2].push_back(XYZ[2][i - 1] +tangent[2]);
-					//cout << "i:  "<<i<<"    " << "XYZ[0][i]: " << XYZ[0][i] << "tangent[2]: " << tangent[2] << "XYZ[2][i]:   " << XYZ[2][i] << endl;
+					vert0[j] = vert[j] / sq;
 				}
 
+				double theta = atan(vert0[0] / vert0[2]);
+				//std::cout << "theta:   " << theta << std::endl;
+				double pe[6] = { XYZ[0][i] ,XYZ[1][i] ,XYZ[2][i],atan(1) * 2 ,atan(1) * 2 , theta };
 
-				double tangL = sqrt(tangent[0] * tangent[0] + tangent[1] * tangent[1] + tangent[2] * tangent[2]);
-				//cout << "tangL:   " << tangL << endl;
-				if (tangL < 5 * 10e-17)//-6************************************************************************
-					continue;
-				else
+				double pm[4][4];
+
+				//s_pe2pm(pe, &pm[0][0], "323");
+
+				aris::dynamic::s_pe2pm(pe, pm[0], "323");//必须是二位数组的第一个地址
+
+				double pq0[7] = { 0,0,0,0,0,0,0 };
+
+				aris::dynamic::s_pm2pq(pm[0], pq0);
+
+
+				for (int j = 0; j < 7; j++)
 				{
+					pq[j].push_back(pq0[j]);
+				}
 
-					double x[3] = { 1, 0, 0 };
-					double y[3] = { 0, 1, 0 };
-					double z[3] = { 0, 0, -1 };
-					//求取切线与y轴的公法线向量
-					double vert[3] = { 0,0,0 };
-					//叉乘
-					s_c3(tangent, y, vert);
-					//先求出垂直向量的模，再除以模长求出单位向量；
+				if (i == run_time * 1000 - 1)
+				{
+					//以下地方容易出错
+					//空中的几个点的pq值
+					double pq_switch1[7] = { XYZ[0][i] ,XYZ[1][i] , XYZ[2][i] + distance_avoid, -0.5, 0.5, 0.5, 0.5 };
+					double pq_switch2[7] = { XYZ[0][0] ,XYZ[1][0] + lateral_step, XYZ[2][i] + distance_avoid, -0.5, 0.5, 0.5, 0.5 };
+					double pq_switch3[7] = { XYZ[0][0] ,XYZ[1][0] + lateral_step  , XYZ[2][0], -0.5815, 0.4023, 0.4023, 0.5815 };
+					double pt, v, a;
+					double vel = 0.04 * 2;
+					double acc = 0.08 * 2;
+					double dec = 0.08 * 2;
+					aris::Size t_count;
+					aris::Size last_count1 = 0, last_count2 = 0, last_count3 = 0;//count的记录中间变量，1，2，3分别对应上升，平动和下降
+					//aris::Size total_count = 1;
+					double begin_pos = 0.0;//局部变量最好赋一个初始值
+					//if (target.count == 1)
+					//{
+					//	begin_pos = controller->motionAtAbs(5).targetPos();
+					//}
+					//aris::plan::moveAbsolute(target.count, begin_pos, p.pt, p.vel / 1000, p.acc / 1000 / 1000, p.dec / 1000 / 1000, pt, v, a, t_count);
+					//以下完成上升过程
+					//---------定义上升过程中的pq中间值变量，定义为pq_up
+					//---------pq_up中赋值为0的地方就是过程中需要变化的值
+					double pq_up[7] = { XYZ[0][i] ,XYZ[1][i] , 0, -0.5, 0.5, 0.5, 0.5 };
+					aris::plan::moveAbsolute(0, XYZ[2][i], pq_switch1[2], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, pt, v, a, t_count);
+					/*cout << "tangent[2]:    " << tangent[2] << endl;
+
+					cout << "XYZ[2][i]:    " << XYZ[2][i]<<"    " << "pq_switch1[2]:    " << pq_switch1[2] << endl;
+					cout << "XYZ[1][i]:    " << XYZ[1][i] << endl;
+					cout << "XYZ[0][i]:    " << XYZ[0][i] << endl;
+					cout << "t_count:    " << t_count << endl;*/
+					last_count1 = std::max(t_count, last_count1);
+					//cout << "last_count1:    " << last_count1 << endl;
 
 
-					double sq = sqrt(vert[0] * vert[0] + vert[1] * vert[1] + vert[2] * vert[2]);
 
-					//std::cout << "sq" << sq << std::endl;
+					for (int j = 0; j < last_count1; j++)
+					{
+						aris::plan::moveAbsolute(j, XYZ[2][i], pq_switch1[2], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, pt, v, a, t_count);
+						pq_up[2] = pt;
+						for (int k = 0; k < 7; k++)
+						{
+							pq[k].push_back(pq_up[k]);
+						}
+					}
+					//以下完成空中平动过程
+					//---------定义平动过程中的pq中间值变量，定义为pq_move
+					//---------pq_move中赋值为0的地方就是过程中需要变化的值
+					double pq_move[7] = { 0 ,0, XYZ[2][i] + distance_avoid, -0.5, 0.5, 0.5, 0.5 };
+					//-----x轴恢复起始位置
+					aris::plan::moveAbsolute(0, XYZ[0][i], XYZ[0][0], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, pt, v, a, t_count);
+					last_count2 = std::max(t_count, last_count2);
+					//------y轴做出一定的偏移，此处为加
+					aris::plan::moveAbsolute(0, XYZ[1][0], pq_switch2[1], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, pt, v, a, t_count);
+					last_count2 = std::max(t_count, last_count2);
+					//cout << "last_count2:    " << last_count2 << endl;
 
-					double vert0[3] = { 0,0,0 };
+
+
+					for (int j = 0; j < last_count2; j++)
+					{
+						aris::plan::moveAbsolute(j, XYZ[0][i], XYZ[0][0], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, pt, v, a, t_count);
+						pq_move[0] = pt;
+						aris::plan::moveAbsolute(j, XYZ[1][0], pq_switch2[1], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, pt, v, a, t_count);
+						pq_move[1] = pt;
+						for (int k = 0; k < 7; k++)
+						{
+							pq[k].push_back(pq_move[k]);
+						}
+					}
+					//以下完成下降过程
+					//---------定义平动过程中的pq中间值变量，定义为pq_down
+					//---------pq_down中赋值为0的地方就是过程中需要变化的值
+					double pq_down[7] = { XYZ[0][0] ,XYZ[1][0] + lateral_step, 0.0, 0.0, 0.0, 0.0, 0.0 };
+
+
+					for (int j = 2; j < 7; j++)
+					{
+						aris::plan::moveAbsolute(0, pq_switch2[j], pq_switch3[j], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, pt, v, a, t_count);
+						last_count3 = std::max(t_count, last_count3);
+					}
+					//cout << "last_count3:    " << last_count3 << endl;
+
+
+					for (int j = 0; j < last_count3; j++)
+					{
+						for (int s = 2; s < 7; s++)
+						{
+							aris::plan::moveAbsolute(j, pq_switch2[s], pq_switch3[s], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, pt, v, a, t_count);
+							pq_down[s] = pt;
+						}
+
+						for (int k = 0; k < 7; k++)
+						{
+							pq[k].push_back(pq_down[k]);
+						}
+					}
+					i = -1;//因为循环重复有个i++的过程，所以如果此处令i=0,那么再次循环的时候i=1开始的
+					loop_count = loop_count + 1;
+					if (loop_count == loop_total)
+					{
+						i = run_time * 1000;//停止循环
+					}
+
+					y0 = y0 + lateral_step;
+					xa = x0;
 					for (int j = 0; j < 3; j++)
 					{
-						vert0[j] = vert[j] / sq;
-					}
-
-					double theta = atan(vert0[0] / vert0[2]);
-					//std::cout << "theta:   " << theta << std::endl;
-					double pe[6] = { XYZ[0][i] ,XYZ[1][i] ,XYZ[2][i],atan(1) * 2 ,atan(1) * 2 , theta };
-
-					double pm[4][4];
-
-					//s_pe2pm(pe, &pm[0][0], "323");
-
-					aris::dynamic::s_pe2pm(pe, pm[0], "323");//必须是二位数组的第一个地址
-
-					double pq0[7] = { 0,0,0,0,0,0,0 };
-
-					aris::dynamic::s_pm2pq(pm[0], pq0);
-				
-
-					for (int j = 0; j < 7; j++)
-					{
-						pq[j].push_back(pq0[j]);
-					}
-				
-					if (i == run_time * 1000 - 1)
-					{
-						//以下地方容易出错
-						//空中的几个点的pq值
-						double pq_switch1[7] = { XYZ[0][i] ,XYZ[1][i] , XYZ[2][i] + distance_avoid, -0.5, 0.5, 0.5, 0.5 };
-						double pq_switch2[7] = { XYZ[0][0] ,XYZ[1][0] + lateral_step, XYZ[2][i] + distance_avoid, -0.5, 0.5, 0.5, 0.5 };
-						double pq_switch3[7] = { XYZ[0][0] ,XYZ[1][0] + lateral_step  , XYZ[2][0], -0.5815, 0.4023, 0.4023, 0.5815 };
-						double pt, v, a;
-						double vel = 0.04 * 2;
-						double acc = 0.08*2;
-						double dec = 0.08 * 2;
-						aris::Size t_count;
-						aris::Size last_count1 = 0, last_count2 = 0, last_count3 = 0;//count的记录中间变量，1，2，3分别对应上升，平动和下降
-						//aris::Size total_count = 1;
-						double begin_pos = 0.0;//局部变量最好赋一个初始值
-						//if (target.count == 1)
-						//{
-						//	begin_pos = controller->motionAtAbs(5).targetPos();
-						//}
-						//aris::plan::moveAbsolute(target.count, begin_pos, p.pt, p.vel / 1000, p.acc / 1000 / 1000, p.dec / 1000 / 1000, pt, v, a, t_count);
-						//以下完成上升过程
-						//---------定义上升过程中的pq中间值变量，定义为pq_up
-						//---------pq_up中赋值为0的地方就是过程中需要变化的值
-						double pq_up[7] = { XYZ[0][i] ,XYZ[1][i] , 0, -0.5, 0.5, 0.5, 0.5 };
-						aris::plan::moveAbsolute(0, XYZ[2][i], pq_switch1[2], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, pt, v, a, t_count);
-						/*cout << "tangent[2]:    " << tangent[2] << endl;
-					
-						cout << "XYZ[2][i]:    " << XYZ[2][i]<<"    " << "pq_switch1[2]:    " << pq_switch1[2] << endl;
-						cout << "XYZ[1][i]:    " << XYZ[1][i] << endl;
-						cout << "XYZ[0][i]:    " << XYZ[0][i] << endl;
-						cout << "t_count:    " << t_count << endl;*/
-						last_count1 = std::max(t_count, last_count1);
-						//cout << "last_count1:    " << last_count1 << endl;
-
-
-
-						for (int j = 0; j < last_count1; j++)
-						{
-							aris::plan::moveAbsolute(j, XYZ[2][i], pq_switch1[2], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, pt, v, a, t_count);
-							pq_up[2] = pt;
-							for (int k = 0; k < 7; k++)
-							{
-								pq[k].push_back(pq_up[k]);
-							}
-						}
-						//以下完成空中平动过程
-						//---------定义平动过程中的pq中间值变量，定义为pq_move
-						//---------pq_move中赋值为0的地方就是过程中需要变化的值
-						double pq_move[7] = { 0 ,0, XYZ[2][i] + distance_avoid, -0.5, 0.5, 0.5, 0.5 };
-						//-----x轴恢复起始位置
-						aris::plan::moveAbsolute(0, XYZ[0][i], XYZ[0][0], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, pt, v, a, t_count);
-						last_count2 = std::max(t_count, last_count2);
-						//------y轴做出一定的偏移，此处为加
-						aris::plan::moveAbsolute(0, XYZ[1][0], pq_switch2[1], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, pt, v, a, t_count);
-						last_count2 = std::max(t_count, last_count2);
-						//cout << "last_count2:    " << last_count2 << endl;
-
-
-
-						for (int j = 0; j < last_count2; j++)
-						{
-							aris::plan::moveAbsolute(j, XYZ[0][i], XYZ[0][0], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, pt, v, a, t_count);
-							pq_move[0] = pt;
-							aris::plan::moveAbsolute(j, XYZ[1][0], pq_switch2[1], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, pt, v, a, t_count);
-							pq_move[1] = pt;				
-							for (int k = 0; k < 7; k++)
-							{
-								pq[k].push_back(pq_move[k]);
-							}
-						}
-						//以下完成下降过程
-						//---------定义平动过程中的pq中间值变量，定义为pq_down
-						//---------pq_down中赋值为0的地方就是过程中需要变化的值
-						double pq_down[7] = { XYZ[0][0] ,XYZ[1][0] + lateral_step, 0.0, 0.0, 0.0, 0.0, 0.0 };
-
-
-						for (int j = 2; j < 7; j++)
-						{
-							aris::plan::moveAbsolute(0, pq_switch2[j], pq_switch3[j], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, pt, v, a, t_count);
-							last_count3 = std::max(t_count, last_count3);
-						}
-						//cout << "last_count3:    " << last_count3 << endl;
-
-
-						for (int j = 0; j < last_count3; j++)
-						{
-							for (int s = 2; s < 7; s++)
-							{
-								aris::plan::moveAbsolute(j, pq_switch2[s], pq_switch3[s], vel / 1000, acc / 1000 / 1000, dec / 1000 / 1000, pt, v, a, t_count);
-								pq_down[s] = pt;
-							}
-						
-							for (int k = 0; k < 7; k++)
-							{
-								pq[k].push_back(pq_down[k]);
-							}
-						}
-						i = -1;//因为循环重复有个i++的过程，所以如果此处令i=0,那么再次循环的时候i=1开始的
-						loop_count = loop_count + 1;
-						if (loop_count == loop_total)
-						{
-							i = run_time * 1000;//停止循环
-						}
-
-						y0 = y0 + lateral_step;
-						xa = x0;
-						for (int j = 0; j < 3; j++)
-						{
-							XYZ[j].clear();
-						}
-
+						XYZ[j].clear();
 					}
 
 				}
-			}
-			std::cout << "pq[0][0]" << pq[0][0] << "    " << "pq[1][0]" << pq[1][0] << "    " << "pq[2][0]" << pq[2][0] << "pq[3][0]" << pq[3][0] << "    " << "pq[4][0]" << pq[4][0] << "    " << "pq[5][0]" << pq[5][0] << "    " << "pq[6][0]" << pq[6][0] << std::endl;
-			//std::cout << "pq size:" << pq[0].size() << std::endl;
-			std::cout << "XYZ[0].size()" << XYZ[0].size() << endl;
 
+			}
 		}
+		std::cout << "pq[0][0]" << pq[0][0] << "    " << "pq[1][0]" << pq[1][0] << "    " << "pq[2][0]" << pq[2][0] << "pq[3][0]" << pq[3][0] << "    " << "pq[4][0]" << pq[4][0] << "    " << "pq[5][0]" << pq[5][0] << "    " << "pq[6][0]" << pq[6][0] << std::endl;
+		//std::cout << "pq size:" << pq[0].size() << std::endl;
+		std::cout << "XYZ[0].size()" << XYZ[0].size() << endl;
+
+	}
 
 
 	struct MoveinModelParam
@@ -1587,10 +1643,10 @@ namespace cplan
 	//std::vector<std::vector<double>> pq_convert(col, std::vector<double>(7, 0));
 	auto MoveinModel::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
-	
 
-	
-	
+
+
+
 		//load_pq5();
 		load_pq12();
 		//得到二维数组pq;
@@ -1608,7 +1664,7 @@ namespace cplan
 		}
 		if (param.pq_convert[1][1] == pq[1][1] && param.pq_convert[2][2] == pq[2][2] && param.pq_convert[3][3] == pq[3][3])
 			std::cout << "convert successfully" << std::endl;
-	
+
 
 		target.param = param;
 		target.option =
@@ -1620,15 +1676,15 @@ namespace cplan
 			aris::plan::Plan::NOT_CHECK_VEL_FOLLOWING_ERROR |
 			aris::plan::Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START | // 开始不检查速度连续
 			aris::plan::Plan::NOT_CHECK_VEL_CONTINUOUS;
-			//NOT_RUN_EXECUTE_FUNCTION;
+		//NOT_RUN_EXECUTE_FUNCTION;
 	}
 
 	auto MoveinModel::executeRT(PlanTarget &target)->int
 	{
 		auto controller = dynamic_cast<aris::control::EthercatController *>(target.controller);
 		auto &p = std::any_cast<MoveinModelParam&>(target.param);
-	
-		target.model->generalMotionPool().at(0).setMpq(p.pq_convert[target.count-1].data());
+
+		target.model->generalMotionPool().at(0).setMpq(p.pq_convert[target.count - 1].data());
 
 		target.model->solverPool()[0].kinPos();
 		auto &lout = controller->lout();
@@ -1637,16 +1693,16 @@ namespace cplan
 			lout << target.model->motionPool().at(i).mp() << " ";
 		}
 		lout << std::endl;
-	
-	
+
+
 		//std::cout << "p.pq_convert[target.count - 1].size():" << p.pq_convert[target.count - 1].size() << std::endl;
-		std::cout << "pq_convert1_7" << p.pq_convert[target.count - 1][0] <<"   "<< p.pq_convert[target.count - 1][1] << "   " << p.pq_convert[target.count - 1][2] << std::endl;
+		std::cout << "pq_convert1_7" << p.pq_convert[target.count - 1][0] << "   " << p.pq_convert[target.count - 1][1] << "   " << p.pq_convert[target.count - 1][2] << std::endl;
 		//std::cout << "pq_convert1_7:   " << p.pq_convert[target.count - 1][3] << "   " << p.pq_convert[target.count - 1][4] << "   " << p.pq_convert[target.count - 1][5] << "   " << p.pq_convert[target.count - 1][6] << std::endl;
 		//std::cout << "target.count:  " << target.count << std::endl;
 		//if(p.pq_convert[1][1]==pq[1][1] && p.pq_convert[2][2] == pq[2][2] && p.pq_convert[3][3] == pq[3][3])
 			//std::cout << "convert successfully in executeRT" << std::endl;
-		return pq[0].size()- target.count;
-	
+		return pq[0].size() - target.count;
+
 	}
 
 
@@ -1678,7 +1734,7 @@ namespace cplan
 		auto runtime = std::stoi(params.at("runtime"));
 
 		//pq1~7是对应的pq的7个数组 
-		vector<double> pq1,pq2,pq3,pq4,pq5,pq6,pq7;
+		vector<double> pq1, pq2, pq3, pq4, pq5, pq6, pq7;
 		pq1.clear();
 		pq2.clear();
 		pq3.clear();
@@ -1695,13 +1751,13 @@ namespace cplan
 			pq5.push_back(m(i, 4));
 			pq6.push_back(m(i, 5));
 			pq7.push_back(m(i, 6));
-		}	
-	
+		}
+
 		cout << "pq1.size()" << pq1.size() << endl;
 
 
 		//调整四元数的方向
-		for (int i = 0; i < row_n -1; i++)
+		for (int i = 0; i < row_n - 1; i++)
 		{
 			double eleA[4] = { pq4[i] ,pq5[i],pq6[i],pq7[i] };
 			double eleB[4] = { pq4[i + 1] ,pq5[i + 1],pq6[i + 1],pq7[i + 1] };
@@ -1725,16 +1781,16 @@ namespace cplan
 		p23 = std::vector<double>(pq1.size());
 		p31 = std::vector<double>(pq1.size());
 		p32 = std::vector<double>(pq1.size());
-		p33 = std::vector<double>(pq1.size()); 
+		p33 = std::vector<double>(pq1.size());
 		p41 = std::vector<double>(pq1.size());
 		p42 = std::vector<double>(pq1.size());
-		p43 = std::vector<double>(pq1.size()); 
+		p43 = std::vector<double>(pq1.size());
 		p51 = std::vector<double>(pq1.size());
 		p52 = std::vector<double>(pq1.size());
-		p53 = std::vector<double>(pq1.size()); 
+		p53 = std::vector<double>(pq1.size());
 		p61 = std::vector<double>(pq1.size());
 		p62 = std::vector<double>(pq1.size());
-		p63 = std::vector<double>(pq1.size()); 
+		p63 = std::vector<double>(pq1.size());
 		p71 = std::vector<double>(pq1.size());
 		p72 = std::vector<double>(pq1.size());
 		p73 = std::vector<double>(pq1.size());
@@ -1745,7 +1801,7 @@ namespace cplan
 		//double runtime = 5;//5s内走完所有的点
 		for (int i = 0; i < pq1.size(); i++)
 		{
-			time.push_back((i + 1) * runtime /numM);
+			time.push_back((i + 1) * runtime / numM);
 		}
 		s_akima(pq1.size(), time.data(), pq1.data(), p11.data(), p12.data(), p13.data());//?????????????p1.data()
 		s_akima(pq1.size(), time.data(), pq2.data(), p21.data(), p22.data(), p23.data());
@@ -1758,10 +1814,10 @@ namespace cplan
 
 
 		cout << "time[2]" << time[2] << endl;
-		cout << "p11[2]" << p11[2] <<endl;
-	
-	
-	
+		cout << "p11[2]" << p11[2] << endl;
+
+
+
 		for (int i = 0; i < 7; i++)
 		{
 			pq_real[i].clear();//将pq_real先清空
@@ -1769,7 +1825,7 @@ namespace cplan
 		//注意统一单位为s，否则求导之后系数有问题
 		for (int i = 0; i < runtime * 1000; i++)
 		{
-			double x_t = (i+1)/1000.0000;
+			double x_t = (i + 1) / 1000.0000;
 			if (x_t >= runtime / numM)
 			{
 				double c1 = s_akima_at(pq1.size(), time.data(), pq1.data(), p11.data(), p12.data(), p13.data(), x_t, '0');
@@ -1788,7 +1844,7 @@ namespace cplan
 				pq_real[6].push_back(c7);
 				std::cout << "x_t: " << x_t << endl;
 				std::cout << "c1: " << c1 << "c2: " << c2 << "c3: " << c3 << "c4: " << c4 << "c5: " << c5 << "c6: " << c6 << "c7: " << c7 << endl;
-			}		
+			}
 		}
 
 		//插值后pq_real进行归一化
@@ -1799,18 +1855,18 @@ namespace cplan
 			pq_real[4][i] = pq_real[4][i] / norm2;
 			pq_real[5][i] = pq_real[5][i] / norm2;
 			pq_real[6][i] = pq_real[6][i] / norm2;
-			cout << "pq_real" << pq_real[3][i] << "  " << pq_real[4][i] << "  " << pq_real[5][i] << "  " << pq_real[6][i] <<endl;
+			cout << "pq_real" << pq_real[3][i] << "  " << pq_real[4][i] << "  " << pq_real[5][i] << "  " << pq_real[6][i] << endl;
 		}
 
 
 
 		std::cout << "run succssful" << std::endl;
-		std::cout << "pq_real[0].size():  "<< pq_real[0].size() << std::endl;
+		std::cout << "pq_real[0].size():  " << pq_real[0].size() << std::endl;
 
 
 		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
 	}
-	FMovePath::FMovePath(const std::string &name):Plan(name)
+	FMovePath::FMovePath(const std::string &name) :Plan(name)
 	{
 		command().loadXmlStr(
 			"<Command name=\"FMovePath\">"
@@ -1921,19 +1977,19 @@ namespace cplan
 			{
 				Pa[i] = p.Point1[i] + j * (p.Point2[i] - p.Point1[i]) / p.runtime / 1000.0000;
 			}
-		double pe[6] = { Pa[0] ,Pa[1] ,Pa[2],atan(1) * 2 ,atan(1) * 2 , theta };
-		double pm[4][4];
-		//输出pm
-		//相对
-		aris::dynamic::s_pe2pm(pe, pm[0], "323");//必须是二位数组的第一个地址
-		double pq0[7] = { 0,0,0,0,0,0,0 };
-		//输出pq
-		aris::dynamic::s_pm2pq(pm[0], pq0);
-		//pq0就是全部轨迹的pq值；
-		for (int i = 0; i < 7; i++)
-		{
-			pq[i].push_back(pq0[i]);
-		}
+			double pe[6] = { Pa[0] ,Pa[1] ,Pa[2],atan(1) * 2 ,atan(1) * 2 , theta };
+			double pm[4][4];
+			//输出pm
+			//相对
+			aris::dynamic::s_pe2pm(pe, pm[0], "323");//必须是二位数组的第一个地址
+			double pq0[7] = { 0,0,0,0,0,0,0 };
+			//输出pq
+			aris::dynamic::s_pm2pq(pm[0], pq0);
+			//pq0就是全部轨迹的pq值；
+			for (int i = 0; i < 7; i++)
+			{
+				pq[i].push_back(pq0[i]);
+			}
 		}
 		target.param = p;
 		target.option =
