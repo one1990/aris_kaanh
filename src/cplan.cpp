@@ -154,8 +154,6 @@ namespace cplan
 	vector<vector<double>  > POS(n);
 	vector<vector<double>  > POS2;
 	//读取指定文件夹的所有文件名，并存储在容器vector files[]中；
-
-
 	//getfiles2的作用是读取路径下的所有的文件名，并进行排序和输出
 	void getFiles2(string path, vector<string>& files)  
 	{
@@ -164,9 +162,7 @@ namespace cplan
 		for (auto &p : std::filesystem::directory_iterator(path))  //遍历元素，p为局部变量"log"；
 		{
 			if(p.is_regular_file())loc_files.push_back(p.path());//检查p是否常规的文件，.path()是将路径输出的函数；
-			//std::cout << p.path() << "\n";
-			//p.path();
-			//files.push_back(p.path());
+			
 		}
 		//先输出正常的文件顺序
 		//for (auto &p : loc_files)   
@@ -527,7 +523,6 @@ namespace cplan
 		return 0;
 	}
 
-
 	RemoveFile::RemoveFile(const std::string &name) :Plan(name)
 	{
 		command().loadXmlStr(
@@ -546,25 +541,16 @@ namespace cplan
 		string vn;//数组中的序号
 		int updt;//决定是否更新xml，=0时候更新，=1的时候不更新，返回值不一样
 	};
-	
-	// std::atomic_bool OpenFile::Imp::is_running_ = false;
+
 	auto OpenFile::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
 		OpenFileParam p;
 		p.vn = params.at("vn");
 		p.updt = std::stoi(params.at("updt"));
 		auto&cs = aris::server::ControlServer::instance();
-		vector<string> files;
-		
+		vector<string> files;		
 		string filePath = "C:/Users/qianch_kaanh_cn/Desktop/build_qianch/";
-		//string filePath = "C:/Users/qianch_kaanh_cn/Desktop/myplan/src/rokae/";
-		//C:\Users\qianch_kaanh_cn\Desktop\build_qianch
-		//string filePath = "/home/kaanh/Desktop/build-kaanh-Desktop_Qt_5_11_2_GCC_64bit-Default/log/";//自己设置目录
 
-		//char * filePath = "/home/kaanh/Desktop/build-kaanh-Desktop_Qt_5_11_2_GCC_64bit-Default/log/";//自己设置目录
-
-		//string filePath = "C:/Users/qianch_kaanh_cn/Desktop/build_qianch/log/";
-		
 		//获取该路径下的所有文件  
 		files.clear();
 		getFiles2(filePath, files);
@@ -572,9 +558,10 @@ namespace cplan
 		int num = p.vn == "back" ? files.size() - 1 : std::stoi(p.vn);
 		cout << "num:  " << num << endl;
 	
+		
+		//以下代码为打开files中的最新的一个xml文件，并完整输出xml文件中的内容		
+		/*
 		fstream fin;
-		//打开files中的最新的一个文件files[ files.size() - 1]
-		//fin.open(files.back().c_str(), ios::in);
 		fin.open(files[ num ].c_str(), ios::in);
 		vector<string> v;
 		string tmp;
@@ -582,146 +569,78 @@ namespace cplan
 		{
 			v.push_back(tmp);
 		}
-		//for (auto x : v)
-		//cout << x << endl;
-		//std::filesystem::remove(files[0]);
-		target.param = p;
-		target.option = NOT_RUN_EXECUTE_FUNCTION;
-		//rfind(".")+1
-
-		//cout << "target.ret  " << files[num].substr(46, files[num].rfind(".") - 46) << endl;
-
-		/*int t12 = 56;
-		string PP1 = std::to_string(t12);
-		string try1 = "load robot_x " + PP1;
-		cout << "try1" << try1 << endl;*/
-		//测试xml文件名，成功
-		//target.ret = files[num].substr(46, files[num].rfind(".") - 46);
-
-		if (p.updt == 0)
-		{
-		int num_xml = files.size();//xml文件的个数
-		aris::core::XmlDocument doc;
-		//auto &cs = aris::server::ControlServer::instance();		
-		//std::cout << target.server->root().xmlString() <<std::endl;
-		//std::cout << cs.root().xmlString() << std::endl;
-		//target.server->interfaceRoot().saveXmlDoc(doc);这是从interfaceroot这个节点开始保存
-		target.server->root().saveXmlDoc(doc);	
-		//cs.root().saveXmlDoc(doc);
-
-		//auto panel = doc.FirstChildElement("ControlServer")->FirstChildElement("InterfaceRoot");
-		//auto panel = doc.FirstChildElement("ControlServer");
-		//auto panel5= doc.FirstChildElement("InterfaceRoot"); 
-		auto panel5 = doc.FirstChildElement("ControlServer")->FirstChildElement("InterfaceRoot");
-		//auto panel2= panel ->FirstChildElement("CmdInterfacePoolObject");
-		auto panel2 = panel5->FirstChildElement("UiIdPoolObject");
-		auto panel3 = panel2->NextSiblingElement("CmdInterfacePoolObject");
-
-
-		auto get_ele_by_id = [](aris::core::XmlElement* father, const std::string &id_name) -> aris::core::XmlElement*
-		{
-			auto ele = father->FirstChildElement();
-			for (; ele; ele = ele->NextSiblingElement())
-			{
-				if (ele->Attribute("id", id_name.c_str())) break;
-			}
-			return ele;
-		};
-
-		auto panel_1 = get_ele_by_id(panel3, "id_1");
-		//auto panel_10 = get_ele_by_id(panel_1, "id_2");
-		//删除所有的子节点
-		panel_1->DeleteChildren();
-
-		
-		auto ele_tab = doc.NewElement("Tabs");
-		ele_tab->SetAttribute("id", "id_12");
-		ele_tab->SetAttribute("text", "Tab");
-		panel_1->InsertEndChild(ele_tab);
-		//删除所有的子节点
-		
-
-		//先不采用for循环
-		/*
-		auto user_node = doc.NewElement("Li");
-		user_node->SetAttribute("text", files[0].substr(46, files[num].rfind(".") - 46).c_str());
-		ele_tab->InsertEndChild(user_node);
-
-		auto user_node_2 = doc.NewElement("Panel");
-		user_node_2->SetAttribute("text", "robot_x");
-		user_node->InsertEndChild(user_node_2);
-
-		auto user_node_3 = doc.NewElement("Button");
-		user_node_3->SetAttribute("text", "load robot_x");
-		user_node_3->SetAttribute("cmd", "opFi --updt = i + 1");
-		user_node_2->InsertEndChild(user_node_3);
+		for (auto x : v)
+        cout << x << endl;
+		fin.close();
+		fin.clear();
 		*/
 		
-		//stringstream ss;
-		//string s;
-
-		for (int i = 0; i < num_xml; i++)
+		if (p.updt == 0)
 		{
-			auto user_node = doc.NewElement("Li");
-			user_node->SetAttribute("text", files[i].substr(46, files[i].rfind(".") - 46).c_str());
-			ele_tab->InsertEndChild(user_node);
+			int num_xml = files.size();//xml文件的个数
+			cout << "num_xml" << num_xml << endl;
+			aris::core::XmlDocument doc;
 
-			//ss << i;
-			//ss >> s;
+			target.server->root().saveXmlDoc(doc);
 
-			auto user_node_2 = doc.NewElement("Panel");			
-			user_node_2->SetAttribute("text", ("robot_y"+  std::to_string(i)).c_str());
-			user_node->InsertEndChild(user_node_2);
+			auto panel5 = doc.FirstChildElement("ControlServer")->FirstChildElement("InterfaceRoot");
+			auto panel2 = panel5->FirstChildElement("UiIdPoolObject");
+			auto panel3 = panel2->NextSiblingElement("CmdInterfacePoolObject");
 
-			auto user_node_3 = doc.NewElement("Button");
-			user_node_3->SetAttribute("text", ("load robot_y" + std::to_string(i)).c_str());
-			user_node_3->SetAttribute("cmd", ("start;opFi --updt=" + std::to_string(i+1)).c_str());
-			user_node_2->InsertEndChild(user_node_3);
-			//XMLElement* userNode = doc.NewElement("Li");
-			//	XMLElement* userNode1 = doc.NewElement("Panel");
-			//		XMLElement* userNode2 = doc.NewElement("Button");
-			//		userNode2->SetAttribute("text", "load robot1");
-			//		root->InsertEndChild(userNode2);
-			//	doc.InsertEndChild(userNode1);
-			//doc.InsertEndChild(userNode);
-		}
-		//doc.SaveFile(xmlPath);
+			auto get_ele_by_id = [](aris::core::XmlElement* father, const std::string &id_name) -> aris::core::XmlElement*
+			{
+				auto ele = father->FirstChildElement();
+				for (; ele; ele = ele->NextSiblingElement())
+				{
+					if (ele->Attribute("id", id_name.c_str())) break;
+				}
+				return ele;
+			};
 
+			auto panel_1 = get_ele_by_id(panel3, "id_1");
+			//删除所有的子节点
+			panel_1->DeleteChildren();
 
-		target.server->stop();
-		//doc.SaveFile("C:/Users/qianch_kaanh_cn/Desktop/build_qianch/rokae.xml");	
-		
-		//target.ret = files[num].substr(46, files[num].rfind(".")-46);
-		
-		
-		//以下为廖的尝试保存覆盖xml文件
-		//target.server->root().loadXmlDoc(doc);
-		//target.server->saveXmlFile("C:/Users/qianch_kaanh_cn/Desktop/build_qianch/rokae.xml");
-		//cs.stop();
-		//cs.root.loadXmlDoc(doc);
-		//cs.root.saveXmlFile("C:/Users/qianch_kaanh_cn/Desktop/build_qianch/rokae.xml");
+			auto ele_tab = doc.NewElement("Tabs");
+			ele_tab->SetAttribute("id", "id_12");
+			ele_tab->SetAttribute("text", "Tab");
+			panel_1->InsertEndChild(ele_tab);
 
-		//target.ret = std::string("update_ui");
+			for (int i = 0; i < num_xml; i++)
+			{
+				auto user_node = doc.NewElement("Li");
+				user_node->SetAttribute("text", files[i].substr(46, files[i].rfind(".") - 46).c_str());
+				ele_tab->InsertEndChild(user_node);
 
+				auto user_node_2 = doc.NewElement("Panel");
+				user_node_2->SetAttribute("text", ("robot_y" + std::to_string(i)).c_str());
+				user_node->InsertEndChild(user_node_2);
 
-		tinyxml2::XMLPrinter printer;
-		doc.Print(&printer);
+				auto user_node_3 = doc.NewElement("Button");
+				user_node_3->SetAttribute("text", ("load robot_y" + std::to_string(i)).c_str());
+				user_node_3->SetAttribute("cmd", ("start;opFi --updt=" + std::to_string(i + 1)).c_str());
+				user_node_2->InsertEndChild(user_node_3);
+			}
+			target.server->stop();
+			target.server->saveXmlFile("C:/Users/qianch_kaanh_cn/Desktop/build_qianch/rokae.xml");//save的结果还是有问题，但是输出的结果是正确的
+			//以下是错误的保存方式
+			doc.SaveFile("C:/Users/qianch_kaanh_cn/Desktop/abcd/rokae_doc.xml");	
 
-		std::string str(printer.CStr());
-		//std::cout << "str1234" << str << std::endl;
+			//以下先停止server再load，再保存xml
+			//cs.stop();
+			//cs.root.loadXmlDoc(doc);
+			//cs.root.saveXmlFile("C:/Users/qianch_kaanh_cn/Desktop/build_qianch/rokae.xml");
 
+			tinyxml2::XMLPrinter printer;
+			doc.Print(&printer);
+			std::string str(printer.CStr());
+			std::cout << "str1234" << str << std::endl;
 
-		string update_UI = "UpdateUI@" + str;
-		
-
-		
-		
-			//cs.loadXmlFile(xmlpath.c_str());
+			string update_UI = "UpdateUI@" + str;
 			target.ret = update_UI;
 		}
-		//updt
 		if (p.updt == 1)
-		{			
+		{
 			const std::string xmlpath = files[0];
 			cout << "xmlpath" << files[0] << endl;
 			cs.stop();
@@ -742,30 +661,11 @@ namespace cplan
 			cs.loadXmlFile(xmlpath.c_str());
 			target.ret = std::string("1");
 		}
-		
-
 		target.option |= NOT_RUN_COLLECT_FUNCTION;
-		//cout << files[num].substr(46, files[num].rfind(".")-46)<<endl;
-		//cout << files[num].erase(",xml").substr(46) << endl;
-		//target.ret = std::string("this is ret msg");
-		
+		target.param = p;
+		target.option |= NOT_RUN_EXECUTE_FUNCTION;
 	}
 	
-	//  auto OpenFile::OpenFile(PlanTarget &target)-> void
-	//{
-	//	if (~(target.option | USE_TARGET_POS))Imp::is_running_.store(false);
-	//}
-	/*
-	auto OpenFile::executeRT(PlanTarget &target)->int
-	{
-		auto controller = dynamic_cast<aris::control::EthercatController *>(target.master);
-		std::cout << "before" << std::endl;
-		auto &p = std::any_cast<OpenFileParam&>(target.param);
-		std::cout << "after" << std::endl;
-
-		return 0;
-	}
-	*/
 	OpenFile::OpenFile(const std::string &name) :Plan(name)
 	{
 		command().loadXmlStr(
@@ -776,6 +676,10 @@ namespace cplan
 			"	</GroupParam>"
 			"</Command>");
 	}
+
+	//测试xml文件名，成功
+    //target.ret = files[num].substr(46, files[num].rfind(".") - 46);
+    //auto &cs = aris::server::ControlServer::instance();	
 
 
 	//直接给14维数组
