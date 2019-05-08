@@ -1963,8 +1963,9 @@ namespace kaanh
 				if (!imp_->s1_rt.movepoint_is_running)throw std::runtime_error("manual mode not started, when stop");
 
 				imp_->s2_nrt.movepoint_is_running = false;
+                std::fill_n(imp_->s2_nrt.is_increase.data(), 6, 0);
 
-				target.option |= WAIT_FOR_COLLECTION;
+                target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION;
 				movepoint_is_changing = true;
 				while (movepoint_is_changing.load())std::this_thread::sleep_for(std::chrono::milliseconds(1));
 			}
@@ -2242,6 +2243,7 @@ namespace kaanh
 				if (!imp_->s1_rt.movejp_is_running)throw std::runtime_error("manual mode not started, when stop");
 
 				imp_->s2_nrt.movejp_is_running = false;
+                std::fill_n(imp_->s2_nrt.is_increase.data(), 6, 0);
 				is_changing = true;
 				while (is_changing.load())std::this_thread::sleep_for(std::chrono::milliseconds(1));
 				//target.option |= WAIT_FOR_COLLECTION;
