@@ -18,14 +18,16 @@ namespace kaanh
 	auto createControllerRokaeXB4()->std::unique_ptr<aris::control::Controller>	/*函数返回的是一个类指针，指针指向Controller,controller的类型是智能指针std::unique_ptr*/
 	{
 		std::unique_ptr<aris::control::Controller> controller(aris::robot::createControllerRokaeXB4());/*创建std::unique_ptr实例*/
+
 #ifdef UNIX
-		controller->motionPool().at(0).setPosOffset(0.00293480352126769);
-		controller->motionPool().at(1).setPosOffset(-2.50023777179214);
-		controller->motionPool().at(2).setPosOffset(-0.292382537944081);
-		controller->motionPool().at(3).setPosOffset(0.0582675097338009);
-		controller->motionPool().at(4).setPosOffset(1.53363576057128);
-		controller->motionPool().at(5).setPosOffset(26.3545454214145);
+        dynamic_cast<aris::control::Motion&>(controller->slavePool()[0]).setPosOffset(0.00293480352126769);
+        dynamic_cast<aris::control::Motion&>(controller->slavePool()[1]).setPosOffset(-2.50023777179214);
+        dynamic_cast<aris::control::Motion&>(controller->slavePool()[2]).setPosOffset(-0.292382537944081);
+        dynamic_cast<aris::control::Motion&>(controller->slavePool()[3]).setPosOffset(0.0582675097338009);
+        dynamic_cast<aris::control::Motion&>(controller->slavePool()[4]).setPosOffset(1.53363576057128);
+        dynamic_cast<aris::control::Motion&>(controller->slavePool()[5]).setPosOffset(26.3545454214145);
 #endif
+
 		std::string xml_str =
 			"<EthercatSlave phy_id=\"6\" product_code=\"0x00013D6F\""
 			" vendor_id=\"0x00000009\" revision_num=\"0x01\" dc_assign_activate=\"0x300\">"
@@ -2163,9 +2165,9 @@ namespace kaanh
 			"			<GroupParam name=\"start_group\">"
 			"				<Param name=\"start\"/>"
 			"				<Param name=\"increase_count\" default=\"100\"/>"
-			"				<Param name=\"vel\" default=\"{0.05,0.05,0.05,1,1,1}\"/>"
-			"				<Param name=\"acc\" default=\"{0.2,0.2,0.2,5,5,5}\"/>"
-			"				<Param name=\"dec\" default=\"{0.2,0.2,0.2,5,5,5}\"/>"
+            "				<Param name=\"vel\" default=\"{0.05,0.05,0.05,0.25,0.25,0.25}\"/>"
+            "				<Param name=\"acc\" default=\"{0.2,0.2,0.2,1,1,1}\"/>"
+            "				<Param name=\"dec\" default=\"{0.2,0.2,0.2,1,1,1}\"/>"
 			"			</GroupParam>"
 			"			<Param name=\"stop\"/>"
 			"			<GroupParam>"
