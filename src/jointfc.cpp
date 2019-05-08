@@ -86,6 +86,33 @@ auto JointDyna::executeRT(PlanTarget &target)->int
 
 
 
+    static bool flag[6] = {true,true,true,true,true,true};
+    double PosLimit[6] = { 1,0.5,0.3,1,1,1 };
+    double NegLimit[6] = { -1,-0.5,-0.3,-1,-1,-1 };
+    double dTheta = 0.00001;
+
+    for (int i = 0;i < 6;i++)
+    {
+        if (flag[i])
+        {
+            if (step_pjs[i] < PosLimit[i])
+                step_pjs[i] = step_pjs[i] + dTheta;
+            else
+                flag[i] = false;
+        }
+        if (flag[i] == false)
+        {
+            if (step_pjs[i] > NegLimit[i])
+                step_pjs[i] = step_pjs[i] - dTheta;
+            else
+                flag[i] = true;
+        }
+
+            target.model->motionPool().at(i).setMp(step_pjs[i]);
+    }
+
+
+
 	if (!target.model->solverPool().at(1).kinPos())return -1;
 
 	// 访问主站 //
@@ -266,6 +293,7 @@ auto LoadDyna::executeRT(PlanTarget &target)->int
 {
 	auto &param = std::any_cast<LoadDynaParam&>(target.param);
 
+    static int CollectNum=1;
 	static double begin_pjs[RobotAxis];
 	static double step_pjs[RobotAxis];
 	static double perVar = 0;
@@ -286,8 +314,8 @@ auto LoadDyna::executeRT(PlanTarget &target)->int
 	}
 
 	static bool flag[6] = {true,true,true,true,true,true};
-	double PosLimit[6] = { 1,1,1,1,1,1 };
-	double NegLimit[6] = { -1,-1,-1,-1,-1,-1 };
+    double PosLimit[6] = { 1,1,0.2,1,1,1 };
+    double NegLimit[6] = { -1,-1,-0.2,-1,-1,-1 };
 	double dTheta = 0.0001;
 
 	for (int i = 0;i < 6;i++)
@@ -307,8 +335,8 @@ auto LoadDyna::executeRT(PlanTarget &target)->int
 				flag[i] = true;
 		}
 
-		if(i==2||i==4||i==5)
-			target.model->motionPool().at(i).setMp(step_pjs[i]);
+        if(i==2||i==4||i==5)
+            target.model->motionPool().at(i).setMp(step_pjs[i]);
 	}
 
 
@@ -336,32 +364,35 @@ auto LoadDyna::executeRT(PlanTarget &target)->int
 	auto &lout = controller->lout();
 
 	double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
-	for (int i = 0; i < 6; i++)
-	{
-		//AngleList[RobotAxis * (target.count - 1) + i] = controller->motionAtAbs(i).actualPos();
-		//TorqueList[RobotAxis * (target.count - 1) + i] = controller->motionAtAbs(i).actualCur();
 
-		//AngleList[6 * (target.count - 1) + i] = POSRLS[i + 1][target.count - 1];
-		//TorqueList[6 * (target.count - 1) + i] = POSRLS[i + 7][target.count - 1];
+    if(target.count%8==0)
+    {
+        for (int i = 0; i < 6; i++)
+        {
+            //AngleList[RobotAxis * (target.count - 1) + i] = controller->motionAtAbs(i).actualPos();
+            //TorqueList[RobotAxis * (target.count - 1) + i] = controller->motionAtAbs(i).actualCur();
 
-		AngleList[6 * (target.count - 1) + i] = controller->motionAtAbs(i).actualPos();
-		TorqueList[6 * (target.count - 1) + i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
-	}
+            //AngleList[6 * (target.count - 1) + i] = POSRLS[i + 1][target.count - 1];
+            //TorqueList[6 * (target.count - 1) + i] = POSRLS[i + 7][target.count - 1];
 
-
+            AngleList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualPos();
+            TorqueList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
+        }
 	
-	lout << target.count << ",";
-	lout << AngleList[RobotAxis * (target.count - 1) + 0] << ",";lout << AngleList[RobotAxis * (target.count - 1) + 1] << ",";
-	lout << AngleList[RobotAxis * (target.count - 1) + 2] << ",";lout << AngleList[RobotAxis * (target.count - 1) + 3] << ",";
-	lout << AngleList[RobotAxis * (target.count - 1) + 4] << ",";lout << AngleList[RobotAxis * (target.count - 1) + 5] << ",";
-	lout << TorqueList[RobotAxis * (target.count - 1) + 0] << ",";lout << TorqueList[RobotAxis * (target.count - 1) + 1] << ",";
-	lout << TorqueList[RobotAxis * (target.count - 1) + 2] << ",";lout << TorqueList[RobotAxis * (target.count - 1) + 3] << ",";
-	lout << TorqueList[RobotAxis * (target.count - 1) + 4] << ",";lout << TorqueList[RobotAxis * (target.count - 1) + 5] << ",";
+        lout << target.count << ",";
+        lout << AngleList[RobotAxis * (CollectNum - 1) + 0] << ",";lout << AngleList[RobotAxis * (CollectNum - 1) + 1] << ",";
+        lout << AngleList[RobotAxis * (CollectNum - 1) + 2] << ",";lout << AngleList[RobotAxis * (CollectNum - 1) + 3] << ",";
+        lout << AngleList[RobotAxis * (CollectNum - 1) + 4] << ",";lout << AngleList[RobotAxis * (CollectNum - 1) + 5] << ",";
+        lout << TorqueList[RobotAxis * (CollectNum - 1) + 0] << ",";lout << TorqueList[RobotAxis * (CollectNum - 1) + 1] << ",";
+        lout << TorqueList[RobotAxis * (CollectNum - 1) + 2] << ",";lout << TorqueList[RobotAxis * (CollectNum - 1) + 3] << ",";
+        lout << TorqueList[RobotAxis * (CollectNum - 1) + 4] << ",";lout << TorqueList[RobotAxis * (CollectNum - 1) + 5] << ",";
 
-	lout << std::endl;
+        lout << std::endl;
+        CollectNum=CollectNum+1;
+    }
 	
 
-	return SampleNum - target.count;
+    return SampleNum - CollectNum;
 }
 
 
@@ -373,11 +404,13 @@ auto LoadDyna::collectNrt(aris::plan::PlanTarget &target)->void
 	double StatisError[3] = { 0,0,0};
 	//  auto controller = target.controller;
 	 // auto &lout = controller->lout();
-	std::cout << param.InitEst << std::endl;
+    std::cout << "param.InitEst" << std::endl;
 
 	
-	if(param.InitEst==true)
+
 		JointMatrix.LoadRLS(AngleList, TorqueList, JointMatrix.estParasL0, JointMatrix.CoefParasL0,StatisError);
+        std::cout << "collect" << std::endl;
+    /*
 	else
 	{
 		JointMatrix.LoadRLS(AngleList, TorqueList, JointMatrix.estParasL, JointMatrix.CoefParasL,StatisError);
@@ -391,13 +424,13 @@ auto LoadDyna::collectNrt(aris::plan::PlanTarget &target)->void
 		JointMatrix.LoadParasExt(dEst,dCoef, JointMatrix.LoadParas);
 
 
-	}
+    }*/
 	
 
 
 	//std::cout<<"collect"<<std::endl;
 	for (int i = 0;i < LoadReduceParas+6;i++)
-		cout << JointMatrix.estParasL[i] << ",";
+        cout << JointMatrix.estParasL0[i] << ",";
 
 	/*
 	//Save Estimated Paras
@@ -432,7 +465,6 @@ LoadDyna::LoadDyna(const std::string &name) :Plan(name)
 		"	<GroupParam>"
 		"		<Param name=\"period\"default=\"20.0\"/>"
 		"		<Param name=\"amplitude\" default=\"0.2\"/>"
-		"		<Param name=\"InitEst\" default=\"true\"/>"
 		"	</GroupParam>"
 		"</Command>");
 
