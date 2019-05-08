@@ -2242,10 +2242,10 @@ namespace kaanh
 				if (!imp_->s1_rt.movejp_is_running)throw std::runtime_error("manual mode not started, when stop");
 
 				imp_->s2_nrt.movejp_is_running = false;
-
-				target.option |= WAIT_FOR_COLLECTION;
 				is_changing = true;
 				while (is_changing.load())std::this_thread::sleep_for(std::chrono::milliseconds(1));
+				//target.option |= WAIT_FOR_COLLECTION;
+				target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION;
 			}
 			else if (p.first == "vel_percent")
 			{
@@ -2303,8 +2303,8 @@ namespace kaanh
         static double target_pos[6], max_vel[6];
 		if (is_changing)
 		{
-			imp_->s1_rt = imp_->s2_nrt;
 			is_changing.store(false);
+			imp_->s1_rt = imp_->s2_nrt;
 			for (int i = 0; i < 6; i++)
 			{
 				increase_status[i] = imp_->s1_rt.is_increase[i];
@@ -2318,7 +2318,7 @@ namespace kaanh
 		}
 		std::copy_n(target_pos, 6, imp_->p_start);
 		// 梯形轨迹规划 //
-		double p_next, v_next, a_next;
+		static double p_next, v_next, a_next;
 		for(int i=0; i<6; i++)
 		{
 			aris::Size t;
