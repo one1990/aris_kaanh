@@ -18,13 +18,14 @@ namespace kaanh
 	auto createControllerRokaeXB4()->std::unique_ptr<aris::control::Controller>	/*函数返回的是一个类指针，指针指向Controller,controller的类型是智能指针std::unique_ptr*/
 	{
 		std::unique_ptr<aris::control::Controller> controller(aris::robot::createControllerRokaeXB4());/*创建std::unique_ptr实例*/
-		
+#ifdef UNIX
 		controller->motionPool().at(0).setPosOffset(0.00293480352126769);
 		controller->motionPool().at(0).setPosOffset(-2.50023777179214);
 		controller->motionPool().at(0).setPosOffset(-0.292382537944081);
 		controller->motionPool().at(0).setPosOffset(0.0582675097338009);
 		controller->motionPool().at(0).setPosOffset(1.53363576057128);
 		controller->motionPool().at(0).setPosOffset(26.3545454214145);
+#endif
 		std::string xml_str =
 			"<EthercatSlave phy_id=\"6\" product_code=\"0x00013D6F\""
 			" vendor_id=\"0x00000009\" revision_num=\"0x01\" dc_assign_activate=\"0x300\">"
