@@ -2234,7 +2234,8 @@ namespace kaanh
 				imp_->acc = std::stod(params.at("acc"));
 				imp_->dec = std::stod(params.at("dec"));
 
-				target.option |= EXECUTE_WHEN_ALL_PLAN_COLLECTED | NOT_PRINT_EXECUTE_COUNT | USE_TARGET_POS;
+                //target.option |= EXECUTE_WHEN_ALL_PLAN_COLLECTED | NOT_PRINT_EXECUTE_COUNT | USE_TARGET_POS;
+                target.option |= EXECUTE_WHEN_ALL_PLAN_COLLECTED | NOT_PRINT_EXECUTE_COUNT;
 			}
 			else if (p.first == "stop")
 			{
@@ -2283,10 +2284,16 @@ namespace kaanh
 		{
 			for (Size i = 0; i < 6; ++i)
 			{
+                /*
 				imp_->p_start[i] = target.model->motionPool().at(i).mp();
 				imp_->p_now[i] = target.model->motionPool().at(i).mp();
 				imp_->v_now[i] = target.model->motionPool().at(i).mv();
 				imp_->a_now[i] = target.model->motionPool().at(i).ma();
+                */
+                imp_->p_start[i] = controller->motionAtAbs(i).actualPos();
+                imp_->p_now[i] = controller->motionAtAbs(i).actualPos();
+                imp_->v_now[i] = controller->motionAtAbs(i).actualVel();
+                imp_->a_now[i] = controller->motionAtAbs(i).actualCur();
 			}
 		}
 		for (int i = 3; i < 6; ++i) if (imp_->p_now[i] > aris::PI) imp_->p_now[i] -= 2 * PI;
@@ -2320,13 +2327,14 @@ namespace kaanh
 				, max_vel[i], imp_->acc, imp_->dec
 				, 1e-3, 1e-10, p_next, v_next, a_next, t);
 
-			target.model->motionPool().at(i).setMp(p_next);
+            target.model->motionPool().at(i).setMp(p_next);
+            controller->motionAtAbs(i).setTargetPos(p_next);
 			imp_->p_now[i] = p_next;
 			imp_->v_now[i] = v_next;
 			imp_->a_now[i] = a_next;
 		}
 
-		// 运动学反解 //
+        // 运动学反解//
 		if (!target.model->solverPool().at(1).kinPos())return -1;
 
 		// 打印 //
