@@ -14,12 +14,17 @@ extern std::atomic_bool is_automatic;
 
 namespace kaanh
 {
+	aris::dynamic::Marker tool1;
 	auto createControllerRokaeXB4()->std::unique_ptr<aris::control::Controller>	/*函数返回的是一个类指针，指针指向Controller,controller的类型是智能指针std::unique_ptr*/
 	{
-
 		std::unique_ptr<aris::control::Controller> controller(aris::robot::createControllerRokaeXB4());/*创建std::unique_ptr实例*/
 		
-
+		controller->motionPool().at(0).setPosOffset(0.00293480352126769);
+		controller->motionPool().at(0).setPosOffset(-2.50023777179214);
+		controller->motionPool().at(0).setPosOffset(-0.292382537944081);
+		controller->motionPool().at(0).setPosOffset(0.0582675097338009);
+		controller->motionPool().at(0).setPosOffset(1.53363576057128);
+		controller->motionPool().at(0).setPosOffset(26.3545454214145);
 		std::string xml_str =
 			"<EthercatSlave phy_id=\"6\" product_code=\"0x00013D6F\""
 			" vendor_id=\"0x00000009\" revision_num=\"0x01\" dc_assign_activate=\"0x300\">"
@@ -112,9 +117,6 @@ namespace kaanh
 		auto &ee = model->generalMotionPool().add<aris::dynamic::GeneralMotion>("ee", &makI, &makJ, false);
 
 		/*
-		makI.prtPm();
-		makI.pm();
-
 		double pq_ee_i[]{ 0.5, 0.0, 0.6295, 0.0, 0.0, 0.0, 1.0 };
 		auto &tool1 = p6.markerPool().add<Marker>("tool1", pm_ee_i);
 		tool1.prtPm();
@@ -142,7 +144,60 @@ namespace kaanh
 		inverse_kinematic.setWhichRoot(8);
 
 		return model;
+	}	
+	auto createModelRokae()->std::unique_ptr<aris::dynamic::Model>
+	{
+		aris::dynamic::PumaParam param;
+		param.d1 = 0.3295;
+		param.a1 = 0.04;
+		param.a2 = 0.275;
+		param.d3 = 0.0;
+		param.a3 = 0.025;
+		param.d4 = 0.28;
+
+		param.tool0_pe[2] = 0.078;
+
+		param.iv_vec =
+		{
+			{ 0.00000000000000,   0.00000000000000,   0.00000000000000,   0.00000000000000,   0.00000000000000,   0.00000000000000,   0.59026333537827,   0.00000000000000,   0.00000000000000,   0.00000000000000 },
+			{ 0.00000000000000, -0.02551872200978,   0.00000000000000,   3.05660683326413,   2.85905166943306,   0.00000000000000,   0.00000000000000, -0.00855352993039, -0.09946674483372, -0.00712210734359 },
+			{ 0.00000000000000,   0.00000000000000,   0.00000000000000,   0.02733022277747,   0.00000000000000,   0.37382629693302,   0.00000000000000,   0.00312006493276, -0.00578410451516,   0.00570606128540 },
+			{ 0.00000000000000,   1.06223330086669,   0.00000000000000,   0.00311748242960,   0.00000000000000,   0.24420385558544,   0.24970286555981,   0.00305759215246, -0.66644096559686,   0.00228253380852 },
+			{ 0.00000000000000,   0.05362286897910,   0.00528925153464, -0.00842588023014,   0.00128498153337, -0.00389810210572,   0.00000000000000, -0.00223677867576, -0.03365036368035, -0.00415647085627 },
+			{ 0.00000000000000,   0.00000000000000,   0.00066049870832,   0.00012563800445, -0.00085124094833,   0.04209529937135,   0.04102481443654, -0.00067596644891,   0.00017482449876, -0.00041025776053 },
+		};
+
+		param.mot_frc_vec =
+		{
+			{ 9.34994758321915, 7.80825641041495, 0.00000000000000 },
+			{ 11.64080253106441, 13.26518528472506, 3.55567932576820 },
+			{ 4.77014054273075, 7.85644357492508, 0.34445460269183 },
+			{ 3.63141668516122, 3.35461524886318, 0.14824771620542 },
+			{ 2.58310846982020, 1.41963212641879, 0.04855267273770 },
+			{ 1.78373986219597, 0.31920640440152, 0.03381545544099 },
+		};
+
+		auto model = aris::dynamic::createModelPuma(param);
+		/*
+		//根据tool0，添加一个tool1，tool1相对于tool0在x方向加上0.1m//
+		auto &tool0 = model->partPool().back().markerPool().findByName("general_motion_0_i");//获取tool0
+
+		double pq_ee_i[7];
+		s_pm2pq(*tool0->prtPm(), pq_ee_i);
+		pq_ee_i[0] += 0.1;//在tool0的x方向加上0.1m
+
+		double pm_ee_i[16];
+		s_pq2pm(pq_ee_i, pm_ee_i);
+
+		auto &tool1 = model->partPool().back().markerPool().add<Marker>("tool1", pm_ee_i);//添加tool1
+		
+		//在根据tool1位姿反解到每一个关节时，需要调用下面两行代码来实现
+		//tool1.setPm(pm_ee_i);
+		//model->generalMotionPool()[0].updMpm();
+		*/
+		return std::move(model);
 	}
+	
 	// 获取驱动器当前位置，并设置为起始位置 //
 	struct MoveInitParam
 	{
@@ -1842,31 +1897,26 @@ namespace kaanh
 	
 	// 示教运动--输入末端大地坐标系的位姿pe，控制动作 //
 	struct MovePointParam {};
+	struct MovePointStruct
+	{
+		bool movepoint_is_running = false;
+		int cor_system;
+		int vel_percent;
+		std::array<int, 6> is_increase;
+	};
 	struct MovePoint::Imp
 	{
-		static std::atomic_bool movepoint_is_running;
-		static std::atomic_char cor_system;
-		static std::atomic_int32_t vel_percent;
-		static std::atomic_int32_t is_increase;
-		static std::atomic_int32_t move_type;
-		static std::atomic_bool input_label;
-
-		std::vector<double> begin_pm, target_pm;
-		double vel, acc, dec;
+		MovePointStruct s1_rt, s2_nrt;
+		std::vector<double> pm_target;
+		double vel[6], acc[6], dec[6];
 		int increase_count;
 	};
-	std::atomic_bool MovePoint::Imp::movepoint_is_running = false;
-	std::atomic_char MovePoint::Imp::cor_system = 0;
-	std::atomic_int32_t MovePoint::Imp::vel_percent = 10;
-	std::atomic_int32_t MovePoint::Imp::is_increase = 0;
-	std::atomic_int32_t MovePoint::Imp::move_type = 0;
-	std::atomic_bool MovePoint::Imp::input_label = false;
+	std::atomic_bool movepoint_is_changing = false;
 	auto MovePoint::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
 		auto c = target.controller;
 		MovePointParam param;
-		imp_->begin_pm.resize(16, 0.0);
-		imp_->target_pm.resize(16, 0.0);
+		imp_->pm_target.resize(16, 0.0);
 		
 		std::string ret = "ok";
 		target.ret = ret;
@@ -1875,107 +1925,66 @@ namespace kaanh
 		{
 			if (p.first == "start")
 			{
-				if (Imp::movepoint_is_running.load())throw std::runtime_error("auto mode already started");
+				if (imp_->s1_rt.movepoint_is_running)throw std::runtime_error("auto mode already started");
 
-				Imp::movepoint_is_running.store(true);
-				Imp::is_increase.store(0);
-				Imp::cor_system.store(0);
-				Imp::vel_percent.store(10);
-				Imp::move_type.store(0);
-				Imp::input_label.store(true);
+				imp_->s2_nrt.movepoint_is_running = true;
+				std::fill_n(imp_->s2_nrt.is_increase.data(), 6, 0);
+				imp_->s2_nrt.cor_system= 0;
+				imp_->s2_nrt.vel_percent = 10;
+
+				imp_->s1_rt.movepoint_is_running = true;
+				std::fill_n(imp_->s1_rt.is_increase.data(), 6, 0);
+				imp_->s1_rt.cor_system = 0;
+				imp_->s1_rt.vel_percent = 10;
 
 				imp_->increase_count = std::stoi(params.at("increase_count"));
 				if (imp_->increase_count < 0 || imp_->increase_count>1e5)THROW_FILE_AND_LINE("");
-				imp_->vel = std::stod(params.at("vel"));
-				imp_->acc = std::stod(params.at("acc"));
-				imp_->dec = std::stod(params.at("dec"));
+
+				auto mat = target.model->calculator().calculateExpression(params.at("vel"));
+				if (mat.size() != 6)THROW_FILE_AND_LINE("");
+				std::copy(mat.begin(), mat.end(), imp_->vel);
+
+				mat = target.model->calculator().calculateExpression(params.at("acc"));
+				if (mat.size() != 6)THROW_FILE_AND_LINE("");
+				std::copy(mat.begin(), mat.end(), imp_->acc);
+
+				mat = target.model->calculator().calculateExpression(params.at("dec"));
+				if (mat.size() != 6)THROW_FILE_AND_LINE("");
+				std::copy(mat.begin(), mat.end(), imp_->dec);
+
 
 				target.option |= EXECUTE_WHEN_ALL_PLAN_COLLECTED | NOT_PRINT_EXECUTE_COUNT | USE_TARGET_POS;
 			}
 			else if (p.first == "stop")
 			{
-				if (!Imp::movepoint_is_running.load())throw std::runtime_error("manual mode not started, when stop");
+				if (!imp_->s1_rt.movepoint_is_running)throw std::runtime_error("manual mode not started, when stop");
 
-				Imp::movepoint_is_running.store(0);
+				imp_->s2_nrt.movepoint_is_running = false;
+
 				target.option |= WAIT_FOR_COLLECTION;
+				movepoint_is_changing = true;
+				while (movepoint_is_changing.load())std::this_thread::sleep_for(std::chrono::milliseconds(1));
 			}
 			else if (p.first == "cor")
 			{
-				if (!Imp::movepoint_is_running.load())throw std::runtime_error("manual mode not started, when pe");
+				if (!imp_->s1_rt.movepoint_is_running)throw std::runtime_error("manual mode not started, when pe");
 
-				Imp::cor_system.store(std::stoi(params.at("cor")));
-
+				imp_->s2_nrt.cor_system = std::stoi(params.at("cor"));
 				auto velocity = std::stoi(params.at("vel_percent"));
 				velocity = std::max(std::min(100, velocity), -100);
-				Imp::vel_percent.store(velocity);
+				imp_->s2_nrt.vel_percent = velocity;
+				imp_->s2_nrt.is_increase[0] = std::max(std::min(1, std::stoi(params.at("x"))), -1) * imp_->increase_count;
+				imp_->s2_nrt.is_increase[1] = std::max(std::min(1, std::stoi(params.at("y"))), -1) * imp_->increase_count;
+				imp_->s2_nrt.is_increase[2] = std::max(std::min(1, std::stoi(params.at("z"))), -1) * imp_->increase_count;
+				imp_->s2_nrt.is_increase[3] = std::max(std::min(1, std::stoi(params.at("a"))), -1) * imp_->increase_count;
+				imp_->s2_nrt.is_increase[4] = std::max(std::min(1, std::stoi(params.at("b"))), -1) * imp_->increase_count;
+				imp_->s2_nrt.is_increase[5] = std::max(std::min(1, std::stoi(params.at("c"))), -1) * imp_->increase_count;
+
+				imp_->s2_nrt.movepoint_is_running = true;
 
 				target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION | NOT_PRINT_CMD_INFO | NOT_LOG_CMD_INFO;
-			}
-			else if (p.first == "x")
-			{
-				if (!Imp::movepoint_is_running.load())throw std::runtime_error("manual mode not started, when pe");
-				int increase_num;
-				increase_num = std::stod(p.second);
-				Imp::move_type.store(0);
-				Imp::input_label.store(true);
-				increase_num = std::max(std::min(1, increase_num), -1) * imp_->increase_count;
-				Imp::is_increase.store(increase_num);
-				target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION | NOT_PRINT_CMD_INFO | NOT_LOG_CMD_INFO;
-			}
-			else if (p.first == "y")
-			{
-				if (!Imp::movepoint_is_running.load())throw std::runtime_error("manual mode not started, when pe");
-				int increase_num;
-				increase_num = std::stod(p.second);
-				Imp::move_type.store(1);
-				Imp::input_label.store(true);
-				increase_num = std::max(std::min(1, increase_num), -1) * imp_->increase_count;
-				Imp::is_increase.store(increase_num);
-				target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION | NOT_PRINT_CMD_INFO | NOT_LOG_CMD_INFO;
-			}
-			else if (p.first == "z")
-			{
-				if (!Imp::movepoint_is_running.load())throw std::runtime_error("manual mode not started, when pe");
-				int increase_num;
-				increase_num = std::stod(p.second);
-				Imp::move_type.store(2);
-				Imp::input_label.store(true);
-				increase_num = std::max(std::min(1, increase_num), -1) * imp_->increase_count;
-				Imp::is_increase.store(increase_num);
-				target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION | NOT_PRINT_CMD_INFO | NOT_LOG_CMD_INFO;
-			}
-			else if (p.first == "a")
-			{
-			if (!Imp::movepoint_is_running.load())throw std::runtime_error("manual mode not started, when pe");
-			int increase_num;
-			increase_num = std::stod(p.second);
-			Imp::move_type.store(3);
-			Imp::input_label.store(true);
-			increase_num = std::max(std::min(1, increase_num), -1) * imp_->increase_count;
-			Imp::is_increase.store(increase_num);
-			target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION | NOT_PRINT_CMD_INFO | NOT_LOG_CMD_INFO;
-			}
-			else if (p.first == "b")
-			{
-			if (!Imp::movepoint_is_running.load())throw std::runtime_error("manual mode not started, when pe");
-			int increase_num;
-			increase_num = std::stod(p.second);
-			Imp::move_type.store(4);
-			Imp::input_label.store(true);
-			increase_num = std::max(std::min(1, increase_num), -1) * imp_->increase_count;
-			Imp::is_increase.store(increase_num);
-			target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION | NOT_PRINT_CMD_INFO | NOT_LOG_CMD_INFO;
-			}
-			else if (p.first == "c")
-			{
-			if (!Imp::movepoint_is_running.load())throw std::runtime_error("manual mode not started, when pe");
-			int increase_num;
-			increase_num = std::stod(p.second);
-			Imp::move_type.store(5);
-			Imp::input_label.store(true);
-			increase_num = std::max(std::min(1, increase_num), -1) * imp_->increase_count;
-			Imp::is_increase.store(increase_num);
-			target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION | NOT_PRINT_CMD_INFO | NOT_LOG_CMD_INFO;
+				movepoint_is_changing = true;
+				while (movepoint_is_changing.load())std::this_thread::sleep_for(std::chrono::milliseconds(1));
 			}
 		}
 		
@@ -1990,91 +1999,157 @@ namespace kaanh
 		auto &param = std::any_cast<MovePointParam&>(target.param);
 		char eu_type[4]{ '1', '2', '3', '\0' };
 		
+		// 前三维为xyz，后三维是w的积分，注意没有物理含义
+		static double target_p[6];
+
 		// get current pe //
-		double pe_now[6], ve_now[6], ae_now[6];
-		target.model->generalMotionPool()[0].getMpe(pe_now, eu_type);
-		target.model->generalMotionPool()[0].getMve(ve_now, eu_type);
-		target.model->generalMotionPool()[0].getMae(ae_now, eu_type);
-		for (int i = 3; i < 6; ++i) if (pe_now[i] > aris::PI) pe_now[i] -= 2 * PI;
-		
-
-		// init status //
-		static int increase_status = 0;
-		if (Imp::input_label.load())
+		static double p_now[6], v_now[6], a_now[6];
+		if (target.count == 1)
 		{
-			increase_status = Imp::is_increase.load();
-			Imp::input_label.store(false);
+			target.model->generalMotionPool()[0].getMpe(target_p);
+			std::fill_n(target_p + 3, 3, 0.0);
+
+			target.model->generalMotionPool()[0].getMpe(p_now, eu_type);
+			std::fill_n(p_now + 3, 3, 0.0);
+
+			target.model->generalMotionPool()[0].getMve(v_now, eu_type);
+			target.model->generalMotionPool()[0].getMae(a_now, eu_type);
 		}
-
-		if (increase_status)
+		
+		// init status //
+		static int increase_status[6]{ 0,0,0,0,0,0 };
+		double max_vel[6];
+		if (movepoint_is_changing)
 		{
-			std::cout << increase_status << std::endl;
+			imp_->s1_rt = imp_->s2_nrt;
+			movepoint_is_changing.store(false);
+			for (int i = 0; i < 6; i++)
+			{
+				increase_status[i] = imp_->s1_rt.is_increase[i];
+			}
+			//target.model->generalMotionPool()[0].getMpe(imp_->pe_start, eu_type);
 		}
 
 		// calculate target pos and max vel //
-		double target_pos, max_vel;
-		max_vel = imp_->vel*1.0*Imp::vel_percent.load() / 100.0;
-		target_pos = pe_now[Imp::move_type.load()] + aris::dynamic::s_sgn(increase_status)*max_vel * 1e-3;
-		increase_status -= aris::dynamic::s_sgn(increase_status);
+		for (int i = 0; i < 6; i++)
+		{
+			max_vel[i] = imp_->vel[i]*1.0*imp_->s1_rt.vel_percent / 100.0;
+			target_p[i] += aris::dynamic::s_sgn(increase_status[i])*max_vel[i] * 1e-3;
+			increase_status[i] -= aris::dynamic::s_sgn(increase_status[i]);
+		}
+		//std::copy_n(target_pos, 6, imp_->pe_start);
 		
 		// 梯形轨迹规划 calculate real value //
-		double p_next, v_next, a_next;
+		double p_next[6]{ 0,0,0,0,0,0 }, v_next[6]{ 0,0,0,0,0,0 }, a_next[6]{ 0,0,0,0,0,0 };
+		for(int i=0; i<6; i++)
 		{
 			aris::Size t;
-			aris::plan::moveAbsolute2(pe_now[Imp::move_type.load()], ve_now[Imp::move_type.load()], ae_now[Imp::move_type.load()]
-				, target_pos, 0.0, 0.0
-				, max_vel, imp_->acc, imp_->dec
-				, 1e-3, 1e-10, p_next, v_next, a_next, t);
+			aris::plan::moveAbsolute2(p_now[i], v_now[i], a_now[i]
+				, target_p[i], 0.0, 0.0
+				, max_vel[i], imp_->acc[i], imp_->dec[i]
+				, 1e-3, 1e-10, p_next[i], v_next[i], a_next[i], t);
 		}
-		
-		// 获取位姿矩阵 //	
-		double pe[6]{ 0,0,0,0,0,0 }, pm[16];
-		pe[Imp::move_type.load()] = p_next - pe_now[Imp::move_type.load()];
-		s_pe2pm(pe, pm, eu_type);
-		
-		// 获取起始矩阵 //
-		s_pe2pm(pe_now, imp_->begin_pm.data(), eu_type);
+
+		//将欧拉角转换成四元数，求绕任意旋转轴转动的旋转矩阵//
+		double w[3], pm[16];
+		aris::dynamic::s_vc(3, v_next + 3, w);
+		auto normv = aris::dynamic::s_norm(3, w);
+		if (std::abs(normv) > 1e-10)aris::dynamic::s_nv(3, 1 / normv, w); //数乘
+		auto theta = normv * 1e-3;
+		double pq[7]{ p_next[0] - p_now[0], p_next[1] - p_now[1], p_next[2] - p_now[2], w[0]*sin(theta / 2.0), w[1] * sin(theta / 2.0), w[2] * sin(theta / 2.0), cos(theta / 2.0) };
+		s_pq2pm(pq, pm);
+
+		// 获取当前位姿矩阵 //
+		double pm_now[16];
+		target.model->generalMotionPool()[0].getMpm(pm_now);
+
+		// 保存下个周期的copy //
+		s_vc(6, p_next, p_now);
+		s_vc(6, v_next, v_now);
+		s_vc(6, a_next, a_now);
+		/*
+		s_pe2pm(p_now, imp_->pm_now.data(), eu_type);
+		for (int i = 0; i < 6; i++)
+		{
+			p_now[i] = p_next[i];
+			v_now[i] = v_next[i];
+			a_now[i] = a_next[i];
+		}
+		*/
 		
 		//绝对坐标系
-		if (Imp::cor_system.load() == 0)
+		if (imp_->s1_rt.cor_system == 0)
 		{
-			s_pm_dot_pm(pm, imp_->begin_pm.data(), imp_->target_pm.data());
+			s_pm_dot_pm(pm, pm_now, imp_->pm_target.data());
 		}
-		//工件坐标系
-		else if (Imp::cor_system.load() == 1)
+		//工具坐标系
+		else if (imp_->s1_rt.cor_system == 1)
 		{
-			s_pm_dot_pm(imp_->begin_pm.data(), pm, imp_->target_pm.data());
+			s_pm_dot_pm(pm_now, pm, imp_->pm_target.data());
 		}
 		
-		target.model->generalMotionPool().at(0).setMpm(imp_->target_pm.data());
+		target.model->generalMotionPool().at(0).setMpm(imp_->pm_target.data());
 		
-
 		// 运动学反解 //
 		if (!target.model->solverPool().at(0).kinPos())return -1;
 
 		// 打印 //
 		auto &cout = controller->mout();
-
-		if (target.count % 1000 == 0)
+		if (target.count % 200 == 0)
 		{
+			cout << "pm_target:" << std::endl;
 			for (Size i = 0; i < 16; i++)
 			{
-				cout << imp_->target_pm[i] << "  ";
+				cout << imp_->pm_target[i] << "  ";
+			}
+			cout << std::endl;
+			cout << "increase_status:" << std::endl;
+			for (Size i = 0; i < 6; i++)
+			{
+				cout << increase_status[i] << "  ";
+			}
+			cout << std::endl;
+			cout << "p_next:" << std::endl;
+			for (Size i = 0; i < 6; i++)
+			{
+				cout << p_next[i] << "  ";
+			}
+			cout << std::endl;
+			cout << "v_next:" << std::endl;
+			for (Size i = 0; i < 6; i++)
+			{
+				cout << v_next[i] << "  ";
+			}
+			cout << std::endl;
+			cout << "p_now:" << std::endl;
+			for (Size i = 0; i < 6; i++)
+			{
+				cout << p_now[i] << "  ";
+			}
+			cout << std::endl;
+			cout << "v_now:" << std::endl;
+			for (Size i = 0; i < 6; i++)
+			{
+				cout << v_now[i] << "  ";
 			}
 			cout << std::endl;
 		}
 
 		// log //
 		auto &lout = controller->lout();
-		for (Size i = 0; i < 6; i++)
+		for (int i = 0; i < 6; i++)
 		{
+			lout << target_p[i] << " ";
+			lout << p_now[i] << " ";
+			lout << v_now[i] << " ";
+			lout << a_now[i] << " ";
 			lout << controller->motionAtAbs(i).actualPos() << " ";
 			lout << controller->motionAtAbs(i).actualVel() << " ";
 			lout << controller->motionAtAbs(i).actualCur() << " ";
 		}
 		lout << std::endl;
 
-		return Imp::movepoint_is_running.load() ? 1 : 0;
+		return imp_->s1_rt.movepoint_is_running ? 1 : 0;
 	}
 	auto MovePoint::collectNrt(PlanTarget &target)->void {}
 	MovePoint::~MovePoint() = default;
@@ -2086,23 +2161,21 @@ namespace kaanh
 			"		<UniqueParam>"
 			"			<GroupParam name=\"start_group\">"
 			"				<Param name=\"start\"/>"
-			"				<Param name=\"increase_count\" default=\"50\"/>"
-			"				<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
-			"				<Param name=\"acc\" default=\"10\" abbreviation=\"a\"/>"
-			"				<Param name=\"dec\" default=\"10\" abbreviation=\"d\"/>"
+			"				<Param name=\"increase_count\" default=\"100\"/>"
+			"				<Param name=\"vel\" default=\"{0.05,0.05,0.05,1,1,1}\"/>"
+			"				<Param name=\"acc\" default=\"{0.2,0.2,0.2,5,5,5}\"/>"
+			"				<Param name=\"dec\" default=\"{0.2,0.2,0.2,5,5,5}\"/>"
 			"			</GroupParam>"
 			"			<Param name=\"stop\"/>"
 			"			<GroupParam>"
 			"				<Param name=\"cor\" default=\"0\"/>"
 			"				<Param name=\"vel_percent\" default=\"10\"/>"
-			"				<UniqueParam>"
-			"					<Param name=\"x\" default=\"0\"/>"
-			"					<Param name=\"y\" default=\"0\"/>"
-			"					<Param name=\"z\" default=\"0\"/>"
-			"					<Param name=\"a\" default=\"0\"/>"
-			"					<Param name=\"b\" default=\"0\"/>"
-			"					<Param name=\"c\" default=\"0\"/>"
-			"				</UniqueParam>"
+			"				<Param name=\"x\" default=\"0\"/>"
+			"				<Param name=\"y\" default=\"0\"/>"
+			"				<Param name=\"z\" default=\"0\"/>"
+			"				<Param name=\"a\" default=\"0\"/>"
+			"				<Param name=\"b\" default=\"0\"/>"
+			"				<Param name=\"c\" default=\"0\"/>"
 			"			</GroupParam>"
 			"		</UniqueParam>"
 			"	</GroupParam>"
@@ -2116,7 +2189,7 @@ namespace kaanh
 
 	// 示教运动--输入末端大地坐标系的位姿pe，控制动作 //
 	struct MoveJPParam {};
-	struct LocalStruct 
+	struct MoveJPStruct 
 	{
 		bool movejp_is_running = false;
 		int vel_percent;
@@ -2124,7 +2197,7 @@ namespace kaanh
 	};
 	struct MoveJP::Imp
 	{
-		LocalStruct s1_rt, s2_nrt;
+		MoveJPStruct s1_rt, s2_nrt;
 		double vel, acc, dec;
 		double p_now[6], v_now[6], a_now[6], p_start[6];
 		int increase_count;
@@ -2284,7 +2357,6 @@ namespace kaanh
 		auto &lout = controller->lout();
 		for (int i = 0; i < 6; i++)
 		{
-
             lout << target_pos[i] << " ";
             lout << imp_->v_now[i] << " ";
             lout << imp_->a_now[i] << " ";
@@ -2306,10 +2378,10 @@ namespace kaanh
 			"		<UniqueParam>"
 			"			<GroupParam name=\"start_group\">"
 			"				<Param name=\"start\"/>"
-			"				<Param name=\"increase_count\" default=\"50\"/>"
+			"				<Param name=\"increase_count\" default=\"100\"/>"
 			"				<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
-			"				<Param name=\"acc\" default=\"20\" abbreviation=\"a\"/>"
-			"				<Param name=\"dec\" default=\"20\" abbreviation=\"d\"/>"
+			"				<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"
+			"				<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"
 			"			</GroupParam>"
 			"			<Param name=\"stop\"/>"
 			"			<GroupParam>"

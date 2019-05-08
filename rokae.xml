@@ -72,30 +72,30 @@
 								<Button id="id_26" text="stop"  cmd="movePoint --stop" return_attached=""/>
 							</Panel>
 							<Panel text="movePoint|CMD" id="id_22">
-								<Input id="id_10" default="0.2" parameter="x"/>
 								<Input id="id_8" default="0" parameter="cor"/>
 								<Input id="id_6" default="0" parameter="vel_percent"/>
-								<Button id="id_11" text="x" repeat="0" rate="50" cmd="movePoint --x=${id_10} --cor=${id_8} --vel_percent=${id_6}" return_attached=""/>
+								<Button id="id_10" text="x-" repeat="0" rate="50" cmd="movePoint --x=-1 --cor=${id_8} --vel_percent=${id_6}" return_attached=""/>
+								<Button id="id_11" text="x+" repeat="0" rate="50" cmd="movePoint --x=1 --cor=${id_8} --vel_percent=${id_6}" return_attached=""/>
 							</Panel>
 							<Panel text="movePoint|CMD" id="id_22">
-								<Input id="id_12" default="0.2" parameter="y"/>
-								<Button id="id_13" text="y" repeat="0" rate="50" cmd="movePoint --y=${id_12} --cor=${id_8} --vel_percent=${id_6}" return_attached=""/>
+								<Button id="id_12" text="y-" repeat="0" rate="50" cmd="movePoint --y=-1 --cor=${id_8} --vel_percent=${id_6}" return_attached=""/>
+								<Button id="id_13" text="y+" repeat="0" rate="50" cmd="movePoint --y=1 --cor=${id_8} --vel_percent=${id_6}" return_attached=""/>
 							</Panel>
 							<Panel text="movePoint|CMD" id="id_22">
-								<Input id="id_14" default="0.2" parameter="z"/>
-								<Button id="id_15" text="z" repeat="0" rate="50" cmd="movePoint --z=${id_14} --cor=${id_8} --vel_percent=${id_6}" return_attached=""/>
+								<Button id="id_14" text="z-" repeat="0" rate="50" cmd="movePoint --z=-1 --cor=${id_8} --vel_percent=${id_6}" return_attached=""/>								
+								<Button id="id_15" text="z+" repeat="0" rate="50" cmd="movePoint --z=1 --cor=${id_8} --vel_percent=${id_6}" return_attached=""/>
 							</Panel>
 							<Panel text="movePoint|CMD" id="id_22">
-								<Input id="id_16" default="0.2" parameter="a"/>
-								<Button id="id_17" text="a" repeat="0" rate="50" cmd="movePoint --a=${id_16} --cor=${id_8} --vel_percent=${id_6}" return_attached=""/>
+								<Button id="id_16" text="a-" repeat="0" rate="50" cmd="movePoint --a=-1 --cor=${id_8} --vel_percent=${id_6}" return_attached=""/>								
+								<Button id="id_17" text="a+" repeat="0" rate="50" cmd="movePoint --a=1 --cor=${id_8} --vel_percent=${id_6}" return_attached=""/>
 							</Panel>
 							<Panel text="movePoint|CMD" id="id_22">
-								<Input id="id_18" default="0.2" parameter="b"/>
-								<Button id="id_19" text="b" repeat="0" rate="50" cmd="movePoint --b=${id_18} --cor=${id_8} --vel_percent=${id_6}" return_attached=""/>
+								<Button id="id_18" text="b-" repeat="0" rate="50" cmd="movePoint --b=-1 --cor=${id_8} --vel_percent=${id_6}" return_attached=""/>								
+								<Button id="id_19" text="b+" repeat="0" rate="50" cmd="movePoint --b=1 --cor=${id_8} --vel_percent=${id_6}" return_attached=""/>
 							</Panel>
 							<Panel text="movePoint|CMD" id="id_22">
-								<Input id="id_20" default="0.2" parameter="c"/>
-								<Button id="id_21" text="c" repeat="0" rate="50" cmd="movePoint --c=${id_20} --cor=${id_8} --vel_percent=${id_6}" return_attached=""/>
+								<Button id="id_20" text="c-" repeat="0" rate="50" cmd="movePoint --c=-1 --cor=${id_8} --vel_percent=${id_6}" return_attached=""/>
+								<Button id="id_21" text="c+" repeat="0" rate="50" cmd="movePoint --c=1 --cor=${id_8} --vel_percent=${id_6}" return_attached=""/>
 							</Panel>
 						</Li>
 						<Li text="tab_moveJP">
@@ -106,29 +106,29 @@
 								<Button id="id_30" text="stop"  cmd="moveJP --stop" return_attached=""/>
 							</Panel>
 							<Panel text="moveJP|CMD" id="id_7">
-								<Input id="id_31" default="1" parameter="j0"/>
 								<Input id="id_9" default="0" parameter="vel_percent"/>
-								<Button id="id_32" text="j0" repeat="0" rate="50" cmd="moveJP --j0=${id_31} --vel_percent=${id_9}" return_attached=""/>
+								<Button id="id_31" text="j0-" repeat="0" rate="50" cmd="moveJP --j0=-1 --vel_percent=${id_9}" return_attached=""/>
+								<Button id="id_32" text="j0+" repeat="0" rate="50" cmd="moveJP --j0=1 --vel_percent=${id_9}" return_attached=""/>
 							</Panel>
 							<Panel text="moveJP|CMD" id="id_7">
-								<Input id="id_33" default="1" parameter="j1"/>
-								<Button id="id_34" text="j1" repeat="0" rate="50" cmd="moveJP --j1=${id_33} --vel_percent=${id_9}" return_attached=""/>
+								<Button id="id_33" text="j1-" repeat="0" rate="50" cmd="moveJP --j1=-1 --vel_percent=${id_9}" return_attached=""/>
+								<Button id="id_34" text="j1+" repeat="0" rate="50" cmd="moveJP --j1=1 --vel_percent=${id_9}" return_attached=""/>
 							</Panel>
 							<Panel text="moveJP|CMD" id="id_7">
-								<Input id="id_35" default="1" parameter="j2"/>
-								<Button id="id_36" text="j2" repeat="0" rate="50" cmd="moveJP --j2=${id_35} --vel_percent=${id_9}" return_attached=""/>
+								<Button id="id_35" text="j2-" repeat="0" rate="50" cmd="moveJP --j2=-1 --vel_percent=${id_9}" return_attached=""/>
+								<Button id="id_36" text="j2+" repeat="0" rate="50" cmd="moveJP --j2=1 --vel_percent=${id_9}" return_attached=""/>
 							</Panel>
 							<Panel text="moveJP|CMD" id="id_7">
-								<Input id="id_37" default="1" parameter="j3"/>
-								<Button id="id_38" text="j3" repeat="0" rate="50" cmd="moveJP --j3=${id_37} --vel_percent=${id_9}" return_attached=""/>
+								<Button id="id_37" text="j3-" repeat="0" rate="50" cmd="moveJP --j3=-1 --vel_percent=${id_9}" return_attached=""/>
+								<Button id="id_38" text="j3+" repeat="0" rate="50" cmd="moveJP --j3=1 --vel_percent=${id_9}" return_attached=""/>
 							</Panel>
 							<Panel text="moveJP|CMD" id="id_7">
-								<Input id="id_39" default="1" parameter="j4"/>
-								<Button id="id_40" text="j4" repeat="0" rate="50" cmd="moveJP --j4=${id_39} --vel_percent=${id_9}" return_attached=""/>
+								<Button id="id_39" text="j4-" repeat="0" rate="50" cmd="moveJP --j4=-1 --vel_percent=${id_9}" return_attached=""/>
+								<Button id="id_40" text="j4+" repeat="0" rate="50" cmd="moveJP --j4=1 --vel_percent=${id_9}" return_attached=""/>
 							</Panel>
 							<Panel text="moveJP|CMD" id="id_7">
-								<Input id="id_41" default="1" parameter="j5"/>
-								<Button id="id_42" text="j5" repeat="0" rate="50" cmd="moveJP --j5=${id_41} --vel_percent=${id_9}" return_attached=""/>
+								<Button id="id_41" text="j5-" repeat="0" rate="50" cmd="moveJP --j5=-1 --vel_percent=${id_9}" return_attached=""/>
+								<Button id="id_42" text="j5+" repeat="0" rate="50" cmd="moveJP --j5=1 --vel_percent=${id_9}" return_attached=""/>
 							</Panel>
 						</Li>
 					</Tabs>
@@ -323,50 +323,50 @@
         <PartPoolElement name="part_pool">
             <Part name="ground" active="true" pe="{0,0,0,-0,0,-0}" vel="{0,0,0,0,0,0}" acc="{0,0,0,0,0,0}" inertia="{1,0,0,0,1,1,1,0,0,0}">
                 <MarkerPoolElement name="marker_pool">
-                    <Marker name="joint_0_j" active="true" pe="{0,0,0.176,0.785398163397448,0,0.785398163397448}"/>
+                    <Marker name="joint_0_j" active="true" pe="{0,0,0.3295,0.785398163397448,0,0.785398163397448}"/>
                     <Marker name="ee_makJ" active="true" pe="{0,0,0,-0,0,-0}"/>
                 </MarkerPoolElement>
                 <GeometryPoolElement name="geometry_pool"/>
             </Part>
             <Part name="L1" active="true" pe="{0,0,0,-0,0,-0}" vel="{0,0,0,0,0,0}" acc="{0,0,0,0,0,0}" inertia="{0,0,0,0,0,0,0.59026333537827,0,0,0}">
                 <MarkerPoolElement name="marker_pool">
-                    <Marker name="joint_0_i" active="true" pe="{0,0,0.176,0.785398163397448,0,0.785398163397448}"/>
-                    <Marker name="joint_1_j" active="true" pe="{0.04,-0.0465,0.3295,3.14159265358979,1.5707963267949,4.71238898038469}"/>
+                    <Marker name="joint_0_i" active="true" pe="{0,0,0.3295,0.785398163397448,0,0.785398163397448}"/>
+                    <Marker name="joint_1_j" active="true" pe="{0.04,0,0.3295,3.14159265358979,1.5707963267949,4.71238898038469}"/>
                 </MarkerPoolElement>
                 <GeometryPoolElement name="geometry_pool"/>
             </Part>
             <Part name="L2" active="true" pe="{0,0,0,-0,0,-0}" vel="{0,0,0,0,0,0}" acc="{0,0,0,0,0,0}" inertia="{0,-0.02551872200978,0,3.05660683326413,2.85905166943306,0,0,-0.00855352993039,-0.09946674483372,-0.00712210734359}">
                 <MarkerPoolElement name="marker_pool">
-                    <Marker name="joint_1_i" active="true" pe="{0.04,-0.0465,0.3295,3.14159265358979,1.5707963267949,4.71238898038469}"/>
-                    <Marker name="joint_2_j" active="true" pe="{0.04,0.0508,0.6045,3.14159265358979,1.5707963267949,4.71238898038469}"/>
+                    <Marker name="joint_1_i" active="true" pe="{0.04,0,0.3295,3.14159265358979,1.5707963267949,4.71238898038469}"/>
+                    <Marker name="joint_2_j" active="true" pe="{0.04,0,0.6045,3.14159265358979,1.5707963267949,4.71238898038469}"/>
                 </MarkerPoolElement>
                 <GeometryPoolElement name="geometry_pool"/>
             </Part>
             <Part name="L3" active="true" pe="{0,0,0,-0,0,-0}" vel="{0,0,0,0,0,0}" acc="{0,0,0,0,0,0}" inertia="{0,0,0,0.02733022277747,0,0.37382629693302,0,0.00312006493276,-0.00578410451516,0.0057060612854}">
                 <MarkerPoolElement name="marker_pool">
-                    <Marker name="joint_2_i" active="true" pe="{0.04,0.0508,0.6045,3.14159265358979,1.5707963267949,4.71238898038469}"/>
-                    <Marker name="joint_3_j" active="true" pe="{-0.1233,0,0.6295,1.5707963267949,1.5707963267949,1.5707963267949}"/>
+                    <Marker name="joint_2_i" active="true" pe="{0.04,0,0.6045,3.14159265358979,1.5707963267949,4.71238898038469}"/>
+                    <Marker name="joint_3_j" active="true" pe="{0.32,0,0.6295,1.5707963267949,1.5707963267949,1.5707963267949}"/>
                 </MarkerPoolElement>
                 <GeometryPoolElement name="geometry_pool"/>
             </Part>
             <Part name="L4" active="true" pe="{0,0,0,-0,0,-0}" vel="{0,0,0,0,0,0}" acc="{0,0,0,0,0,0}" inertia="{0,1.06223330086669,0,0.0031174824296,0,0.24420385558544,0.24970286555981,0.00305759215246,-0.66644096559686,0.00228253380852}">
                 <MarkerPoolElement name="marker_pool">
-                    <Marker name="joint_3_i" active="true" pe="{-0.1233,0,0.6295,1.5707963267949,1.5707963267949,1.5707963267949}"/>
-                    <Marker name="joint_4_j" active="true" pe="{0.32,-0.03235,0.6295,3.14159265358979,1.5707963267949,4.71238898038469}"/>
+                    <Marker name="joint_3_i" active="true" pe="{0.32,0,0.6295,1.5707963267949,1.5707963267949,1.5707963267949}"/>
+                    <Marker name="joint_4_j" active="true" pe="{0.32,0,0.6295,3.14159265358979,1.5707963267949,4.71238898038469}"/>
                 </MarkerPoolElement>
                 <GeometryPoolElement name="geometry_pool"/>
             </Part>
             <Part name="L5" active="true" pe="{0,0,0,-0,0,-0}" vel="{0,0,0,0,0,0}" acc="{0,0,0,0,0,0}" inertia="{0,0.0536228689791,0.00528925153464,-0.00842588023014,0.00128498153337,-0.00389810210572,0,-0.00223677867576,-0.03365036368035,-0.00415647085627}">
                 <MarkerPoolElement name="marker_pool">
-                    <Marker name="joint_4_i" active="true" pe="{0.32,-0.03235,0.6295,3.14159265358979,1.5707963267949,4.71238898038469}"/>
-                    <Marker name="joint_5_j" active="true" pe="{0.383,0,0.6295,1.5707963267949,1.5707963267949,1.5707963267949}"/>
+                    <Marker name="joint_4_i" active="true" pe="{0.32,0,0.6295,3.14159265358979,1.5707963267949,4.71238898038469}"/>
+                    <Marker name="joint_5_j" active="true" pe="{0.32,0,0.6295,1.5707963267949,1.5707963267949,1.5707963267949}"/>
                 </MarkerPoolElement>
                 <GeometryPoolElement name="geometry_pool"/>
             </Part>
             <Part name="L6" active="true" pe="{0,0,0,-0,0,-0}" vel="{0,0,0,0,0,0}" acc="{0,0,0,0,0,0}" inertia="{0,0,0.00066049870832,0.00012563800445,-0.00085124094833,0.04209529937135,0.04102481443654,-0.00067596644891,0.00017482449876,-0.00041025776053}">
                 <MarkerPoolElement name="marker_pool">
-                    <Marker name="joint_5_i" active="true" pe="{0.383,0,0.6295,1.5707963267949,1.5707963267949,1.5707963267949}"/>
-                    <Marker name="ee_makI" active="true" pe="{0.398,0,0.6295,-0,0,-0}"/>
+                    <Marker name="joint_5_i" active="true" pe="{0.32,0,0.6295,1.5707963267949,1.5707963267949,1.5707963267949}"/>
+                    <Marker name="ee_makI" active="true" pe="{0.398,0,0.6295,1.5707963267949,1.5707963267949,4.71238898038469}"/>
                 </MarkerPoolElement>
                 <GeometryPoolElement name="geometry_pool"/>
             </Part>
@@ -1087,7 +1087,7 @@
             <Start name="start">
                 <Command name="start"/>
             </Start>
-            <Stop name="start">
+            <Stop name="stop">
                 <Command name="stop"/>
             </Stop>
             <MoveL name="move_l">
@@ -1547,23 +1547,21 @@
                         <UniqueParam>
                             <GroupParam name="start_group">
                                 <Param name="start"/>
-                                <Param name="increase_count" default="50"/>
-                                <Param name="vel" abbreviation="v" default="1"/>
-                                <Param name="acc" abbreviation="a" default="10"/>
-                                <Param name="dec" abbreviation="d" default="10"/>
+                                <Param name="increase_count" default="100"/>
+                                <Param name="vel" default="{0.05,0.05,0.05,1,1,1}"/>
+                                <Param name="acc" default="{0.2,0.2,0.2,5,5,5}"/>
+                                <Param name="dec" default="{0.2,0.2,0.2,5,5,5}"/>
                             </GroupParam>
                             <Param name="stop"/>
                             <GroupParam>
                                 <Param name="cor" default="0"/>
                                 <Param name="vel_percent" default="10"/>
-                                <UniqueParam>
-                                    <Param name="x" default="0"/>
-                                    <Param name="y" default="0"/>
-                                    <Param name="z" default="0"/>
-                                    <Param name="a" default="0"/>
-                                    <Param name="b" default="0"/>
-                                    <Param name="c" default="0"/>
-                                </UniqueParam>
+                                <Param name="x" default="0"/>
+                                <Param name="y" default="0"/>
+                                <Param name="z" default="0"/>
+                                <Param name="a" default="0"/>
+                                <Param name="b" default="0"/>
+                                <Param name="c" default="0"/>
                             </GroupParam>
                         </UniqueParam>
                     </GroupParam>
@@ -1575,10 +1573,10 @@
                         <UniqueParam>
                             <GroupParam name="start_group">
                                 <Param name="start"/>
-                                <Param name="increase_count" default="50"/>
+                                <Param name="increase_count" default="100"/>
                                 <Param name="vel" abbreviation="v" default="1"/>
-                                <Param name="acc" abbreviation="a" default="20"/>
-                                <Param name="dec" abbreviation="d" default="20"/>
+                                <Param name="acc" abbreviation="a" default="5"/>
+                                <Param name="dec" abbreviation="d" default="5"/>
                             </GroupParam>
                             <Param name="stop"/>
                             <GroupParam>
