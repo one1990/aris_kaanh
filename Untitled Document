@@ -1,6 +1,0 @@
-rs --vel=0.02
-
-moveJR -m=2 --pos=-0.2
-moveJR --pos=-0.1
-
-moveJR -m=5 --pos=-0.01

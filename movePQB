@@ -20,6 +20,7 @@ movePQB --pqt={0.42,0.0,0.55,0,0,0,1}
 
 moveSPQ --setpqPQB={0.42,0.0,0.55,0,0,0,1}
 moveSPQ --which_func=2
+moveSPQ --which_func=3
 
 moveJI --pq={0.032203,0.436206,0.0139912,-0.492466,0.474288,0.511942,0.520041}
 
