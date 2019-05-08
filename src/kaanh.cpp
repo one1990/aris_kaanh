@@ -20,11 +20,11 @@ namespace kaanh
 		std::unique_ptr<aris::control::Controller> controller(aris::robot::createControllerRokaeXB4());/*创建std::unique_ptr实例*/
 #ifdef UNIX
 		controller->motionPool().at(0).setPosOffset(0.00293480352126769);
-		controller->motionPool().at(0).setPosOffset(-2.50023777179214);
-		controller->motionPool().at(0).setPosOffset(-0.292382537944081);
-		controller->motionPool().at(0).setPosOffset(0.0582675097338009);
-		controller->motionPool().at(0).setPosOffset(1.53363576057128);
-		controller->motionPool().at(0).setPosOffset(26.3545454214145);
+		controller->motionPool().at(1).setPosOffset(-2.50023777179214);
+		controller->motionPool().at(2).setPosOffset(-0.292382537944081);
+		controller->motionPool().at(3).setPosOffset(0.0582675097338009);
+		controller->motionPool().at(4).setPosOffset(1.53363576057128);
+		controller->motionPool().at(5).setPosOffset(26.3545454214145);
 #endif
 		std::string xml_str =
 			"<EthercatSlave phy_id=\"6\" product_code=\"0x00013D6F\""
