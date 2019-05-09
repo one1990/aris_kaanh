@@ -59,6 +59,40 @@ auto JointDyna::prepairNrt(const std::map<std::string, std::string> &params, Pla
 		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 
+
+	int nn = 12; // n代表txt文档中数据的列数
+
+
+	for (int j = 0; j < nn; j++)
+	{
+		POSRLS[j].clear();
+	}
+	string filePath = "C:/Users/gk/Desktop/build_kaanh_gk/test1.txt";
+
+	ifstream oplog;
+	oplog.open(filePath);
+	if (!oplog)
+	{
+		cout << "fail to open the file" << endl;
+		throw std::runtime_error("fail to open the file");
+		//return -1;//或者抛出异常。
+	}
+	while (!oplog.eof())
+	{
+		for (int j = 0; j < nn; j++)
+		{
+			double data;
+			oplog >> data;
+			POSRLS[j].push_back(data);
+		}
+	}
+	oplog.close();
+	oplog.clear();
+	for (int j = 0; j < nn; j++)
+	{
+		POSRLS[j].pop_back();
+	}
+
 }
 auto JointDyna::executeRT(PlanTarget &target)->int
 {
@@ -142,11 +176,11 @@ auto JointDyna::executeRT(PlanTarget &target)->int
 		//AngleList[RobotAxis * (target.count - 1) + i] = controller->motionAtAbs(i).actualPos();
 		//TorqueList[RobotAxis * (target.count - 1) + i] = controller->motionAtAbs(i).actualCur();
 
-		//AngleList[6 * (target.count - 1) + i] = POSRLS[i + 1][target.count - 1];
-		//TorqueList[6 * (target.count - 1) + i] = POSRLS[i + 7][target.count - 1];
+		AngleList[6 * (target.count - 1) + i] = POSRLS[i][target.count - 1];
+		TorqueList[6 * (target.count - 1) + i] = POSRLS[i + 6][target.count - 1] / f2c_index[i];
 
-		AngleList[6 * (target.count - 1) + i] = controller->motionAtAbs(i).actualPos();
-		TorqueList[6 * (target.count - 1) + i] = controller->motionAtAbs(i).actualCur() /f2c_index[i];
+		//AngleList[6 * (target.count - 1) + i] = controller->motionAtAbs(i).actualPos();
+		//TorqueList[6 * (target.count - 1) + i] = controller->motionAtAbs(i).actualCur() /f2c_index[i];
 	}
 
 
@@ -263,6 +297,40 @@ auto LoadDyna::prepairNrt(const std::map<std::string, std::string> &params, Plan
 		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 
+
+	int nn = 12; // n代表txt文档中数据的列数
+
+
+	for (int j = 0; j < nn; j++)
+	{
+		POSRLS[j].clear();
+	}
+	string filePath = "C:/Users/gk/Desktop/build_kaanh_gk/test1.txt";
+
+	ifstream oplog;
+	oplog.open(filePath);
+	if (!oplog)
+	{
+		cout << "fail to open the file" << endl;
+		throw std::runtime_error("fail to open the file");
+		//return -1;//或者抛出异常。
+	}
+	while (!oplog.eof())
+	{
+		for (int j = 0; j < nn; j++)
+		{
+			double data;
+			oplog >> data;
+			POSRLS[j].push_back(data);
+		}
+	}
+	oplog.close();
+	oplog.clear();
+	for (int j = 0; j < nn; j++)
+	{
+		POSRLS[j].pop_back();
+	}
+
 	/*
 
 	// 所需的中间变量，请对U的对角线元素做处理
@@ -365,21 +433,22 @@ auto LoadDyna::executeRT(PlanTarget &target)->int
 
 	double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
 
-    if(target.count%8==0)
+    //if(target.count%8==0)
     {
         for (int i = 0; i < 6; i++)
         {
             //AngleList[RobotAxis * (target.count - 1) + i] = controller->motionAtAbs(i).actualPos();
             //TorqueList[RobotAxis * (target.count - 1) + i] = controller->motionAtAbs(i).actualCur();
 
-            //AngleList[6 * (target.count - 1) + i] = POSRLS[i + 1][target.count - 1];
-            //TorqueList[6 * (target.count - 1) + i] = POSRLS[i + 7][target.count - 1];
+            AngleList[6 * (target.count - 1) + i] = POSRLS[i][target.count - 1];
+            TorqueList[6 * (target.count - 1) + i] = POSRLS[i + 6][target.count - 1];
 
-            AngleList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualPos();
-            TorqueList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
+           // AngleList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualPos();
+            //TorqueList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
         }
 	
         lout << target.count << ",";
+		CollectNum = target.count;
         lout << AngleList[RobotAxis * (CollectNum - 1) + 0] << ",";lout << AngleList[RobotAxis * (CollectNum - 1) + 1] << ",";
         lout << AngleList[RobotAxis * (CollectNum - 1) + 2] << ",";lout << AngleList[RobotAxis * (CollectNum - 1) + 3] << ",";
         lout << AngleList[RobotAxis * (CollectNum - 1) + 4] << ",";lout << AngleList[RobotAxis * (CollectNum - 1) + 5] << ",";
@@ -392,7 +461,7 @@ auto LoadDyna::executeRT(PlanTarget &target)->int
     }
 	
 
-    return SampleNum - CollectNum;
+    return SampleNum - target.count;
 }
 
 

@@ -1123,8 +1123,7 @@ void JointMatrix(const double* q, const double* dq, const double* ddq, const dou
 
 //inline int id(int m, int n, int cols) { return m * cols + n;}
 
-std::vector<double> TestQ_vec(RobotAxis * SampleNum * RobotAxis * SampleNum);
-auto TestQ = TestQ_vec.data();
+
 
 
 void jointdynamics::RLS(const double *positionL, const double *sensorL, double *estParas,double *Coef,double *StatisError)
@@ -1209,7 +1208,7 @@ void jointdynamics::RLS(const double *positionL, const double *sensorL, double *
 			{
 				Y1[m][n] = 0;
 				if (n == 2 * m)
-                    Y1[m][n] = 1*sign(dq[m]);
+                    Y1[m][n] = 0*sign(dq[m]);
 				if (n == 2 * m + 1)
 					Y1[m][n] = dq[m];
 			}
@@ -1262,12 +1261,14 @@ void jointdynamics::RLS(const double *positionL, const double *sensorL, double *
    // 请对 U 的对角线元素做处理
     s_householder_utp(RobotAxis * SampleNum, JointGroupDim, regressorVector, U, tau, p, rank, 1e-10);
 std::cout<<"iiiiii"<<std::endl;
+std::vector<double> TestQ_vec(RobotAxis * SampleNum * JointGroupDim);
+auto TestQ = TestQ_vec.data();
 
 std::cout<<"iiiiii"<<std::endl;
     static std::vector<double> TestR_vec(RobotAxis * SampleNum * JointGroupDim);
     static auto TestR = TestR_vec.data();
 std::cout<<"iiiiii"<<std::endl;
-    s_householder_ut2q(RobotAxis * SampleNum, JointGroupDim, U, tau, TestQ);
+    s_householder_ut2qmn(RobotAxis * SampleNum, JointGroupDim, U, tau, TestQ);
     s_householder_ut2r(RobotAxis * SampleNum, JointGroupDim, U, tau, TestR);
     s_permutate_inv(JointGroupDim, RobotAxis * SampleNum, p, TestR, T(JointGroupDim));
 
@@ -1286,7 +1287,7 @@ std::cout<<"iiiiii"<<std::endl;
     static auto R = R_vec.data();
     for (int i = 0;i < RobotAxis * SampleNum;i++)
 		for (int j = 0;j < JointReduceDim;j++)
-            Q[i*JointReduceDim + j] = TestQ[i * RobotAxis * SampleNum + j];
+            Q[i*JointReduceDim + j] = TestQ[i * JointGroupDim + j];
 
 	for (int i = 0;i < JointReduceDim;i++)
 		for (int j = 0;j < JointGroupDim;j++)
@@ -1748,7 +1749,7 @@ void jointdynamics::LoadRLS(const double *positionL, const double *sensorL, doub
 	double ddq[RobotAxis];
 	double ts[RobotAxis];
 
-    double intDT = 8*DT;
+    double intDT = 1*DT;
 	int length = 6;
 	std::vector<double> regressorMatrix_vec(3 * SampleNum * LoadTotalParas);
 	double* regressorVector = regressorMatrix_vec.data();
@@ -1810,9 +1811,9 @@ void jointdynamics::LoadRLS(const double *positionL, const double *sensorL, doub
 				Y[m][n] = LoadVec[40 * m + n];
 
 		double Y1[3][6] = { 0 };
-        Y1[0][0] = 1 * sign(dq[2]); Y1[0][1] = dq[2];
-        Y1[1][2] = 1 * sign(dq[4]); Y1[1][3] = dq[4];
-        Y1[2][4] = 1 * sign(dq[5]); Y1[2][5] = dq[5];
+        Y1[0][0] = 0 * sign(dq[2]); Y1[0][1] = dq[2];
+        Y1[1][2] = 0 * sign(dq[4]); Y1[1][3] = dq[4];
+        Y1[2][4] = 0 * sign(dq[5]); Y1[2][5] = dq[5];
 
 
 		for (int m = 0; m < 3; m++)
@@ -1867,16 +1868,22 @@ void jointdynamics::LoadRLS(const double *positionL, const double *sensorL, doub
    // 请对 U 的对角线元素做处理
 	s_householder_utp(3 * SampleNum, LoadTotalParas, regressorVector, U, tau, p, rank, 1e-10);
 
-	std::vector<double> TestQ_vec(3 * SampleNum * 3 * SampleNum);
-	auto TestQ = TestQ_vec.data();
 	
 	std::vector<double> TestR_vec(3 * SampleNum * LoadTotalParas);
 	auto TestR = TestR_vec.data();
+	std::vector<double> TestQ_vec(3 * SampleNum * LoadTotalParas);
+	auto TestQ = TestQ_vec.data();
+	std::vector<double> Q_vec(3 * SampleNum * LoadReduceParas);
+	auto Q = Q_vec.data();
+	std::vector<double> R_vec(LoadReduceParas * LoadTotalParas);
+	auto R = R_vec.data();
+	//s_householder_ut2q(3 * SampleNum, LoadTotalParas, U, tau, TestQ);
+	s_householder_ut2qmn(3 * SampleNum, LoadTotalParas, U, tau, TestQ);
 	
-	s_householder_ut2q(3 * SampleNum, LoadTotalParas, U, tau, TestQ);
 	s_householder_ut2r(3 * SampleNum, LoadTotalParas, U, tau, TestR);
 	s_permutate_inv(LoadTotalParas, 3 * SampleNum, p, TestR, T(LoadTotalParas));
 
+	
 	//Test QR
 	//s_permutate(TotalParas, 3 * SampleNum, p, TestR, T(TotalParas));
 	//s_mm(3 * SampleNum, TotalParas, 3 * SampleNum, TestQ, TestR, UU);
@@ -1886,13 +1893,9 @@ void jointdynamics::LoadRLS(const double *positionL, const double *sensorL, doub
 		//dU[i]= regressorVector[i]-UU[i];
 
 
-	std::vector<double> Q_vec(3 * SampleNum * LoadReduceParas);
-	auto Q = Q_vec.data();
-	std::vector<double> R_vec(LoadReduceParas * LoadTotalParas);
-	auto R = R_vec.data();
-	for (int i = 0;i < 3 * SampleNum;i++)
-		for (int j = 0;j < LoadReduceParas;j++)
-			Q[i*LoadReduceParas + j] = TestQ[i* 3 * SampleNum + j];
+
+
+	
 
 	for (int i = 0;i < LoadReduceParas;i++)
 		for (int j = 0;j < LoadTotalParas;j++)
@@ -1900,7 +1903,12 @@ void jointdynamics::LoadRLS(const double *positionL, const double *sensorL, doub
 			R[i*LoadTotalParas + j] = TestR[i * LoadTotalParas + j];
 			Coef[i*LoadTotalParas + j] = TestR[i * LoadTotalParas + j];
 		}
-	
+	for (int i = 0;i < 3 * SampleNum;i++)
+		for (int j = 0;j < LoadReduceParas;j++)
+			Q[i*LoadReduceParas + j] = TestQ[i * LoadTotalParas + j];
+
+
+
 	//s_mm(3 * SampleNum, TotalParas, ReduceParas, Q, R, UU);
 	//for (int i = 0;i < 3 * SampleNum*TotalParas;i++)
 		//dU[i]= regressorVector[i]-UU[i];
