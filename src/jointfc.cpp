@@ -60,38 +60,6 @@ auto JointDyna::prepairNrt(const std::map<std::string, std::string> &params, Pla
 		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 
 
-	int nn = 12; // n代表txt文档中数据的列数
-
-
-	for (int j = 0; j < nn; j++)
-	{
-		POSRLS[j].clear();
-	}
-	string filePath = "C:/Users/gk/Desktop/build_kaanh_gk/test1.txt";
-
-	ifstream oplog;
-	oplog.open(filePath);
-	if (!oplog)
-	{
-		cout << "fail to open the file" << endl;
-		throw std::runtime_error("fail to open the file");
-		//return -1;//或者抛出异常。
-	}
-	while (!oplog.eof())
-	{
-		for (int j = 0; j < nn; j++)
-		{
-			double data;
-			oplog >> data;
-			POSRLS[j].push_back(data);
-		}
-	}
-	oplog.close();
-	oplog.clear();
-	for (int j = 0; j < nn; j++)
-	{
-		POSRLS[j].pop_back();
-	}
 
 }
 auto JointDyna::executeRT(PlanTarget &target)->int
@@ -176,11 +144,11 @@ auto JointDyna::executeRT(PlanTarget &target)->int
 		//AngleList[RobotAxis * (target.count - 1) + i] = controller->motionAtAbs(i).actualPos();
 		//TorqueList[RobotAxis * (target.count - 1) + i] = controller->motionAtAbs(i).actualCur();
 
-		AngleList[6 * (target.count - 1) + i] = POSRLS[i][target.count - 1];
-		TorqueList[6 * (target.count - 1) + i] = POSRLS[i + 6][target.count - 1] / f2c_index[i];
+        //AngleList[6 * (target.count - 1) + i] = POSRLS[i][target.count - 1];
+        //TorqueList[6 * (target.count - 1) + i] = POSRLS[i + 6][target.count - 1] / f2c_index[i];
 
-		//AngleList[6 * (target.count - 1) + i] = controller->motionAtAbs(i).actualPos();
-		//TorqueList[6 * (target.count - 1) + i] = controller->motionAtAbs(i).actualCur() /f2c_index[i];
+        AngleList[6 * (target.count - 1) + i] = controller->motionAtAbs(i).actualPos();
+        TorqueList[6 * (target.count - 1) + i] = controller->motionAtAbs(i).actualCur() /f2c_index[i];
 	}
 
 
