@@ -2197,13 +2197,14 @@ namespace kaanh
 	{
 		bool movejp_is_running = false;
 		int vel_percent;
-		std::array<int, 6> is_increase;
+		std::vector<int> is_increase;
 	};
 	struct MoveJP::Imp
 	{
 		MoveJPStruct s1_rt, s2_nrt;
 		double vel, acc, dec;
-		double p_now[6], v_now[6], a_now[6], p_start[6];
+		std::vector<double> p_now, v_now, a_now, target_pos, max_vel;
+		std::vector<int> increase_status;
 		int increase_count;
 	};
 	std::atomic_bool is_changing = false;
@@ -2215,6 +2216,13 @@ namespace kaanh
 		std::string ret = "ok";
 		target.ret = ret;
 
+		imp_->p_now.resize(c->motionPool().size(), 0.0);
+		imp_->v_now.resize(c->motionPool().size(), 0.0);
+		imp_->a_now.resize(c->motionPool().size(), 0.0);
+		imp_->target_pos.resize(c->motionPool().size(), 0.0);
+		imp_->max_vel.resize(c->motionPool().size(), 0.0);
+		imp_->increase_status.resize(c->motionPool().size(), 0);
+
 		for (auto &p : params)
 		{
 			if (p.first == "start")
@@ -2222,11 +2230,13 @@ namespace kaanh
 				if (imp_->s1_rt.movejp_is_running)throw std::runtime_error("auto mode already started");
 
 				imp_->s2_nrt.movejp_is_running = true;
-				std::fill_n(imp_->s2_nrt.is_increase.data(), 6, 0);
+				imp_->s2_nrt.is_increase.clear();
+				imp_->s2_nrt.is_increase.resize(c->motionPool().size(), 0);
 				imp_->s2_nrt.vel_percent = 10;
 
 				imp_->s1_rt.movejp_is_running = true;
-				std::fill_n(imp_->s1_rt.is_increase.data(), 6, 0);
+				imp_->s1_rt.is_increase.clear();
+				imp_->s1_rt.is_increase.resize(c->motionPool().size(), 0);
 				imp_->s1_rt.vel_percent = 10;
 
 				imp_->increase_count = std::stoi(params.at("increase_count"));
@@ -2243,7 +2253,7 @@ namespace kaanh
 				if (!imp_->s1_rt.movejp_is_running)throw std::runtime_error("manual mode not started, when stop");
 
 				imp_->s2_nrt.movejp_is_running = false;
-                std::fill_n(imp_->s2_nrt.is_increase.data(), 6, 0);
+                imp_->s2_nrt.is_increase.assign(imp_->s2_nrt.is_increase.size(), 0);
 				is_changing = true;
 				while (is_changing.load())std::this_thread::sleep_for(std::chrono::milliseconds(1));
 				//target.option |= WAIT_FOR_COLLECTION;
@@ -2256,13 +2266,10 @@ namespace kaanh
 				auto velocity = std::stoi(params.at("vel_percent"));
 				velocity = std::max(std::min(100, velocity), -100);
 				imp_->s2_nrt.vel_percent = velocity;
-				imp_->s2_nrt.is_increase[0] = std::max(std::min(1, std::stoi(params.at("j0"))), -1) * imp_->increase_count;
-				imp_->s2_nrt.is_increase[1] = std::max(std::min(1, std::stoi(params.at("j1"))), -1) * imp_->increase_count;
-				imp_->s2_nrt.is_increase[2] = std::max(std::min(1, std::stoi(params.at("j2"))), -1) * imp_->increase_count;
-				imp_->s2_nrt.is_increase[3] = std::max(std::min(1, std::stoi(params.at("j3"))), -1) * imp_->increase_count;
-				imp_->s2_nrt.is_increase[4] = std::max(std::min(1, std::stoi(params.at("j4"))), -1) * imp_->increase_count;
-				imp_->s2_nrt.is_increase[5] = std::max(std::min(1, std::stoi(params.at("j5"))), -1) * imp_->increase_count;
 
+				imp_->s2_nrt.is_increase.assign(imp_->s2_nrt.is_increase.size(), 0);
+				imp_->s2_nrt.is_increase[std::stoi(params.at("motion_id"))] = std::max(std::min(1, std::stoi(params.at("direction"))), -1) * imp_->increase_count;
+				
 				imp_->s2_nrt.movejp_is_running = true;	
 
 				target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION | NOT_PRINT_CMD_INFO | NOT_LOG_CMD_INFO;
@@ -2284,7 +2291,7 @@ namespace kaanh
 		// get current pe //
 		if (target.count == 1)
 		{
-			for (Size i = 0; i < 6; ++i)
+			for (Size i = 0; i < imp_->p_now.size(); ++i)
 			{
                 /*
 				imp_->p_start[i] = target.model->motionPool().at(i).mp();
@@ -2292,41 +2299,37 @@ namespace kaanh
 				imp_->v_now[i] = target.model->motionPool().at(i).mv();
 				imp_->a_now[i] = target.model->motionPool().at(i).ma();
                 */
-                imp_->p_start[i] = controller->motionAtAbs(i).actualPos();
+                imp_->target_pos[i] = controller->motionAtAbs(i).actualPos();
                 imp_->p_now[i] = controller->motionAtAbs(i).actualPos();
                 imp_->v_now[i] = controller->motionAtAbs(i).actualVel();
                 imp_->a_now[i] = controller->motionAtAbs(i).actualCur();
 			}
 		}
-		for (int i = 3; i < 6; ++i) if (imp_->p_now[i] > aris::PI) imp_->p_now[i] -= 2 * PI;
-
 		// init status and calculate target pos and max vel //
-		static int increase_status[6];
-        static double target_pos[6], max_vel[6];
+		
 		if (is_changing)
 		{
 			is_changing.store(false);
 			imp_->s1_rt = imp_->s2_nrt;
-			for (int i = 0; i < 6; i++)
+			for (int i = 0; i < imp_->s1_rt.is_increase.size(); i++)
 			{
-				increase_status[i] = imp_->s1_rt.is_increase[i];
+				imp_->increase_status[i] = imp_->s1_rt.is_increase[i];
 			}	
 		}
-		for (int i = 0; i < 6; i++)
+		for (int i = 0; i < imp_->s1_rt.is_increase.size(); i++)
 		{
-			max_vel[i] = imp_->vel*1.0*imp_->s1_rt.vel_percent / 100.0;
-			target_pos[i] = imp_->p_start[i] + aris::dynamic::s_sgn(increase_status[i])*max_vel[i] * 1e-3;
-			increase_status[i] -= aris::dynamic::s_sgn(increase_status[i]);
+			imp_->max_vel[i] = imp_->vel*1.0*imp_->s1_rt.vel_percent / 100.0;
+			imp_->target_pos[i] += aris::dynamic::s_sgn(imp_->increase_status[i])*imp_->max_vel[i] * 1e-3;
+			imp_->increase_status[i] -= aris::dynamic::s_sgn(imp_->increase_status[i]);
 		}
-		std::copy_n(target_pos, 6, imp_->p_start);
 		// 梯形轨迹规划 //
 		static double p_next, v_next, a_next;
-		for(int i=0; i<6; i++)
+		for(int i=0; i< imp_->p_now.size(); i++)
 		{
 			aris::Size t;
 			aris::plan::moveAbsolute2(imp_->p_now[i], imp_->v_now[i], imp_->a_now[i]
-                , target_pos[i], 0.0, 0.0
-				, max_vel[i], imp_->acc, imp_->dec
+                , imp_->target_pos[i], 0.0, 0.0
+				, imp_->max_vel[i], imp_->acc, imp_->dec
 				, 1e-3, 1e-10, p_next, v_next, a_next, t);
 
             target.model->motionPool().at(i).setMp(p_next);
@@ -2343,22 +2346,22 @@ namespace kaanh
 		auto &cout = controller->mout();
         if (target.count % 200 == 0)
 		{
-			for (int i = 0; i < 6; i++)
+			for (int i = 0; i < imp_->p_now.size(); i++)
 			{
-				cout << increase_status[i] << "  ";
+				cout << imp_->increase_status[i] << "  ";
 			}
 			cout << std::endl;
-			for (int i = 0; i < 6; i++)
+			for (int i = 0; i < imp_->p_now.size(); i++)
 			{
-				cout << target_pos[i] << "  ";
+				cout << imp_->target_pos[i] << "  ";
 			}
 			cout << std::endl;
-			for (int i = 0; i < 6; i++)
+			for (int i = 0; i < imp_->p_now.size(); i++)
 			{
 				cout << imp_->p_now[i] << "  ";
 			}
 			cout << std::endl;
-			for (int i = 0; i < 6; i++)
+			for (int i = 0; i < imp_->p_now.size(); i++)
 			{
 				cout << imp_->v_now[i] << "  ";
 			}
@@ -2368,9 +2371,9 @@ namespace kaanh
 
 		// log //
 		auto &lout = controller->lout();
-		for (int i = 0; i < 6; i++)
+		for (int i = 0; i < imp_->p_now.size(); i++)
 		{
-            lout << target_pos[i] << " ";
+            lout << imp_->target_pos[i] << " ";
             lout << imp_->v_now[i] << " ";
             lout << imp_->a_now[i] << " ";
             lout << controller->motionAtAbs(i).actualPos() << " ";
@@ -2399,12 +2402,8 @@ namespace kaanh
 			"			<Param name=\"stop\"/>"
 			"			<GroupParam>"
 			"				<Param name=\"vel_percent\" default=\"10\"/>"
-			"				<Param name=\"j0\" default=\"0\"/>"
-			"				<Param name=\"j1\" default=\"0\"/>"
-			"				<Param name=\"j2\" default=\"0\"/>"
-			"				<Param name=\"j3\" default=\"0\"/>"
-			"				<Param name=\"j4\" default=\"0\"/>"
-			"				<Param name=\"j5\" default=\"0\"/>"
+			"				<Param name=\"motion_id\" default=\"0\" abbreviation=\"m\"/>"
+			"				<Param name=\"direction\" default=\"1\"/>"
 			"			</GroupParam>"
 			"		</UniqueParam>"
 			"	</GroupParam>"

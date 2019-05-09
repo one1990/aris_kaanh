@@ -46,7 +46,11 @@
 			<Id name="id_43"  value="id_43"/>
 			<Id name="id_44"  value="id_44"/>
 			<Id name="id_45"  value="id_45"/>
+			<Id name="id_46"  value="id_46"/>
+			<Id name="id_47"  value="id_47"/>
 		</UiIdPoolObject>
+		<View3DInterfacePoolObject show="true">
+		</View3DInterfacePoolObject>
 		<CmdInterfacePoolObject>
 			<Panel text="My CMD|CMD" id="id_1">
 				<Panel text="moveJR|CMD" id="id_2">
@@ -73,29 +77,29 @@
 							</Panel>
 							<Panel text="movePoint|CMD" id="id_22">
 								<Input id="id_8" default="0" parameter="cor"/>
-								<Input id="id_6" default="0" parameter="vel_percent"/>
-								<Button id="id_10" text="x-" repeat="0" rate="50" cmd="movePoint --x=-1 --cor=${id_8} --vel_percent=${id_6}" return_attached=""/>
-								<Button id="id_11" text="x+" repeat="0" rate="50" cmd="movePoint --x=1 --cor=${id_8} --vel_percent=${id_6}" return_attached=""/>
+								<Slider id="id_6" default="10" max="100" min="0" step="1" parameter="vel_percent"/>
+								<Button id="id_10" text="x-" repeat="0" rate="50" cmd="movePoint --x=-1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
+								<Button id="id_11" text="x+" repeat="0" rate="50" cmd="movePoint --x=1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
 							</Panel>
 							<Panel text="movePoint|CMD" id="id_22">
-								<Button id="id_12" text="y-" repeat="0" rate="50" cmd="movePoint --y=-1 --cor=${id_8} --vel_percent=${id_6}" return_attached=""/>
-								<Button id="id_13" text="y+" repeat="0" rate="50" cmd="movePoint --y=1 --cor=${id_8} --vel_percent=${id_6}" return_attached=""/>
+								<Button id="id_12" text="y-" repeat="0" rate="50" cmd="movePoint --y=-1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
+								<Button id="id_13" text="y+" repeat="0" rate="50" cmd="movePoint --y=1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
 							</Panel>
 							<Panel text="movePoint|CMD" id="id_22">
-								<Button id="id_14" text="z-" repeat="0" rate="50" cmd="movePoint --z=-1 --cor=${id_8} --vel_percent=${id_6}" return_attached=""/>								
-								<Button id="id_15" text="z+" repeat="0" rate="50" cmd="movePoint --z=1 --cor=${id_8} --vel_percent=${id_6}" return_attached=""/>
+								<Button id="id_14" text="z-" repeat="0" rate="50" cmd="movePoint --z=-1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>								
+								<Button id="id_15" text="z+" repeat="0" rate="50" cmd="movePoint --z=1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
 							</Panel>
 							<Panel text="movePoint|CMD" id="id_22">
-								<Button id="id_16" text="a-" repeat="0" rate="50" cmd="movePoint --a=-1 --cor=${id_8} --vel_percent=${id_6}" return_attached=""/>								
-								<Button id="id_17" text="a+" repeat="0" rate="50" cmd="movePoint --a=1 --cor=${id_8} --vel_percent=${id_6}" return_attached=""/>
+								<Button id="id_16" text="a-" repeat="0" rate="50" cmd="movePoint --a=-1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>								
+								<Button id="id_17" text="a+" repeat="0" rate="50" cmd="movePoint --a=1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
 							</Panel>
 							<Panel text="movePoint|CMD" id="id_22">
-								<Button id="id_18" text="b-" repeat="0" rate="50" cmd="movePoint --b=-1 --cor=${id_8} --vel_percent=${id_6}" return_attached=""/>								
-								<Button id="id_19" text="b+" repeat="0" rate="50" cmd="movePoint --b=1 --cor=${id_8} --vel_percent=${id_6}" return_attached=""/>
+								<Button id="id_18" text="b-" repeat="0" rate="50" cmd="movePoint --b=-1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>								
+								<Button id="id_19" text="b+" repeat="0" rate="50" cmd="movePoint --b=1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
 							</Panel>
 							<Panel text="movePoint|CMD" id="id_22">
-								<Button id="id_20" text="c-" repeat="0" rate="50" cmd="movePoint --c=-1 --cor=${id_8} --vel_percent=${id_6}" return_attached=""/>
-								<Button id="id_21" text="c+" repeat="0" rate="50" cmd="movePoint --c=1 --cor=${id_8} --vel_percent=${id_6}" return_attached=""/>
+								<Button id="id_20" text="c-" repeat="0" rate="50" cmd="movePoint --c=-1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
+								<Button id="id_21" text="c+" repeat="0" rate="50" cmd="movePoint --c=1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
 							</Panel>
 						</Li>
 						<Li text="tab_moveJP">
@@ -106,29 +110,29 @@
 								<Button id="id_30" text="stop"  cmd="moveJP --stop" return_attached=""/>
 							</Panel>
 							<Panel text="moveJP|CMD" id="id_7">
-								<Input id="id_9" default="0" parameter="vel_percent"/>
-								<Button id="id_31" text="j0-" repeat="0" rate="50" cmd="moveJP --j0=-1 --vel_percent=${id_9}" return_attached=""/>
-								<Button id="id_32" text="j0+" repeat="0" rate="50" cmd="moveJP --j0=1 --vel_percent=${id_9}" return_attached=""/>
+								<Slider id="id_9" default="10" max="100" min="0" step="1" parameter="vel_percent"/>
+								<Button id="id_31" text="j0-" repeat="0" rate="50" cmd="moveJP -m=0 --direction=-1 --vel_percent=$Slider{id_9}" return_attached=""/>
+								<Button id="id_32" text="j0+" repeat="0" rate="50" cmd="moveJP -m=0 --direction=1 --vel_percent=$Slider{id_9}" return_attached=""/>
 							</Panel>
 							<Panel text="moveJP|CMD" id="id_7">
-								<Button id="id_33" text="j1-" repeat="0" rate="50" cmd="moveJP --j1=-1 --vel_percent=${id_9}" return_attached=""/>
-								<Button id="id_34" text="j1+" repeat="0" rate="50" cmd="moveJP --j1=1 --vel_percent=${id_9}" return_attached=""/>
+								<Button id="id_33" text="j1-" repeat="0" rate="50" cmd="moveJP -m=1 --direction=-1 --vel_percent=$Slider{id_9}" return_attached=""/>
+								<Button id="id_34" text="j1+" repeat="0" rate="50" cmd="moveJP -m=1 --direction=1 --vel_percent=$Slider{id_9}" return_attached=""/>
 							</Panel>
 							<Panel text="moveJP|CMD" id="id_7">
-								<Button id="id_35" text="j2-" repeat="0" rate="50" cmd="moveJP --j2=-1 --vel_percent=${id_9}" return_attached=""/>
-								<Button id="id_36" text="j2+" repeat="0" rate="50" cmd="moveJP --j2=1 --vel_percent=${id_9}" return_attached=""/>
+								<Button id="id_35" text="j2-" repeat="0" rate="50" cmd="moveJP -m=2 --direction=-1 --vel_percent=$Slider{id_9}" return_attached=""/>
+								<Button id="id_36" text="j2+" repeat="0" rate="50" cmd="moveJP -m=2 --direction=1 --vel_percent=$Slider{id_9}" return_attached=""/>
 							</Panel>
 							<Panel text="moveJP|CMD" id="id_7">
-								<Button id="id_37" text="j3-" repeat="0" rate="50" cmd="moveJP --j3=-1 --vel_percent=${id_9}" return_attached=""/>
-								<Button id="id_38" text="j3+" repeat="0" rate="50" cmd="moveJP --j3=1 --vel_percent=${id_9}" return_attached=""/>
+								<Button id="id_37" text="j3-" repeat="0" rate="50" cmd="moveJP -m=3 --direction=-1 --vel_percent=$Slider{id_9}" return_attached=""/>
+								<Button id="id_38" text="j3+" repeat="0" rate="50" cmd="moveJP -m=3 --direction=1 --vel_percent=$Slider{id_9}" return_attached=""/>
 							</Panel>
 							<Panel text="moveJP|CMD" id="id_7">
-								<Button id="id_39" text="j4-" repeat="0" rate="50" cmd="moveJP --j4=-1 --vel_percent=${id_9}" return_attached=""/>
-								<Button id="id_40" text="j4+" repeat="0" rate="50" cmd="moveJP --j4=1 --vel_percent=${id_9}" return_attached=""/>
+								<Button id="id_39" text="j4-" repeat="0" rate="50" cmd="moveJP -m=4 --direction=-1 --vel_percent=$Slider{id_9}" return_attached=""/>
+								<Button id="id_40" text="j4+" repeat="0" rate="50" cmd="moveJP -m=4 --direction=1 --vel_percent=$Slider{id_9}" return_attached=""/>
 							</Panel>
 							<Panel text="moveJP|CMD" id="id_7">
-								<Button id="id_41" text="j5-" repeat="0" rate="50" cmd="moveJP --j5=-1 --vel_percent=${id_9}" return_attached=""/>
-								<Button id="id_42" text="j5+" repeat="0" rate="50" cmd="moveJP --j5=1 --vel_percent=${id_9}" return_attached=""/>
+								<Button id="id_41" text="j5-" repeat="0" rate="50" cmd="moveJP -m=5 --direction=-1 --vel_percent=$Slider{id_9}" return_attached=""/>
+								<Button id="id_42" text="j5+" repeat="0" rate="50" cmd="moveJP -m=5 --direction=1 --vel_percent=$Slider{id_9}" return_attached=""/>
 							</Panel>
 						</Li>
 					</Tabs>
@@ -139,7 +143,7 @@
 	</InterfaceRoot>
     <EthercatController name="ethercat_controller">
         <SlavePoolObject name="slave_pool">
-            <EthercatMotion phy_id="0" vendor_id="0x000002e1" product_code="0x00000000" revision_num="0x00029001" dc_assign_activate="0x00000300" max_pos="2.96706" min_pos="-2.96706" max_vel="5.4105210000000001" min_vel="-5.4105210000000001" max_acc="26.179939000000001" min_acc="-26.179939000000001" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1689721.292776" pos_offset="0.0029348035212676902" home_pos="0">
+            <EthercatMotion phy_id="0" vendor_id="0x000002e1" product_code="0x00000000" revision_num="0x00029001" dc_assign_activate="0x00000300" max_pos="2.96706" min_pos="-2.96706" max_vel="5.4105210000000001" min_vel="-5.4105210000000001" max_acc="26.179939000000001" min_acc="-26.179939000000001" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1689721.292776" pos_offset="0" home_pos="0">
                 <SyncManagerPoolObject>
                     <SyncManager is_tx="false"/>
                     <SyncManager is_tx="true"/>
@@ -164,7 +168,7 @@
                     </SyncManager>
                 </SyncManagerPoolObject>
             </EthercatMotion>
-            <EthercatMotion phy_id="1" vendor_id="0x000002e1" product_code="0x00000000" revision_num="0x00029001" dc_assign_activate="0x00000300" max_pos="2.2689279999999998" min_pos="-1.4660770000000001" max_vel="4.18879" min_vel="-4.18879" max_acc="26.179939000000001" min_acc="-26.179939000000001" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1689721.292776" pos_offset="-2.5002377717921398" home_pos="0">
+            <EthercatMotion phy_id="1" vendor_id="0x000002e1" product_code="0x00000000" revision_num="0x00029001" dc_assign_activate="0x00000300" max_pos="2.2689279999999998" min_pos="-1.4660770000000001" max_vel="4.18879" min_vel="-4.18879" max_acc="26.179939000000001" min_acc="-26.179939000000001" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1689721.292776" pos_offset="0" home_pos="0">
                 <SyncManagerPoolObject>
                     <SyncManager is_tx="false"/>
                     <SyncManager is_tx="true"/>
@@ -189,7 +193,7 @@
                     </SyncManager>
                 </SyncManagerPoolObject>
             </EthercatMotion>
-            <EthercatMotion phy_id="2" vendor_id="0x000002e1" product_code="0x00000000" revision_num="0x00029001" dc_assign_activate="0x00000300" max_pos="0.87266500000000002" min_pos="-3.2812190000000001" max_vel="5.4105210000000001" min_vel="-5.4105210000000001" max_acc="26.179939000000001" min_acc="-26.179939000000001" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1689721.292776" pos_offset="-0.29238253794408098" home_pos="0">
+            <EthercatMotion phy_id="2" vendor_id="0x000002e1" product_code="0x00000000" revision_num="0x00029001" dc_assign_activate="0x00000300" max_pos="0.87266500000000002" min_pos="-3.2812190000000001" max_vel="5.4105210000000001" min_vel="-5.4105210000000001" max_acc="26.179939000000001" min_acc="-26.179939000000001" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1689721.292776" pos_offset="0" home_pos="0">
                 <SyncManagerPoolObject>
                     <SyncManager is_tx="false"/>
                     <SyncManager is_tx="true"/>
@@ -214,7 +218,7 @@
                     </SyncManager>
                 </SyncManagerPoolObject>
             </EthercatMotion>
-            <EthercatMotion phy_id="3" vendor_id="0x000002e1" product_code="0x00000000" revision_num="0x00029001" dc_assign_activate="0x00000300" max_pos="2.96706" min_pos="-2.96706" max_vel="4.3633230000000003" min_vel="-4.3633230000000003" max_acc="30.543261999999999" min_acc="-30.543261999999999" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1519852.15096" pos_offset="0.058267509733800897" home_pos="0">
+            <EthercatMotion phy_id="3" vendor_id="0x000002e1" product_code="0x00000000" revision_num="0x00029001" dc_assign_activate="0x00000300" max_pos="2.96706" min_pos="-2.96706" max_vel="4.3633230000000003" min_vel="-4.3633230000000003" max_acc="30.543261999999999" min_acc="-30.543261999999999" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1519852.15096" pos_offset="0" home_pos="0">
                 <SyncManagerPoolObject>
                     <SyncManager is_tx="false"/>
                     <SyncManager is_tx="true"/>
@@ -239,7 +243,7 @@
                     </SyncManager>
                 </SyncManagerPoolObject>
             </EthercatMotion>
-            <EthercatMotion phy_id="4" vendor_id="0x000002e1" product_code="0x00000000" revision_num="0x00029001" dc_assign_activate="0x00000300" max_pos="2.0420349999999998" min_pos="-2.0420349999999998" max_vel="5.1487210000000001" min_vel="-5.1487210000000001" max_acc="26.179939000000001" min_acc="-26.179939000000001" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1689721.292776" pos_offset="1.53363576057128" home_pos="0">
+            <EthercatMotion phy_id="4" vendor_id="0x000002e1" product_code="0x00000000" revision_num="0x00029001" dc_assign_activate="0x00000300" max_pos="2.0420349999999998" min_pos="-2.0420349999999998" max_vel="5.1487210000000001" min_vel="-5.1487210000000001" max_acc="26.179939000000001" min_acc="-26.179939000000001" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1689721.292776" pos_offset="0" home_pos="0">
                 <SyncManagerPoolObject>
                     <SyncManager is_tx="false"/>
                     <SyncManager is_tx="true"/>
@@ -264,7 +268,7 @@
                     </SyncManager>
                 </SyncManagerPoolObject>
             </EthercatMotion>
-            <EthercatMotion phy_id="5" vendor_id="0x000002e1" product_code="0x00000000" revision_num="0x00029001" dc_assign_activate="0x00000300" max_pos="6.2831849999999996" min_pos="-6.2831849999999996" max_vel="8.7266460000000006" min_vel="-8.7266460000000006" max_acc="43.633231000000002" min_acc="-43.633231000000002" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1043037.835047" pos_offset="26.3545454214145" home_pos="0">
+            <EthercatMotion phy_id="5" vendor_id="0x000002e1" product_code="0x00000000" revision_num="0x00029001" dc_assign_activate="0x00000300" max_pos="6.2831849999999996" min_pos="-6.2831849999999996" max_vel="8.7266460000000006" min_vel="-8.7266460000000006" max_acc="43.633231000000002" min_acc="-43.633231000000002" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1043037.835047" pos_offset="0" home_pos="0">
                 <SyncManagerPoolObject>
                     <SyncManager is_tx="false"/>
                     <SyncManager is_tx="true"/>
@@ -1581,12 +1585,8 @@
                             <Param name="stop"/>
                             <GroupParam>
                                 <Param name="vel_percent" default="10"/>
-                                <Param name="j0" default="0"/>
-                                <Param name="j1" default="0"/>
-                                <Param name="j2" default="0"/>
-                                <Param name="j3" default="0"/>
-                                <Param name="j4" default="0"/>
-                                <Param name="j5" default="0"/>
+                                <Param name="motion_id" abbreviation="m" default="0"/>
+                                <Param name="direction" default="1"/>
                             </GroupParam>
                         </UniqueParam>
                     </GroupParam>
