@@ -3200,6 +3200,176 @@ namespace kaanh
 			"</Command>");
 	}
 
+	// 配置DH参数 //
+	struct SetDHParam
+	{
+		std::vector<double>dh;
+		double tool_offset;
+	};
+	auto SetDH::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		auto c = target.controller;
+		SetDHParam dhparam;
+		dhparam.dh.clear();
+		dhparam.dh.resize(c->motionPool().size(), 0.0);
+
+		for (auto &p : params)
+		{
+			if (p.first == "dh")
+			{
+				auto mat = target.model->calculator().calculateExpression(p.second);
+				if (mat.size() == 1)
+				{
+					dhparam.dh.assign(dhparam.dh.size(), mat.toDouble());
+				}
+				else if (mat.size() == dhparam.dh.size())
+				{
+					dhparam.dh.assign(mat.begin(), mat.end());
+				}
+				else
+				{
+					throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+				}
+			}
+			else if (p.first == "tool_offset")
+			{
+				dhparam.tool_offset = std::stod(p.second);
+			}
+		}
+
+		aris::dynamic::PumaParam param;
+		param.d1 = dhparam.dh[0];
+		param.a1 = dhparam.dh[1];
+		param.a2 = dhparam.dh[2];
+		param.d3 = dhparam.dh[3];
+		param.a3 = dhparam.dh[4];
+		param.d4 = dhparam.dh[5];
+
+		param.tool0_pe[2] = dhparam.tool_offset;
+		
+		param.iv_vec =
+		{
+			{ 0.00000000000000,   0.00000000000000,   0.00000000000000,   0.00000000000000,   0.00000000000000,   0.00000000000000,   0.59026333537827,   0.00000000000000,   0.00000000000000,   0.00000000000000 },
+			{ 0.00000000000000, -0.02551872200978,   0.00000000000000,   3.05660683326413,   2.85905166943306,   0.00000000000000,   0.00000000000000, -0.00855352993039, -0.09946674483372, -0.00712210734359 },
+			{ 0.00000000000000,   0.00000000000000,   0.00000000000000,   0.02733022277747,   0.00000000000000,   0.37382629693302,   0.00000000000000,   0.00312006493276, -0.00578410451516,   0.00570606128540 },
+			{ 0.00000000000000,   1.06223330086669,   0.00000000000000,   0.00311748242960,   0.00000000000000,   0.24420385558544,   0.24970286555981,   0.00305759215246, -0.66644096559686,   0.00228253380852 },
+			{ 0.00000000000000,   0.05362286897910,   0.00528925153464, -0.00842588023014,   0.00128498153337, -0.00389810210572,   0.00000000000000, -0.00223677867576, -0.03365036368035, -0.00415647085627 },
+			{ 0.00000000000000,   0.00000000000000,   0.00066049870832,   0.00012563800445, -0.00085124094833,   0.04209529937135,   0.04102481443654, -0.00067596644891,   0.00017482449876, -0.00041025776053 },
+		};
+
+		param.mot_frc_vec =
+		{
+			{ 9.34994758321915, 7.80825641041495, 0.00000000000000 },
+			{ 11.64080253106441, 13.26518528472506, 3.55567932576820 },
+			{ 4.77014054273075, 7.85644357492508, 0.34445460269183 },
+			{ 3.63141668516122, 3.35461524886318, 0.14824771620542 },
+			{ 2.58310846982020, 1.41963212641879, 0.04855267273770 },
+			{ 1.78373986219597, 0.31920640440152, 0.03381545544099 },
+		};
+		
+		auto&cs = aris::server::ControlServer::instance();
+		cs.stop();
+		auto model = aris::dynamic::createModelPuma(param);
+		cs.resetModel(model.release());
+
+		auto xmlpath = std::filesystem::absolute(".");
+		const std::string xmlfile = "rokae.xml";
+		xmlpath = xmlpath / xmlfile;
+		cs.saveXmlFile(xmlpath.string().c_str());
+		cs.start();
+
+		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
+
+	}
+	SetDH::SetDH(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"setDH\">"
+			"	<GroupParam>"
+			"		<Param name=\"dh\" default=\"{0.3295, 0.04, 0.275, 0.0, 0.025, 0.28}\"/>"
+			"		<Param name=\"tool_offset\" default=\"0.078\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
+
+	// 配置关节offset //
+	struct SetPOffsetParam
+	{
+		std::vector<double> pos_offset;
+		std::vector<bool> joint_active_vec;
+	};
+	auto SetPOffset::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		//std::unique_ptr<aris::control::Controller> controller(kaanh::createControllerRokaeXB4());
+		auto controller = target.controller;
+
+		SetPOffsetParam param;
+		param.pos_offset.clear();
+		param.pos_offset.resize(target.controller->motionPool().size(), 0.0);
+		param.joint_active_vec.clear();
+
+		for (auto &p : params)
+		{
+			if (p.first == "all")
+			{
+				param.joint_active_vec.resize(target.controller->motionPool().size(), true);
+				auto mat = target.model->calculator().calculateExpression(params.at("all_offset"));
+				if (mat.size() == param.pos_offset.size())
+				{
+					param.pos_offset.assign(mat.begin(), mat.end());
+				}
+				else
+				{
+					throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+				}
+			}
+			else if (p.first == "motion_id")
+			{
+				param.joint_active_vec.resize(target.controller->motionPool().size(), false);
+				param.joint_active_vec.at(std::stoi(p.second)) = true;
+
+				param.pos_offset.at(std::stoi(p.second)) = std::stod(params.at("m_offset"));
+			}
+		}
+		// 设置驱动offset //
+		for (int i = 0; i < param.pos_offset.size(); i++)
+		{
+			if (param.joint_active_vec[i])
+			{
+				dynamic_cast<aris::control::Motion&>(controller->slavePool()[i]).setPosOffset(param.pos_offset[i]);
+			}
+		}
+	
+		auto&cs = aris::server::ControlServer::instance();
+		cs.stop();
+		auto xmlpath = std::filesystem::absolute(".");
+		const std::string xmlfile = "rokae.xml";
+		xmlpath = xmlpath / xmlfile;
+		cs.saveXmlFile(xmlpath.string().c_str());
+		cs.start();
+
+		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
+
+	}
+	SetPOffset::SetPOffset(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"setPOffset\">"
+			"	<GroupParam>"
+			"		<UniqueParam>"
+			"			<GroupParam name=\"start_group\">"
+			"				<Param name=\"all\"/>"
+			"				<Param name=\"all_offset\" default=\"{0.00293480352126769, -2.50023777179214, -0.292382537944081, 0.0582675097338009, 1.53363576057128, 26.3545454214145}\"/>"
+			"			</GroupParam>"
+			"			<GroupParam>"
+			"				<Param name=\"motion_id\" abbreviation=\"m\" default=\"0\"/>"
+			"				<Param name=\"m_offset\" default=\"0.0\"/>"
+			"			</GroupParam>"
+			"		</UniqueParam>"
+			"	</GroupParam>"
+			"</Command>");
+	}
+
 	auto createPlanRootRokaeXB4()->std::unique_ptr<aris::plan::PlanRoot>
 	{
 		std::unique_ptr<aris::plan::PlanRoot> plan_root(aris::robot::createPlanRootRokaeXB4());
@@ -3233,7 +3403,8 @@ namespace kaanh
 		plan_root->planPool().add<kaanh::MoveEA>();
 		plan_root->planPool().add<kaanh::MoveEAP>();
 		plan_root->planPool().add<kaanh::FSSignal>();
-
+		plan_root->planPool().add<kaanh::SetDH>();
+		plan_root->planPool().add<kaanh::SetPOffset>();
 
 		plan_root->planPool().add<MoveXYZ>();
 		plan_root->planPool().add<MoveDistal>();

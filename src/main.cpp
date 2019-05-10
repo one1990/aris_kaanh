@@ -29,7 +29,8 @@ int main(int argc, char *argv[])
 	//生成rokae.xml文档
     /*
 	cs.resetController(kaanh::createControllerRokaeXB4().release());
-    cs.resetModel(aris::robot::createModelRokaeXB4().release());
+    //cs.resetModel(aris::robot::createModelRokaeXB4().release());
+	cs.resetModel(kaanh::createModelRokae().release());
 	cs.resetPlanRoot(kaanh::createPlanRootRokaeXB4().release());
 	cs.resetSensorRoot(new aris::sensor::SensorRoot);
 
@@ -50,9 +51,9 @@ int main(int argc, char *argv[])
     */
 
     cs.loadXmlFile(xmlpath.string().c_str());
-
+	
 	cs.start();
-
+	
 	// interaction //
 	std::list<std::tuple<aris::core::Msg, std::shared_ptr<aris::plan::PlanTarget>>> result_list;
 	std::mutex result_mutex;

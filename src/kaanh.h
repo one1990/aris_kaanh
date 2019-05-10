@@ -32,6 +32,7 @@ namespace kaanh
 	auto createModelRokaeXB4(const double *robot_pm = nullptr)->std::unique_ptr<aris::dynamic::Model>;
 	auto createControllerRokaeXB4()->std::unique_ptr<aris::control::Controller>;
 	auto createPlanRootRokaeXB4()->std::unique_ptr<aris::plan::PlanRoot>;
+	auto createModelRokae()->std::unique_ptr<aris::dynamic::Model>;
 
 	//auto registerPlan()->void;
 
@@ -244,6 +245,22 @@ namespace kaanh
 
 		explicit FSSignal(const std::string &name = "FSSignal_plan");
 		ARIS_REGISTER_TYPE(FSSignal);
+	};
+
+	class SetDH : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		explicit SetDH(const std::string &name = "SetDH_plan");
+		ARIS_REGISTER_TYPE(SetDH);
+	};
+
+	class SetPOffset : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		explicit SetPOffset(const std::string &name = "SetPOffset_plan");
+		ARIS_REGISTER_TYPE(SetPOffset);
 	};
 
 }
