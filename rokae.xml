@@ -1629,6 +1629,30 @@
                     </GroupParam>
                 </Command>
             </FSSignal>
+            <SetDH name="SetDH_plan">
+                <Command name="setDH">
+                    <GroupParam>
+                        <Param name="dh" default="{0.3295, 0.04, 0.275, 0.0, 0.025, 0.28}"/>
+                        <Param name="tool_offset" default="0.078"/>
+                    </GroupParam>
+                </Command>
+            </SetDH>
+            <SetPOffset name="SetPOffset_plan">
+                <Command name="setPOffset">
+                    <GroupParam>
+                        <UniqueParam>
+                            <GroupParam name="start_group">
+                                <Param name="all"/>
+                                <Param name="all_offset" default="{0.00293480352126769, -2.50023777179214, -0.292382537944081, 0.0582675097338009, 1.53363576057128, 26.3545454214145}"/>
+                            </GroupParam>
+                            <GroupParam>
+                                <Param name="motion_id" abbreviation="m" default="0"/>
+                                <Param name="m_offset" default="0.0"/>
+                            </GroupParam>
+                        </UniqueParam>
+                    </GroupParam>
+                </Command>
+            </SetPOffset>
             <MoveXYZ name="MoveXYZ">
                 <Command name="mvXYZ">
                     <GroupParam>
