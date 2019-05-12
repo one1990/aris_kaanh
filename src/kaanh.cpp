@@ -3268,7 +3268,6 @@ namespace kaanh
 		};
 		
 		auto&cs = aris::server::ControlServer::instance();
-		cs.stop();
 		auto model = aris::dynamic::createModelPuma(param);
 		cs.resetModel(model.release());
 
@@ -3276,7 +3275,6 @@ namespace kaanh
 		const std::string xmlfile = "rokae.xml";
 		xmlpath = xmlpath / xmlfile;
 		cs.saveXmlFile(xmlpath.string().c_str());
-		cs.start();
 
 		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
 
@@ -3341,12 +3339,11 @@ namespace kaanh
 		}
 	
 		auto&cs = aris::server::ControlServer::instance();
-		cs.stop();
+
 		auto xmlpath = std::filesystem::absolute(".");
 		const std::string xmlfile = "rokae.xml";
 		xmlpath = xmlpath / xmlfile;
 		cs.saveXmlFile(xmlpath.string().c_str());
-		cs.start();
 
 		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
 
