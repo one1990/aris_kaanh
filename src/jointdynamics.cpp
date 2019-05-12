@@ -1142,7 +1142,7 @@ void jointdynamics::RLS(const double *positionL, const double *sensorL, double *
     double ts[RobotAxis];
     //std::array<double, 6> estParas;
 
-    double intDT = DT;
+    double intDT = 8*DT;
     int length = 6;
     std::vector<double> regressorMatrix_vec(RobotAxis * SampleNum * JointGroupDim);
     double* regressorVector = regressorMatrix_vec.data();
@@ -1819,9 +1819,9 @@ void jointdynamics::LoadRLS(const double *positionL, const double *sensorL, doub
 				Y[m][n] = LoadVec[40 * m + n];
 
 		double Y1[3][6] = { 0 };
-        Y1[0][0] = 0 * sign(dq[2]); Y1[0][1] = dq[2];
-        Y1[1][2] = 0 * sign(dq[4]); Y1[1][3] = dq[4];
-        Y1[2][4] = 0 * sign(dq[5]); Y1[2][5] = dq[5];
+        Y1[0][0] = 1 * sign(dq[2]); Y1[0][1] = dq[2];
+        Y1[1][2] = 1 * sign(dq[4]); Y1[1][3] = dq[4];
+        Y1[2][4] = 1 * sign(dq[5]); Y1[2][5] = dq[5];
 
 
 		for (int m = 0; m < 3; m++)
