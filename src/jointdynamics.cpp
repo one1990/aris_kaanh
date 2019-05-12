@@ -1144,14 +1144,14 @@ void jointdynamics::RLS(const double *positionL, const double *sensorL, double *
 
     double intDT = DT;
     int length = 6;
-    static std::vector<double> regressorMatrix_vec(RobotAxis * SampleNum * JointGroupDim);
-    static double* regressorVector = regressorMatrix_vec.data();
+    std::vector<double> regressorMatrix_vec(RobotAxis * SampleNum * JointGroupDim);
+    double* regressorVector = regressorMatrix_vec.data();
 
-    static std::vector<double> regressorMatrixFric_vec(6 * SampleNum * 12);
-    static double* regressorVectorFric = regressorMatrixFric_vec.data();
+    std::vector<double> regressorMatrixFric_vec(6 * SampleNum * 12);
+    double* regressorVectorFric = regressorMatrixFric_vec.data();
 
-    static std::vector<double> regressorForces_vec(RobotAxis * SampleNum);
-    static double* regressorForces = regressorForces_vec.data();
+    std::vector<double> regressorForces_vec(RobotAxis * SampleNum);
+    double* regressorForces = regressorForces_vec.data();
 
     double posCur[RobotAxis];
     double torCur[RobotAxis];
@@ -1208,7 +1208,7 @@ void jointdynamics::RLS(const double *positionL, const double *sensorL, double *
 			{
 				Y1[m][n] = 0;
 				if (n == 2 * m)
-                    Y1[m][n] = 0*sign(dq[m]);
+                    Y1[m][n] = 1*sign(dq[m]);
 				if (n == 2 * m + 1)
 					Y1[m][n] = dq[m];
 			}
@@ -1250,24 +1250,27 @@ void jointdynamics::RLS(const double *positionL, const double *sensorL, double *
     }
 	
 	// 所需的中间变量，请对U的对角线元素做处理
-    static std::vector<double> U_vec(RobotAxis * SampleNum * JointGroupDim);
-    static auto U = U_vec.data();
+    std::vector<double> U_vec(RobotAxis * SampleNum * JointGroupDim);
+    auto U = U_vec.data();
 
-    double tau[RobotAxis * SampleNum];
-    aris::Size p[RobotAxis * SampleNum];
+	std::vector<double> tau_vec(RobotAxis * SampleNum);
+	auto tau = tau_vec.data();
+    
+	std::vector<aris::Size> p_vec(RobotAxis * SampleNum);
+	auto p = p_vec.data();
+    
 	aris::Size rank;
 
 	// 根据 A 求出中间变量，相当于做 QR 分解 //
    // 请对 U 的对角线元素做处理
     s_householder_utp(RobotAxis * SampleNum, JointGroupDim, regressorVector, U, tau, p, rank, 1e-10);
-std::cout<<"iiiiii"<<std::endl;
-std::vector<double> TestQ_vec(RobotAxis * SampleNum * JointGroupDim);
-auto TestQ = TestQ_vec.data();
 
-std::cout<<"iiiiii"<<std::endl;
-    static std::vector<double> TestR_vec(RobotAxis * SampleNum * JointGroupDim);
-    static auto TestR = TestR_vec.data();
-std::cout<<"iiiiii"<<std::endl;
+	std::vector<double> TestQ_vec(RobotAxis * SampleNum * JointGroupDim);
+	auto TestQ = TestQ_vec.data();
+
+    std::vector<double> TestR_vec(RobotAxis * SampleNum * JointGroupDim);
+    auto TestR = TestR_vec.data();
+
     s_householder_ut2qmn(RobotAxis * SampleNum, JointGroupDim, U, tau, TestQ);
     s_householder_ut2r(RobotAxis * SampleNum, JointGroupDim, U, tau, TestR);
     s_permutate_inv(JointGroupDim, RobotAxis * SampleNum, p, TestR, T(JointGroupDim));
@@ -1280,11 +1283,11 @@ std::cout<<"iiiiii"<<std::endl;
 	//for (int i = 0;i < 3 * SampleNum*TotalParas;i++)
 		//dU[i]= regressorVector[i]-UU[i];
 
-std::cout<<"iiiiii"<<std::endl;
-    static std::vector<double> Q_vec(RobotAxis * SampleNum * JointReduceDim);
-    static auto Q = Q_vec.data();
-    static std::vector<double> R_vec(JointReduceDim * JointGroupDim);
-    static auto R = R_vec.data();
+
+    std::vector<double> Q_vec(RobotAxis * SampleNum * JointReduceDim);
+    auto Q = Q_vec.data();
+    std::vector<double> R_vec(JointReduceDim * JointGroupDim);
+    auto R = R_vec.data();
     for (int i = 0;i < RobotAxis * SampleNum;i++)
 		for (int j = 0;j < JointReduceDim;j++)
             Q[i*JointReduceDim + j] = TestQ[i * JointGroupDim + j];
@@ -1300,11 +1303,10 @@ std::cout<<"iiiiii"<<std::endl;
 	//for (int i = 0;i < 3 * SampleNum*TotalParas;i++)
 		//dU[i]= regressorVector[i]-UU[i];
 
-std::cout<<"iiiiii"<<std::endl;
 
 
-    static std::vector<double> QwithFric_vec(RobotAxis * SampleNum * (JointReduceDim + 2*RobotAxis));
-    static auto QwithFric = QwithFric_vec.data();
+    std::vector<double> QwithFric_vec(RobotAxis * SampleNum * (JointReduceDim + 2*RobotAxis));
+    auto QwithFric = QwithFric_vec.data();
     for (int i = 0;i < RobotAxis * SampleNum;i++)
 	{
 		for (int j = 0;j < JointReduceDim;j++)
@@ -1314,20 +1316,26 @@ std::cout<<"iiiiii"<<std::endl;
 	}
 
 	// 求解 A的广义逆pinv 和 x
-    static std::vector<double> pinv_vec(RobotAxis * SampleNum * (JointReduceDim+2*RobotAxis));
+    std::vector<double> pinv_vec(RobotAxis * SampleNum * (JointReduceDim+2*RobotAxis));
 	auto pinv = pinv_vec.data();
 
 	// 所需的中间变量，请对U的对角线元素做处理
-    static std::vector<double> UQ_vec(RobotAxis * SampleNum * (JointReduceDim + 2*RobotAxis));
-    static auto UQ = UQ_vec.data();
-    double tauQ[RobotAxis * SampleNum];
-    aris::Size pQ[RobotAxis * SampleNum];
+    std::vector<double> UQ_vec(RobotAxis * SampleNum * (JointReduceDim + 2*RobotAxis));
+    auto UQ = UQ_vec.data();
+
+	std::vector<double> tauQ_vec(RobotAxis * SampleNum);
+	auto tauQ = tauQ_vec.data();
+
+	std::vector<aris::Size> pQ_vec(RobotAxis * SampleNum);
+	auto pQ = pQ_vec.data();
+
 	aris::Size rankQ;
 
     s_householder_utp(RobotAxis * SampleNum, JointReduceDim + 2*RobotAxis, QwithFric, UQ, tauQ, pQ, rankQ, 1e-10);
 
 	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A) //
-	double tauQ2[6 * SampleNum];
+	std::vector<double> tauQ2_vec(RobotAxis * SampleNum);
+	auto tauQ2 = tauQ2_vec.data();
 
     s_householder_utp2pinv(RobotAxis * SampleNum, JointReduceDim + 2*RobotAxis, rankQ, UQ, tauQ, pQ, pinv, tauQ2, 1e-10);
 	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A)*b //
@@ -1749,7 +1757,7 @@ void jointdynamics::LoadRLS(const double *positionL, const double *sensorL, doub
 	double ddq[RobotAxis];
 	double ts[RobotAxis];
 
-    double intDT = 1*DT;
+    double intDT = 8*DT;
 	int length = 6;
 	std::vector<double> regressorMatrix_vec(3 * SampleNum * LoadTotalParas);
 	double* regressorVector = regressorMatrix_vec.data();
@@ -1860,8 +1868,12 @@ void jointdynamics::LoadRLS(const double *positionL, const double *sensorL, doub
 	std::vector<double> dU_vec(3 * SampleNum * LoadTotalParas);
 	auto dU = dU_vec.data();
 
-	double tau[3 * SampleNum];
-	aris::Size p[3 * SampleNum];
+	std::vector<double> tau_vec(3 * SampleNum);
+	auto tau = tau_vec.data();
+
+	std::vector<aris::Size> p_vec(3 * SampleNum);
+	auto p = p_vec.data();
+
 	aris::Size rank;
 
 	// 根据 A 求出中间变量，相当于做 QR 分解 //
@@ -1934,8 +1946,13 @@ void jointdynamics::LoadRLS(const double *positionL, const double *sensorL, doub
 	// 所需的中间变量，请对U的对角线元素做处理
 	std::vector<double> UQ_vec(3 * SampleNum * (LoadReduceParas + 6));
 	auto UQ = UQ_vec.data();
-	double tauQ[3 * SampleNum];
-	aris::Size pQ[3 * SampleNum];
+
+	std::vector<double> tauQ_vec(3 * SampleNum);
+	auto tauQ = tauQ_vec.data();
+
+	std::vector<aris::Size> pQ_vec(3 * SampleNum);
+	auto pQ = pQ_vec.data();
+
 	aris::Size rankQ;
 
 	s_householder_utp(3 * SampleNum, LoadReduceParas+6, QwithFric, UQ, tauQ, pQ, rankQ, 1e-10);

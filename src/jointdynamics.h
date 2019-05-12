@@ -28,7 +28,7 @@ namespace JointDynamicsInt
 	double CoefParasL0[LoadReduceParas* LoadTotalParas] = { 0 };
     double LoadParas[10] = { 0 };
 
-	double estParasJoint0[JointReduceDim] = { 0 };
+	double estParasJoint0[JointReduceDim+12] = { 0 };
 	double estParasJoint[JointReduceDim] = { 0 };
 	double CoefParasJoint[JointReduceDim* JointGroupDim] = { 0 };
 

@@ -65,7 +65,7 @@ auto JointDyna::prepairNrt(const std::map<std::string, std::string> &params, Pla
 auto JointDyna::executeRT(PlanTarget &target)->int
 {
 	auto &param = std::any_cast<JointDynaParam&>(target.param);
-
+	static int CollectNum = 1;
 	static double begin_pjs[RobotAxis];
 	static double step_pjs[RobotAxis];
 	static double perVar = 0;
@@ -92,26 +92,52 @@ auto JointDyna::executeRT(PlanTarget &target)->int
     double PosLimit[6] = { 1,0.5,0.3,1,1,1 };
     double NegLimit[6] = { -1,-0.5,-0.3,-1,-1,-1 };
     double dTheta = 0.00001;
+	static double pArc[6], vArc[6], aArc[6], vArcMax[6] = { 0.15,0.15,0.15,0.15,0.15,0.15 };
+	static aris::Size t_count[6] = { 0 };
 
-    for (int i = 0;i < 6;i++)
-    {
-        if (flag[i])
-        {
-            if (step_pjs[i] < PosLimit[i])
-                step_pjs[i] = step_pjs[i] + dTheta;
-            else
-                flag[i] = false;
-        }
-        if (flag[i] == false)
-        {
-            if (step_pjs[i] > NegLimit[i])
-                step_pjs[i] = step_pjs[i] - dTheta;
-            else
-                flag[i] = true;
-        }
+	static int CountOffsetPos[6] = { 1,1,1,1,1,1 }, CountOffsetNeg[6] = { 1,1,1,1,1,1 };
 
-            target.model->motionPool().at(i).setMp(step_pjs[i]);
-    }
+
+	for (int i = 0;i < 6;i++)
+	{
+
+		if (flag[i])
+		{
+			if (step_pjs[i] < PosLimit[i])
+			{
+				aris::plan::moveAbsolute(target.count - CountOffsetNeg[i] + 1, 0, PosLimit[i] - begin_pjs[i], vArcMax[i] / 1000, 0.05 / 1000 / 1000, 0.05 / 1000 / 1000, pArc[i], vArc[i], aArc[i], t_count[i]);
+
+				step_pjs[i] = step_pjs[i] + vArc[i];
+			}
+			//std::cout << vArc << "  ";
+			if ((t_count[i] - (target.count - CountOffsetNeg[i] + 1)) < 0.5 && (t_count[i] - (target.count - CountOffsetNeg[i] + 1)) > -0.5)
+			{
+				CountOffsetPos[i] = target.count;
+				flag[i] = false;
+				begin_pjs[i] = target.model->motionPool()[i].mp();
+			}
+
+
+		}
+		if (flag[i] == false)
+		{
+			if (step_pjs[i] > NegLimit[i])
+			{
+				aris::plan::moveAbsolute(target.count - CountOffsetPos[i] + 1, 0, begin_pjs[i] - NegLimit[i], vArcMax[i] / 1000, 0.05 / 1000 / 1000, 0.05 / 1000 / 1000, pArc[i], vArc[i], aArc[i], t_count[i]);
+
+				step_pjs[i] = step_pjs[i] - vArc[i];
+			}
+
+			if ((t_count[i] - (target.count - CountOffsetPos[i] + 1)) < 0.5 && (t_count[i] - (target.count - CountOffsetPos[i] + 1)) > -0.5)
+			{
+				CountOffsetNeg[i] = target.count;
+				flag[i] = true;
+				begin_pjs[i] = target.model->motionPool()[i].mp();
+			}
+
+		}
+			target.model->motionPool().at(i).setMp(step_pjs[i]);
+	}
 
 
 
@@ -139,32 +165,34 @@ auto JointDyna::executeRT(PlanTarget &target)->int
 	auto &lout = controller->lout();
 
 	double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
-	for (int i = 0; i < 6; i++)
+	if (target.count % 8 == 0)
 	{
-		//AngleList[RobotAxis * (target.count - 1) + i] = controller->motionAtAbs(i).actualPos();
-		//TorqueList[RobotAxis * (target.count - 1) + i] = controller->motionAtAbs(i).actualCur();
+		for (int i = 0; i < 6; i++)
+		{
+			//AngleList[RobotAxis * (target.count - 1) + i] = controller->motionAtAbs(i).actualPos();
+			//TorqueList[RobotAxis * (target.count - 1) + i] = controller->motionAtAbs(i).actualCur();
 
-        //AngleList[6 * (target.count - 1) + i] = POSRLS[i][target.count - 1];
-        //TorqueList[6 * (target.count - 1) + i] = POSRLS[i + 6][target.count - 1] / f2c_index[i];
+			//AngleList[6 * (target.count - 1) + i] = POSRLS[i][target.count - 1];
+			//TorqueList[6 * (target.count - 1) + i] = POSRLS[i + 6][target.count - 1];
 
-        AngleList[6 * (target.count - 1) + i] = controller->motionAtAbs(i).actualPos();
-        TorqueList[6 * (target.count - 1) + i] = controller->motionAtAbs(i).actualCur() /f2c_index[i];
+			AngleList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualPos();
+			TorqueList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
+		}
+
+		lout << target.count << ",";
+		lout << AngleList[RobotAxis * (CollectNum - 1) + 0] << ",";lout << AngleList[RobotAxis * (CollectNum - 1) + 1] << ",";
+		lout << AngleList[RobotAxis * (CollectNum - 1) + 2] << ",";lout << AngleList[RobotAxis * (CollectNum - 1) + 3] << ",";
+		lout << AngleList[RobotAxis * (CollectNum - 1) + 4] << ",";lout << AngleList[RobotAxis * (CollectNum - 1) + 5] << ",";
+		lout << TorqueList[RobotAxis * (CollectNum - 1) + 0] << ",";lout << TorqueList[RobotAxis * (CollectNum - 1) + 1] << ",";
+		lout << TorqueList[RobotAxis * (CollectNum - 1) + 2] << ",";lout << TorqueList[RobotAxis * (CollectNum - 1) + 3] << ",";
+		lout << TorqueList[RobotAxis * (CollectNum - 1) + 4] << ",";lout << TorqueList[RobotAxis * (CollectNum - 1) + 5] << ",";
+
+		lout << std::endl;
+		CollectNum = CollectNum + 1;
 	}
 
 
-	
-	lout << target.count << ",";
-	lout << AngleList[RobotAxis * (target.count - 1) + 0] << ",";lout << AngleList[RobotAxis * (target.count - 1) + 1] << ",";
-	lout << AngleList[RobotAxis * (target.count - 1) + 2] << ",";lout << AngleList[RobotAxis * (target.count - 1) + 3] << ",";
-	lout << AngleList[RobotAxis * (target.count - 1) + 4] << ",";lout << AngleList[RobotAxis * (target.count - 1) + 5] << ",";
-	lout << TorqueList[RobotAxis * (target.count - 1) + 0] << ",";lout << TorqueList[RobotAxis * (target.count - 1) + 1] << ",";
-	lout << TorqueList[RobotAxis * (target.count - 1) + 2] << ",";lout << TorqueList[RobotAxis * (target.count - 1) + 3] << ",";
-	lout << TorqueList[RobotAxis * (target.count - 1) + 4] << ",";lout << TorqueList[RobotAxis * (target.count - 1) + 5] << ",";
-
-	lout << std::endl;
-	
-
-	return SampleNum - target.count;
+	return SampleNum - CollectNum;
 }
 
 
@@ -265,7 +293,7 @@ auto LoadDyna::prepairNrt(const std::map<std::string, std::string> &params, Plan
 		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 
-
+	/*
 	int nn = 12; // n代表txt文档中数据的列数
 
 
@@ -299,7 +327,7 @@ auto LoadDyna::prepairNrt(const std::map<std::string, std::string> &params, Plan
 		POSRLS[j].pop_back();
 	}
 
-	/*
+	
 
 	// 所需的中间变量，请对U的对角线元素做处理
 	double TestQR[6] = {1.1,2.1,3.31,4.121,5.81,9.31};
@@ -350,30 +378,59 @@ auto LoadDyna::executeRT(PlanTarget &target)->int
 	}
 
 	static bool flag[6] = {true,true,true,true,true,true};
-    double PosLimit[6] = { 1,1,0.2,1,1,1 };
-    double NegLimit[6] = { -1,-1,-0.2,-1,-1,-1 };
+    double PosLimit[6] = { 1,1,0.2,1,0.5,1 };
+    double NegLimit[6] = { -1,-1,-0.2,-1,-0.5,-1 };
 	double dTheta = 0.0001;
+	static double pArc[6], vArc[6], aArc[6], vArcMax[6] = { 0.15,0.15,0.15,0.15,0.15,0.15 };
+	static aris::Size t_count[6] = { 0 };
+	
+	static int CountOffsetPos[6] = { 1,1,1,1,1,1 }, CountOffsetNeg[6] = { 1,1,1,1,1,1};
 
 	for (int i = 0;i < 6;i++)
 	{
+		
 		if (flag[i])
 		{
 			if (step_pjs[i] < PosLimit[i])
-				step_pjs[i] = step_pjs[i] + dTheta;
-			else
-				flag[i] = false;
+			{
+				aris::plan::moveAbsolute(target.count - CountOffsetNeg[i] + 1, 0, PosLimit[i] - begin_pjs[i], vArcMax[i] / 1000, 0.05 / 1000 / 1000, 0.05 / 1000 / 1000, pArc[i], vArc[i], aArc[i], t_count[i]);
+
+				step_pjs[i] = step_pjs[i] + vArc[i];
+			}
+				//std::cout << vArc << "  ";
+				if ((t_count[i]-(target.count - CountOffsetNeg[i] + 1))<0.5&& (t_count[i] - (target.count - CountOffsetNeg[i] + 1)) > -0.5)
+				{
+					CountOffsetPos[i] = target.count;
+					flag[i] = false;
+					begin_pjs[i] = target.model->motionPool()[i].mp();
+				}
+				
+			
 		}
 		if (flag[i] == false)
 		{
 			if (step_pjs[i] > NegLimit[i])
-				step_pjs[i] = step_pjs[i] - dTheta;
-			else
-				flag[i] = true;
-		}
+			{
+				aris::plan::moveAbsolute(target.count - CountOffsetPos[i] + 1, 0, begin_pjs[i] - NegLimit[i], vArcMax[i] / 1000, 0.05 / 1000 / 1000, 0.05 / 1000 / 1000, pArc[i], vArc[i], aArc[i], t_count[i]);
 
-        if(i==2||i==4||i==5)
+				step_pjs[i] = step_pjs[i] - vArc[i];
+			}
+
+			if ((t_count[i] - (target.count - CountOffsetPos[i] + 1)) < 0.5 && (t_count[i] - (target.count - CountOffsetPos[i] + 1)) > -0.5)
+			{
+				CountOffsetNeg[i] = target.count;
+				flag[i] = true;
+				begin_pjs[i] = target.model->motionPool()[i].mp();
+			}
+			
+		}
+		if(i==2||i==4||i==5)
             target.model->motionPool().at(i).setMp(step_pjs[i]);
 	}
+
+
+
+
 
 
 	if (!target.model->solverPool().at(1).kinPos())return -1;
@@ -389,11 +446,11 @@ auto LoadDyna::executeRT(PlanTarget &target)->int
 	{
 		//for (int i = 0; i < 6; i++)
 		{
-			cout << step_pjs[4] << "***" << "  ";
+			//cout << step_pjs[4] << "***" << "  ";
 			//cout << "vel" << i + 1 << ":" << target.model->motionPool()[i].mv() << "  ";
 			//cout << "cur" << i + 1 << ":" << target.model->motionPool()[i].ma() << "  ";
 		}
-		//   cout << target.count << "  ";
+		  cout << vArc[2]*1000 << "  "<< step_pjs[2]<<" "<<flag[2]<<" "<<t_count[2]<<" "<<target.count - (CountOffsetNeg[2] - 1)<<" ";
 		cout << std::endl;
 	}
 
@@ -401,22 +458,23 @@ auto LoadDyna::executeRT(PlanTarget &target)->int
 
 	double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
 
-    //if(target.count%8==0)
+	
+
+    if(target.count%8==0)
     {
         for (int i = 0; i < 6; i++)
         {
             //AngleList[RobotAxis * (target.count - 1) + i] = controller->motionAtAbs(i).actualPos();
             //TorqueList[RobotAxis * (target.count - 1) + i] = controller->motionAtAbs(i).actualCur();
 
-            AngleList[6 * (target.count - 1) + i] = POSRLS[i][target.count - 1];
-            TorqueList[6 * (target.count - 1) + i] = POSRLS[i + 6][target.count - 1];
+            //AngleList[6 * (target.count - 1) + i] = POSRLS[i][target.count - 1];
+            //TorqueList[6 * (target.count - 1) + i] = POSRLS[i + 6][target.count - 1];
 
-           // AngleList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualPos();
-            //TorqueList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
+            AngleList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualPos();
+            TorqueList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
         }
 	
         lout << target.count << ",";
-		CollectNum = target.count;
         lout << AngleList[RobotAxis * (CollectNum - 1) + 0] << ",";lout << AngleList[RobotAxis * (CollectNum - 1) + 1] << ",";
         lout << AngleList[RobotAxis * (CollectNum - 1) + 2] << ",";lout << AngleList[RobotAxis * (CollectNum - 1) + 3] << ",";
         lout << AngleList[RobotAxis * (CollectNum - 1) + 4] << ",";lout << AngleList[RobotAxis * (CollectNum - 1) + 5] << ",";
@@ -429,7 +487,7 @@ auto LoadDyna::executeRT(PlanTarget &target)->int
     }
 	
 
-    return SampleNum - target.count;
+    return SampleNum - CollectNum;
 }
 
 
