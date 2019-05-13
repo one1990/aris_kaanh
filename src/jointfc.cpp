@@ -86,8 +86,8 @@ auto JointDyna::executeRT(PlanTarget &target)->int
 
 
     static bool flag[6] = {true,true,true,true,true,true};
-    double PosLimit[6] = { 1,0.5,0.3,1,1,1 };
-    double NegLimit[6] = { -1,-0.5,-0.3,-1,-1,-1 };
+    double PosLimit[6] = { 1,0.5,0.5,1,1,1 };
+    double NegLimit[6] = { -1,-0.5,-0.5,-1,-1,-1 };
     double dTheta = 0.00001;
 	static double pArc[6], vArc[6], aArc[6], vArcMax[6] = { 0.15,0.15,0.15,0.15,0.15,0.15 };
 	static aris::Size t_count[6] = { 0 };
@@ -162,18 +162,18 @@ auto JointDyna::executeRT(PlanTarget &target)->int
 	auto &lout = controller->lout();
 
 	double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
-	//if (target.count % 8 == 0)
+    if (target.count % 8 == 0)
 	{
 		for (int i = 0; i < 6; i++)
 		{
 			//AngleList[RobotAxis * (target.count - 1) + i] = controller->motionAtAbs(i).actualPos();
 			//TorqueList[RobotAxis * (target.count - 1) + i] = controller->motionAtAbs(i).actualCur();
 
-			AngleList[6 * (target.count - 1) + i] = POSRLS[i][target.count - 1];
-			TorqueList[6 * (target.count - 1) + i] = POSRLS[i + 6][target.count - 1] / f2c_index[i];
+            //AngleList[6 * (target.count - 1) + i] = POSRLS[i][target.count - 1];
+            //TorqueList[6 * (target.count - 1) + i] = POSRLS[i + 6][target.count - 1] / f2c_index[i];
 
-			//AngleList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualPos();
-			//TorqueList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
+            AngleList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualPos();
+            TorqueList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
 		}
 
 		lout << target.count << ",";
@@ -188,7 +188,7 @@ auto JointDyna::executeRT(PlanTarget &target)->int
 		CollectNum = CollectNum + 1;
 	}
 
-	CollectNum = target.count;
+
 	return SampleNum - CollectNum;
 }
 
@@ -326,8 +326,8 @@ auto JointTest::executeRT(PlanTarget &target)->int
 		target.model->motionPool().at(i).setMp(step_pjs[i]);
 		omega = 2 * aris::PI / param.period;
 		q[i]= begin_pjs[i] + ampVar * sin(omega * target.count / 1000);
-		dq[i] = begin_pjs[i] + ampVar * omega * sin(omega*target.count / 1000+aris::PI/2);
-		ddq[i] = begin_pjs[i] + ampVar * omega* omega * sin(omega*target.count / 1000 + aris::PI);
+        dq[i] = ampVar * omega * sin(omega*target.count / 1000+aris::PI/2);
+        ddq[i] = ampVar * omega* omega * sin(omega*target.count / 1000 + aris::PI);
 	}
 	double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
 
@@ -353,7 +353,7 @@ auto JointTest::executeRT(PlanTarget &target)->int
 	{
 		//for (int i = 0; i < 6; i++)
 		{
-			cout << step_pjs[4] << "***";
+            cout << CollisionFT[0] << "***"<< CollisionFT[1] << "***"<< CollisionFT[2] << "***";
 			//cout << "vel" << i + 1 << ":" << target.model->motionPool()[i].mv() << "  ";
 			//cout << "cur" << i + 1 << ":" << target.model->motionPool()[i].ma() << "  ";
 		}
