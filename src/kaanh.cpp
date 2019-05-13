@@ -205,45 +205,45 @@ namespace kaanh
 	{
 		std::unique_ptr<aris::control::Controller> controller(new aris::control::EthercatController);/*创建std::unique_ptr实例*/
 
-		for (aris::Size i = 0; i < 6; ++i)
+        for (aris::Size i = 0; i < 7; ++i)
 		{
 
 #ifdef WIN32
-			double pos_offset[6]
+            double pos_offset[7]
 			{
-				0,   0,	  0,   0,   0,   0
+                0,   0,	  0,   0,   0,   0,   0
 			};
 #endif
 #ifdef UNIX
-			double pos_offset[6]
+            double pos_offset[7]
 			{
-				0.00293480352126769,0.317555328381088,-0.292382537944081,0.0582675097338009,1.53363576057128,17.1269434336436
+                0.0,0.0,0.0,0.0,0.0,0.0,0.0
 			};
 #endif
-			double pos_factor[6]
+            double pos_factor[7]
 			{
-				131072.0 * 81 / 2 / PI, 131072.0 * 81 / 2 / PI, 131072.0 * 81 / 2 / PI, 131072.0 * 72.857 / 2 / PI, 131072.0 * 81 / 2 / PI, 131072.0 * 50 / 2 / PI
+                262144.0 * 120 / 2 / PI, 262144.0 * 120 / 2 / PI, 262144.0 * 120 / 2 / PI, 262144.0 * 100 / 2 / PI, 262144.0 * 100 / 2 / PI, 262144.0 * 100 / 2 / PI, 262144.0 * 100 / 2 / PI
 			};
-			double max_pos[6]
+            double max_pos[7]
 			{
-				170.0 / 360 * 2 * PI, 130.0 / 360 * 2 * PI,	50.0 / 360 * 2 * PI, 170.0 / 360 * 2 * PI, 117.0 / 360 * 2 * PI, 360.0 / 360 * 2 * PI,
+                360.0 / 360 * 2 * PI, 100.0 / 360 * 2 * PI,	360.0 / 360 * 2 * PI, 100.0 / 360 * 2 * PI, 360.0 / 360 * 2 * PI, 100.0 / 360 * 2 * PI, 360.0 / 360 * 2 * PI
 			};
-			double min_pos[6]
+            double min_pos[7]
 			{
-				-170.0 / 360 * 2 * PI, -84.0 / 360 * 2 * PI, -188.0 / 360 * 2 * PI, -170.0 / 360 * 2 * PI, -117.0 / 360 * 2 * PI, -360.0 / 360 * 2 * PI
+                -360.0 / 360 * 2 * PI, -100.0 / 360 * 2 * PI, -360.0 / 360 * 2 * PI, -100.0 / 360 * 2 * PI, -360.0 / 360 * 2 * PI, -100.0 / 360 * 2 * PI, -360.0 / 360 * 2 * PI
 			};
-			double max_vel[6]
+            double max_vel[7]
 			{
-				310.0 / 360 * 2 * PI, 240.0 / 360 * 2 * PI, 310.0 / 360 * 2 * PI, 250.0 / 360 * 2 * PI, 295.0 / 360 * 2 * PI, 500.0 / 360 * 2 * PI,
+                150.0 / 360 * 2 * PI, 150.0 / 360 * 2 * PI, 150.0 / 360 * 2 * PI, 180.0 / 360 * 2 * PI, 180.0 / 360 * 2 * PI, 180.0 / 360 * 2 * PI, 180.0 / 360 * 2 * PI
 			};
-			double max_acc[6]
+            double max_acc[7]
 			{
-				1500.0 / 360 * 2 * PI, 1500.0 / 360 * 2 * PI, 1500.0 / 360 * 2 * PI, 1750.0 / 360 * 2 * PI, 1500.0 / 360 * 2 * PI, 2500.0 / 360 * 2 * PI,
+                450.0 / 360 * 2 * PI, 450.0 / 360 * 2 * PI, 450.0 / 360 * 2 * PI, 540.0 / 360 * 2 * PI, 540.0 / 360 * 2 * PI, 540.0 / 360 * 2 * PI, 540.0 / 360 * 2 * PI
 			};
 
 			std::string xml_str =
-				"<m" + std::to_string(i) + " type=\"EthercatMotion\" phy_id=\"" + std::to_string(i) + "\" product_code=\"0x0\""
-				" vendor_id=\"0x000002E1\" revision_num=\"0x29001\" dc_assign_activate=\"0x0300\""
+                "<m" + std::to_string(i) + " type=\"EthercatMotion\" phy_id=\"" + std::to_string(i) + "\" product_code=\"0x201\""
+                " vendor_id=\"0x000022D2\" revision_num=\"0x0a000002\" dc_assign_activate=\"0x0300\""
 				" min_pos=\"" + std::to_string(min_pos[i]) + "\" max_pos=\"" + std::to_string(max_pos[i]) + "\" max_vel=\"" + std::to_string(max_vel[i]) + "\" min_vel=\"" + std::to_string(-max_vel[i]) + "\""
 				" max_acc=\"" + std::to_string(max_acc[i]) + "\" min_acc=\"" + std::to_string(-max_acc[i]) + "\" max_pos_following_error=\"0.1\" max_vel_following_error=\"0.5\""
 				" home_pos=\"0\" pos_factor=\"" + std::to_string(pos_factor[i]) + "\" pos_offset=\"" + std::to_string(pos_offset[i]) + "\">"
@@ -266,7 +266,7 @@ namespace kaanh
 				"				<mode_of_display index=\"0x6061\" subindex=\"0x00\" size=\"8\"/>"
 				"				<pos_actual_value index=\"0x6064\" subindex=\"0x00\" size=\"32\"/>"
 				"				<vel_actual_value index=\"0x606c\" subindex=\"0x00\" size=\"32\"/>"
-				"				<cur_actual_value index=\"0x6078\" subindex=\"0x00\" size=\"16\"/>"
+                "				<cur_actual_value index=\"0x6077\" subindex=\"0x00\" size=\"16\"/>"
 				"			</index_1a00>"
 				"		</sm>"
 				"	</sm_pool>"
@@ -274,7 +274,7 @@ namespace kaanh
 				"	</sdo_pool>"
 				"</m" + std::to_string(i) + ">";
 
-			controller->slavePool().add<aris::control::EthercatMotion>().loadXmlStr(xml_str);
+            controller->slavePool().add<aris::control::EthercatMotion>().loadXmlStr(xml_str);
 		}
 
 		return controller;
@@ -1123,7 +1123,7 @@ namespace kaanh
 		auto &cout = controller->mout();
 		if (target.count % 100 == 0)
 		{
-			for (Size i = 0; i < 6; i++)
+            for (Size i = 0; i < param.joint_active_vec.size(); i++)
 			{
                 cout << "mp" << i + 1 << ":" << target.model->motionPool()[i].mp() << "  ";
                 cout << "pos" << i + 1 << ":" << controller->motionAtAbs(i).targetPos() << "  ";
