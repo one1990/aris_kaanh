@@ -33,6 +33,8 @@ namespace kaanh
 	auto createControllerRokaeXB4()->std::unique_ptr<aris::control::Controller>;
 	auto createPlanRootRokaeXB4()->std::unique_ptr<aris::plan::PlanRoot>;
 	auto createModelRokae()->std::unique_ptr<aris::dynamic::Model>;
+	auto createControllerSanXiang()->std::unique_ptr<aris::control::Controller>;
+	auto createModelSanXiang()->std::unique_ptr<aris::dynamic::Model>;
 
 	//auto registerPlan()->void;
 
