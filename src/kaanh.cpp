@@ -1107,15 +1107,15 @@ namespace kaanh
 				aris::Size t_count;
 				aris::plan::moveAbsolute(target.count, param.begin_joint_pos_vec[i], param.begin_joint_pos_vec[i]+param.joint_pos_vec[i], param.vel / 1000, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
 				controller->motionAtAbs(i).setTargetPos(p);
-				controller->motionAtAbs(i).setTargetVel(v*1000);
+				//controller->motionAtAbs(i).setTargetVel(v*1000);
 				total_count = std::max(total_count, t_count);
 
-				target.model->motionPool().at(i).setMp(p);
+				//target.model->motionPool().at(i).setMp(p);
 			}
 		}
 
 		//controller与模型同步，保证3D仿真模型同步显示
-		if (!target.model->solverPool().at(1).kinPos())return -1;
+		//if (!target.model->solverPool().at(1).kinPos())return -1;
 
 		// 打印电流 //
 		auto &cout = controller->mout();
@@ -1123,7 +1123,6 @@ namespace kaanh
 		{
             for (Size i = 0; i < param.joint_active_vec.size(); i++)
 			{
-                cout << "mp" << i + 1 << ":" << target.model->motionPool()[i].mp() << "  ";
                 cout << "pos" << i + 1 << ":" << controller->motionAtAbs(i).targetPos() << "  ";
 				cout << "vel" << i + 1 << ":" << controller->motionAtAbs(i).actualVel() << "  ";
 				cout << "cur" << i + 1 << ":" << controller->motionAtAbs(i).actualCur() << "  ";
