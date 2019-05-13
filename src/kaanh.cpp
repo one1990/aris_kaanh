@@ -1039,7 +1039,7 @@ namespace kaanh
 
 		// log 电流 //
 		auto &lout = controller->lout();
-		for (Size i = 0; i < 6; i++)
+		for (Size i = 0; i < param.joint_active_vec.size(); i++)
 		{
 			lout << controller->motionAtAbs(i).targetPos() << ",";
 			lout << controller->motionAtAbs(i).actualPos() << ",";
@@ -3268,6 +3268,8 @@ namespace kaanh
 		};
 		
 		auto&cs = aris::server::ControlServer::instance();
+		if (cs.running())throw std::runtime_error("cs is running, can not set DH parameters,please stop the cs!");
+
 		auto model = aris::dynamic::createModelPuma(param);
 		cs.resetModel(model.release());
 
@@ -3339,7 +3341,7 @@ namespace kaanh
 		}
 	
 		auto&cs = aris::server::ControlServer::instance();
-
+		if (cs.running())throw std::runtime_error("cs is running, can not set position offset,please stop the cs!");
 		auto xmlpath = std::filesystem::absolute(".");
 		const std::string xmlfile = "rokae.xml";
 		xmlpath = xmlpath / xmlfile;
