@@ -1380,23 +1380,108 @@ void jointdynamics::RLS(const double *positionL, const double *sensorL, double *
 
 
 
-void jointdynamics::JointCollision(const double * q, const double *dq,const double *ddq,const double *ts, const double *estParas, double * estFT)
+void jointdynamics::JointCollision(const double * q, const double *dq,const double *ddq,const double *ts, const double *estParas, double * Coef, double * CollisionFT)
         {
-            double estTor[RobotAxis] = { 0, 0, 0, 0, 0, 0};
+            
+			// 求解 A的广义逆pinv 和 x
+			std::vector<double> EYE_vec(JointGroupDim * JointGroupDim);
+			auto EYE = EYE_vec.data();
+			for (int i = 0;i < JointGroupDim;i++)
+				for (int j = 0;j < JointGroupDim;j++)
+				{
+					EYE[i*JointGroupDim + j] = 0;
+					if(i==j)
+						EYE[i*JointGroupDim + j] = 1;
+				}
+			
+			std::vector<double> CoefInv_vec(JointGroupDim * JointReduceDim);
+			auto CoefInv = CoefInv_vec.data();
 
-            double distalVec[RobotAxis * JointGroupDim];
-            JointMatrix(q, dq, ddq, ts, distalVec);
-            double Y0[RobotAxis][JointGroupDim];
-            for (int m = 0; m < RobotAxis; m++)
-                for (int n = 0; n < JointGroupDim; n++)
-                    Y0[m][n]=distalVec[JointGroupDim * m + n];
+
+            // 求解 A的广义逆pinv 和 x
+			std::vector<double> pinv_vec(JointGroupDim * JointReduceDim );
+			auto pinv = pinv_vec.data();
+
+			// 所需的中间变量，请对U的对角线元素做处理
+			std::vector<double> U_vec(JointGroupDim * JointReduceDim);
+			auto U = U_vec.data();
+
+			double tau[JointGroupDim];
+			aris::Size p[JointGroupDim];
+			aris::Size rank;
+
+			s_householder_utp(JointReduceDim,JointGroupDim, Coef, U, tau, p, rank, 1e-10);
+
+			// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A) //
+			double tau2[JointGroupDim];
+
+			s_householder_utp2pinv(JointReduceDim, JointGroupDim, rank, U, tau, p, pinv, tau2, 1e-10);
+			// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A)*b //
+			s_mm(JointGroupDim , JointReduceDim, JointGroupDim, EYE, pinv, CoefInv);
+
+			/*
+			//测试Coef*CoefInv=EYE(30)
+			std::vector<double> EYEtest_vec(JointReduceDim * JointReduceDim);
+			auto EYEtest = EYEtest_vec.data();
+			s_mm(JointReduceDim, JointReduceDim, JointGroupDim, Coef, CoefInv, EYEtest);
+			*/
+
+			double q0[6], dq0[6], ddq0[6];
+			for (int k = 0; k < RobotAxis; k++)
+			{
+				q0[k] = q[k] * DirectionFlag[k] + JointOffset[k] + ZeroOffset[k];
+				dq0[k] = dq[k] * DirectionFlag[k];
+				ddq0[k] = ddq[k] * DirectionFlag[k];
+
+			}
+			double distalVec[RobotAxis * JointGroupDim];
+			JointMatrix(q0, dq0, ddq0, ts, distalVec);
+			std::vector<double> Ybase_vec(RobotAxis * JointReduceDim);
+			auto Ybase = Ybase_vec.data();
+			s_mm(RobotAxis, JointReduceDim, JointGroupDim, distalVec, CoefInv, Ybase);
 
 
+			double YbaseMat[RobotAxis][JointReduceDim];
+			for (int m = 0; m < RobotAxis; m++)
+				for (int n = 0; n < JointReduceDim; n++)
+					YbaseMat[m][n] = Ybase[JointReduceDim * m + n];
+
+			double Y1[RobotAxis][2 * RobotAxis];
+			for (int m = 0; m < RobotAxis; m++)
+			{
+				for (int n = 0; n < 2 * RobotAxis; n++)
+				{
+					Y1[m][n] = 0;
+					if (n == 2 * m)
+						Y1[m][n] = 1 * sign(dq[m]);
+					if (n == 2 * m + 1)
+						Y1[m][n] = dq[m];
+				}
+			}
+
+			double YtolMat[RobotAxis][JointReduceDim+2* RobotAxis];
+
+			for (int m = 0; m < RobotAxis; m++)
+			{
+				for (int n = 0; n < JointReduceDim; n++)
+				{
+					YtolMat[m][n] = YbaseMat[m][n];
+				}
+
+				for (int n = JointReduceDim; n < JointReduceDim + 2 * RobotAxis; n++)
+				{
+					YtolMat[m][n] = Y1[m][n];
+				}
+			}
+			
+
+			double estTor[RobotAxis] = { 0, 0, 0, 0, 0, 0 };
             for (int i = 0; i < RobotAxis; i++)
-                for (int j = 0; j < JointGroupDim; j++)
-                    estTor[i] = estTor[i] + Y0[i][j] * estParas[j];
+                for (int j = 0; j < JointReduceDim + 2 * RobotAxis; j++)
+                    estTor[i] = estTor[i] + YtolMat[i][j] * estParas[j];
+
             for (int i = 0; i < 6; i++)
-                estFT[i] = estTor[i] ;
+                CollisionFT[i] = ts[i]-estTor[i] ;
 
 
         }
