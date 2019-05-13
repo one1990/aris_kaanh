@@ -266,7 +266,7 @@ namespace kaanh
 				"				<PdoEntry name=\"mode_of_display\" index=\"0x6061\" subindex=\"0x00\" size=\"8\"/>"
 				"				<PdoEntry name=\"pos_actual_value\" index=\"0x6064\" subindex=\"0x00\" size=\"32\"/>"
 				"				<PdoEntry name=\"vel_actual_value\" index=\"0x606c\" subindex=\"0x00\" size=\"32\"/>"
-				"				<PdoEntry name=\"cur_actual_value\" index=\"0x6078\" subindex=\"0x00\" size=\"16\"/>"
+				"				<PdoEntry name=\"cur_actual_value\" index=\"0x6077\" subindex=\"0x00\" size=\"16\"/>"
 				"			</Pdo>"
 				"		</SyncManager>"
 				"	</SyncManagerPoolObject>"
@@ -878,7 +878,8 @@ namespace kaanh
 			target.param = param;
 
 			target.option |=
-				Plan::USE_TARGET_POS |
+				Plan::USE_TARGET_POS;
+/*
 #ifdef WIN32
 				Plan::NOT_CHECK_POS_MIN |
 				Plan::NOT_CHECK_POS_MAX |
@@ -893,7 +894,7 @@ namespace kaanh
 				Plan::NOT_CHECK_VEL_CONTINUOUS |
 				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
 				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
-
+*/
 		}
 	auto MoveJSN::executeRT(PlanTarget &target)->int
 		{
