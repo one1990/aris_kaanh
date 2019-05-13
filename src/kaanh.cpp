@@ -222,7 +222,7 @@ namespace kaanh
 #endif
             double pos_factor[7]
 			{
-                262144.0 * 120 / 2 / PI, 262144.0 * 120 / 2 / PI, 262144.0 * 120 / 2 / PI, 262144.0 * 100 / 2 / PI, 262144.0 * 100 / 2 / PI, 262144.0 * 100 / 2 / PI, 262144.0 * 100 / 2 / PI
+                -262144.0 * 120 / 2 / PI, -262144.0 * 120 / 2 / PI, -262144.0 * 120 / 2 / PI, -262144.0 * 100 / 2 / PI, -262144.0 * 100 / 2 / PI, -262144.0 * 100 / 2 / PI, -262144.0 * 100 / 2 / PI
 			};
             double max_pos[7]
 			{
@@ -273,6 +273,13 @@ namespace kaanh
 				"</EthercatMotion>";
             controller->slavePool().add<aris::control::EthercatMotion>().loadXmlStr(xml_str);
 		}
+
+        dynamic_cast<aris::control::EthercatController*>(controller.get())->scanInfoForCurrentSlaves();
+
+        dynamic_cast<aris::control::EthercatController*>(controller.get())->scanPdoForCurrentSlaves();
+
+        std::cout << controller->xmlString()<<std::endl;
+
 
 		return controller;
 	};
@@ -1065,7 +1072,6 @@ namespace kaanh
 
 		target.option |=
 //				Plan::USE_TARGET_POS |
-			Plan::USE_VEL_OFFSET |
 #ifdef WIN32
 			Plan::NOT_CHECK_POS_MIN |
 			Plan::NOT_CHECK_POS_MAX |
@@ -1107,10 +1113,7 @@ namespace kaanh
 				aris::Size t_count;
 				aris::plan::moveAbsolute(target.count, param.begin_joint_pos_vec[i], param.begin_joint_pos_vec[i]+param.joint_pos_vec[i], param.vel / 1000, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
 				controller->motionAtAbs(i).setTargetPos(p);
-				//controller->motionAtAbs(i).setTargetVel(v*1000);
 				total_count = std::max(total_count, t_count);
-
-				//target.model->motionPool().at(i).setMp(p);
 			}
 		}
 
@@ -1125,7 +1128,6 @@ namespace kaanh
 			{
                 cout << "pos" << i + 1 << ":" << controller->motionAtAbs(i).targetPos() << "  ";
 				cout << "vel" << i + 1 << ":" << controller->motionAtAbs(i).actualVel() << "  ";
-				cout << "cur" << i + 1 << ":" << controller->motionAtAbs(i).actualCur() << "  ";
 			}
 			cout << std::endl;
 		}
@@ -1137,7 +1139,6 @@ namespace kaanh
 			lout << controller->motionAtAbs(i).targetPos() << ",";
 			lout << controller->motionAtAbs(i).actualPos() << ",";
 			lout << controller->motionAtAbs(i).actualVel() << ",";
-			lout << controller->motionAtAbs(i).actualCur() << ",";
 		}
 		lout << std::endl;
 
@@ -1156,75 +1157,9 @@ namespace kaanh
 			"			<Param name=\"slave_id\" abbreviation=\"s\" default=\"0\"/>"
 			"		</UniqueParam>"
 			"		<Param name=\"pos\" default=\"0\"/>"
-			"		<Param name=\"vel\" default=\"0.5\"/>"
-			"		<Param name=\"acc\" default=\"1\"/>"
-			"		<Param name=\"dec\" default=\"1\"/>"
-			"		<UniqueParam default=\"check_none\">"
-			"			<Param name=\"check_all\"/>"
-			"			<Param name=\"check_none\"/>"
-			"			<GroupParam>"
-			"				<UniqueParam default=\"check_pos\">"
-			"					<Param name=\"check_pos\"/>"
-			"					<Param name=\"not_check_pos\"/>"
-			"					<GroupParam>"
-			"						<UniqueParam default=\"check_pos_max\">"
-			"							<Param name=\"check_pos_max\"/>"
-			"							<Param name=\"not_check_pos_max\"/>"
-			"						</UniqueParam>"
-			"						<UniqueParam default=\"check_pos_min\">"
-			"							<Param name=\"check_pos_min\"/>"
-			"							<Param name=\"not_check_pos_min\"/>"
-			"						</UniqueParam>"
-			"						<UniqueParam default=\"check_pos_continuous\">"
-			"							<Param name=\"check_pos_continuous\"/>"
-			"							<Param name=\"not_check_pos_continuous\"/>"
-			"						</UniqueParam>"
-			"						<UniqueParam default=\"check_pos_continuous_at_start\">"
-			"							<Param name=\"check_pos_continuous_at_start\"/>"
-			"							<Param name=\"not_check_pos_continuous_at_start\"/>"
-			"						</UniqueParam>"
-			"						<UniqueParam default=\"check_pos_continuous_second_order\">"
-			"							<Param name=\"check_pos_continuous_second_order\"/>"
-			"							<Param name=\"not_check_pos_continuous_second_order\"/>"
-			"						</UniqueParam>"
-			"						<UniqueParam default=\"check_pos_continuous_second_order_at_start\">"
-			"							<Param name=\"check_pos_continuous_second_order_at_start\"/>"
-			"							<Param name=\"not_check_pos_continuous_second_order_at_start\"/>"
-			"						</UniqueParam>"
-			"						<UniqueParam default=\"check_pos_following_error\">"
-			"							<Param name=\"check_pos_following_error\"/>"
-			"							<Param name=\"not_check_pos_following_error\"/>"
-			"						</UniqueParam>"
-			"					</GroupParam>"
-			"				</UniqueParam>"
-			"				<UniqueParam default=\"check_vel\">"
-			"					<Param name=\"check_vel\"/>"
-			"					<Param name=\"not_check_vel\"/>"
-			"					<GroupParam>"
-			"						<UniqueParam default=\"check_vel_max\">"
-			"							<Param name=\"check_vel_max\"/>"
-			"							<Param name=\"not_check_vel_max\"/>"
-			"						</UniqueParam>"
-			"						<UniqueParam default=\"check_vel_min\">"
-			"							<Param name=\"check_vel_min\"/>"
-			"							<Param name=\"not_check_vel_min\"/>"
-			"						</UniqueParam>"
-			"						<UniqueParam default=\"check_vel_continuous\">"
-			"							<Param name=\"check_vel_continuous\"/>"
-			"							<Param name=\"not_check_vel_continuous\"/>"
-			"						</UniqueParam>"
-			"						<UniqueParam default=\"check_vel_continuous_at_start\">"
-			"							<Param name=\"check_vel_continuous_at_start\"/>"
-			"							<Param name=\"not_check_vel_continuous_at_start\"/>"
-			"						</UniqueParam>"
-			"						<UniqueParam default=\"check_vel_following_error\">"
-			"							<Param name=\"check_vel_following_error\"/>"
-			"							<Param name=\"not_check_vel_following_error\"/>"
-			"						</UniqueParam>"
-			"					</GroupParam>"
-			"				</UniqueParam>"
-			"			</GroupParam>"
-			"		</UniqueParam>"
+            "		<Param name=\"vel\" default=\"0.3\"/>"
+            "		<Param name=\"acc\" default=\"0.6\"/>"
+            "		<Param name=\"dec\" default=\"0.6\"/>"
 			"	</GroupParam>"
 			"</Command>");
 	}
