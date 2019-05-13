@@ -31,10 +31,11 @@ namespace JointDynamicsInt
 	double estParasJoint0[JointReduceDim+12] = { 0 };
 	double estParasJoint[JointReduceDim] = { 0 };
 	double CoefParasJoint[JointReduceDim* JointGroupDim] = { 0 };
+	double CoefParasJointInv[JointReduceDim* JointGroupDim] = { 0 };
 
         jointdynamics();
-        void JointCollision(const double * q, const double *dq,const double *ddq,const double *ts, const double *estParas, double * Coef, double * CollisionFT);
-        void RLS(const double *positionList, const double *sensorList, double *estParas, double *Coef, double *StatisError);
+        void JointCollision(const double * q, const double *dq,const double *ddq,const double *ts, const double *estParas, double * CoefInv, double * CollisionFT);
+        void RLS(const double *positionList, const double *sensorList, double *estParas, double *Coef, double *CoefInv, double *StatisError);
 		void LoadRLS(const double *positionList, const double *sensorList, double *estParas, double *Coef,double *StatisError);
 		void LoadParasExt(const double *dEst, const double *dCoef, double *Load);
 

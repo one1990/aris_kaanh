@@ -59,8 +59,6 @@ auto JointDyna::prepairNrt(const std::map<std::string, std::string> &params, Pla
 		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 
-
-
 }
 auto JointDyna::executeRT(PlanTarget &target)->int
 {
@@ -85,7 +83,6 @@ auto JointDyna::executeRT(PlanTarget &target)->int
 		}
 	}
 	param.period = 60;
-
 
 
     static bool flag[6] = {true,true,true,true,true,true};
@@ -165,18 +162,18 @@ auto JointDyna::executeRT(PlanTarget &target)->int
 	auto &lout = controller->lout();
 
 	double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
-	if (target.count % 8 == 0)
+	//if (target.count % 8 == 0)
 	{
 		for (int i = 0; i < 6; i++)
 		{
 			//AngleList[RobotAxis * (target.count - 1) + i] = controller->motionAtAbs(i).actualPos();
 			//TorqueList[RobotAxis * (target.count - 1) + i] = controller->motionAtAbs(i).actualCur();
 
-			//AngleList[6 * (target.count - 1) + i] = POSRLS[i][target.count - 1];
-			//TorqueList[6 * (target.count - 1) + i] = POSRLS[i + 6][target.count - 1];
+			AngleList[6 * (target.count - 1) + i] = POSRLS[i][target.count - 1];
+			TorqueList[6 * (target.count - 1) + i] = POSRLS[i + 6][target.count - 1] / f2c_index[i];
 
-			AngleList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualPos();
-			TorqueList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
+			//AngleList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualPos();
+			//TorqueList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
 		}
 
 		lout << target.count << ",";
@@ -191,7 +188,7 @@ auto JointDyna::executeRT(PlanTarget &target)->int
 		CollectNum = CollectNum + 1;
 	}
 
-
+	CollectNum = target.count;
 	return SampleNum - CollectNum;
 }
 
@@ -205,7 +202,7 @@ auto JointDyna::collectNrt(aris::plan::PlanTarget &target)->void
 	std::cout << "collect" << std::endl;
 
 
-	JointMatrix.RLS(AngleList, TorqueList, JointMatrix.estParasJoint, JointMatrix.CoefParasJoint,StatisError);
+	JointMatrix.RLS(AngleList, TorqueList, JointMatrix.estParasJoint, JointMatrix.CoefParasJoint, JointMatrix.CoefParasJointInv, StatisError);
 
 	
 	//std::cout<<"collect"<<std::endl;
@@ -346,7 +343,7 @@ auto JointTest::executeRT(PlanTarget &target)->int
 	}
 	
 
-	JointMatrix.JointCollision(q, dq, ddq, ts, JointMatrix.estParasJoint, JointMatrix.CoefParasJoint,CollisionFT);
+	JointMatrix.JointCollision(q, dq, ddq, ts, JointMatrix.estParasJoint, JointMatrix.CoefParasJointInv,CollisionFT);
 
 	if (!target.model->solverPool().at(1).kinPos())return -1;
 

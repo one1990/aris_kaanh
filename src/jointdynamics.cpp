@@ -1126,7 +1126,7 @@ void JointMatrix(const double* q, const double* dq, const double* ddq, const dou
 
 
 
-void jointdynamics::RLS(const double *positionL, const double *sensorL, double *estParas,double *Coef,double *StatisError)
+void jointdynamics::RLS(const double *positionL, const double *sensorL, double *estParas,double *Coef,double *CoefInv,double *StatisError)
 {
     //positionList[id(2, 2, 6)];
     double stateMot0[RobotAxis][3] = { 0 };
@@ -1142,7 +1142,7 @@ void jointdynamics::RLS(const double *positionL, const double *sensorL, double *
     double ts[RobotAxis];
     //std::array<double, 6> estParas;
 
-    double intDT = 8*DT;
+    double intDT = 1*DT;
     int length = 6;
     std::vector<double> regressorMatrix_vec(RobotAxis * SampleNum * JointGroupDim);
     double* regressorVector = regressorMatrix_vec.data();
@@ -1373,59 +1373,46 @@ void jointdynamics::RLS(const double *positionL, const double *sensorL, double *
         StatisError[j]= sqrt(SumError[j])/SampleNum;
 
 
+	//计算CoefInv, Coef*CoefInv=EYE(30)
 
+	std::vector<double> EYE_vec(JointGroupDim * JointGroupDim);
+	auto EYE = EYE_vec.data();
+	for (int i = 0;i < JointGroupDim;i++)
+		for (int j = 0;j < JointGroupDim;j++)
+		{
+			EYE[i*JointGroupDim + j] = 0;
+			if (i == j)
+				EYE[i*JointGroupDim + j] = 1;
+		}
 
+	// 求解 A的广义逆pinv 和 x
+	std::vector<double> pinvInv_vec(JointGroupDim * JointReduceDim);
+	auto pinvInv = pinvInv_vec.data();
+
+	// 所需的中间变量，请对U的对角线元素做处理
+	std::vector<double> UInv_vec(JointGroupDim * JointReduceDim);
+	auto UInv = UInv_vec.data();
+
+	double tauInv[JointGroupDim];
+	aris::Size pInv[JointGroupDim];
+	aris::Size rankInv;
+
+	s_householder_utp(JointReduceDim, JointGroupDim, Coef, UInv, tauInv, pInv, rankInv, 1e-10);
+
+	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A) //
+	double tau2Inv[JointGroupDim];
+
+	s_householder_utp2pinv(JointReduceDim, JointGroupDim, rankInv, UInv, tauInv, pInv, pinvInv, tau2Inv, 1e-10);
+	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A)*b //
+	s_mm(JointGroupDim, JointReduceDim, JointGroupDim, EYE, pinvInv, CoefInv);
 
     }
 
 
 
-void jointdynamics::JointCollision(const double * q, const double *dq,const double *ddq,const double *ts, const double *estParas, double * Coef, double * CollisionFT)
+void jointdynamics::JointCollision(const double * q, const double *dq,const double *ddq,const double *ts, const double *estParas, double * CoefInv, double * CollisionFT)
         {
-            
-			// 求解 A的广义逆pinv 和 x
-			std::vector<double> EYE_vec(JointGroupDim * JointGroupDim);
-			auto EYE = EYE_vec.data();
-			for (int i = 0;i < JointGroupDim;i++)
-				for (int j = 0;j < JointGroupDim;j++)
-				{
-					EYE[i*JointGroupDim + j] = 0;
-					if(i==j)
-						EYE[i*JointGroupDim + j] = 1;
-				}
-			
-			std::vector<double> CoefInv_vec(JointGroupDim * JointReduceDim);
-			auto CoefInv = CoefInv_vec.data();
-
-
-            // 求解 A的广义逆pinv 和 x
-			std::vector<double> pinv_vec(JointGroupDim * JointReduceDim );
-			auto pinv = pinv_vec.data();
-
-			// 所需的中间变量，请对U的对角线元素做处理
-			std::vector<double> U_vec(JointGroupDim * JointReduceDim);
-			auto U = U_vec.data();
-
-			double tau[JointGroupDim];
-			aris::Size p[JointGroupDim];
-			aris::Size rank;
-
-			s_householder_utp(JointReduceDim,JointGroupDim, Coef, U, tau, p, rank, 1e-10);
-
-			// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A) //
-			double tau2[JointGroupDim];
-
-			s_householder_utp2pinv(JointReduceDim, JointGroupDim, rank, U, tau, p, pinv, tau2, 1e-10);
-			// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A)*b //
-			s_mm(JointGroupDim , JointReduceDim, JointGroupDim, EYE, pinv, CoefInv);
-
-			/*
-			//测试Coef*CoefInv=EYE(30)
-			std::vector<double> EYEtest_vec(JointReduceDim * JointReduceDim);
-			auto EYEtest = EYEtest_vec.data();
-			s_mm(JointReduceDim, JointReduceDim, JointGroupDim, Coef, CoefInv, EYEtest);
-			*/
-
+   
 			double q0[6], dq0[6], ddq0[6];
 			for (int k = 0; k < RobotAxis; k++)
 			{
@@ -1434,6 +1421,7 @@ void jointdynamics::JointCollision(const double * q, const double *dq,const doub
 				ddq0[k] = ddq[k] * DirectionFlag[k];
 
 			}
+
 			double distalVec[RobotAxis * JointGroupDim];
 			JointMatrix(q0, dq0, ddq0, ts, distalVec);
 			std::vector<double> Ybase_vec(RobotAxis * JointReduceDim);
