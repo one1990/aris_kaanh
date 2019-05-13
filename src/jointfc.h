@@ -12,9 +12,6 @@
 #include <algorithm>
 
 
-
-
-
 	class JointDyna : public aris::plan::Plan
 	{
 	public:
@@ -26,6 +23,18 @@
 		ARIS_REGISTER_TYPE(JointDyna);
 	};
 
+	class JointTest : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+
+		explicit JointTest(const std::string &name = "JointTest");
+		ARIS_REGISTER_TYPE(JointTest);
+	};
+
+
+
 	class LoadDyna : public aris::plan::Plan
 	{
 	public:
@@ -36,6 +45,8 @@
 		explicit LoadDyna(const std::string &name = "LoadDyna");
 		ARIS_REGISTER_TYPE(LoadDyna);
 	};
+
+
 
 
 	/*

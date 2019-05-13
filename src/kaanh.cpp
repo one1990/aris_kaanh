@@ -2858,6 +2858,7 @@ namespace kaanh
 		plan_root->planPool().add<GetForce>();
 		//plan_root->planPool().add<GetError>();
 		plan_root->planPool().add<JointDyna>();
+		plan_root->planPool().add<JointTest>();
 		plan_root->planPool().add<LoadDyna>();
 
 		plan_root->planPool().add<cplan::MoveCircle>();

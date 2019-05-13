@@ -255,7 +255,132 @@ JointDyna::JointDyna(const std::string &name) :Plan(name)
 
 }
 
+struct JointTestParam
+{
+	double period;
+	double amplitude;
 
+};
+auto JointTest::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+{
+	JointTestParam param;
+
+	for (auto &p : params)
+	{
+		if (p.first == "period")
+			param.period = std::stod(p.second);
+		if (p.first == "amplitude")
+			param.amplitude = std::stod(p.second);
+
+	}
+
+	target.param = param;
+
+	target.option |=
+		Plan::USE_TARGET_POS |
+		//#ifdef WIN32
+		Plan::NOT_CHECK_POS_MIN |
+		Plan::NOT_CHECK_POS_MAX |
+		Plan::NOT_CHECK_POS_CONTINUOUS |
+		Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
+		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
+		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
+		Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
+		//#endif
+		Plan::NOT_CHECK_VEL_MIN |
+		Plan::NOT_CHECK_VEL_MAX |
+		Plan::NOT_CHECK_VEL_CONTINUOUS |
+		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
+		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+
+
+}
+auto JointTest::executeRT(PlanTarget &target)->int
+{
+	auto &param = std::any_cast<JointTestParam&>(target.param);
+
+	static double begin_pjs[6];
+	static double step_pjs[6];
+	static double perVar = 0;
+	static double ampVar = 0;
+
+	if (target.count < 1000)
+	{
+		ampVar = ampVar + param.amplitude / 1000;
+	}
+	// 获取当前起始点位置 //
+	if (target.count == 1)
+	{
+		for (int i = 0; i < 6; i++)
+		{
+			begin_pjs[i] = target.model->motionPool()[i].mp();
+			step_pjs[i] = target.model->motionPool()[i].mp();
+		}
+	}
+	param.period = 10;
+
+
+	double CollisionFT[6],q[6],dq[6],ddq[6],ts[6];
+	double omega = 0;
+	for (int i = 0; i < 6; i++)
+	{
+		step_pjs[i] = begin_pjs[i] + ampVar *sin(2 * aris::PI / param.period*target.count / 1000);
+
+		target.model->motionPool().at(i).setMp(step_pjs[i]);
+		omega = 2 * aris::PI / param.period;
+		q[i]= begin_pjs[i] + ampVar * sin(omega * target.count / 1000);
+		dq[i] = begin_pjs[i] + ampVar * omega * sin(omega*target.count / 1000+aris::PI/2);
+		ddq[i] = begin_pjs[i] + ampVar * omega* omega * sin(omega*target.count / 1000 + aris::PI);
+	}
+	double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
+
+	
+	// 访问主站 //
+	auto controller = target.controller;
+	// 打印电流 //
+	auto &cout = controller->mout();
+
+	for (int i = 0;i < 6;i++)
+	{
+		ts[i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
+	}
+	
+
+	JointMatrix.JointCollision(q, dq, ddq, ts, JointMatrix.estParasJoint, JointMatrix.CoefParasJoint,CollisionFT);
+
+	if (!target.model->solverPool().at(1).kinPos())return -1;
+
+	
+	
+	if (target.count % 100 == 0)
+	{
+		//for (int i = 0; i < 6; i++)
+		{
+			cout << step_pjs[4] << "***";
+			//cout << "vel" << i + 1 << ":" << target.model->motionPool()[i].mv() << "  ";
+			//cout << "cur" << i + 1 << ":" << target.model->motionPool()[i].ma() << "  ";
+		}
+		//   cout << target.count << "  ";
+		cout << std::endl;
+	}
+
+	
+
+	return 100000 - target.count;
+}
+
+JointTest::JointTest(const std::string &name) :Plan(name)
+{
+
+	command().loadXmlStr(
+		"<Command name=\"JointTest\">"
+		"	<GroupParam>"
+		"		<Param name=\"period\"default=\"20.0\"/>"
+		"		<Param name=\"amplitude\" default=\"0.2\"/>"
+		"	</GroupParam>"
+		"</Command>");
+
+}
 
 
 
