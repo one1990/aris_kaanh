@@ -28,34 +28,23 @@ namespace kaanh
         dynamic_cast<aris::control::Motion&>(controller->slavePool()[5]).setPosOffset(26.3545454214145);
 #endif
 
-		std::string xml_str =
-			"<EthercatSlave phy_id=\"6\" product_code=\"0x00013D6F\""
-			" vendor_id=\"0x00000009\" revision_num=\"0x01\" dc_assign_activate=\"0x300\">"
-			"	<SyncManagerPoolObject>"
-			"		<SyncManager is_tx=\"false\"/>"
-			"		<SyncManager is_tx=\"true\"/>"
-			"		<SyncManager is_tx=\"false\">"
-			"			<Pdo index=\"0x1601\" is_tx=\"false\">"
-			"				<PdoEntry name=\"Output_Instruction\" index=\"0x7010\" subindex=\"0x01\" size=\"16\"/>"
-			"				<PdoEntry name=\"Output_Para1\" index=\"0x7010\" subindex=\"0x02\" size=\"16\"/>"
-			"				<PdoEntry name=\"Output_Para2\" index=\"0x7010\" subindex=\"0x03\" size=\"16\"/>"
-			"			</Pdo>"
-			"		</SyncManager>"
-			"		<SyncManager is_tx=\"true\">"
-			"			<Pdo index=\"0x1A03\" is_tx=\"true\">"
-            "				<PdoEntry name=\"Real_Input_DataNo\" index=\"0x6030\" subindex=\"0x00\" size=\"16\"/>"
-            "				<PdoEntry name=\"Real_Input_Fx\" index=\"0x6030\" subindex=\"0x01\" size=\"32\"/>"
-            "				<PdoEntry name=\"Real_Input_Fy\" index=\"0x6030\" subindex=\"0x02\" size=\"32\"/>"
-            "				<PdoEntry name=\"Real_Input_Fz\" index=\"0x6030\" subindex=\"0x03\" size=\"32\"/>"
-            "				<PdoEntry name=\"Real_Input_Mx\" index=\"0x6030\" subindex=\"0x04\" size=\"32\"/>"
-            "				<PdoEntry name=\"Real_Input_My\" index=\"0x6030\" subindex=\"0x05\" size=\"32\"/>"
-            "				<PdoEntry name=\"Real_Input_Mz\" index=\"0x6030\" subindex=\"0x06\" size=\"32\"/>"
-			"			</Pdo>"
-			"		</SyncManager>"
-			"	</SyncManagerPoolObject>"
-			"</EthercatSlave>";
+        controller->slavePool().add<aris::control::EthercatSlave>();
+        controller->slavePool().back().setPhyId(6);
+        dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanInfoForCurrentSlave();
+        dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanPdoForCurrentSlave();
+        dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).setDcAssignActivate(0x300);
 
-        controller->slavePool().add<aris::control::EthercatSlave>().loadXmlStr(xml_str);
+        controller->slavePool().add<aris::control::EthercatSlave>();
+        controller->slavePool().back().setPhyId(7);
+        dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanInfoForCurrentSlave();
+        dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanPdoForCurrentSlave();
+        //dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).setDcAssignActivate(0x300);
+
+        controller->slavePool().add<aris::control::EthercatSlave>();
+        controller->slavePool().back().setPhyId(8);
+        dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanInfoForCurrentSlave();
+        dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanPdoForCurrentSlave();
+        //dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).setDcAssignActivate(0x300);
 
 		return controller;
 	};
@@ -273,6 +262,7 @@ namespace kaanh
 				"</EthercatMotion>";
             controller->slavePool().add<aris::control::EthercatMotion>().loadXmlStr(xml_str);
 		}
+
 
         dynamic_cast<aris::control::EthercatController*>(controller.get())->scanInfoForCurrentSlaves();
 
@@ -3136,7 +3126,7 @@ namespace kaanh
 	{
         int time;
         uint16_t datanum;
-        float Fx,Fy,Fz,Mx,My,Mz;
+        uint16_t Fx,Fy,Fz,Mx,My,Mz;
 	};
 	auto FSSignal::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 		{
@@ -3148,12 +3138,12 @@ namespace kaanh
 					param.time = std::stoi(p.second);
 				}
 			}
-			param.Fx = 0.0;
-			param.Fy = 0.0;
-			param.Fz = 0.0;
-			param.Mx = 0.0;
-			param.My = 0.0;
-			param.Mz = 0.0;
+            param.Fx = 0;
+            param.Fy = 0;
+            param.Fz = 0;
+            param.Mx = 0;
+            param.My = 0;
+            param.Mz = 0;
 			target.param = param;
 
 #ifdef WIN32
@@ -3179,20 +3169,18 @@ namespace kaanh
 			// 访问主站 //
 			auto controller = dynamic_cast<aris::control::EthercatController*>(target.controller);
 
-            controller->ecSlavePool().at(6).readPdo(0x6030, 0x00, &param.datanum ,16);
-            controller->ecSlavePool().at(6).readPdo(0x6030, 0x01, &param.Fx ,32);
-            controller->ecSlavePool().at(6).readPdo(0x6030, 0x02, &param.Fy, 32);
-            controller->ecSlavePool().at(6).readPdo(0x6030, 0x03, &param.Fz, 32);
-            controller->ecSlavePool().at(6).readPdo(0x6030, 0x04, &param.Mx, 32);
-            controller->ecSlavePool().at(6).readPdo(0x6030, 0x05, &param.My, 32);
-            controller->ecSlavePool().at(6).readPdo(0x6030, 0x06, &param.Mz, 32);
+            controller->ecSlavePool().at(7).readPdo(0x6000, 0x11, &param.Fx ,16);
+            controller->ecSlavePool().at(7).readPdo(0x6010, 0x11, &param.Fy, 16);
+            controller->ecSlavePool().at(7).readPdo(0x6020, 0x11, &param.Fz, 16);
+            controller->ecSlavePool().at(7).readPdo(0x6030, 0x11, &param.Mx, 16);
+            controller->ecSlavePool().at(8).readPdo(0x6000, 0x11, &param.My, 16);
+            controller->ecSlavePool().at(8).readPdo(0x6010, 0x11, &param.Mz, 16);
 			
 			
 			//print//
 			auto &cout = controller->mout();
 			if (target.count % 100 == 0)
 			{
-                cout << std::setw(6) << param.datanum << "  ";
 				cout << std::setw(6) << param.Fx << "  ";
 				cout << std::setw(6) << param.Fy << "  ";
 				cout << std::setw(6) << param.Fz << "  ";
