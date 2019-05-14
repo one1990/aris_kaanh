@@ -3125,8 +3125,7 @@ namespace kaanh
 	struct FSParam
 	{
         int time;
-        uint16_t datanum;
-        uint16_t Fx,Fy,Fz,Mx,My,Mz;
+        int16_t Fx,Fy,Fz,Mx,My,Mz;
 	};
 	auto FSSignal::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 		{
@@ -3176,6 +3175,12 @@ namespace kaanh
             controller->ecSlavePool().at(8).readPdo(0x6000, 0x11, &param.My, 16);
             controller->ecSlavePool().at(8).readPdo(0x6010, 0x11, &param.Mz, 16);
 			
+			param.Fx = param.Fx*20.0 / 65536;
+			param.Fy = param.Fy*20.0 / 65536;
+			param.Fz = param.Fz*20.0 / 65536;
+			param.Mx = param.Mx*20.0 / 65536;
+			param.My = param.My*20.0 / 65536;
+			param.Mz = param.Mz*20.0 / 65536;
 			
 			//print//
 			auto &cout = controller->mout();
