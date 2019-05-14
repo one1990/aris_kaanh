@@ -3125,7 +3125,7 @@ namespace kaanh
 	struct FSParam
 	{
         int time;
-        int16_t Fx,Fy,Fz,Mx,My,Mz;
+        std::int16_t Fx,Fy,Fz,Mx,My,Mz;
 	};
 	auto FSSignal::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 		{
@@ -3175,23 +3175,23 @@ namespace kaanh
             controller->ecSlavePool().at(8).readPdo(0x6000, 0x11, &param.My, 16);
             controller->ecSlavePool().at(8).readPdo(0x6010, 0x11, &param.Mz, 16);
 			
-			param.Fx = param.Fx*20.0 / 65536;
-			param.Fy = param.Fy*20.0 / 65536;
-			param.Fz = param.Fz*20.0 / 65536;
-			param.Mx = param.Mx*20.0 / 65536;
-			param.My = param.My*20.0 / 65536;
-			param.Mz = param.Mz*20.0 / 65536;
+            double Fx = param.Fx*20.0 / 65536;
+            double Fy = param.Fy*20.0 / 65536;
+            double Fz = param.Fz*20.0 / 65536;
+            double Mx = param.Mx*20.0 / 65536;
+            double My = param.My*20.0 / 65536;
+            double Mz = param.Mz*20.0 / 65536;
 			
 			//print//
 			auto &cout = controller->mout();
 			if (target.count % 100 == 0)
 			{
-				cout << std::setw(6) << param.Fx << "  ";
-				cout << std::setw(6) << param.Fy << "  ";
-				cout << std::setw(6) << param.Fz << "  ";
-				cout << std::setw(6) << param.Mx << "  ";
-				cout << std::setw(6) << param.My << "  ";
-				cout << std::setw(6) << param.Mz << "  ";
+                cout << std::setw(6) << Fx << "  ";
+                cout << std::setw(6) << Fy << "  ";
+                cout << std::setw(6) << Fz << "  ";
+                cout << std::setw(6) << Mx << "  ";
+                cout << std::setw(6) << My << "  ";
+                cout << std::setw(6) << Mz << "  ";
 				cout << std::endl;
 				cout << "----------------------------------------------------" << std::endl;
 			}
@@ -3199,12 +3199,12 @@ namespace kaanh
 			//log//
 			auto &lout = controller->lout();
 			{
-				lout << param.Fx << " ";
-				lout << param.Fy << " ";
-				lout << param.Fz << " ";
-				lout << param.Mx << " ";
-				lout << param.My << " ";
-				lout << param.Mz << " ";
+                lout << Fx << " ";
+                lout << Fy << " ";
+                lout << Fz << " ";
+                lout << Mx << " ";
+                lout << My << " ";
+                lout << Mz << " ";
 				lout << std::endl;
 			}
 			param.time--;

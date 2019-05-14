@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
     //for rokae robot//
     cs.resetController(kaanh::createControllerRokaeXB4().release());
     cs.resetModel(aris::robot::createModelRokaeXB4().release());
-    cs.resetModel(kaanh::createModelRokae().release());
+    //cs.resetModel(kaanh::createModelRokae().release());
 
     //for sanxiang robot//
     //cs.resetController(kaanh::createControllerSanXiang().release());
