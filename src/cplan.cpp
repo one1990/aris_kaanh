@@ -651,17 +651,19 @@ namespace cplan
 
 
 	struct SaveFileParam
-	{		
+	{	
+		string gk_path;
 	};
 
 	auto SaveFile::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{		
 		auto&cs = aris::server::ControlServer::instance();
-
+		SaveFileParam p;
+		p.gk_path = params.at("gk_path");
+		cs.saveXmlFile(p.gk_path.c_str());
 		//target.server->stop();
-		//target.server->saveXmlFile("C:/Users/qianch_kaanh_cn/Desktop/build_qianch/rokae.xml");
-
-		doc.SaveFile("C:/Users/qianch_kaanh_cn/Desktop/build_qianch/rokae.xml");
+		//target.server->saveXmlFile("C:/Users/qianch_kaanh_cn/Desktop/build_qianch/rokae.xml");		
+		//doc.SaveFile("C:/Users/qianch_kaanh_cn/Desktop/build_qianch/rokae.xml");
 		target.option |= NOT_RUN_COLLECT_FUNCTION;
 		target.option |= NOT_RUN_EXECUTE_FUNCTION;
 	}
@@ -669,7 +671,10 @@ namespace cplan
 	SaveFile::SaveFile(const std::string &name) :Plan(name)
 	{
 		command().loadXmlStr(
-			"<Command name=\"svFi\">"			
+			"<Command name=\"svFi\">"	
+			"	<GroupParam>"
+			"	    <Param name=\"gk_path\" default=\"C:/Users/gk/Desktop/build_kaanh_gk/test2.txt\"/>"
+			"	</GroupParam>"
 			"</Command>");
 	}
 
