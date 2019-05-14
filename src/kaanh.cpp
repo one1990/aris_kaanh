@@ -294,8 +294,8 @@ namespace kaanh
 
 		auto m = aris::dynamic::createModelSevenAxis(param);
 
-		double pe[6]{ 0.45 , 0.12 , 0.32 , 0 , 0 , 0 };
-		m->generalMotionPool()[0].setMpe(pe, "321");
+        //double pe[6]{ 0.45 , 0.12 , 0.32 , 0 , 0 , 0 };
+        //m->generalMotionPool()[0].setMpe(pe, "321");
 
 		return std::move(m);
 	}
