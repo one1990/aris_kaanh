@@ -9,6 +9,7 @@ using namespace JointDynamicsInt;
 using namespace CONFIG;
 using namespace aris::plan;
 using namespace aris::dynamic;
+
 double t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16, t17, t18, t19, t20,
 t21, t22, t23, t24, t25, t26, t27, t28, t29, t30, t31, t32, t33, t34, t35, t36, t37, t38, t39, t40,
 t41, t42, t43, t44, t45, t46, t47, t48, t49, t50, t51, t52, t53, t54, t55, t56, t57, t58, t59, t60,
@@ -1410,7 +1411,7 @@ void jointdynamics::RLS(const double *positionL, const double *sensorL, double *
 
 
 
-void jointdynamics::JointCollision(const double * q, const double *dq,const double *ddq,const double *ts, const double *estParas, double * CoefInv, double * CollisionFT)
+void jointdynamics::JointCollision(const double * q, const double *dq,const double *ddq,const double *ts, const double *estParas, const double * CoefInv, const double * Coef, const double * LoadParas, double * CollisionFT)
         {
    
 			double q0[6], dq0[6], ddq0[6];
@@ -1462,11 +1463,27 @@ void jointdynamics::JointCollision(const double * q, const double *dq,const doub
 				}
 			}
 			
+			//根据负载更新全臂动力学参数
+			double CoefMat[JointReduceDim][JointGroupDim];
+			for (int m = 0; m < JointReduceDim; m++)
+				for (int n = 0; n < JointGroupDim; n++)
+					CoefMat[m][n] = Coef[m*JointGroupDim + n];
+			double dParas[JointReduceDim] = { 0 };
+			for (int m = 0; m < JointReduceDim; m++)
+				for (int n = 0; n < 10; n++)
+					dParas[m] = dParas[m] + CoefMat[m][50+n]* LoadParas[n];
+			double estParasTol[JointReduceDim + 2 * RobotAxis];
+
+			for (int m = 0; m < JointReduceDim + 2 * RobotAxis; m++)
+				estParasTol[m] = estParas[m];
+			for (int m = 0; m < JointReduceDim; m++)
+				estParasTol[m] = estParas[m] + dParas[m];
+
 
 			double estTor[RobotAxis] = { 0, 0, 0, 0, 0, 0 };
             for (int i = 0; i < RobotAxis; i++)
                 for (int j = 0; j < JointReduceDim + 2 * RobotAxis; j++)
-                    estTor[i] = estTor[i] + YtolMat[i][j] * estParas[j];
+                    estTor[i] = estTor[i] + YtolMat[i][j] * estParasTol[j];
 
             for (int i = 0; i < 6; i++)
                 CollisionFT[i] = ts[i]-estTor[i] ;

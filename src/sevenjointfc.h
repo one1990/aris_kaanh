@@ -1,5 +1,5 @@
-﻿#ifndef JOINTFC_H_
-#define JOINTFC_H_
+﻿#ifndef SEVENJOINTFC_H_
+#define SEVENJOINTFC_H_
 
 #include <aris.hpp>
 #include <iostream>
@@ -12,47 +12,38 @@
 #include <algorithm>
 
 
-	class JointDyna : public aris::plan::Plan
+	class SevenJointDyna : public aris::plan::Plan
 	{
 	public:
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
 		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
 		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
 
-		explicit JointDyna(const std::string &name = "JointDyna");
-		ARIS_REGISTER_TYPE(JointDyna);
+		explicit SevenJointDyna(const std::string &name = "SevenJointDyna");
+		ARIS_REGISTER_TYPE(SevenJointDyna);
 	};
 
-	class JointTest : public aris::plan::Plan
+	class SevenJointTest : public aris::plan::Plan
 	{
 	public:
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
 		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
 
-		explicit JointTest(const std::string &name = "JointTest");
-		ARIS_REGISTER_TYPE(JointTest);
+		explicit SevenJointTest(const std::string &name = "SevenJointTest");
+		ARIS_REGISTER_TYPE(SevenJointTest);
 	};
 
 
 
-	class LoadDyna : public aris::plan::Plan
+	class SevenLoadDyna : public aris::plan::Plan
 	{
 	public:
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
 		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
 		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
 
-		explicit LoadDyna(const std::string &name = "LoadDyna");
-		ARIS_REGISTER_TYPE(LoadDyna);
-	};
-
-	class SaveFile : public aris::plan::Plan
-	{
-	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-
-		explicit SaveFile(const std::string &name = "SaveFile");
-		ARIS_REGISTER_TYPE(SaveFile);
+		explicit SevenLoadDyna(const std::string &name = "SevenLoadDyna");
+		ARIS_REGISTER_TYPE(SevenLoadDyna);
 	};
 
 

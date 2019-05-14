@@ -34,7 +34,7 @@ namespace JointDynamicsInt
 	double CoefParasJointInv[JointReduceDim* JointGroupDim] = { 0 };
 
         jointdynamics();
-        void JointCollision(const double * q, const double *dq,const double *ddq,const double *ts, const double *estParas, double * CoefInv, double * CollisionFT);
+        void JointCollision(const double * q, const double *dq,const double *ddq,const double *ts, const double *estParas, const double * CoefInv, const double * Coef, const double * LoadParas, double * CollisionFT);
         void RLS(const double *positionList, const double *sensorList, double *estParas, double *Coef, double *CoefInv, double *StatisError);
 		void LoadRLS(const double *positionList, const double *sensorList, double *estParas, double *Coef,double *StatisError);
 		void LoadParasExt(const double *dEst, const double *dCoef, double *Load);

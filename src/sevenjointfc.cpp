@@ -1,35 +1,35 @@
-﻿#include "jointfc.h"
+﻿#include "sevenjointfc.h"
 #include <math.h>
 #include <algorithm>
 #include"robotconfig.h"
-#include"jointdynamics.h"
+#include"sevenjointdynamics.h"
 
 using namespace std;
 using namespace aris::plan;
 using namespace aris::dynamic;
 using namespace CONFIG;
-using namespace JointDynamicsInt;
+using namespace SevenJointDynamicsInt;
 /// \brief
 
-jointdynamics JointMatrix;
+sevenjointdynamics SevenJointMatrix;
 
 
-std::vector<double> AngleList_vec(6 * SampleNum);
-auto AngleList = AngleList_vec.data();
-std::vector<double> TorqueList_vec(6 * SampleNum);
-auto TorqueList = TorqueList_vec.data();
+std::vector<double> SevenAngleList_vec(7 * SampleNum);
+auto SevenAngleList = SevenAngleList_vec.data();
+std::vector<double> SevenTorqueList_vec(7 * SampleNum);
+auto SevenTorqueList = SevenTorqueList_vec.data();
 
 
-struct JointDynaParam
+struct SevenJointDynaParam
 {
 	double period;
 	double amplitude;
 
 };
-vector<vector<double>> POSRLS(13);
-auto JointDyna::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+vector<vector<double>> SevenPOSRLS(14);
+auto SevenJointDyna::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 {
-	JointDynaParam param;
+	SevenJointDynaParam param;
 
 	for (auto &p : params)
 	{
@@ -59,16 +59,50 @@ auto JointDyna::prepairNrt(const std::map<std::string, std::string> &params, Pla
 		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 
+
+	int nn = 14; // n代表txt文档中数据的列数
+
+
+	for (int j = 0; j < nn; j++)
+	{
+		SevenPOSRLS[j].clear();
+	}
+	string filePath = "C:/Users/gk/Desktop/build_kaanh_gk/test2.txt";
+
+	ifstream oplog;
+	oplog.open(filePath);
+	if (!oplog)
+	{
+		cout << "fail to open the file" << endl;
+		throw std::runtime_error("fail to open the file");
+		//return -1;//或者抛出异常。
+	}
+	while (!oplog.eof())
+	{
+		for (int j = 0; j < nn; j++)
+		{
+			double data;
+			oplog >> data;
+			SevenPOSRLS[j].push_back(data);
+		}
+	}
+	oplog.close();
+	oplog.clear();
+	for (int j = 0; j < nn; j++)
+	{
+		SevenPOSRLS[j].pop_back();
+	}
+
 }
-auto JointDyna::executeRT(PlanTarget &target)->int
+auto SevenJointDyna::executeRT(PlanTarget &target)->int
 {
-	auto &param = std::any_cast<JointDynaParam&>(target.param);
+	auto &param = std::any_cast<SevenJointDynaParam&>(target.param);
 	static int CollectNum = 1;
-	static double begin_pjs[RobotAxis];
-	static double step_pjs[RobotAxis];
+	static double begin_pjs[7];
+	static double step_pjs[7];
 	static double perVar = 0;
 	static double ampVar = 0;
-
+	
 	if (target.count < 1000)
 	{
 		ampVar = ampVar + param.amplitude / 1000;
@@ -78,21 +112,21 @@ auto JointDyna::executeRT(PlanTarget &target)->int
 	{
 		for (int i = 0; i < RobotAxis; i++)
 		{
-			begin_pjs[i] = target.model->motionPool()[i].mp();
-			step_pjs[i] = target.model->motionPool()[i].mp();
+			begin_pjs[i] = 0;//target.model->motionPool()[i].mp();
+			step_pjs[i] = 0;//target.model->motionPool()[i].mp();
 		}
 	}
 	param.period = 60;
 
 
-    static bool flag[6] = {true,true,true,true,true,true};
-    double PosLimit[6] = { 1,0.5,0.5,1,1,1 };
-    double NegLimit[6] = { -1,-0.5,-0.5,-1,-1,-1 };
+    static bool flag[7] = {true,true,true,true,true,true,true};
+    double PosLimit[7] = { 1,0.5,0.5,1,1,1,1 };
+    double NegLimit[7] = { -1,-0.5,-0.5,-1,-1,-1,-1 };
     double dTheta = 0.00001;
-	static double pArc[6], vArc[6], aArc[6], vArcMax[6] = { 0.15,0.15,0.15,0.15,0.15,0.15 };
-	static aris::Size t_count[6] = { 0 };
+	static double pArc[7], vArc[7], aArc[7], vArcMax[7] = { 0.15,0.15,0.15,0.15,0.15,0.15,0.15};
+	static aris::Size t_count[7] = { 0 };
 
-	static int CountOffsetPos[6] = { 1,1,1,1,1,1 }, CountOffsetNeg[6] = { 1,1,1,1,1,1 };
+	static int CountOffsetPos[7] = { 1,1,1,1,1,1,1 }, CountOffsetNeg[7] = { 1,1,1,1,1,1,1 };
 
 
 	for (int i = 0;i < 6;i++)
@@ -137,13 +171,10 @@ auto JointDyna::executeRT(PlanTarget &target)->int
 	}
 
 
-
 	if (!target.model->solverPool().at(1).kinPos())return -1;
 
 	// 访问主站 //
 	auto controller = target.controller;
-
-	
 
 	// 打印电流 //
 	auto &cout = controller->mout();
@@ -161,90 +192,73 @@ auto JointDyna::executeRT(PlanTarget &target)->int
 
 	auto &lout = controller->lout();
 
-	double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
-    if (target.count % 8 == 0)
+	double f2c_index[7] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965, 107.566785527965 };
+    //if (target.count % 8 == 0)
 	{
-		for (int i = 0; i < 6; i++)
+		for (int i = 0; i < 7; i++)
 		{
 			//AngleList[RobotAxis * (target.count - 1) + i] = controller->motionAtAbs(i).actualPos();
 			//TorqueList[RobotAxis * (target.count - 1) + i] = controller->motionAtAbs(i).actualCur();
 
-            //AngleList[6 * (target.count - 1) + i] = POSRLS[i][target.count - 1];
-            //TorqueList[6 * (target.count - 1) + i] = POSRLS[i + 6][target.count - 1] / f2c_index[i];
+			SevenAngleList[7 * (target.count - 1) + i] = SevenPOSRLS[i][target.count - 1];
+			SevenTorqueList[7 * (target.count - 1) + i] = SevenPOSRLS[i + 7][target.count - 1] / f2c_index[i];
 
-            AngleList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualPos();
-            TorqueList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
+			//SevenAngleList[7 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualPos();
+			//SevenTorqueList[7 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
 		}
 
 		lout << target.count << ",";
-		lout << AngleList[RobotAxis * (CollectNum - 1) + 0] << ",";lout << AngleList[RobotAxis * (CollectNum - 1) + 1] << ",";
-		lout << AngleList[RobotAxis * (CollectNum - 1) + 2] << ",";lout << AngleList[RobotAxis * (CollectNum - 1) + 3] << ",";
-		lout << AngleList[RobotAxis * (CollectNum - 1) + 4] << ",";lout << AngleList[RobotAxis * (CollectNum - 1) + 5] << ",";
-		lout << TorqueList[RobotAxis * (CollectNum - 1) + 0] << ",";lout << TorqueList[RobotAxis * (CollectNum - 1) + 1] << ",";
-		lout << TorqueList[RobotAxis * (CollectNum - 1) + 2] << ",";lout << TorqueList[RobotAxis * (CollectNum - 1) + 3] << ",";
-		lout << TorqueList[RobotAxis * (CollectNum - 1) + 4] << ",";lout << TorqueList[RobotAxis * (CollectNum - 1) + 5] << ",";
+		lout << SevenAngleList[RobotAxis * (CollectNum - 1) + 0] << ",";lout << SevenAngleList[RobotAxis * (CollectNum - 1) + 1] << ",";
+		lout << SevenAngleList[RobotAxis * (CollectNum - 1) + 2] << ",";lout << SevenAngleList[RobotAxis * (CollectNum - 1) + 3] << ",";
+		lout << SevenAngleList[RobotAxis * (CollectNum - 1) + 4] << ",";lout << SevenAngleList[RobotAxis * (CollectNum - 1) + 5] << ",";
+		lout << SevenAngleList[RobotAxis * (CollectNum - 1) + 7] << ",";
+		lout << SevenTorqueList[RobotAxis * (CollectNum - 1) + 0] << ",";lout << SevenTorqueList[RobotAxis * (CollectNum - 1) + 1] << ",";
+		lout << SevenTorqueList[RobotAxis * (CollectNum - 1) + 2] << ",";lout << SevenTorqueList[RobotAxis * (CollectNum - 1) + 3] << ",";
+		lout << SevenTorqueList[RobotAxis * (CollectNum - 1) + 4] << ",";lout << SevenTorqueList[RobotAxis * (CollectNum - 1) + 5] << ",";
+		lout << SevenTorqueList[RobotAxis * (CollectNum - 1) + 7] << ",";
 
 		lout << std::endl;
 		CollectNum = CollectNum + 1;
 	}
 
-
+	CollectNum = target.count;
 	return SampleNum - CollectNum;
 }
 
 
-auto JointDyna::collectNrt(aris::plan::PlanTarget &target)->void
+auto SevenJointDyna::collectNrt(aris::plan::PlanTarget &target)->void
 {
 	
-	double StatisError[6] = { 0,0,0,0,0,0 };
+	double StatisError[7] = { 0};
 	//  auto controller = target.controller;
 	 // auto &lout = controller->lout();
 	std::cout << "collect" << std::endl;
 
 
-	JointMatrix.RLS(AngleList, TorqueList, JointMatrix.estParasJoint, JointMatrix.CoefParasJoint, JointMatrix.CoefParasJointInv, StatisError);
+	SevenJointMatrix.SevenRLS(SevenAngleList, SevenTorqueList, SevenJointMatrix.estParasJoint, SevenJointMatrix.CoefParasJoint, SevenJointMatrix.CoefParasJointInv, StatisError);
 
 	
 	//std::cout<<"collect"<<std::endl;
-	for (int i = 0;i < JointReduceDim+12;i++)
-		cout << JointMatrix.estParasJoint[i] << ",";
+	for (int i = 0;i < JointReduceDim+14;i++)
+		cout << SevenJointMatrix.estParasJoint[i] << ",";
 
-	aris::core::Matrix mat0(1,JointReduceDim + 12, JointMatrix.estParasJoint);
-	if (target.model->variablePool().findByName("estParasJoint") !=
-		target.model->variablePool().end())
+
+	/*
+	//Save Estimated Paras
+	ofstream outfile("C:/Users/gk/Desktop/Kaanh_gk/EstParas.txt");
+	if (!outfile)
 	{
-		dynamic_cast<aris::dynamic::MatrixVariable*>(
-			&*target.model->variablePool().findByName("estParasJoint"))->data() = mat0;
-	}
-	else
-	{
-		target.model->variablePool().add<aris::dynamic::MatrixVariable>("estParasJoint", mat0);
+		cout << "Unable to open otfile";
+		exit(1); // terminate with error
 	}
 
-	aris::core::Matrix mat1(1,JointReduceDim*JointGroupDim, JointMatrix.CoefParasJoint);
-	if (target.model->variablePool().findByName("CoefParasJoint") !=
-		target.model->variablePool().end())
+	for (int k = 0; k < JointGroupDim; k++)
 	{
-		dynamic_cast<aris::dynamic::MatrixVariable*>(
-			&*target.model->variablePool().findByName("CoefParasJoint"))->data() = mat1;
+		outfile << estParas[k] << "   " << std::endl;
+		//cout << "success outfile " << endl;
 	}
-	else
-	{
-		target.model->variablePool().add<aris::dynamic::MatrixVariable>("CoefParasJoint", mat1);
-	}
-	
-	aris::core::Matrix mat2(1,JointReduceDim*JointGroupDim, JointMatrix.CoefParasJointInv);
-	if (target.model->variablePool().findByName("CoefParasJointInv") !=
-		target.model->variablePool().end())
-	{
-		dynamic_cast<aris::dynamic::MatrixVariable*>(
-			&*target.model->variablePool().findByName("CoefParasJointInv"))->data() = mat2;
-	}
-	else
-	{
-		target.model->variablePool().add<aris::dynamic::MatrixVariable>("CoefParasJointInv", mat2);
-	}
-
+	outfile.close();
+	*/
 
 	std::cout << endl;
 	std::cout << "*****************************Statictic Model Error*****************************************" << std::endl;
@@ -259,11 +273,11 @@ auto JointDyna::collectNrt(aris::plan::PlanTarget &target)->void
 }
 
 
-JointDyna::JointDyna(const std::string &name) :Plan(name)
+SevenJointDyna::SevenJointDyna(const std::string &name) :Plan(name)
 {
 
 	command().loadXmlStr(
-		"<Command name=\"JointDyna\">"
+		"<Command name=\"SevenJointDyna\">"
 		"	<GroupParam>"
 		"		<Param name=\"period\"default=\"20.0\"/>"
 		"		<Param name=\"amplitude\" default=\"0.2\"/>"
@@ -278,7 +292,7 @@ struct JointTestParam
 	double amplitude;
 
 };
-auto JointTest::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+auto SevenJointTest::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 {
 	JointTestParam param;
 
@@ -310,25 +324,9 @@ auto JointTest::prepairNrt(const std::map<std::string, std::string> &params, Pla
 		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 
-	//读取动力学参数
-	auto mat0 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("estParasJoint"));
-	for (int i = 0;i < JointReduceDim + 12;i++)
-		JointMatrix.estParasJoint[i] = mat0->data().data()[i];
-
-	auto mat1 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("CoefParasJoint"));
-	for (int i = 0;i < JointReduceDim*JointGroupDim;i++)
-		JointMatrix.CoefParasJoint[i] = mat1->data().data()[i];
-
-	auto mat2 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("CoefParasJointInv"));
-	for (int i = 0;i < JointReduceDim*JointGroupDim;i++)
-		JointMatrix.CoefParasJointInv[i] = mat2->data().data()[i];
-
-	auto mat3 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("LoadParas"));
-	for (int i = 0;i < 10;i++)
-		JointMatrix.LoadParas[i] = mat3->data().data()[i];
 
 }
-auto JointTest::executeRT(PlanTarget &target)->int
+auto SevenJointTest::executeRT(PlanTarget &target)->int
 {
 	auto &param = std::any_cast<JointTestParam&>(target.param);
 
@@ -344,28 +342,28 @@ auto JointTest::executeRT(PlanTarget &target)->int
 	// 获取当前起始点位置 //
 	if (target.count == 1)
 	{
-		for (int i = 0; i < 6; i++)
+		for (int i = 0; i < 7; i++)
 		{
-			begin_pjs[i] = target.model->motionPool()[i].mp();
-			step_pjs[i] = target.model->motionPool()[i].mp();
+			begin_pjs[i] = 0;//target.model->motionPool()[i].mp();
+			step_pjs[i] = 0;//target.model->motionPool()[i].mp();
 		}
 	}
 	param.period = 10;
 
 
-	double CollisionFT[6],q[6],dq[6],ddq[6],ts[6];
+	double CollisionFT[7],q[7],dq[7],ddq[7],ts[7];
 	double omega = 0;
-	for (int i = 0; i < 6; i++)
+	for (int i = 0; i < 7; i++)
 	{
 		step_pjs[i] = begin_pjs[i] + ampVar *sin(2 * aris::PI / param.period*target.count / 1000);
 
-		target.model->motionPool().at(i).setMp(step_pjs[i]);
+		//target.model->motionPool().at(i).setMp(step_pjs[i]);
 		omega = 2 * aris::PI / param.period;
 		q[i]= begin_pjs[i] + ampVar * sin(omega * target.count / 1000);
         dq[i] = ampVar * omega * sin(omega*target.count / 1000+aris::PI/2);
         ddq[i] = ampVar * omega* omega * sin(omega*target.count / 1000 + aris::PI);
 	}
-	double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
+	double f2c_index[7] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
 
 	
 	// 访问主站 //
@@ -373,13 +371,13 @@ auto JointTest::executeRT(PlanTarget &target)->int
 	// 打印电流 //
 	auto &cout = controller->mout();
 
-	for (int i = 0;i < 6;i++)
+	for (int i = 0;i < 7;i++)
 	{
-		ts[i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
+		ts[i] = 0;//controller->motionAtAbs(i).actualCur() / f2c_index[i];
 	}
 	
 
-	JointMatrix.JointCollision(q, dq, ddq, ts, JointMatrix.estParasJoint, JointMatrix.CoefParasJointInv, JointMatrix.CoefParasJoint, JointMatrix.LoadParas,CollisionFT);
+	SevenJointMatrix.SevenJointCollision(q, dq, ddq, ts, SevenJointMatrix.estParasJoint, SevenJointMatrix.CoefParasJointInv,CollisionFT);
 
 	if (!target.model->solverPool().at(1).kinPos())return -1;
 
@@ -402,11 +400,11 @@ auto JointTest::executeRT(PlanTarget &target)->int
 	return 100000 - target.count;
 }
 
-JointTest::JointTest(const std::string &name) :Plan(name)
+SevenJointTest::SevenJointTest(const std::string &name) :Plan(name)
 {
 
 	command().loadXmlStr(
-		"<Command name=\"JointTest\">"
+		"<Command name=\"SevenJointTest\">"
 		"	<GroupParam>"
 		"		<Param name=\"period\"default=\"20.0\"/>"
 		"		<Param name=\"amplitude\" default=\"0.2\"/>"
@@ -420,7 +418,7 @@ JointTest::JointTest(const std::string &name) :Plan(name)
 
 
 
-struct LoadDynaParam
+struct SevenLoadDynaParam
 {
 	double period;
 	double amplitude;
@@ -428,9 +426,9 @@ struct LoadDynaParam
 
 };
 
-auto LoadDyna::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+auto SevenLoadDyna::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 {
-	LoadDynaParam param;
+	SevenLoadDynaParam param;
 
 	for (auto &p : params)
 	{
@@ -522,11 +520,11 @@ auto LoadDyna::prepairNrt(const std::map<std::string, std::string> &params, Plan
 	s_mm(3, 2, 3, TestQ, TestR, U);
 	int s = 4;*/
 }
-
-int CollectNum=1;
-auto LoadDyna::executeRT(PlanTarget &target)->int
+auto SevenLoadDyna::executeRT(PlanTarget &target)->int
 {
-	auto &param = std::any_cast<LoadDynaParam&>(target.param);
+	auto &param = std::any_cast<SevenLoadDynaParam&>(target.param);
+
+    static int CollectNum=1;
 	static double begin_pjs[RobotAxis];
 	static double step_pjs[RobotAxis];
 	static double perVar = 0;
@@ -546,16 +544,16 @@ auto LoadDyna::executeRT(PlanTarget &target)->int
 		}
 	}
 
-	static bool flag[6] = {true,true,true,true,true,true};
-    double PosLimit[6] = { 1,1,0.2,1,0.5,1 };
-    double NegLimit[6] = { -1,-1,-0.2,-1,-0.5,-1 };
+	static bool flag[7] = {true,true,true,true,true,true,true};
+    double PosLimit[7] = { 1,1,0.2,1,0.5,1,1 };
+    double NegLimit[7] = { -1,-1,-0.2,-1,-0.5,-1,-1 };
 	double dTheta = 0.0001;
-	static double pArc[6], vArc[6], aArc[6], vArcMax[6] = { 0.15,0.15,0.15,0.15,0.15,0.15 };
-	static aris::Size t_count[6] = { 0 };
+	static double pArc[7], vArc[7], aArc[7], vArcMax[7] = { 0.15,0.15,0.15,0.15,0.15,0.15,0.15};
+	static aris::Size t_count[7] = { 0 };
 	
-	static int CountOffsetPos[6] = { 1,1,1,1,1,1 }, CountOffsetNeg[6] = { 1,1,1,1,1,1};
+	static int CountOffsetPos[7] = { 1,1,1,1,1,1,1 }, CountOffsetNeg[7] = { 1,1,1,1,1,1,1};
 
-	for (int i = 0;i < 6;i++)
+	for (int i = 0;i < 7;i++)
 	{
 		
 		if (flag[i])
@@ -625,7 +623,7 @@ auto LoadDyna::executeRT(PlanTarget &target)->int
 
 	auto &lout = controller->lout();
 
-	double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
+	double f2c_index[7] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
 
 	
 
@@ -639,94 +637,47 @@ auto LoadDyna::executeRT(PlanTarget &target)->int
             //AngleList[6 * (target.count - 1) + i] = POSRLS[i][target.count - 1];
             //TorqueList[6 * (target.count - 1) + i] = POSRLS[i + 6][target.count - 1];
 
-            AngleList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualPos();
-            TorqueList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
+			SevenAngleList[7 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualPos();
+			SevenTorqueList[7 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
         }
 	
         lout << target.count << ",";
-        lout << AngleList[RobotAxis * (CollectNum - 1) + 0] << ",";lout << AngleList[RobotAxis * (CollectNum - 1) + 1] << ",";
-        lout << AngleList[RobotAxis * (CollectNum - 1) + 2] << ",";lout << AngleList[RobotAxis * (CollectNum - 1) + 3] << ",";
-        lout << AngleList[RobotAxis * (CollectNum - 1) + 4] << ",";lout << AngleList[RobotAxis * (CollectNum - 1) + 5] << ",";
-        lout << TorqueList[RobotAxis * (CollectNum - 1) + 0] << ",";lout << TorqueList[RobotAxis * (CollectNum - 1) + 1] << ",";
-        lout << TorqueList[RobotAxis * (CollectNum - 1) + 2] << ",";lout << TorqueList[RobotAxis * (CollectNum - 1) + 3] << ",";
-        lout << TorqueList[RobotAxis * (CollectNum - 1) + 4] << ",";lout << TorqueList[RobotAxis * (CollectNum - 1) + 5] << ",";
+        lout << SevenAngleList[RobotAxis * (CollectNum - 1) + 0] << ",";lout << SevenAngleList[RobotAxis * (CollectNum - 1) + 1] << ",";
+        lout << SevenAngleList[RobotAxis * (CollectNum - 1) + 2] << ",";lout << SevenAngleList[RobotAxis * (CollectNum - 1) + 3] << ",";
+        lout << SevenAngleList[RobotAxis * (CollectNum - 1) + 4] << ",";lout << SevenAngleList[RobotAxis * (CollectNum - 1) + 5] << ",";
+		lout << SevenAngleList[RobotAxis * (CollectNum - 1) + 6] << ",";
+        lout << SevenTorqueList[RobotAxis * (CollectNum - 1) + 0] << ",";lout << SevenTorqueList[RobotAxis * (CollectNum - 1) + 1] << ",";
+        lout << SevenTorqueList[RobotAxis * (CollectNum - 1) + 2] << ",";lout << SevenTorqueList[RobotAxis * (CollectNum - 1) + 3] << ",";
+        lout << SevenTorqueList[RobotAxis * (CollectNum - 1) + 4] << ",";lout << SevenTorqueList[RobotAxis * (CollectNum - 1) + 5] << ",";
+		lout << SevenTorqueList[RobotAxis * (CollectNum - 1) + 6] << ",";
 
         lout << std::endl;
         CollectNum=CollectNum+1;
     }
 	
-	
+
     return SampleNum - CollectNum;
 }
 
 
-auto LoadDyna::collectNrt(aris::plan::PlanTarget &target)->void
+auto SevenLoadDyna::collectNrt(aris::plan::PlanTarget &target)->void
 {
-	CollectNum = 1;
-	auto &param = std::any_cast<LoadDynaParam&>(target.param);
+	auto &param = std::any_cast<SevenLoadDynaParam&>(target.param);
 	double dEst[LoadTotalParas] = { 0 };
 	double dCoef[LoadReduceParas*10] = { 0 };
-	double StatisError[3] = {0,0,0};
+	double StatisError[3] = { 0,0,0};
 	//  auto controller = target.controller;
 	 // auto &lout = controller->lout();
     std::cout << "param.InitEst" << std::endl;
+
 	
-	//double data[10]{ 0.0 };
-	//aris::core::Matrix mat(10,1,data);
-	//aris::core::Matrix mat2 = { { 1.0,2.0,3.0 }, { 1.0,2.0,3.0 } };
-	//target.model->variablePool().add<aris::dynamic::MatrixVariable>("p0", mat);
-	
-	//auto mat = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("p0"));
 
-
-	if (param.amplitude > 0)
-	{
-		JointMatrix.LoadRLS(AngleList, TorqueList, JointMatrix.estParasL0, JointMatrix.CoefParasL0, StatisError);
-		for (int i = 0;i < LoadReduceParas + 6;i++)
-			cout << JointMatrix.estParasL0[i] << ",";
-
-		aris::core::Matrix mat0(1,LoadReduceParas + 6, JointMatrix.estParasL0);
-		if (target.model->variablePool().findByName("estParasL0") !=
-			target.model->variablePool().end())
-		{
-			dynamic_cast<aris::dynamic::MatrixVariable*>(
-				&*target.model->variablePool().findByName("estParasL0"))->data() = mat0;
-		}
-		else
-		{
-			target.model->variablePool().add<aris::dynamic::MatrixVariable>("estParasL0", mat0);
-		}
-
-		
-		aris::core::Matrix mat1(1,LoadReduceParas*LoadTotalParas, JointMatrix.CoefParasL0);
-		if (target.model->variablePool().findByName("CoefParasL0") !=
-			target.model->variablePool().end())
-		{
-			dynamic_cast<aris::dynamic::MatrixVariable*>(
-				&*target.model->variablePool().findByName("CoefParasL0"))->data() = mat1;
-		}
-		else
-		{
-			target.model->variablePool().add<aris::dynamic::MatrixVariable>("CoefParasL0", mat1);
-		}
-
-		cout << "collect0" <<endl;
-	}
+	SevenJointMatrix.SevenLoadRLS(SevenAngleList, SevenTorqueList, SevenJointMatrix.estParasL0, SevenJointMatrix.CoefParasL0,StatisError);
+        std::cout << "collect" << std::endl;
+    /*
 	else
 	{
-
-		auto mat0 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("estParasL0"));
-		for (int i = 0;i < LoadReduceParas + 6;i++)
-			JointMatrix.estParasL0[i] = mat0->data().data()[i];
-
-		auto mat1 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("CoefParasL0"));
-		for (int i = 0;i < LoadReduceParas*LoadTotalParas;i++)
-			JointMatrix.CoefParasL0[i] = mat0->data().data()[i];
-
-
 		JointMatrix.LoadRLS(AngleList, TorqueList, JointMatrix.estParasL, JointMatrix.CoefParasL,StatisError);
-
-
 		for (int i = 0;i < LoadReduceParas;i++)
 			dEst[i] = JointMatrix.estParasL[i] - JointMatrix.estParasL0[i];
 
@@ -734,26 +685,33 @@ auto LoadDyna::collectNrt(aris::plan::PlanTarget &target)->void
 			for (int j = 0;j < 10;j++)
 				dCoef[i * 10 + j] = JointMatrix.CoefParasL[i*LoadTotalParas+30+j] - JointMatrix.CoefParasL0[i * LoadTotalParas + 30 + j];
 
-
 		JointMatrix.LoadParasExt(dEst,dCoef, JointMatrix.LoadParas);
-		for (int i = 0;i < 10;i++)
-			cout << JointMatrix.LoadParas[i] << ",";
-
-		aris::core::Matrix mat2(1,10, JointMatrix.LoadParas);
-		if (target.model->variablePool().findByName("LoadParas") !=
-			target.model->variablePool().end())
-		{
-			dynamic_cast<aris::dynamic::MatrixVariable*>(
-				&*target.model->variablePool().findByName("LoadParas"))->data() = mat2;
-		}
-		else
-		{
-			target.model->variablePool().add<aris::dynamic::MatrixVariable>("LoadParas", mat2);
-		}
-		
-    }
 
 
+    }*/
+	
+
+
+	//std::cout<<"collect"<<std::endl;
+	for (int i = 0;i < LoadReduceParas+7;i++)
+        cout << SevenJointMatrix.estParasL0[i] << ",";
+
+	/*
+	//Save Estimated Paras
+	ofstream outfile("C:/Users/gk/Desktop/Kaanh_gk/EstParas.txt");
+	if (!outfile)
+	{
+		cout << "Unable to open otfile";
+		exit(1); // terminate with error
+	}
+
+	for (int k = 0; k < JointGroupDim; k++)
+	{
+		outfile << estParas[k] << "   " << std::endl;
+		//cout << "success outfile " << endl;
+	}
+	outfile.close();
+	*/
 
 	std::cout << endl;
 	std::cout << "*****************************Statictic Model Error*****************************************" << std::endl;
@@ -763,45 +721,17 @@ auto LoadDyna::collectNrt(aris::plan::PlanTarget &target)->void
 }
 
 
-LoadDyna::LoadDyna(const std::string &name) :Plan(name)
+SevenLoadDyna::SevenLoadDyna(const std::string &name) :Plan(name)
 {
 
 	command().loadXmlStr(
-		"<Command name=\"LoadDyna\">"
+		"<Command name=\"SevenLoadDyna\">"
 		"	<GroupParam>"
 		"		<Param name=\"period\"default=\"20.0\"/>"
 		"		<Param name=\"amplitude\" default=\"0.2\"/>"
 		"	</GroupParam>"
 		"</Command>");
 
-}
-
-struct SaveFileParam
-{
-	string gk_path;
-};
-
-auto SaveFile::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
-{
-	auto&cs = aris::server::ControlServer::instance();
-	SaveFileParam p;
-	p.gk_path = params.at("gk_path");
-	cs.saveXmlFile(p.gk_path.c_str());
-	//target.server->stop();
-	//target.server->saveXmlFile("C:/Users/qianch_kaanh_cn/Desktop/build_qianch/rokae.xml");		
-	//doc.SaveFile("C:/Users/qianch_kaanh_cn/Desktop/build_qianch/rokae.xml");
-	target.option |= NOT_RUN_COLLECT_FUNCTION;
-	target.option |= NOT_RUN_EXECUTE_FUNCTION;
-}
-
-SaveFile::SaveFile(const std::string &name) :Plan(name)
-{
-	command().loadXmlStr(
-		"<Command name=\"svFi\">"
-		"	<GroupParam>"
-		"	    <Param name=\"gk_path\" default=\"C:/Users/gk/Desktop/build_kaanh_gk/rokae.xml\"/>"
-		"	</GroupParam>"
-		"</Command>");
 }
 
 

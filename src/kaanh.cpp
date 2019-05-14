@@ -2,6 +2,7 @@
 #include"kaanh.h"
 #include "sixdistalfc.h"
 #include "jointfc.h"
+#include "sevenjointfc.h"
 #include <array>
 
 
@@ -2860,6 +2861,11 @@ namespace kaanh
 		plan_root->planPool().add<JointDyna>();
 		plan_root->planPool().add<JointTest>();
 		plan_root->planPool().add<LoadDyna>();
+		plan_root->planPool().add<SaveFile>();
+
+		plan_root->planPool().add<SevenJointDyna>();
+		plan_root->planPool().add<SevenJointTest>();
+		plan_root->planPool().add<SevenLoadDyna>();
 
 		plan_root->planPool().add<cplan::MoveCircle>();
 		plan_root->planPool().add<cplan::MoveTroute>();
