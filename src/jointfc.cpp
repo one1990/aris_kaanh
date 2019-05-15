@@ -392,17 +392,17 @@ auto JointTest::executeRT(PlanTarget &target)->int
     lout << CollisionFT[2] << ",";lout << CollisionFT[3] << ",";
     lout << CollisionFT[4] << ",";lout <<CollisionFT[5] << ",";
 
-    lout << q[0] << ",";lout << q[1] << ",";
-    lout << q[2] << ",";lout << q[3] << ",";
-    lout << q[4] << ",";lout << q[5] << ",";
+    //lout << q[0] << ",";lout << q[1] << ",";
+    //lout << q[2] << ",";lout << q[3] << ",";
+    //lout << q[4] << ",";lout << q[5] << ",";
 
-    lout << dq[0] << ",";lout << dq[1] << ",";
-    lout << dq[2] << ",";lout << dq[3] << ",";
-    lout << dq[4] << ",";lout << dq[5] << ",";
+    //lout << dq[0] << ",";lout << dq[1] << ",";
+    //lout << dq[2] << ",";lout << dq[3] << ",";
+    //lout << dq[4] << ",";lout << dq[5] << ",";
 
-    lout << ddq[0] << ",";lout << ddq[1] << ",";
-    lout << ddq[2] << ",";lout << ddq[3] << ",";
-    lout << ddq[4] << ",";lout << ddq[5] << ",";
+    //lout << ddq[0] << ",";lout << ddq[1] << ",";
+    //lout << ddq[2] << ",";lout << ddq[3] << ",";
+    //lout << ddq[4] << ",";lout << ddq[5] << ",";
 
     lout<<endl;
 	
@@ -411,7 +411,7 @@ auto JointTest::executeRT(PlanTarget &target)->int
 	{
 		//for (int i = 0; i < 6; i++)
 		{
-            cout << CollisionFT[0] << "***"<< CollisionFT[1] << "***"<< CollisionFT[2] << "***";
+            cout << CollisionFT[0] << "***"<< CollisionFT[1] << "***"<< CollisionFT[2] << "***"<< CollisionFT[3] << "***"<< CollisionFT[4] << "***"<< CollisionFT[5] << "***";
 			//cout << "vel" << i + 1 << ":" << target.model->motionPool()[i].mv() << "  ";
 			//cout << "cur" << i + 1 << ":" << target.model->motionPool()[i].ma() << "  ";
 		}
@@ -421,7 +421,7 @@ auto JointTest::executeRT(PlanTarget &target)->int
 
 	
 
-    return 3000 - target.count;
+    return 300000 - target.count;
 }
 
 JointTest::JointTest(const std::string &name) :Plan(name)
@@ -814,7 +814,7 @@ auto SaveFile::prepairNrt(const std::map<std::string, std::string> &params, Plan
 	SaveFileParam p;
 	p.gk_path = params.at("gk_path");
 
-    //cs.saveXmlFile(xmlpath.c_str());
+    cs.saveXmlFile(xmlpath.c_str());
 	//target.server->stop();
 	//target.server->saveXmlFile("C:/Users/qianch_kaanh_cn/Desktop/build_qianch/rokae.xml");		
 	//doc.SaveFile("C:/Users/qianch_kaanh_cn/Desktop/build_qianch/rokae.xml");
