@@ -192,6 +192,221 @@ namespace kaanh
 		return std::move(model);
 	}
 
+    auto createControllerdaye()->std::unique_ptr<aris::control::Controller>	/*函数返回的是一个类指针，指针指向Controller,controller的类型是智能指针std::unique_ptr*/
+    {
+
+        std::unique_ptr<aris::control::Controller> controller(aris::robot::createControllerRokaeXB4());/*创建std::unique_ptr实例*/
+
+        controller->slavePool().clear();	//清除slavePool中的元素，后面重新添加
+        for (aris::Size i = 0; i < 6; ++i)
+        {
+#ifdef WIN32
+            double pos_offset[6]
+            {
+                0,0,0,0,0,0
+            };
+#endif
+#ifdef UNIX
+            double pos_offset[6]
+            {
+                0.0345045068966465,   0.151295566371175,   -0.181133422007823,   0.00569660673541914,   0.0119907348546894,   0.0908806917782888
+            };
+#endif
+            double pos_factor[6]
+            {
+                131072.0 * 129.6 / 2 / PI, -131072.0 * 100 / 2 / PI, 131072.0 * 101 / 2 / PI, 131072.0 * 81.6 / 2 / PI, 131072.0 * 81 / 2 / PI, 131072.0 * 51 / 2 / PI
+            };
+            double max_pos[6]
+            {
+                170.0 / 360 * 2 * PI, 40.0 / 360 * 2 * PI,	150.0 / 360 * 2 * PI, 180.0 / 360 * 2 * PI, 125.0 / 360 * 2 * PI, 360.0 / 360 * 2 * PI
+            };
+            double min_pos[6]
+            {
+                -170.0 / 360 * 2 * PI, -165.0 / 360 * 2 * PI, -125.0 / 360 * 2 * PI, -180.0 / 360 * 2 * PI, -125.0 / 360 * 2 * PI, -360.0 / 360 * 2 * PI
+            };
+            double max_vel[6]
+            {
+                230.0 / 360 * 2 * PI, 300.0 / 360 * 2 * PI, 300.0 / 360 * 2 * PI, 300.0 / 360 * 2 * PI, 375.0 / 360 * 2 * PI, 600.0 / 360 * 2 * PI
+            };
+            double max_acc[6]
+            {
+                1150.0 / 360 * 2 * PI, 1500.0 / 360 * 2 * PI, 1500.0 / 360 * 2 * PI, 1500.0 / 360 * 2 * PI, 1875.0 / 360 * 2 * PI, 3000.0 / 360 * 2 * PI
+            };
+
+            std::string xml_str =
+                "<EthercatMotion phy_id=\"" + std::to_string(i) + "\" product_code=\"0x01\""
+                " vendor_id=\"0x00000748\" revision_num=\"0x0002\" dc_assign_activate=\"0x0300\""
+                " min_pos=\"" + std::to_string(min_pos[i]) + "\" max_pos=\"" + std::to_string(max_pos[i]) + "\" max_vel=\"" + std::to_string(max_vel[i]) + "\" min_vel=\"" + std::to_string(-max_vel[i]) + "\""
+                " max_acc=\"" + std::to_string(max_acc[i]) + "\" min_acc=\"" + std::to_string(-max_acc[i]) + "\" max_pos_following_error=\"0.1\" max_vel_following_error=\"0.5\""
+                " home_pos=\"0\" pos_factor=\"" + std::to_string(pos_factor[i]) + "\" pos_offset=\"" + std::to_string(pos_offset[i]) + "\">"
+                "	<SyncManagerPoolObject>"
+                "		<SyncManager is_tx=\"false\"/>"
+                "		<SyncManager is_tx=\"true\"/>"
+                "		<SyncManager is_tx=\"false\">"
+                "			<Pdo index=\"0x1600\" is_tx=\"false\">"
+                "				<PdoEntry name=\"control_word\" index=\"0x6040\" subindex=\"0x00\" size=\"16\"/>"
+                "				<PdoEntry name=\"target_pos\" index=\"0x607A\" subindex=\"0x00\" size=\"32\"/>"
+                "				<PdoEntry name=\"target_vel\" index=\"0x60FF\" subindex=\"0x00\" size=\"32\"/>"
+                "				<PdoEntry name=\"target_tor\" index=\"0x6071\" subindex=\"0x00\" size=\"16\"/>"
+                "				<PdoEntry name=\"mode_of_operation\" index=\"0x6060\" subindex=\"0x00\" size=\"8\"/>"
+                "				<PdoEntry name=\"dummy_byte\" index=\"0x5FFE\" subindex=\"0x00\" size=\"8\"/>"
+                "				<PdoEntry name=\"touch_probe_function\" index=\"0x60B8\" subindex=\"0x00\" size=\"16\"/>"
+                "				<PdoEntry name=\"pos_offset\" index=\"0x60B0\" subindex=\"0x00\" size=\"32\"/>"
+                "				<PdoEntry name=\"offset_vel\" index=\"0x60B1\" subindex=\"0x00\" size=\"32\"/>"
+                "				<PdoEntry name=\"tor_offset\" index=\"0x60B2\" subindex=\"0x00\" size=\"16\"/>"
+                "			</Pdo>"
+                "		</SyncManager>"
+                "		<SyncManager is_tx=\"true\">"
+                "			<Pdo index=\"0x1A00\" is_tx=\"true\">"
+                "				<PdoEntry name=\"status_word\" index=\"0x6041\" subindex=\"0x00\" size=\"16\"/>"
+                "				<PdoEntry name=\"pos_actual_value\" index=\"0x6064\" subindex=\"0x00\" size=\"32\"/>"
+                "				<PdoEntry name=\"vel_actual_value\" index=\"0x606c\" subindex=\"0x00\" size=\"32\"/>"
+                "				<PdoEntry name=\"cur_actual_value\" index=\"0x6077\" subindex=\"0x00\" size=\"16\"/>"
+                "				<PdoEntry name=\"mode_of_display\" index=\"0x6061\" subindex=\"0x00\" size=\"8\"/>"
+                "				<PdoEntry name=\"dummy_byte\" index=\"0x5FFF\" subindex=\"0x00\" size=\"8\"/>"
+                "				<PdoEntry name=\"following_error\" index=\"0x60F4\" subindex=\"0x00\" size=\"32\"/>"
+                "				<PdoEntry name=\"digital_inputs\" index=\"0x60FD\" subindex=\"0x00\" size=\"32\"/>"
+                "				<PdoEntry name=\"digital_inputs\" index=\"0x60B9\" subindex=\"0x00\" size=\"16\"/>"
+                "				<PdoEntry name=\"digital_inputs\" index=\"0x60BA\" subindex=\"0x00\" size=\"32\"/>"
+                "			</Pdo>"
+                "		</SyncManager>"
+                "	</SyncManagerPoolObject>"
+                "</EthercatMotion>";
+
+            controller->slavePool().add<aris::control::EthercatMotion>().loadXmlStr(xml_str);
+        }
+
+
+        std::string xml_str =
+            "<EthercatSlave phy_id=\"6\" product_code=\"0x00A71EC1\""
+            " vendor_id=\"0x00000732\" revision_num=\"0x00010001\" dc_assign_activate=\"0x300\">"
+            "	<SyncManagerPoolObject>"
+            "		<SyncManager is_tx=\"false\"/>"
+            "		<SyncManager is_tx=\"true\"/>"
+            "		<SyncManager is_tx=\"false\">"
+            "			<Pdo index=\"0x1601\" is_tx=\"false\">"
+            "				<PdoEntry name=\"Output_Instruction\" index=\"0x7010\" subindex=\"0x01\" size=\"16\"/>"
+            "				<PdoEntry name=\"Output_Para1\" index=\"0x7010\" subindex=\"0x02\" size=\"16\"/>"
+            "				<PdoEntry name=\"Output_Para2\" index=\"0x7010\" subindex=\"0x03\" size=\"16\"/>"
+            "			</Pdo>"
+            "		</SyncManager>"
+            "		<SyncManager is_tx=\"true\">"
+            "			<Pdo index=\"0x1A02\" is_tx=\"true\">"
+            "				<PdoEntry name=\"Int_Input_DataNo\" index=\"0x6020\" subindex=\"0x00\" size=\"16\"/>"
+            "				<PdoEntry name=\"Int_Input_Fx\" index=\"0x6020\" subindex=\"0x01\" size=\"32\"/>"
+            "				<PdoEntry name=\"Int_Input_Fy\" index=\"0x6020\" subindex=\"0x02\" size=\"32\"/>"
+            "				<PdoEntry name=\"Int_Input_Fz\" index=\"0x6020\" subindex=\"0x03\" size=\"32\"/>"
+            "				<PdoEntry name=\"Int_Input_Mx\" index=\"0x6020\" subindex=\"0x04\" size=\"32\"/>"
+            "				<PdoEntry name=\"Int_Input_My\" index=\"0x6020\" subindex=\"0x05\" size=\"32\"/>"
+            "				<PdoEntry name=\"Int_Input_Mz\" index=\"0x6020\" subindex=\"0x06\" size=\"32\"/>"
+            "			</Pdo>"
+            "			<Pdo index=\"0x1A03\" is_tx=\"true\">"
+            "				<PdoEntry name=\"Real_Input_DataNo\" index=\"0x6030\" subindex=\"0x00\" size=\"16\"/>"
+            "				<PdoEntry name=\"Real_Input_Fx\" index=\"0x6030\" subindex=\"0x01\" size=\"32\"/>"
+            "				<PdoEntry name=\"Real_Input_Fy\" index=\"0x6030\" subindex=\"0x02\" size=\"32\"/>"
+            "				<PdoEntry name=\"Real_Input_Fz\" index=\"0x6030\" subindex=\"0x03\" size=\"32\"/>"
+            "				<PdoEntry name=\"Real_Input_Mx\" index=\"0x6030\" subindex=\"0x04\" size=\"32\"/>"
+            "				<PdoEntry name=\"Real_Input_My\" index=\"0x6030\" subindex=\"0x05\" size=\"32\"/>"
+            "				<PdoEntry name=\"Real_Input_Mz\" index=\"0x6030\" subindex=\"0x06\" size=\"32\"/>"
+            "			</Pdo>"
+            "			<Pdo index=\"0x1A04\" is_tx=\"true\">"
+            "				<PdoEntry name=\"Res_Instruction\" index=\"0x6040\" subindex=\"0x01\" size=\"16\"/>"
+            "				<PdoEntry name=\"Res_Para1\" index=\"0x6040\" subindex=\"0x02\" size=\"16\"/>"
+            "				<PdoEntry name=\"Res_Para2\" index=\"0x6040\" subindex=\"0x03\" size=\"16\"/>"
+            "			</Pdo>"
+            "		</SyncManager>"
+            "	</SyncManagerPoolObject>"
+            "</EthercatSlave>";
+
+        controller->slavePool().add<aris::control::EthercatSlave>().loadXmlStr(xml_str);
+
+        return controller;
+    };
+    auto createModeldaye(const double *robot_pm)->std::unique_ptr<aris::dynamic::Model>
+    {
+        std::unique_ptr<aris::dynamic::Model> model = std::make_unique<aris::dynamic::Model>("model");
+
+        // 设置重力 //
+        const double gravity[6]{ 0.0,0.0,-9.8,0.0,0.0,0.0 };
+        model->environment().setGravity(gravity);
+
+        // 添加变量 //
+        model->calculator().addVariable("PI", aris::core::Matrix(PI));
+
+        // add part //
+        auto &p1 = model->partPool().add<Part>("L1");
+        auto &p2 = model->partPool().add<Part>("L2");
+        auto &p3 = model->partPool().add<Part>("L3");
+        auto &p4 = model->partPool().add<Part>("L4");
+        auto &p5 = model->partPool().add<Part>("L5");
+        auto &p6 = model->partPool().add<Part>("L6");
+
+        // add joint //
+        const double j1_pos[3]{ 0.0, 0.0, 0.237 };
+        const double j2_pos[3]{ 0.088, 0.017, 0.327, };
+        const double j3_pos[3]{ 0.088, 0.0236, 0.787 };
+        const double j4_pos[3]{ 0.127, 0.0, 0.827, };
+        const double j5_pos[3]{ 0.523, 0.036, 0.827, };
+        const double j6_pos[3]{ 0.607, 0.0, 0.827, };
+
+        const double j1_axis[6]{ 0.0, 0.0, 1.0 };
+        const double j2_axis[6]{ 0.0, 1.0, 0.0 };
+        const double j3_axis[6]{ 0.0, 1.0, 0.0 };
+        const double j4_axis[6]{ 1.0, 0.0, 0.0 };
+        const double j5_axis[6]{ 0.0, 1.0, 0.0 };
+        const double j6_axis[6]{ 1.0, 0.0, 0.0 };
+
+        auto &j1 = model->addRevoluteJoint(p1, model->ground(), j1_pos, j1_axis);
+        auto &j2 = model->addRevoluteJoint(p2, p1, j2_pos, j2_axis);
+        auto &j3 = model->addRevoluteJoint(p3, p2, j3_pos, j3_axis);
+        auto &j4 = model->addRevoluteJoint(p4, p3, j4_pos, j4_axis);
+        auto &j5 = model->addRevoluteJoint(p5, p4, j5_pos, j5_axis);
+        auto &j6 = model->addRevoluteJoint(p6, p5, j6_pos, j6_axis);
+
+        // add actuation //
+        auto &m1 = model->addMotion(j1);
+        auto &m2 = model->addMotion(j2);
+        auto &m3 = model->addMotion(j3);
+        auto &m4 = model->addMotion(j4);
+        auto &m5 = model->addMotion(j5);
+        auto &m6 = model->addMotion(j6);
+
+        // add ee general motion //
+        //double pq_ee_i[]{ 0.570, -0.114, 0.84, -0.0414, 0.0414, 0.706, 0.706 };		//x方向加上0.1
+        double pq_ee_i[]{ 0.566, -0.134, 0.840, -0.0405, 0.0424, 0.694, 0.718 };
+        double pm_ee_i[16];
+        double pm_ee_j[16]{ 1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1 };
+
+        s_pq2pm(pq_ee_i, pm_ee_i);
+
+        auto &makI = p6.markerPool().add<Marker>("ee_makI", pm_ee_i);
+        auto &makJ = model->ground().markerPool().add<Marker>("ee_makJ", pm_ee_j);
+        auto &ee = model->generalMotionPool().add<aris::dynamic::GeneralMotion>("ee", &makI, &makJ, false);
+
+        // change robot pose //
+        if (robot_pm)
+        {
+            p1.setPm(s_pm_dot_pm(robot_pm, *p1.pm()));
+            p2.setPm(s_pm_dot_pm(robot_pm, *p2.pm()));
+            p3.setPm(s_pm_dot_pm(robot_pm, *p3.pm()));
+            p4.setPm(s_pm_dot_pm(robot_pm, *p4.pm()));
+            p5.setPm(s_pm_dot_pm(robot_pm, *p5.pm()));
+            p6.setPm(s_pm_dot_pm(robot_pm, *p6.pm()));
+            j1.makJ().setPrtPm(s_pm_dot_pm(robot_pm, *j1.makJ().prtPm()));
+        }
+
+        // add solver
+        auto &inverse_kinematic = model->solverPool().add<aris::dynamic::PumaInverseKinematicSolver>();
+        auto &forward_kinematic = model->solverPool().add<ForwardKinematicSolver>();
+
+        inverse_kinematic.allocateMemory();
+        forward_kinematic.allocateMemory();
+
+        inverse_kinematic.setWhichRoot(8);
+
+        return model;
+    }
+
 	auto createControllerSanXiang()->std::unique_ptr<aris::control::Controller>	/*函数返回的是一个类指针，指针指向Controller,controller的类型是智能指针std::unique_ptr*/
 	{
 		std::unique_ptr<aris::control::Controller> controller(new aris::control::EthercatController);/*创建std::unique_ptr实例*/

@@ -36,6 +36,9 @@ namespace kaanh
 	auto createControllerSanXiang()->std::unique_ptr<aris::control::Controller>;
 	auto createModelSanXiang()->std::unique_ptr<aris::dynamic::Model>;
 
+    auto createControllerdaye()->std::unique_ptr<aris::control::Controller>;
+    auto createModeldaye(const double *robot_pm)->std::unique_ptr<aris::dynamic::Model>;
+
 	//auto registerPlan()->void;
 
 	class MoveInit : public aris::plan::Plan
