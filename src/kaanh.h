@@ -47,6 +47,8 @@ namespace kaanh
 
 		explicit MoveInit(const std::string &name = "MoveInit_plan");
 		ARIS_REGISTER_TYPE(MoveInit);
+
+
 	};
 
 	class Get_ee_pq : public aris::plan::Plan
@@ -67,6 +69,7 @@ namespace kaanh
 
 		explicit Get_cur(const std::string &name = "Get_cur_plan");
 		ARIS_REGISTER_TYPE(Get_cur);
+
 	};
 
 	class MoveX : public aris::plan::Plan

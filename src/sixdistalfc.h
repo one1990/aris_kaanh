@@ -35,6 +35,19 @@ public:
 	ARIS_REGISTER_TYPE(MoveXYZ);
 };
 
+class MoveJoint : public aris::plan::Plan
+{
+public:
+	auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+	auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+	//auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+
+	explicit MoveJoint(const std::string &name = "MoveJoint");
+	ARIS_REGISTER_TYPE(MoveJoint);
+};
+
+
+
 class SetTool : public aris::plan::Plan
 {
 public:
@@ -61,6 +74,55 @@ public:
     explicit MovePressure(const std::string &name = "MovePressure");
 	ARIS_REGISTER_TYPE(MovePressure);
 };
+
+class MovePressureToolYZ : public aris::plan::Plan
+{
+public:
+	auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+	auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+	//auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+
+	explicit MovePressureToolYZ(const std::string &name = "MovePressureToolYZ");
+	ARIS_REGISTER_TYPE(MovePressureToolYZ);
+};
+
+class MovePressureToolXY : public aris::plan::Plan
+{
+public:
+	auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+	auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+	//auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+
+	explicit MovePressureToolXY(const std::string &name = "MovePressureToolXY");
+	ARIS_REGISTER_TYPE(MovePressureToolXY);
+};
+
+
+
+class MoveFeed : public aris::plan::Plan
+{
+public:
+	auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+	auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+	//auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+
+	explicit MoveFeed(const std::string &name = "MoveFeed");
+    ARIS_REGISTER_TYPE(MoveFeed);
+};
+
+
+//与Meng交换数据
+class GetForce : public aris::plan::Plan
+{
+public:
+	auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+    auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+
+	explicit GetForce(const std::string &name = "GetForce");
+	ARIS_REGISTER_TYPE(GetForce);
+};
+
+
 
 
 #endif

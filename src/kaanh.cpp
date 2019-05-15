@@ -1,7 +1,9 @@
 ﻿#include <algorithm>
 #include"kaanh.h"
 #include "sixdistalfc.h"
-#include<array>
+#include "jointfc.h"
+#include "sevenjointfc.h"
+#include <array>
 
 
 using namespace aris::dynamic;
@@ -3427,9 +3429,24 @@ namespace kaanh
 		plan_root->planPool().add<kaanh::SetPOffset>();
 
 		plan_root->planPool().add<MoveXYZ>();
+		plan_root->planPool().add<MoveJoint>();
 		plan_root->planPool().add<MoveDistal>();
 		plan_root->planPool().add<SetTool>();
 		plan_root->planPool().add<MovePressure>();
+		plan_root->planPool().add<MoveFeed>();
+		plan_root->planPool().add<MovePressureToolYZ>();
+		plan_root->planPool().add<MovePressureToolXY>();
+		plan_root->planPool().add<GetForce>();
+		//plan_root->planPool().add<GetError>();
+		plan_root->planPool().add<JointDyna>();
+		plan_root->planPool().add<JointTest>();
+		plan_root->planPool().add<DragTeach>();
+		plan_root->planPool().add<LoadDyna>();
+		plan_root->planPool().add<SaveFile>();
+
+		plan_root->planPool().add<SevenJointDyna>();
+		plan_root->planPool().add<SevenJointTest>();
+		plan_root->planPool().add<SevenLoadDyna>();
 
 		plan_root->planPool().add<cplan::MoveCircle>();
 		plan_root->planPool().add<cplan::MoveTroute>();

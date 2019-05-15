@@ -14,7 +14,7 @@ int data_num = 0, data_num_send = 0;
 std::vector<std::vector<std::string>> plantrack(6, std::vector<std::string>());
 std::atomic_int which_di = 0;
 
-auto xmlpath = std::filesystem::absolute(".");
+auto xmlpath = std::filesystem::absolute(".");//获取当前工程所在的路径
 const std::string xmlfile = "rokae.xml";
 
 int main(int argc, char *argv[])
@@ -26,10 +26,12 @@ int main(int argc, char *argv[])
 	auto&cs = aris::server::ControlServer::instance();
 	auto port = argc < 2 ? 5866 : std::stoi(argv[1]);
 
+
     /*
 	//生成rokae.xml文档
     //for rokae robot//
     cs.resetController(kaanh::createControllerRokaeXB4().release());
+
     cs.resetModel(aris::robot::createModelRokaeXB4().release());
     //cs.resetModel(kaanh::createModelRokae().release());
 
@@ -40,10 +42,13 @@ int main(int argc, char *argv[])
     cs.resetPlanRoot(kaanh::createPlanRootRokaeXB4().release());
     cs.resetSensorRoot(new aris::sensor::SensorRoot);
 
+
 	//std::cout << cs.controller().xmlString() << std::endl;
 
+
 	cs.saveXmlFile(xmlpath.string().c_str());
-    */
+*/
+
 
     cs.loadXmlFile(xmlpath.string().c_str());
 	
@@ -59,6 +64,7 @@ int main(int argc, char *argv[])
 		std::string msg_data = msg.toString();
 
 		static int cout_count = 0;
+
 		if (++cout_count % 10 == 0)
 			//std::cout << "recv:" << msg_data << std::endl;
 
