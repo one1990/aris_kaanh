@@ -512,11 +512,11 @@ auto DragTeach::executeRT(PlanTarget &target)->int
 
 	if (target.count == 1)
 	{
-		for (int i = 0; i < 6; ++i)
+        for (int i = 0; i < 6; ++i)
 		{
 			{
 				begin_pjs[i] = target.model->motionPool()[i].mp();
-				controller->motionPool().at(i).setModeOfOperation(10);	//切换到电流控制
+                controller->motionPool().at(i).setModeOfOperation(10);	//切换到电流控制
 			}
 		}
 	}
@@ -524,11 +524,6 @@ auto DragTeach::executeRT(PlanTarget &target)->int
 
 	double ModelTor[6], q[6], dq[6], ddq[6], ts[6];
 	
-	for (int i = 0; i < 6; i++)
-	{
-		step_pjs[i] = begin_pjs[i] + ampVar * sin(2 * aris::PI / param.period*target.count / 1000);
-		target.model->motionPool().at(i).setMp(step_pjs[i]);
-	}
 	
 	for (int i = 0; i < 6; ++i)
 	{
@@ -547,14 +542,14 @@ auto DragTeach::executeRT(PlanTarget &target)->int
 
 	JointMatrix.JointCollision(q, dq, ddq, ts, JointMatrix.estParasJoint, JointMatrix.CoefParasJointInv, JointMatrix.CoefParasJoint, JointMatrix.LoadParas, ModelTor);
 
-	for (int i = 0;i < 6;i++)
+    for (int i = 0;i < 6;i++)
 	{
 		double ft_offset = 0;
 		ft_offset = ModelTor[i]*f2c_index[i];
 		ft_offset = std::max(-500.0, ft_offset);
 		ft_offset = std::min(500.0, ft_offset);
 
-		controller->motionAtAbs(i).setTargetCur(ft_offset);
+        controller->motionAtAbs(i).setTargetCur(ft_offset);
 	}
 
 	//if (!target.model->solverPool().at(1).kinPos())return -1;
@@ -976,7 +971,7 @@ auto SaveFile::prepairNrt(const std::map<std::string, std::string> &params, Plan
 	SaveFileParam p;
 	p.gk_path = params.at("gk_path");
 
-    //cs.saveXmlFile(xmlpath.c_str());
+    cs.saveXmlFile(xmlpath.c_str());
 	//target.server->stop();
 	//target.server->saveXmlFile("C:/Users/qianch_kaanh_cn/Desktop/build_qianch/rokae.xml");		
 	//doc.SaveFile("C:/Users/qianch_kaanh_cn/Desktop/build_qianch/rokae.xml");
