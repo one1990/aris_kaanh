@@ -27,37 +27,33 @@ int main(int argc, char *argv[])
 	auto port = argc < 2 ? 5866 : std::stoi(argv[1]);
 
 
-	//cs.saveXmlFile("C:/Users/qianch_kaanh_cn/Desktop/build_qianch/rokae.xml");
+    /*
 	//生成rokae.xml文档
-/*
-	cs.resetController(kaanh::createControllerRokaeXB4().release());
+    //for rokae robot//
+    cs.resetController(kaanh::createControllerRokaeXB4().release());
+
     cs.resetModel(aris::robot::createModelRokaeXB4().release());
-	cs.resetPlanRoot(kaanh::createPlanRootRokaeXB4().release());
-	cs.resetSensorRoot(new aris::sensor::SensorRoot);
+    //cs.resetModel(kaanh::createModelRokae().release());
+
+    //for sanxiang robot//
+    //cs.resetController(kaanh::createControllerSanXiang().release());
+    //cs.resetModel(kaanh::createModelSanXiang().release());
+
+    cs.resetPlanRoot(kaanh::createPlanRootRokaeXB4().release());
+    cs.resetSensorRoot(new aris::sensor::SensorRoot);
+
 
 	//std::cout << cs.controller().xmlString() << std::endl;
 
-	//末端位置加0.1的工件长度//
-	double pe[6];
-	cs.model().generalMotionPool()[0].makI().getPe(
-    cs.model().generalMotionPool()[0].makI().fatherPart(),
-    pe);
-
-    pe[0] += 0.06;
-	cs.model().generalMotionPool()[0].makI().setPrtPe(pe);
-	cs.model().generalMotionPool()[0].makJ();
-	cs.model().solverPool()[0].allocateMemory();
 
 	cs.saveXmlFile(xmlpath.string().c_str());
 */
 
 
     cs.loadXmlFile(xmlpath.string().c_str());
-
-
-
-    cs.start();
-
+	
+	cs.start();
+	
 	// interaction //
 	std::list<std::tuple<aris::core::Msg, std::shared_ptr<aris::plan::PlanTarget>>> result_list;
 	std::mutex result_mutex;
