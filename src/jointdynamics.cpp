@@ -1459,7 +1459,7 @@ void jointdynamics::JointCollision(const double * q, const double *dq,const doub
 
 				for (int n = JointReduceDim; n < JointReduceDim + 2 * RobotAxis; n++)
 				{
-					YtolMat[m][n] = Y1[m][n];
+					YtolMat[m][n] = Y1[m][n- JointReduceDim];
 				}
 			}
 			
