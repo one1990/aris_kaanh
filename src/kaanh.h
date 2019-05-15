@@ -32,6 +32,9 @@ namespace kaanh
 	auto createModelRokaeXB4(const double *robot_pm = nullptr)->std::unique_ptr<aris::dynamic::Model>;
 	auto createControllerRokaeXB4()->std::unique_ptr<aris::control::Controller>;
 	auto createPlanRootRokaeXB4()->std::unique_ptr<aris::plan::PlanRoot>;
+	auto createModelRokae()->std::unique_ptr<aris::dynamic::Model>;
+	auto createControllerSanXiang()->std::unique_ptr<aris::control::Controller>;
+	auto createModelSanXiang()->std::unique_ptr<aris::dynamic::Model>;
 
 	//auto registerPlan()->void;
 
@@ -153,8 +156,39 @@ namespace kaanh
 		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
 		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
 
+		virtual ~MovePoint();
 		explicit MovePoint(const std::string &name = "MovePoint_plan");
 		ARIS_REGISTER_TYPE(MovePoint);
+		MovePoint(const MovePoint &);
+		MovePoint(MovePoint &);
+		MovePoint& operator=(const MovePoint &);
+		MovePoint& operator=(MovePoint &&);
+		
+
+	private:
+		struct Imp;
+		aris::core::ImpPtr<Imp> imp_;
+	};
+
+	class MoveJP : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+
+		virtual ~MoveJP();
+		explicit MoveJP(const std::string &name = "MoveJP_plan");
+		ARIS_REGISTER_TYPE(MoveJP);
+		MoveJP(const MoveJP &);
+		MoveJP(MoveJP &);
+		MoveJP& operator=(const MoveJP &);
+		MoveJP& operator=(MoveJP &&);
+
+
+	private:
+		struct Imp;
+		aris::core::ImpPtr<Imp> imp_;
 	};
 
 	class Grasp : public aris::plan::Plan
@@ -216,6 +250,22 @@ namespace kaanh
 
 		explicit FSSignal(const std::string &name = "FSSignal_plan");
 		ARIS_REGISTER_TYPE(FSSignal);
+	};
+
+	class SetDH : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		explicit SetDH(const std::string &name = "SetDH_plan");
+		ARIS_REGISTER_TYPE(SetDH);
+	};
+
+	class SetPOffset : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		explicit SetPOffset(const std::string &name = "SetPOffset_plan");
+		ARIS_REGISTER_TYPE(SetPOffset);
 	};
 
 }
