@@ -8,11 +8,6 @@ using namespace aris::plan;
 using namespace aris::dynamic;
 
 
-double t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16, t17;
-double t18, t19, t20, t21, t22, t23, t24, t25, t26, t27, t28, t29, t30, t31, t32;
-double t33, t34, t35, t36, t37, t38, t39, t40, t41, t42, t43, t44, t45, t46, t47;
-double t48, t49, t50, t51, t52, t53, t54, t55, t56, t57, t58, t59, t60, t61, t62;
-double t63, t64, t65, t66, t67, t68, t69, t70, t71, t72, t73, t74, t75, t76, t77;
 
 
 robotconfig::robotconfig()
@@ -208,6 +203,11 @@ void robotconfig::jointIncrement(const double* q, const double* dX, double* dThe
                 for (int j = 0; j < 4; j++)
                     B0[i][j] = 0;
 
+			double t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16, t17;
+			double t18, t19, t20, t21, t22, t23, t24, t25, t26, t27, t28, t29, t30, t31, t32;
+			double t33, t34, t35, t36, t37, t38, t39, t40, t41, t42, t43, t44, t45, t46, t47;
+			double t48, t49, t50, t51, t52, t53, t54, t55, t56, t57, t58, t59, t60, t61, t62;
+			double t63, t64, t65, t66, t67, t68, t69, t70, t71, t72, t73, t74, t75, t76, t77;
 			double DF = EndSensor[2];
             t2 = sin(q1);
             t3 = sin(q4);
