@@ -138,7 +138,7 @@ auto JointDyna::executeRT(PlanTarget &target)->int
 
 
 
-	if (!target.model->solverPool().at(1).kinPos())return -1;
+    //if (!target.model->solverPool().at(1).kinPos())return -1;
 
 	// 访问主站 //
 	auto controller = target.controller;
@@ -323,9 +323,10 @@ auto JointTest::prepairNrt(const std::map<std::string, std::string> &params, Pla
 	for (int i = 0;i < JointReduceDim*JointGroupDim;i++)
 		JointMatrix.CoefParasJointInv[i] = mat2->data().data()[i];
 
-	auto mat3 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("LoadParas"));
-	for (int i = 0;i < 10;i++)
-		JointMatrix.LoadParas[i] = mat3->data().data()[i];
+    //auto mat3 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("LoadParas"));
+    for (int i = 0;i < 10;i++)
+    JointMatrix.LoadParas[i] = 0;
+
 
 }
 auto JointTest::executeRT(PlanTarget &target)->int
@@ -381,8 +382,30 @@ auto JointTest::executeRT(PlanTarget &target)->int
 
 	JointMatrix.JointCollision(q, dq, ddq, ts, JointMatrix.estParasJoint, JointMatrix.CoefParasJointInv, JointMatrix.CoefParasJoint, JointMatrix.LoadParas,CollisionFT);
 
-	if (!target.model->solverPool().at(1).kinPos())return -1;
+    //if (!target.model->solverPool().at(1).kinPos())return -1;
 
+    auto &lout = controller->lout();
+    lout << target.count << ",";
+    lout << ts[0] << ",";lout << ts[1] << ",";
+    lout << ts[2] << ",";lout << ts[3] << ",";
+    lout << ts[4] << ",";lout << ts[5] << ",";
+    lout << CollisionFT[0] << ",";lout << CollisionFT[1] << ",";
+    lout << CollisionFT[2] << ",";lout << CollisionFT[3] << ",";
+    lout << CollisionFT[4] << ",";lout <<CollisionFT[5] << ",";
+
+    lout << q[0] << ",";lout << q[1] << ",";
+    lout << q[2] << ",";lout << q[3] << ",";
+    lout << q[4] << ",";lout << q[5] << ",";
+
+    lout << dq[0] << ",";lout << dq[1] << ",";
+    lout << dq[2] << ",";lout << dq[3] << ",";
+    lout << dq[4] << ",";lout << dq[5] << ",";
+
+    lout << ddq[0] << ",";lout << ddq[1] << ",";
+    lout << ddq[2] << ",";lout << ddq[3] << ",";
+    lout << ddq[4] << ",";lout << ddq[5] << ",";
+
+    lout<<endl;
 	
 	
 	if (target.count % 100 == 0)
@@ -399,7 +422,7 @@ auto JointTest::executeRT(PlanTarget &target)->int
 
 	
 
-	return 100000 - target.count;
+    return 3000 - target.count;
 }
 
 JointTest::JointTest(const std::string &name) :Plan(name)
@@ -462,6 +485,7 @@ auto LoadDyna::prepairNrt(const std::map<std::string, std::string> &params, Plan
 		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 
+
 	/*
 	int nn = 12; // n代表txt文档中数据的列数
 
@@ -523,14 +547,16 @@ auto LoadDyna::prepairNrt(const std::map<std::string, std::string> &params, Plan
 	int s = 4;*/
 }
 
-int CollectNum=1;
+
 auto LoadDyna::executeRT(PlanTarget &target)->int
 {
 	auto &param = std::any_cast<LoadDynaParam&>(target.param);
 	static double begin_pjs[RobotAxis];
 	static double step_pjs[RobotAxis];
 	static double perVar = 0;
+    static int CollectNum=1;
 	static double ampVar = 0;
+
 
 	if (target.count < 1000)
 	{
@@ -602,7 +628,7 @@ auto LoadDyna::executeRT(PlanTarget &target)->int
 
 
 
-	if (!target.model->solverPool().at(1).kinPos())return -1;
+    //if (!target.model->solverPool().at(1).kinPos())return -1;
 
 	// 访问主站 //
 	auto controller = target.controller;
@@ -619,7 +645,7 @@ auto LoadDyna::executeRT(PlanTarget &target)->int
 			//cout << "vel" << i + 1 << ":" << target.model->motionPool()[i].mv() << "  ";
 			//cout << "cur" << i + 1 << ":" << target.model->motionPool()[i].ma() << "  ";
 		}
-		  cout << vArc[2]*1000 << "  "<< step_pjs[2]<<" "<<flag[2]<<" "<<t_count[2]<<" "<<target.count - (CountOffsetNeg[2] - 1)<<" ";
+          cout << CollectNum << "  "<< step_pjs[2]<<" "<<flag[2]<<" "<<t_count[2]<<" "<<target.count - (CountOffsetNeg[2] - 1)<<" ";
 		cout << std::endl;
 	}
 
@@ -662,7 +688,6 @@ auto LoadDyna::executeRT(PlanTarget &target)->int
 
 auto LoadDyna::collectNrt(aris::plan::PlanTarget &target)->void
 {
-	CollectNum = 1;
 	auto &param = std::any_cast<LoadDynaParam&>(target.param);
 	double dEst[LoadTotalParas] = { 0 };
 	double dCoef[LoadReduceParas*10] = { 0 };
@@ -783,10 +808,14 @@ struct SaveFileParam
 
 auto SaveFile::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 {
+    auto xmlpath = std::filesystem::absolute(".");//获取当前工程所在的路径
+    const std::string xmlfile = "rokae.xml";
+    xmlpath = xmlpath / xmlfile;
 	auto&cs = aris::server::ControlServer::instance();
 	SaveFileParam p;
 	p.gk_path = params.at("gk_path");
-	cs.saveXmlFile(p.gk_path.c_str());
+
+    cs.saveXmlFile(xmlpath.c_str());
 	//target.server->stop();
 	//target.server->saveXmlFile("C:/Users/qianch_kaanh_cn/Desktop/build_qianch/rokae.xml");		
 	//doc.SaveFile("C:/Users/qianch_kaanh_cn/Desktop/build_qianch/rokae.xml");

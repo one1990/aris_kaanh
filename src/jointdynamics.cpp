@@ -1486,7 +1486,7 @@ void jointdynamics::JointCollision(const double * q, const double *dq,const doub
                     estTor[i] = estTor[i] + YtolMat[i][j] * estParasTol[j];
 
             for (int i = 0; i < 6; i++)
-                CollisionFT[i] = ts[i]-estTor[i] ;
+                CollisionFT[i] = estTor[i] ;
 
 
         }

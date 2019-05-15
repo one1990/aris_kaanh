@@ -20,12 +20,12 @@ namespace CONFIG
 		void forceTransform(const double* q, const float* FmInEnd, double* FmInWorld);
 	};
 
-        const int SampleNum = 600;
+        const int SampleNum = 6000;
 	    const double ConRad = PII / 180;
         const double ConAng = 180 / PII;
         const int GroupDim = 16;
 		const double DT = 0.001;
-        const double CutoffFrequency = 5;
+        const double CutoffFrequency = 35;
 		const double EndPoint[3] = { 0, 0, 0.078};//The Position of End Plate
         const double EndSensor[3] = { 0, 0, 0};//The Position of Torque Sensor
 

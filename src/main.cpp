@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
 	cs.model().solverPool()[0].allocateMemory();
 
 	cs.saveXmlFile(xmlpath.string().c_str());
-*/	
+*/
 
 
     cs.loadXmlFile(xmlpath.string().c_str());
