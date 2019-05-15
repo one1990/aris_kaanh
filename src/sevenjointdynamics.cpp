@@ -1365,7 +1365,7 @@ void sevenjointdynamics::SevenRLS(const double *positionL, const double *sensorL
     double ts[7];
     //std::array<double, 6> estParas;
 
-    double intDT = 1*DT;
+    double intDT = 8*DT;
     int length = 7;
     std::vector<double> regressorMatrix_vec(7 * SampleNum * JointGroupDim);
     double* regressorVector = regressorMatrix_vec.data();

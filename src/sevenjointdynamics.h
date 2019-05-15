@@ -22,14 +22,14 @@ namespace SevenJointDynamicsInt
 		double A[3][3];
 		double B[3];
 
-    double estParasL[LoadReduceParas+7] = { 0 };
+    double estParasL[LoadReduceParas+6] = { 0 };
 	double CoefParasL[LoadReduceParas* LoadTotalParas] = { 0 };
-	double estParasL0[LoadReduceParas+7] = { 0 };
+	double estParasL0[LoadReduceParas+6] = { 0 };
 	double CoefParasL0[LoadReduceParas* LoadTotalParas] = { 0 };
     double LoadParas[10] = { 0 };
 
 	double estParasJoint0[JointReduceDim+14] = { 0 };
-	double estParasJoint[JointReduceDim] = { 0 };
+	double estParasJoint[JointReduceDim + 14] = { 0 };
 	double CoefParasJoint[JointReduceDim* JointGroupDim] = { 0 };
 	double CoefParasJointInv[JointReduceDim* JointGroupDim] = { 0 };
 

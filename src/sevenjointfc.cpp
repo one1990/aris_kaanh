@@ -59,7 +59,7 @@ auto SevenJointDyna::prepairNrt(const std::map<std::string, std::string> &params
 		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 
-
+	/*
 	int nn = 14; // n代表txt文档中数据的列数
 
 
@@ -92,7 +92,7 @@ auto SevenJointDyna::prepairNrt(const std::map<std::string, std::string> &params
 	{
 		SevenPOSRLS[j].pop_back();
 	}
-
+	*/
 }
 auto SevenJointDyna::executeRT(PlanTarget &target)->int
 {
@@ -120,8 +120,8 @@ auto SevenJointDyna::executeRT(PlanTarget &target)->int
 
 
     static bool flag[7] = {true,true,true,true,true,true,true};
-    double PosLimit[7] = { 1,0.5,0.5,1,1,1,1 };
-    double NegLimit[7] = { -1,-0.5,-0.5,-1,-1,-1,-1 };
+    double PosLimit[7] = { 1,0.5,1,0.5,1,1,1 };
+    double NegLimit[7] = { -1,-0.5,-1,-0.5,-1,-1,-1 };
     double dTheta = 0.00001;
 	static double pArc[7], vArc[7], aArc[7], vArcMax[7] = { 0.15,0.15,0.15,0.15,0.15,0.15,0.15};
 	static aris::Size t_count[7] = { 0 };
@@ -129,7 +129,7 @@ auto SevenJointDyna::executeRT(PlanTarget &target)->int
 	static int CountOffsetPos[7] = { 1,1,1,1,1,1,1 }, CountOffsetNeg[7] = { 1,1,1,1,1,1,1 };
 
 
-	for (int i = 0;i < 6;i++)
+	for (int i = 0;i < 7;i++)
 	{
 
 		if (flag[i])
@@ -171,7 +171,7 @@ auto SevenJointDyna::executeRT(PlanTarget &target)->int
 	}
 
 
-	if (!target.model->solverPool().at(1).kinPos())return -1;
+	//if (!target.model->solverPool().at(1).kinPos())return -1;
 
 	// 访问主站 //
 	auto controller = target.controller;
@@ -200,11 +200,11 @@ auto SevenJointDyna::executeRT(PlanTarget &target)->int
 			//AngleList[RobotAxis * (target.count - 1) + i] = controller->motionAtAbs(i).actualPos();
 			//TorqueList[RobotAxis * (target.count - 1) + i] = controller->motionAtAbs(i).actualCur();
 
-			SevenAngleList[7 * (target.count - 1) + i] = SevenPOSRLS[i][target.count - 1];
-			SevenTorqueList[7 * (target.count - 1) + i] = SevenPOSRLS[i + 7][target.count - 1] / f2c_index[i];
+			//SevenAngleList[7 * (target.count - 1) + i] = SevenPOSRLS[i][target.count - 1];
+			//SevenTorqueList[7 * (target.count - 1) + i] = SevenPOSRLS[i + 7][target.count - 1] / f2c_index[i];
 
-			//SevenAngleList[7 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualPos();
-			//SevenTorqueList[7 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
+			SevenAngleList[7 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualPos();
+			SevenTorqueList[7 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
 		}
 
 		lout << target.count << ",";
@@ -242,23 +242,6 @@ auto SevenJointDyna::collectNrt(aris::plan::PlanTarget &target)->void
 	for (int i = 0;i < JointReduceDim+14;i++)
 		cout << SevenJointMatrix.estParasJoint[i] << ",";
 
-
-	/*
-	//Save Estimated Paras
-	ofstream outfile("C:/Users/gk/Desktop/Kaanh_gk/EstParas.txt");
-	if (!outfile)
-	{
-		cout << "Unable to open otfile";
-		exit(1); // terminate with error
-	}
-
-	for (int k = 0; k < JointGroupDim; k++)
-	{
-		outfile << estParas[k] << "   " << std::endl;
-		//cout << "success outfile " << endl;
-	}
-	outfile.close();
-	*/
 
 	std::cout << endl;
 	std::cout << "*****************************Statictic Model Error*****************************************" << std::endl;

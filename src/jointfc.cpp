@@ -971,7 +971,7 @@ auto SaveFile::prepairNrt(const std::map<std::string, std::string> &params, Plan
 	SaveFileParam p;
 	p.gk_path = params.at("gk_path");
 
-    cs.saveXmlFile(xmlpath.c_str());
+//    cs.saveXmlFile(xmlpath.c_str());
 	//target.server->stop();
 	//target.server->saveXmlFile("C:/Users/qianch_kaanh_cn/Desktop/build_qianch/rokae.xml");		
 	//doc.SaveFile("C:/Users/qianch_kaanh_cn/Desktop/build_qianch/rokae.xml");
