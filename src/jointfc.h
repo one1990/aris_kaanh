@@ -33,6 +33,17 @@
 		ARIS_REGISTER_TYPE(JointTest);
 	};
 
+	class DragTeach : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+
+		explicit DragTeach(const std::string &name = "DragTeach");
+		ARIS_REGISTER_TYPE(DragTeach);
+	};
+
+
 
 
 	class LoadDyna : public aris::plan::Plan

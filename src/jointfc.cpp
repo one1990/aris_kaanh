@@ -382,7 +382,8 @@ auto JointTest::executeRT(PlanTarget &target)->int
 	JointMatrix.JointCollision(q, dq, ddq, ts, JointMatrix.estParasJoint, JointMatrix.CoefParasJointInv, JointMatrix.CoefParasJoint, JointMatrix.LoadParas,CollisionFT);
 
     //if (!target.model->solverPool().at(1).kinPos())return -1;
-
+	for (int i = 0;i < 6;i++)
+		CollisionFT[i] = CollisionFT[i] - ts[i];
     auto &lout = controller->lout();
     lout << target.count << ",";
     lout << ts[0] << ",";lout << ts[1] << ",";
@@ -437,7 +438,168 @@ JointTest::JointTest(const std::string &name) :Plan(name)
 
 }
 
+struct DragTeachParam
+{
+	double period;
+	double amplitude;
 
+};
+auto DragTeach::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+{
+	DragTeachParam param;
+
+	for (auto &p : params)
+	{
+		if (p.first == "period")
+			param.period = std::stod(p.second);
+		if (p.first == "amplitude")
+			param.amplitude = std::stod(p.second);
+
+	}
+
+	target.param = param;
+
+	target.option |=
+		Plan::USE_TARGET_POS |
+		//#ifdef WIN32
+		Plan::NOT_CHECK_POS_MIN |
+		Plan::NOT_CHECK_POS_MAX |
+		Plan::NOT_CHECK_POS_CONTINUOUS |
+		Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
+		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
+		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
+		Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
+		//#endif
+		Plan::NOT_CHECK_VEL_MIN |
+		Plan::NOT_CHECK_VEL_MAX |
+		Plan::NOT_CHECK_VEL_CONTINUOUS |
+		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
+		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+
+	//读取动力学参数
+	auto mat0 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("estParasJoint"));
+	for (int i = 0;i < JointReduceDim + 12;i++)
+		JointMatrix.estParasJoint[i] = mat0->data().data()[i];
+
+	auto mat1 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("CoefParasJoint"));
+	for (int i = 0;i < JointReduceDim*JointGroupDim;i++)
+		JointMatrix.CoefParasJoint[i] = mat1->data().data()[i];
+
+	auto mat2 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("CoefParasJointInv"));
+	for (int i = 0;i < JointReduceDim*JointGroupDim;i++)
+		JointMatrix.CoefParasJointInv[i] = mat2->data().data()[i];
+
+	//auto mat3 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("LoadParas"));
+	for (int i = 0;i < 10;i++)
+		JointMatrix.LoadParas[i] = 0;
+
+
+}
+auto DragTeach::executeRT(PlanTarget &target)->int
+{
+	auto &param = std::any_cast<DragTeachParam&>(target.param);
+	
+	double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
+	static double begin_pjs[6];
+	static double step_pjs[6];
+	static double perVar = 0;
+	static double ampVar = 0;
+
+	// 访问主站 //
+	auto controller = target.controller;
+	// 打印电流 //
+	auto &cout = controller->mout();
+
+	if (target.count == 1)
+	{
+		for (int i = 0; i < 6; ++i)
+		{
+			{
+				begin_pjs[i] = target.model->motionPool()[i].mp();
+				controller->motionPool().at(i).setModeOfOperation(10);	//切换到电流控制
+			}
+		}
+	}
+
+
+	double ModelTor[6], q[6], dq[6], ddq[6], ts[6];
+	
+	for (int i = 0; i < 6; i++)
+	{
+		step_pjs[i] = begin_pjs[i] + ampVar * sin(2 * aris::PI / param.period*target.count / 1000);
+		target.model->motionPool().at(i).setMp(step_pjs[i]);
+	}
+	
+	for (int i = 0; i < 6; ++i)
+	{
+		{
+			q[i] = controller->motionAtAbs(i).actualPos();
+			dq[i] = 0;
+			ddq[i] = 0;
+		}
+	}
+	
+
+	for (int i = 0;i < 6;i++)
+	{
+		ts[i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
+	}
+
+	JointMatrix.JointCollision(q, dq, ddq, ts, JointMatrix.estParasJoint, JointMatrix.CoefParasJointInv, JointMatrix.CoefParasJoint, JointMatrix.LoadParas, ModelTor);
+
+	for (int i = 0;i < 6;i++)
+	{
+		double ft_offset = 0;
+		ft_offset = ModelTor[i]*f2c_index[i];
+		ft_offset = std::max(-500.0, ft_offset);
+		ft_offset = std::min(500.0, ft_offset);
+
+		controller->motionAtAbs(i).setTargetCur(ft_offset);
+	}
+
+	//if (!target.model->solverPool().at(1).kinPos())return -1;
+
+	auto &lout = controller->lout();
+	lout << target.count << ",";
+	lout << ts[0] << ",";lout << ts[1] << ",";
+	lout << ts[2] << ",";lout << ts[3] << ",";
+	lout << ts[4] << ",";lout << ts[5] << ",";
+	lout << ModelTor[0] << ",";lout << ModelTor[1] << ",";
+	lout << ModelTor[2] << ",";lout << ModelTor[3] << ",";
+	lout << ModelTor[4] << ",";lout << ModelTor[5] << ",";
+
+	lout << endl;
+
+
+	if (target.count % 100 == 0)
+	{
+		//for (int i = 0; i < 6; i++)
+		{
+			cout << ModelTor[0] << "***" << ModelTor[1] << "***" << ModelTor[2] << "***" << ModelTor[3] << "***" << ModelTor[4] << "***" << ModelTor[5] << "***";
+			//cout << "vel" << i + 1 << ":" << target.model->motionPool()[i].mv() << "  ";
+			//cout << "cur" << i + 1 << ":" << target.model->motionPool()[i].ma() << "  ";
+		}
+		//   cout << target.count << "  ";
+		cout << std::endl;
+	}
+
+
+
+	return 300000 - target.count;
+}
+
+DragTeach::DragTeach(const std::string &name) :Plan(name)
+{
+
+	command().loadXmlStr(
+		"<Command name=\"DragTeach\">"
+		"	<GroupParam>"
+		"		<Param name=\"period\"default=\"20.0\"/>"
+		"		<Param name=\"amplitude\" default=\"0.2\"/>"
+		"	</GroupParam>"
+		"</Command>");
+
+}
 
 
 
@@ -814,7 +976,7 @@ auto SaveFile::prepairNrt(const std::map<std::string, std::string> &params, Plan
 	SaveFileParam p;
 	p.gk_path = params.at("gk_path");
 
-    cs.saveXmlFile(xmlpath.c_str());
+    //cs.saveXmlFile(xmlpath.c_str());
 	//target.server->stop();
 	//target.server->saveXmlFile("C:/Users/qianch_kaanh_cn/Desktop/build_qianch/rokae.xml");		
 	//doc.SaveFile("C:/Users/qianch_kaanh_cn/Desktop/build_qianch/rokae.xml");
