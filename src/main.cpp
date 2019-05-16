@@ -29,26 +29,35 @@ int main(int argc, char *argv[])
 
     /*
 	//生成rokae.xml文档
-    //for rokae robot//
+    //-------for rokae robot begin//
     cs.resetController(kaanh::createControllerRokaeXB4().release());
-
     cs.resetModel(aris::robot::createModelRokaeXB4().release());
     //cs.resetModel(kaanh::createModelRokae().release());
-
-    //for sanxiang robot//
-    //cs.resetController(kaanh::createControllerSanXiang().release());
-    //cs.resetModel(kaanh::createModelSanXiang().release());
-
     cs.resetPlanRoot(kaanh::createPlanRootRokaeXB4().release());
     cs.resetSensorRoot(new aris::sensor::SensorRoot);
+    cs.saveXmlFile(xmlpath.string().c_str());
+    //-------for rokae robot end//
+    */
 
+    /*
+    //-------for sanxiang robot begin//
+    cs.resetController(kaanh::createControllerSanXiang().release());
+    cs.resetModel(kaanh::createModelSanXiang().release());
+    cs.resetPlanRoot(kaanh::createPlanRootRokaeXB4().release());
+    cs.resetSensorRoot(new aris::sensor::SensorRoot);
+    cs.saveXmlFile(xmlpath.string().c_str());
+    //-------for sanxiang robot end//
+    */
 
-	//std::cout << cs.controller().xmlString() << std::endl;
-
-
-	cs.saveXmlFile(xmlpath.string().c_str());
-*/
-
+    /*
+    //-------for daye robot begin//
+    cs.resetController(kaanh::createControllerDaye().release());
+    cs.resetModel(kaanh::createModelDaye().release());
+    cs.resetPlanRoot(kaanh::createPlanRootRokaeXB4().release());
+    cs.resetSensorRoot(new aris::sensor::SensorRoot);
+    cs.saveXmlFile(xmlpath.string().c_str());
+    //-------for daye robot end//
+    */
 
     cs.loadXmlFile(xmlpath.string().c_str());
 	

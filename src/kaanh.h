@@ -36,8 +36,8 @@ namespace kaanh
 	auto createControllerSanXiang()->std::unique_ptr<aris::control::Controller>;
 	auto createModelSanXiang()->std::unique_ptr<aris::dynamic::Model>;
 
-    auto createControllerdaye()->std::unique_ptr<aris::control::Controller>;
-    auto createModeldaye(const double *robot_pm)->std::unique_ptr<aris::dynamic::Model>;
+    auto createControllerDaye()->std::unique_ptr<aris::control::Controller>;
+    auto createModelDaye(const double *robot_pm = nullptr)->std::unique_ptr<aris::dynamic::Model>;
 
 	//auto registerPlan()->void;
 
@@ -254,6 +254,18 @@ namespace kaanh
 		explicit FSSignal(const std::string &name = "FSSignal_plan");
 		ARIS_REGISTER_TYPE(FSSignal);
 	};
+
+    class ATIFS : public aris::plan::Plan
+    {
+    public:
+        auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+        auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+        auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+
+        explicit ATIFS(const std::string &name = "ATIFS_plan");
+        ARIS_REGISTER_TYPE(ATIFS);
+    };
+
 
 	class SetDH : public aris::plan::Plan
 	{

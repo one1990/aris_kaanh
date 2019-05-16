@@ -192,12 +192,13 @@ namespace kaanh
 		return std::move(model);
 	}
 
-    auto createControllerdaye()->std::unique_ptr<aris::control::Controller>	/*函数返回的是一个类指针，指针指向Controller,controller的类型是智能指针std::unique_ptr*/
+    auto createControllerDaye()->std::unique_ptr<aris::control::Controller>	/*函数返回的是一个类指针，指针指向Controller,controller的类型是智能指针std::unique_ptr*/
     {
 
         std::unique_ptr<aris::control::Controller> controller(aris::robot::createControllerRokaeXB4());/*创建std::unique_ptr实例*/
 
         controller->slavePool().clear();	//清除slavePool中的元素，后面重新添加
+
         for (aris::Size i = 0; i < 6; ++i)
         {
 #ifdef WIN32
@@ -276,43 +277,29 @@ namespace kaanh
             controller->slavePool().add<aris::control::EthercatMotion>().loadXmlStr(xml_str);
         }
 
-
+        //ATI force sensor//
         std::string xml_str =
-            "<EthercatSlave phy_id=\"6\" product_code=\"0x00A71EC1\""
-            " vendor_id=\"0x00000732\" revision_num=\"0x00010001\" dc_assign_activate=\"0x300\">"
+            "<EthercatSlave phy_id=\"0\" product_code=\"0x26483053\""
+            " vendor_id=\"0x00000732\" revision_num=\"0x00000001\" dc_assign_activate=\"0x300\">"
             "	<SyncManagerPoolObject>"
             "		<SyncManager is_tx=\"false\"/>"
             "		<SyncManager is_tx=\"true\"/>"
             "		<SyncManager is_tx=\"false\">"
             "			<Pdo index=\"0x1601\" is_tx=\"false\">"
-            "				<PdoEntry name=\"Output_Instruction\" index=\"0x7010\" subindex=\"0x01\" size=\"16\"/>"
-            "				<PdoEntry name=\"Output_Para1\" index=\"0x7010\" subindex=\"0x02\" size=\"16\"/>"
-            "				<PdoEntry name=\"Output_Para2\" index=\"0x7010\" subindex=\"0x03\" size=\"16\"/>"
+            "				<PdoEntry name=\"Control_1\" index=\"0x7010\" subindex=\"0x01\" size=\"32\"/>"
+            "				<PdoEntry name=\"Control_2\" index=\"0x7010\" subindex=\"0x02\" size=\"32\"/>"
             "			</Pdo>"
             "		</SyncManager>"
             "		<SyncManager is_tx=\"true\">"
-            "			<Pdo index=\"0x1A02\" is_tx=\"true\">"
-            "				<PdoEntry name=\"Int_Input_DataNo\" index=\"0x6020\" subindex=\"0x00\" size=\"16\"/>"
-            "				<PdoEntry name=\"Int_Input_Fx\" index=\"0x6020\" subindex=\"0x01\" size=\"32\"/>"
-            "				<PdoEntry name=\"Int_Input_Fy\" index=\"0x6020\" subindex=\"0x02\" size=\"32\"/>"
-            "				<PdoEntry name=\"Int_Input_Fz\" index=\"0x6020\" subindex=\"0x03\" size=\"32\"/>"
-            "				<PdoEntry name=\"Int_Input_Mx\" index=\"0x6020\" subindex=\"0x04\" size=\"32\"/>"
-            "				<PdoEntry name=\"Int_Input_My\" index=\"0x6020\" subindex=\"0x05\" size=\"32\"/>"
-            "				<PdoEntry name=\"Int_Input_Mz\" index=\"0x6020\" subindex=\"0x06\" size=\"32\"/>"
-            "			</Pdo>"
-            "			<Pdo index=\"0x1A03\" is_tx=\"true\">"
-            "				<PdoEntry name=\"Real_Input_DataNo\" index=\"0x6030\" subindex=\"0x00\" size=\"16\"/>"
-            "				<PdoEntry name=\"Real_Input_Fx\" index=\"0x6030\" subindex=\"0x01\" size=\"32\"/>"
-            "				<PdoEntry name=\"Real_Input_Fy\" index=\"0x6030\" subindex=\"0x02\" size=\"32\"/>"
-            "				<PdoEntry name=\"Real_Input_Fz\" index=\"0x6030\" subindex=\"0x03\" size=\"32\"/>"
-            "				<PdoEntry name=\"Real_Input_Mx\" index=\"0x6030\" subindex=\"0x04\" size=\"32\"/>"
-            "				<PdoEntry name=\"Real_Input_My\" index=\"0x6030\" subindex=\"0x05\" size=\"32\"/>"
-            "				<PdoEntry name=\"Real_Input_Mz\" index=\"0x6030\" subindex=\"0x06\" size=\"32\"/>"
-            "			</Pdo>"
-            "			<Pdo index=\"0x1A04\" is_tx=\"true\">"
-            "				<PdoEntry name=\"Res_Instruction\" index=\"0x6040\" subindex=\"0x01\" size=\"16\"/>"
-            "				<PdoEntry name=\"Res_Para1\" index=\"0x6040\" subindex=\"0x02\" size=\"16\"/>"
-            "				<PdoEntry name=\"Res_Para2\" index=\"0x6040\" subindex=\"0x03\" size=\"16\"/>"
+            "			<Pdo index=\"0x1A00\" is_tx=\"true\">"
+            "				<PdoEntry name=\"Int_Input_Fx\" index=\"0x6000\" subindex=\"0x01\" size=\"32\"/>"
+            "				<PdoEntry name=\"Int_Input_Fy\" index=\"0x6000\" subindex=\"0x02\" size=\"32\"/>"
+            "				<PdoEntry name=\"Int_Input_Fz\" index=\"0x6000\" subindex=\"0x03\" size=\"32\"/>"
+            "				<PdoEntry name=\"Int_Input_Mx\" index=\"0x6000\" subindex=\"0x04\" size=\"32\"/>"
+            "				<PdoEntry name=\"Int_Input_My\" index=\"0x6000\" subindex=\"0x05\" size=\"32\"/>"
+            "				<PdoEntry name=\"Int_Input_Mz\" index=\"0x6000\" subindex=\"0x06\" size=\"32\"/>"
+            "				<PdoEntry name=\"Status_Code\" index=\"0x6010\" subindex=\"0x00\" size=\"32\"/>"
+            "				<PdoEntry name=\"Sample_Counter\" index=\"0x6020\" subindex=\"0x00\" size=\"32\"/>"
             "			</Pdo>"
             "		</SyncManager>"
             "	</SyncManagerPoolObject>"
@@ -322,7 +309,7 @@ namespace kaanh
 
         return controller;
     };
-    auto createModeldaye(const double *robot_pm)->std::unique_ptr<aris::dynamic::Model>
+    auto createModelDaye(const double *robot_pm)->std::unique_ptr<aris::dynamic::Model>
     {
         std::unique_ptr<aris::dynamic::Model> model = std::make_unique<aris::dynamic::Model>("model");
 
@@ -3398,7 +3385,7 @@ namespace kaanh
             double Mx = param.Mx*20.0 / 65536;
             double My = param.My*20.0 / 65536;
             double Mz = param.Mz*20.0 / 65536;
-			
+
 			//print//
 			auto &cout = controller->mout();
 			if (target.count % 100 == 0)
@@ -3437,6 +3424,100 @@ namespace kaanh
 			"	</GroupParam>"
 			"</Command>");
 	}
+
+
+    // ATI Force Sensor //
+    struct ATIFSParam
+    {
+        int time;
+        std::int32_t Fx,Fy,Fz,Mx,My,Mz,status_code,sample_counter;
+    };
+    auto ATIFS::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+        {
+            ATIFSParam param;
+            for (auto &p : params)
+            {
+                if (p.first == "time")
+                {
+                    param.time = std::stoi(p.second);
+                }
+            }
+            param.Fx = 0;
+            param.Fy = 0;
+            param.Fz = 0;
+            param.Mx = 0;
+            param.My = 0;
+            param.Mz = 0;
+            param.status_code = 0;
+            param.sample_counter = 0;
+            target.param = param;
+
+        }
+    auto ATIFS::executeRT(PlanTarget &target)->int
+        {
+            auto &param = std::any_cast<ATIFSParam&>(target.param);
+            // 访问主站 //
+            auto controller = dynamic_cast<aris::control::EthercatController*>(target.controller);
+
+            controller->ecSlavePool().at(0).readPdo(0x6000, 0x01, &param.Fx ,32);
+            controller->ecSlavePool().at(0).readPdo(0x6000, 0x02, &param.Fy, 32);
+            controller->ecSlavePool().at(0).readPdo(0x6000, 0x03, &param.Fz, 32);
+            controller->ecSlavePool().at(0).readPdo(0x6000, 0x04, &param.Mx, 32);
+            controller->ecSlavePool().at(0).readPdo(0x6000, 0x05, &param.My, 32);
+            controller->ecSlavePool().at(0).readPdo(0x6000, 0x06, &param.Mz, 32);
+            controller->ecSlavePool().at(0).readPdo(0x6010, 0x00, &param.status_code, 32);
+            controller->ecSlavePool().at(0).readPdo(0x6020, 0x00, &param.sample_counter, 32);
+
+            /*
+            double Fx = param.Fx*20.0 / 65536;
+            double Fy = param.Fy*20.0 / 65536;
+            double Fz = param.Fz*20.0 / 65536;
+            double Mx = param.Mx*20.0 / 65536;
+            double My = param.My*20.0 / 65536;
+            double Mz = param.Mz*20.0 / 65536;
+            */
+            //print//
+            auto &cout = controller->mout();
+            if (target.count % 100 == 0)
+            {
+                cout << std::setw(6) << param.Fx << "  ";
+                cout << std::setw(6) << param.Fy << "  ";
+                cout << std::setw(6) << param.Fz << "  ";
+                cout << std::setw(6) << param.Mx << "  ";
+                cout << std::setw(6) << param.My << "  ";
+                cout << std::setw(6) << param.Mz << "  ";
+                cout << std::setw(6) << param.status_code << "  ";
+                cout << std::setw(6) << param.sample_counter << "  ";
+                cout << std::endl;
+                cout << "----------------------------------------------------" << std::endl;
+            }
+
+            //log//
+            auto &lout = controller->lout();
+            {
+                lout << param.Fx << " ";
+                lout << param.Fy << " ";
+                lout << param.Fz << " ";
+                lout << param.Mx << " ";
+                lout << param.My << " ";
+                lout << param.Mz << " ";
+                lout << param.status_code << " ";
+                lout << param.sample_counter << " ";
+                lout << std::endl;
+            }
+            param.time--;
+            return param.time;
+        }
+    auto ATIFS::collectNrt(PlanTarget &target)->void {}
+    ATIFS::ATIFS(const std::string &name) :Plan(name)
+    {
+        command().loadXmlStr(
+            "<Command name=\"atifs\">"
+            "	<GroupParam>"
+            "		<Param name=\"time\" default=\"100000\"/>"
+            "	</GroupParam>"
+            "</Command>");
+    }
 
 	// 配置DH参数 //
 	struct SetDHParam
@@ -3609,11 +3690,29 @@ namespace kaanh
 
 	auto createPlanRootRokaeXB4()->std::unique_ptr<aris::plan::PlanRoot>
 	{
-		std::unique_ptr<aris::plan::PlanRoot> plan_root(aris::robot::createPlanRootRokaeXB4());
+        std::unique_ptr<aris::plan::PlanRoot> plan_root(new aris::plan::PlanRoot);
 
-		plan_root->planPool().add<aris::plan::MoveL>();
-		plan_root->planPool().add<aris::plan::MoveJ>();
-		plan_root->planPool().add<aris::plan::Show>();
+        plan_root->planPool().add<aris::plan::Enable>();
+        plan_root->planPool().add<aris::plan::Disable>();
+        plan_root->planPool().add<aris::plan::Home>();
+        plan_root->planPool().add<aris::plan::Mode>();
+        plan_root->planPool().add<aris::plan::Show>();
+        plan_root->planPool().add<aris::plan::Sleep>();
+        plan_root->planPool().add<aris::plan::Recover>();
+        plan_root->planPool().add<aris::plan::Reset>();
+
+        plan_root->planPool().add<aris::plan::MoveAbsJ>();
+
+        plan_root->planPool().add<aris::plan::MoveL>();
+        plan_root->planPool().add<aris::plan::MoveJ>();
+
+        plan_root->planPool().add<aris::plan::GetPartPq>();
+        plan_root->planPool().add<aris::plan::GetXml>();
+        plan_root->planPool().add<aris::plan::SetXml>();
+        plan_root->planPool().add<aris::plan::Start>();
+        plan_root->planPool().add<aris::plan::Stop>();
+
+
 		plan_root->planPool().add<kaanh::MoveInit>();
 		plan_root->planPool().add<kaanh::Get_ee_pq>();
 		plan_root->planPool().add<kaanh::Get_cur>();
@@ -3640,6 +3739,7 @@ namespace kaanh
 		plan_root->planPool().add<kaanh::MoveEA>();
 		plan_root->planPool().add<kaanh::MoveEAP>();
 		plan_root->planPool().add<kaanh::FSSignal>();
+        plan_root->planPool().add<kaanh::ATIFS>();
 		plan_root->planPool().add<kaanh::SetDH>();
 		plan_root->planPool().add<kaanh::SetPOffset>();
 
