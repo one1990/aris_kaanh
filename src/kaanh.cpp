@@ -3396,9 +3396,27 @@ namespace kaanh
 	{
 		std::unique_ptr<aris::plan::PlanRoot> plan_root(aris::robot::createPlanRootRokaeXB4());
 
-		plan_root->planPool().add<aris::plan::MoveL>();
-		plan_root->planPool().add<aris::plan::MoveJ>();
-		plan_root->planPool().add<aris::plan::Show>();
+        plan_root->planPool().add<aris::plan::Enable>();
+        plan_root->planPool().add<aris::plan::Disable>();
+        plan_root->planPool().add<aris::plan::Home>();
+        plan_root->planPool().add<aris::plan::Mode>();
+        plan_root->planPool().add<aris::plan::Show>();
+        plan_root->planPool().add<aris::plan::Sleep>();
+        plan_root->planPool().add<aris::plan::Recover>();
+        plan_root->planPool().add<aris::plan::Reset>();
+
+        auto &mvaj = plan_root->planPool().add<aris::plan::MoveAbsJ>();
+        mvaj.command().findParam("vel")->setDefaultValue("0.1");
+
+        plan_root->planPool().add<aris::plan::MoveL>();
+        plan_root->planPool().add<aris::plan::MoveJ>();
+
+        plan_root->planPool().add<aris::plan::GetPartPq>();
+        plan_root->planPool().add<aris::plan::GetXml>();
+        plan_root->planPool().add<aris::plan::SetXml>();
+        plan_root->planPool().add<aris::plan::Start>();
+        plan_root->planPool().add<aris::plan::Stop>();
+
 		plan_root->planPool().add<kaanh::MoveInit>();
 		plan_root->planPool().add<kaanh::Get_ee_pq>();
 		plan_root->planPool().add<kaanh::Get_cur>();
@@ -3446,6 +3464,7 @@ namespace kaanh
 
 		plan_root->planPool().add<SevenJointDyna>();
 		plan_root->planPool().add<SevenJointTest>();
+        plan_root->planPool().add<SevenDragTeach>();
 		plan_root->planPool().add<SevenLoadDyna>();
 
 		plan_root->planPool().add<cplan::MoveCircle>();

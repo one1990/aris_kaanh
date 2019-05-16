@@ -43,7 +43,7 @@ namespace CONFIG
 		const int RobotAxis = 7;
 		const double ZeroOffset[7] = { 0, 0, 0, 0, 0, 0 ,0};
 		const double JointOffset[7] = { 0, -PII, -PII, -PII, -PII, -PII ,-PII};
-		const double DirectionFlag[7] = { 1, 1, 1, 1, 1, 1 ,1};
+        const double DirectionFlag[7] = { 1, -1, 1, -1, 1, -1 ,1};
 		const double a2=0, a3=0, a4=0, d4=0, d3 = 0.33, d5 = 0.32, d7 = 0.28;
 		
 }

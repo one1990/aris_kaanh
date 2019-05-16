@@ -1664,9 +1664,9 @@ void sevenjointdynamics::SevenJointCollision(const double * q, const double *dq,
 				{
 					Y1[m][n] = 0;
 					if (n == 2 * m)
-						Y1[m][n] = 1 * SevenSign(dq[m]);
+                        Y1[m][n] = 1 * SevenSign(dq0[m]);
 					if (n == 2 * m + 1)
-						Y1[m][n] = dq[m];
+                        Y1[m][n] = dq0[m];
 				}
 			}
 
@@ -1681,7 +1681,7 @@ void sevenjointdynamics::SevenJointCollision(const double * q, const double *dq,
 
 				for (int n = JointReduceDim; n < JointReduceDim + 2 * RobotAxis; n++)
 				{
-					YtolMat[m][n] = Y1[m][n];
+                    YtolMat[m][n] = Y1[m][n-JointReduceDim];
 				}
 			}
 			
@@ -1692,7 +1692,7 @@ void sevenjointdynamics::SevenJointCollision(const double * q, const double *dq,
                     estTor[i] = estTor[i] + YtolMat[i][j] * estParas[j];
 
             for (int i = 0; i < 7; i++)
-                CollisionFT[i] = ts[i]-estTor[i] ;
+                CollisionFT[i] = estTor[i] ;
 
 
         }

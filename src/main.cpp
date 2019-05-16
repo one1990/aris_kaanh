@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
 	auto port = argc < 2 ? 5866 : std::stoi(argv[1]);
 
 
-   /*
+/*
 	//生成rokae.xml文档
     //for rokae robot//
    // cs.resetController(kaanh::createControllerRokaeXB4().release());
@@ -48,13 +48,15 @@ int main(int argc, char *argv[])
 
 
 	cs.saveXmlFile(xmlpath.string().c_str());
-	*/
+*/
 
 
     cs.loadXmlFile(xmlpath.string().c_str());
 	
 	cs.start();
 	
+
+
 	// interaction //
 	std::list<std::tuple<aris::core::Msg, std::shared_ptr<aris::plan::PlanTarget>>> result_list;
 	std::mutex result_mutex;
