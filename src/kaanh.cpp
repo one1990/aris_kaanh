@@ -235,7 +235,7 @@ namespace kaanh
             };
 
             std::string xml_str =
-                "<EthercatMotion phy_id=\"" + std::to_string(i) + "\" product_code=\"0x01\""
+                "<EthercatMotion phy_id=\"" + std::to_string(i+1) + "\" product_code=\"0x01\""
                 " vendor_id=\"0x00000748\" revision_num=\"0x0002\" dc_assign_activate=\"0x0300\""
                 " min_pos=\"" + std::to_string(min_pos[i]) + "\" max_pos=\"" + std::to_string(max_pos[i]) + "\" max_vel=\"" + std::to_string(max_vel[i]) + "\" min_vel=\"" + std::to_string(-max_vel[i]) + "\""
                 " max_acc=\"" + std::to_string(max_acc[i]) + "\" min_acc=\"" + std::to_string(-max_acc[i]) + "\" max_pos_following_error=\"0.1\" max_vel_following_error=\"0.5\""
@@ -279,7 +279,7 @@ namespace kaanh
 
         //ATI force sensor//
         std::string xml_str =
-            "<EthercatSlave phy_id=\"6\" product_code=\"0x26483053\""
+            "<EthercatSlave phy_id=\"0\" product_code=\"0x26483053\""
             " vendor_id=\"0x00000732\" revision_num=\"0x00000001\" dc_assign_activate=\"0x300\">"
             "	<SyncManagerPoolObject>"
             "		<SyncManager is_tx=\"false\"/>"
@@ -3459,14 +3459,14 @@ namespace kaanh
             // 访问主站 //
             auto controller = dynamic_cast<aris::control::EthercatController*>(target.controller);
 
-            controller->ecSlavePool().at(0).readPdo(0x6000, 0x01, &param.Fx ,32);
-            controller->ecSlavePool().at(0).readPdo(0x6000, 0x02, &param.Fy, 32);
-            controller->ecSlavePool().at(0).readPdo(0x6000, 0x03, &param.Fz, 32);
-            controller->ecSlavePool().at(0).readPdo(0x6000, 0x04, &param.Mx, 32);
-            controller->ecSlavePool().at(0).readPdo(0x6000, 0x05, &param.My, 32);
-            controller->ecSlavePool().at(0).readPdo(0x6000, 0x06, &param.Mz, 32);
-            controller->ecSlavePool().at(0).readPdo(0x6010, 0x00, &param.status_code, 32);
-            controller->ecSlavePool().at(0).readPdo(0x6020, 0x00, &param.sample_counter, 32);
+            controller->ecSlavePool().at(6).readPdo(0x6000, 0x01, &param.Fx ,32);
+            controller->ecSlavePool().at(6).readPdo(0x6000, 0x02, &param.Fy, 32);
+            controller->ecSlavePool().at(6).readPdo(0x6000, 0x03, &param.Fz, 32);
+            controller->ecSlavePool().at(6).readPdo(0x6000, 0x04, &param.Mx, 32);
+            controller->ecSlavePool().at(6).readPdo(0x6000, 0x05, &param.My, 32);
+            controller->ecSlavePool().at(6).readPdo(0x6000, 0x06, &param.Mz, 32);
+            controller->ecSlavePool().at(6).readPdo(0x6010, 0x00, &param.status_code, 32);
+            controller->ecSlavePool().at(6).readPdo(0x6020, 0x00, &param.sample_counter, 32);
 
             /*
             double Fx = param.Fx*20.0 / 65536;
