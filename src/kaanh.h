@@ -266,7 +266,6 @@ namespace kaanh
         ARIS_REGISTER_TYPE(ATIFS);
     };
 
-
 	class SetDH : public aris::plan::Plan
 	{
 	public:
@@ -281,6 +280,14 @@ namespace kaanh
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
 		explicit SetPOffset(const std::string &name = "SetPOffset_plan");
 		ARIS_REGISTER_TYPE(SetPOffset);
+	};
+
+	class SetDriver : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		explicit SetDriver(const std::string &name = "SetDriver_plan");
+		ARIS_REGISTER_TYPE(SetDriver);
 	};
 
 }

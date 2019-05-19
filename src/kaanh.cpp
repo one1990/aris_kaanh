@@ -567,7 +567,7 @@ namespace kaanh
 		}
 		lout << std::endl;
 
-		if (!target.model->solverPool().at(1).kinPos())return -1;
+		if (target.model->solverPool().at(1).kinPos())return -1;
 		return 1000-target.count;
 	}
 	auto MoveInit::collectNrt(PlanTarget &target)->void {}
@@ -705,7 +705,7 @@ namespace kaanh
             pqv[2] = 1000 * param.z*(PI / time)*std::sin(2 * PI*target.count / time);
             ee.setMvq(pqv);
 
-			if (!target.model->solverPool().at(0).kinPos())return -1;
+			if (target.model->solverPool().at(0).kinPos())return -1;
             target.model->solverPool().at(0).kinVel();
 
 			// 访问主站 //
@@ -934,7 +934,7 @@ namespace kaanh
 				}
 			}
 
-			if (!target.model->solverPool().at(1).kinPos())return -1;
+			if (target.model->solverPool().at(1).kinPos())return -1;
 
 			// 访问主站 //
 			auto controller = target.controller;
@@ -1154,7 +1154,7 @@ namespace kaanh
 				}
 			}
 
-			if (!target.model->solverPool().at(1).kinPos())return -1;
+			if (target.model->solverPool().at(1).kinPos())return -1;
 
 			// 访问主站 //
 			auto controller = target.controller;
@@ -1307,12 +1307,13 @@ namespace kaanh
 				aris::Size t_count;
 				aris::plan::moveAbsolute(target.count, param.begin_joint_pos_vec[i], param.begin_joint_pos_vec[i]+param.joint_pos_vec[i], param.vel / 1000, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
 				controller->motionAtAbs(i).setTargetPos(p);
+				target.model->motionPool().at(i).setMp(p);
 				total_count = std::max(total_count, t_count);
 			}
 		}
 
 		//controller与模型同步，保证3D仿真模型同步显示
-		//if (!target.model->solverPool().at(1).kinPos())return -1;
+		if (target.model->solverPool().at(1).kinPos())return -1;
 
 		// 打印电流 //
 		auto &cout = controller->mout();
@@ -1562,7 +1563,7 @@ namespace kaanh
 				}
 			}
 
-            if (!target.model->solverPool().at(1).kinPos())return -1;
+            if (target.model->solverPool().at(1).kinPos())return -1;
 			   
 			// 打印电流 //
 			auto &cout = controller->mout();
@@ -1859,7 +1860,7 @@ namespace kaanh
 				}
 			}
 				
-			if (!target.model->solverPool().at(1).kinPos())return -1;
+			if (target.model->solverPool().at(1).kinPos())return -1;
 
 			// 打印电流 //
 			auto &cout = controller->mout();
@@ -2059,7 +2060,7 @@ namespace kaanh
 			if (target.count == 1)
 			{
 				target.model->generalMotionPool().at(0).setMpq(param.pq.data());	//generalMotionPool()指模型末端，at(0)表示第1个末端，对于6足就有6个末端，对于机器人只有1个末端
-				if (!target.model->solverPool().at(0).kinPos())return -1;
+				if (target.model->solverPool().at(0).kinPos())return -1;
 				for (Size i = 0; i < param.axis_pos_vec.size(); ++i)
 				{
 					param.axis_begin_pos_vec[i] = controller->motionPool().at(i).targetPos();
@@ -2077,7 +2078,7 @@ namespace kaanh
 				controller->motionAtAbs(i).setOffsetVel(v*1000);
 				target.model->motionPool().at(i).setMp(p);
 			}		
-			if (!target.model->solverPool().at(1).kinPos())return -1;
+			if (target.model->solverPool().at(1).kinPos())return -1;
 
 			// 打印电流 //
 			auto &cout = controller->mout();
@@ -2317,7 +2318,7 @@ namespace kaanh
 		target.model->generalMotionPool().at(0).setMpm(imp_->pm_target.data());
 		
 		// 运动学反解 //
-		if (!target.model->solverPool().at(0).kinPos())return -1;
+		if (target.model->solverPool().at(0).kinPos())return -1;
 
 		// 打印 //
 		auto &cout = controller->mout();
@@ -2562,7 +2563,7 @@ namespace kaanh
 		}
 
         // 运动学反解//
-		if (!target.model->solverPool().at(1).kinPos())return -1;
+		if (target.model->solverPool().at(1).kinPos())return -1;
 
 		// 打印 //
 		auto &cout = controller->mout();
@@ -3682,6 +3683,88 @@ namespace kaanh
 			"			<GroupParam>"
 			"				<Param name=\"motion_id\" abbreviation=\"m\" default=\"0\"/>"
 			"				<Param name=\"m_offset\" default=\"0.0\"/>"
+			"			</GroupParam>"
+			"		</UniqueParam>"
+			"	</GroupParam>"
+			"</Command>");
+	}
+
+	// 配置关节角度、角速度、角加速度上下限 //
+	struct SetDriverParam
+	{
+		std::vector<double> pos_offset;
+		std::vector<bool> joint_active_vec;
+	};
+	auto SetDriver::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		//std::unique_ptr<aris::control::Controller> controller(kaanh::createControllerRokaeXB4());
+		auto controller = target.controller;
+
+		SetDriverParam param;
+		param.pos_offset.clear();
+		param.pos_offset.resize(target.controller->motionPool().size(), 0.0);
+		param.joint_active_vec.clear();
+
+		for (auto &p : params)
+		{
+			if (p.first == "all")
+			{
+				param.joint_active_vec.resize(target.controller->motionPool().size(), true);
+				auto mat = target.model->calculator().calculateExpression(params.at("all_offset"));
+				if (mat.size() == param.pos_offset.size())
+				{
+					param.pos_offset.assign(mat.begin(), mat.end());
+				}
+				else
+				{
+					throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+				}
+			}
+			else if (p.first == "motion_id")
+			{
+				param.joint_active_vec.resize(target.controller->motionPool().size(), false);
+				param.joint_active_vec.at(std::stoi(p.second)) = true;
+
+				param.pos_offset.at(std::stoi(p.second)) = std::stod(params.at("m_offset"));
+			}
+		}
+		// 设置驱动offset //
+		for (int i = 0; i < param.pos_offset.size(); i++)
+		{
+			if (param.joint_active_vec[i])
+			{
+				dynamic_cast<aris::control::Motion&>(controller->slavePool()[i]).setPosOffset(param.pos_offset[i]);
+			}
+		}
+
+		auto&cs = aris::server::ControlServer::instance();
+		if (cs.running())throw std::runtime_error("cs is running, can not set position offset,please stop the cs!");
+		auto xmlpath = std::filesystem::absolute(".");
+		const std::string xmlfile = "rokae.xml";
+		xmlpath = xmlpath / xmlfile;
+		cs.saveXmlFile(xmlpath.string().c_str());
+
+		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
+
+	}
+	SetDriver::SetDriver(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"setDriver\">"
+			"	<GroupParam>"
+			"		<UniqueParam>"
+			"			<GroupParam name=\"start_group\">"
+			"				<Param name=\"all\"/>"
+			"				<Param name=\"all_offset\" default=\"{0.00293480352126769, -2.50023777179214, -0.292382537944081, 0.0582675097338009, 1.53363576057128, 26.3545454214145}\"/>"
+			"			</GroupParam>"
+			"			<GroupParam>"
+			"				<Param name=\"motion_id\" abbreviation=\"m\" default=\"0\"/>"
+			"				<Param name=\"pos_max\" default=\"0.0\"/>"
+			"				<Param name=\"pos_min\" default=\"0.0\"/>"
+			"				<Param name=\"vel_max\" default=\"0.0\"/>"
+			"				<Param name=\"vel_min\" default=\"0.0\"/>"
+			"				<Param name=\"acc_max\" default=\"0.0\"/>"
+			"				<Param name=\"acc_min\" default=\"0.0\"/>"
 			"			</GroupParam>"
 			"		</UniqueParam>"
 			"	</GroupParam>"

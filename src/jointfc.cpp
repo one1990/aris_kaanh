@@ -138,7 +138,7 @@ auto JointDyna::executeRT(PlanTarget &target)->int
 
 
 
-    //if (!target.model->solverPool().at(1).kinPos())return -1;
+    //if (target.model->solverPool().at(1).kinPos())return -1;
 
 	// 访问主站 //
 	auto controller = target.controller;
@@ -381,7 +381,7 @@ auto JointTest::executeRT(PlanTarget &target)->int
 
 	JointMatrix.JointCollision(q, dq, ddq, ts, JointMatrix.estParasJoint, JointMatrix.CoefParasJointInv, JointMatrix.CoefParasJoint, JointMatrix.LoadParas,CollisionFT);
 
-    //if (!target.model->solverPool().at(1).kinPos())return -1;
+    //if (target.model->solverPool().at(1).kinPos())return -1;
 	for (int i = 0;i < 6;i++)
 		CollisionFT[i] = CollisionFT[i] - ts[i];
     auto &lout = controller->lout();
@@ -552,7 +552,7 @@ auto DragTeach::executeRT(PlanTarget &target)->int
         controller->motionAtAbs(i).setTargetCur(ft_offset);
 	}
 
-	//if (!target.model->solverPool().at(1).kinPos())return -1;
+	//if (target.model->solverPool().at(1).kinPos())return -1;
 
 	auto &lout = controller->lout();
 	lout << target.count << ",";
@@ -784,7 +784,7 @@ auto LoadDyna::executeRT(PlanTarget &target)->int
 
 
 
-    //if (!target.model->solverPool().at(1).kinPos())return -1;
+    //if (target.model->solverPool().at(1).kinPos())return -1;
 
 	// 访问主站 //
 	auto controller = target.controller;
