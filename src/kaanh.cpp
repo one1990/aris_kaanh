@@ -505,7 +505,7 @@ namespace kaanh
 		MoveInitParam param;
 		param.axis_pos_vec.resize(6, 0.0);
 		target.param = param;
-		target.option |=
+		std::fill(target.mot_options.begin(), target.mot_options.end(),
 			Plan::USE_TARGET_POS |
 #ifdef WIN32
 			Plan::NOT_CHECK_POS_MIN |
@@ -520,7 +520,7 @@ namespace kaanh
 			Plan::NOT_CHECK_VEL_MAX |
 			Plan::NOT_CHECK_VEL_CONTINUOUS |
 			Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-			Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+			Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
 
 	}
 	auto MoveInit::executeRT(PlanTarget &target)->int
@@ -661,7 +661,7 @@ namespace kaanh
 			}
 			target.param = param;
 
-			target.option |=
+			std::fill(target.mot_options.begin(), target.mot_options.end(),
 				//用于使用模型轨迹驱动电机//
 				Plan::USE_TARGET_POS |
                 //Plan::USE_VEL_OFFSET |
@@ -678,7 +678,7 @@ namespace kaanh
 				Plan::NOT_CHECK_VEL_MAX |
 				Plan::NOT_CHECK_VEL_CONTINUOUS |
 				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
 
 		}
 	auto MoveX::executeRT(PlanTarget &target)->int
@@ -855,7 +855,7 @@ namespace kaanh
 			}
 			target.param = param;
 
-			target.option |=
+			std::fill(target.mot_options.begin(), target.mot_options.end(),
 				Plan::USE_TARGET_POS |
 #ifdef WIN32
 				Plan::NOT_CHECK_POS_MIN |
@@ -870,7 +870,7 @@ namespace kaanh
 				Plan::NOT_CHECK_VEL_MAX |
 				Plan::NOT_CHECK_VEL_CONTINUOUS |
 				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
 
 		}
 	auto MoveJS::executeRT(PlanTarget &target)->int
@@ -1078,8 +1078,8 @@ namespace kaanh
 			}
 			target.param = param;
 
-			target.option |=
-				Plan::USE_TARGET_POS;
+			std::fill(target.mot_options.begin(), target.mot_options.end(),
+				Plan::USE_TARGET_POS);
 /*
 #ifdef WIN32
 				Plan::NOT_CHECK_POS_MIN |
@@ -1264,7 +1264,7 @@ namespace kaanh
 
 		target.param = param;
 
-		target.option |=
+		std::fill(target.mot_options.begin(), target.mot_options.end(),
 //				Plan::USE_TARGET_POS |
 #ifdef WIN32
 			Plan::NOT_CHECK_POS_MIN |
@@ -1279,7 +1279,7 @@ namespace kaanh
 			Plan::NOT_CHECK_VEL_MAX |
 			Plan::NOT_CHECK_VEL_CONTINUOUS |
 			Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-			Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+			Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
 
 	}
 	auto MoveJR::executeRT(PlanTarget &target)->int
@@ -1509,7 +1509,7 @@ namespace kaanh
 
 			target.param = param;
 
-			target.option |=
+			std::fill(target.mot_options.begin(), target.mot_options.end(),
 				Plan::USE_TARGET_POS |
 #ifdef WIN32target_pos
 				Plan::NOT_CHECK_POS_MIN |
@@ -1524,7 +1524,7 @@ namespace kaanh
 				Plan::NOT_CHECK_VEL_MAX |
 				Plan::NOT_CHECK_VEL_CONTINUOUS |
 				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
 
 		}
 	auto MoveTTT::executeRT(PlanTarget &target)->int
@@ -1799,7 +1799,7 @@ namespace kaanh
 			}
 			target.param = param;
 
-			target.option |=
+			std::fill(target.mot_options.begin(), target.mot_options.end(),
                 //Plan::USE_VEL_OFFSET |
 #ifdef WIN32
 				Plan::NOT_CHECK_POS_MIN |
@@ -1814,7 +1814,7 @@ namespace kaanh
 				Plan::NOT_CHECK_VEL_MAX |
 				Plan::NOT_CHECK_VEL_CONTINUOUS |
 				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
 
 		}
 	auto MoveJM::executeRT(PlanTarget &target)->int
@@ -2031,7 +2031,7 @@ namespace kaanh
 			}
 			target.param = param;
 
-			target.option |=
+			std::fill(target.mot_options.begin(), target.mot_options.end(),
 				Plan::USE_VEL_OFFSET |
 #ifdef WIN32
 				Plan::NOT_CHECK_POS_MIN |
@@ -2046,7 +2046,7 @@ namespace kaanh
 				Plan::NOT_CHECK_VEL_MAX |
 				Plan::NOT_CHECK_VEL_CONTINUOUS |
 				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
 
 		}
 	auto MoveJI::executeRT(PlanTarget &target)->int
@@ -2180,6 +2180,7 @@ namespace kaanh
 
 
 				target.option |= EXECUTE_WHEN_ALL_PLAN_COLLECTED | NOT_PRINT_EXECUTE_COUNT | USE_TARGET_POS;
+				std::fill(target.mot_options.begin(), target.mot_options.end(), USE_TARGET_POS);
 			}
 			else if (p.first == "stop")
 			{
@@ -2215,7 +2216,7 @@ namespace kaanh
 			}
 		}
 		
-		target.option |= NOT_CHECK_POS_FOLLOWING_ERROR;
+		std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR);
 		target.param = param;
 	}
 	auto MovePoint::executeRT(PlanTarget &target)->int
@@ -2501,7 +2502,7 @@ namespace kaanh
 			}
 		}
 
-		target.option |= NOT_CHECK_POS_FOLLOWING_ERROR;
+		std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR);
 		target.param = param;
 	}
 	auto MoveJP::executeRT(PlanTarget &target)->int
@@ -2656,7 +2657,7 @@ namespace kaanh
 			target.param = param;
 
 #ifdef WIN32
-			target.option |=
+			std::fill(target.mot_options.begin(), target.mot_options.end(),
 
 				Plan::NOT_CHECK_POS_MIN |
 				Plan::NOT_CHECK_POS_MAX |
@@ -2669,7 +2670,7 @@ namespace kaanh
 				Plan::NOT_CHECK_VEL_MAX |
 				Plan::NOT_CHECK_VEL_CONTINUOUS |
 				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
 #endif
 		}
 	auto Grasp::executeRT(PlanTarget &target)->int
@@ -2707,7 +2708,7 @@ namespace kaanh
 	auto ListenDI::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 		{
 #ifdef WIN32
-			target.option |= 
+			std::fill(target.mot_options.begin(), target.mot_options.end(), 
 				Plan::NOT_CHECK_POS_MIN |
 				Plan::NOT_CHECK_POS_MAX |
 				Plan::NOT_CHECK_POS_CONTINUOUS |
@@ -2719,7 +2720,7 @@ namespace kaanh
 				Plan::NOT_CHECK_VEL_MAX |
 				Plan::NOT_CHECK_VEL_CONTINUOUS |
 				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
 #endif
 		}
 	auto ListenDI::executeRT(PlanTarget &target)->int
@@ -2924,7 +2925,7 @@ namespace kaanh
 			}
 			target.param = param;
 
-			target.option |=
+			std::fill(target.mot_options.begin(), target.mot_options.end(),
 				Plan::USE_TARGET_POS |
 #ifdef WIN32
 				Plan::NOT_CHECK_POS_MIN |
@@ -2938,13 +2939,13 @@ namespace kaanh
 				Plan::NOT_CHECK_VEL_MAX |
 				Plan::NOT_CHECK_VEL_CONTINUOUS |
 				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR |
 #endif
 				Plan::NOT_CHECK_VEL_MIN |
 				Plan::NOT_CHECK_VEL_MAX |
 				Plan::NOT_CHECK_VEL_CONTINUOUS |
 				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
 
 		}
 	auto MoveEA::executeRT(PlanTarget &target)->int
@@ -3130,7 +3131,7 @@ namespace kaanh
 			}
 			target.param = param;
 
-			target.option |=
+			std::fill(target.mot_options.begin(), target.mot_options.end(),
 				Plan::USE_TARGET_POS |
 				Plan::USE_VEL_OFFSET |
 #ifdef WIN32
@@ -3146,7 +3147,7 @@ namespace kaanh
 				Plan::NOT_CHECK_VEL_MAX |
 				Plan::NOT_CHECK_VEL_CONTINUOUS |
 				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
 
 		}
 	auto MoveEAP::executeRT(PlanTarget &target)->int
@@ -3351,7 +3352,7 @@ namespace kaanh
 			target.param = param;
 
 #ifdef WIN32
-			target.option |=
+			std::fill(target.mot_options.begin(), target.mot_options.end(),
 
 				Plan::NOT_CHECK_POS_MIN |
 				Plan::NOT_CHECK_POS_MAX |
@@ -3364,7 +3365,7 @@ namespace kaanh
 				Plan::NOT_CHECK_VEL_MAX |
 				Plan::NOT_CHECK_VEL_CONTINUOUS |
 				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
 #endif
 		}
 	auto FSSignal::executeRT(PlanTarget &target)->int

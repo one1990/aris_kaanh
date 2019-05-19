@@ -89,7 +89,7 @@ namespace forcecontrol
 
 		target.param = param;
 
-		target.option |=
+		std::fill(target.mot_options.begin(), target.mot_options.end(),
 			Plan::USE_TARGET_POS |
 			Plan::USE_VEL_OFFSET |
 			//#ifdef WIN32
@@ -105,7 +105,7 @@ namespace forcecontrol
 			Plan::NOT_CHECK_VEL_MAX |
 			Plan::NOT_CHECK_VEL_CONTINUOUS |
 			Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-			Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+			Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
 
 	}
 	auto MoveJRC::executeRT(PlanTarget &target)->int
@@ -514,7 +514,7 @@ namespace forcecontrol
 			}
 			target.param = param;
 
-			target.option |=
+			std::fill(target.mot_options.begin(), target.mot_options.end(),
 				Plan::USE_VEL_OFFSET |
 				//#ifdef WIN32
 				Plan::NOT_CHECK_POS_MIN |
@@ -529,7 +529,7 @@ namespace forcecontrol
 				Plan::NOT_CHECK_VEL_MAX |
 				Plan::NOT_CHECK_VEL_CONTINUOUS |
 				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
 
 		}
 	auto MovePQCrash::executeRT(PlanTarget &target)->int
@@ -1551,7 +1551,7 @@ namespace forcecontrol
 		}
 		target.param = param;
 
-		target.option |=
+		std::fill(target.mot_options.begin(), target.mot_options.end(),
 			Plan::USE_VEL_OFFSET |
 			//#ifdef WIN32
 			Plan::NOT_CHECK_POS_MIN |
@@ -1566,7 +1566,7 @@ namespace forcecontrol
 			Plan::NOT_CHECK_VEL_MAX |
 			Plan::NOT_CHECK_VEL_CONTINUOUS |
 			Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-			Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+			Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
 
 	}
 	auto MovePQB::executeRT(PlanTarget &target)->int
@@ -1852,7 +1852,7 @@ namespace forcecontrol
 			}
 			target.param = param;
 
-			target.option |=
+			std::fill(target.mot_options.begin(), target.mot_options.end(),
 				Plan::USE_VEL_OFFSET |
 				//#ifdef WIN32
 				Plan::NOT_CHECK_POS_MIN |
@@ -1867,7 +1867,7 @@ namespace forcecontrol
 				Plan::NOT_CHECK_VEL_MAX |
 				Plan::NOT_CHECK_VEL_CONTINUOUS |
 				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
 
 		}
 	auto MoveJCrash::executeRT(PlanTarget &target)->int
@@ -2307,7 +2307,7 @@ namespace forcecontrol
 		}
 		target.param = param;
 
-		target.option |=
+		std::fill(target.mot_options.begin(), target.mot_options.end(),
 			Plan::USE_VEL_OFFSET |
 			//#ifdef WIN32
 			Plan::NOT_CHECK_POS_MIN |
@@ -2322,7 +2322,7 @@ namespace forcecontrol
 			Plan::NOT_CHECK_VEL_MAX |
 			Plan::NOT_CHECK_VEL_CONTINUOUS |
 			Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-			Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+			Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
 
 	}
 	auto MoveJF::executeRT(PlanTarget &target)->int
@@ -2719,7 +2719,7 @@ namespace forcecontrol
 		}
 		target.param = param;
 
-		target.option |=
+		std::fill(target.mot_options.begin(), target.mot_options.end(),
 			Plan::USE_VEL_OFFSET |
 			//#ifdef WIN32
 			Plan::NOT_CHECK_POS_MIN |
@@ -2734,7 +2734,7 @@ namespace forcecontrol
 			Plan::NOT_CHECK_VEL_MAX |
 			Plan::NOT_CHECK_VEL_CONTINUOUS |
 			Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-			Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+			Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
 
 	}
 	auto MoveJFB::executeRT(PlanTarget &target)->int
@@ -3191,7 +3191,7 @@ namespace forcecontrol
 			}
 			target.param = param;
 
-			target.option |=
+			std::fill(target.mot_options.begin(), target.mot_options.end(),
 				Plan::USE_VEL_OFFSET |
 				//#ifdef WIN32
 				Plan::NOT_CHECK_POS_MIN |
@@ -3206,7 +3206,7 @@ namespace forcecontrol
 				Plan::NOT_CHECK_VEL_MAX |
 				Plan::NOT_CHECK_VEL_CONTINUOUS |
 				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
 
 		}
 	auto MoveJPID::executeRT(PlanTarget &target)->int
