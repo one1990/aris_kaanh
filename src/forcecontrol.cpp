@@ -89,7 +89,7 @@ namespace forcecontrol
 
 		target.param = param;
 
-		target.option |=
+		std::fill(target.mot_options.begin(), target.mot_options.end(),
 			Plan::USE_TARGET_POS |
 			Plan::USE_VEL_OFFSET |
 			//#ifdef WIN32
@@ -105,7 +105,7 @@ namespace forcecontrol
 			Plan::NOT_CHECK_VEL_MAX |
 			Plan::NOT_CHECK_VEL_CONTINUOUS |
 			Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-			Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+			Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
 
 	}
 	auto MoveJRC::executeRT(PlanTarget &target)->int
@@ -282,7 +282,7 @@ namespace forcecontrol
 			}
 		}
 		
-		if (!target.model->solverPool().at(1).kinPos())return -1;
+		if (target.model->solverPool().at(1).kinPos())return -1;
 		target.model->generalMotionPool().at(0).getMpq(pqa);
 
 		// 打印电流 //
@@ -514,7 +514,7 @@ namespace forcecontrol
 			}
 			target.param = param;
 
-			target.option |=
+			std::fill(target.mot_options.begin(), target.mot_options.end(),
 				Plan::USE_VEL_OFFSET |
 				//#ifdef WIN32
 				Plan::NOT_CHECK_POS_MIN |
@@ -529,7 +529,7 @@ namespace forcecontrol
 				Plan::NOT_CHECK_VEL_MAX |
 				Plan::NOT_CHECK_VEL_CONTINUOUS |
 				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
 
 		}
 	auto MovePQCrash::executeRT(PlanTarget &target)->int
@@ -1551,7 +1551,7 @@ namespace forcecontrol
 		}
 		target.param = param;
 
-		target.option |=
+		std::fill(target.mot_options.begin(), target.mot_options.end(),
 			Plan::USE_VEL_OFFSET |
 			//#ifdef WIN32
 			Plan::NOT_CHECK_POS_MIN |
@@ -1566,7 +1566,7 @@ namespace forcecontrol
 			Plan::NOT_CHECK_VEL_MAX |
 			Plan::NOT_CHECK_VEL_CONTINUOUS |
 			Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-			Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+			Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
 
 	}
 	auto MovePQB::executeRT(PlanTarget &target)->int
@@ -1852,7 +1852,7 @@ namespace forcecontrol
 			}
 			target.param = param;
 
-			target.option |=
+			std::fill(target.mot_options.begin(), target.mot_options.end(),
 				Plan::USE_VEL_OFFSET |
 				//#ifdef WIN32
 				Plan::NOT_CHECK_POS_MIN |
@@ -1867,7 +1867,7 @@ namespace forcecontrol
 				Plan::NOT_CHECK_VEL_MAX |
 				Plan::NOT_CHECK_VEL_CONTINUOUS |
 				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
 
 		}
 	auto MoveJCrash::executeRT(PlanTarget &target)->int
@@ -1939,7 +1939,7 @@ namespace forcecontrol
 			{
 				//求目标位置pq的运动学反解，获取电机实际位置、实际速度
 				target.model->generalMotionPool().at(0).setMpq(param.pqt.data());
-				if (!target.model->solverPool().at(0).kinPos())return -1;
+				if (target.model->solverPool().at(0).kinPos())return -1;
 				for (Size i = 0; i < param.pt.size(); ++i)
 				{
 					param.pt[i] = target.model->motionPool().at(i).mp();		//motionPool()指模型驱动器，at(0)表示第1个驱动器
@@ -1965,7 +1965,7 @@ namespace forcecontrol
 					param.vqt[i] = param.xyz[i] * v / norm * 1000;
 				}
 				target.model->generalMotionPool().at(0).setMpq(param.pqt.data());
-				if (!target.model->solverPool().at(0).kinPos())return -1;
+				if (target.model->solverPool().at(0).kinPos())return -1;
 				target.model->generalMotionPool().at(0).setMvq(param.vqt.data());
 				target.model->solverPool().at(0).kinVel();
 
@@ -2307,7 +2307,7 @@ namespace forcecontrol
 		}
 		target.param = param;
 
-		target.option |=
+		std::fill(target.mot_options.begin(), target.mot_options.end(),
 			Plan::USE_VEL_OFFSET |
 			//#ifdef WIN32
 			Plan::NOT_CHECK_POS_MIN |
@@ -2322,7 +2322,7 @@ namespace forcecontrol
 			Plan::NOT_CHECK_VEL_MAX |
 			Plan::NOT_CHECK_VEL_CONTINUOUS |
 			Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-			Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+			Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
 
 	}
 	auto MoveJF::executeRT(PlanTarget &target)->int
@@ -2386,7 +2386,7 @@ namespace forcecontrol
 		
 		//求目标位置pq的运动学反解，获取电机实际位置、实际速度
 		target.model->generalMotionPool().at(0).setMpq(param.pqt.data());
-		if (!target.model->solverPool().at(0).kinPos())return -1;
+		if (target.model->solverPool().at(0).kinPos())return -1;
 		for (Size i = 0; i < param.pt.size(); ++i)
 		{
 			param.pt[i] = target.model->motionPool().at(i).mp();		//motionPool()指模型驱动器，at(0)表示第1个驱动器
@@ -2719,7 +2719,7 @@ namespace forcecontrol
 		}
 		target.param = param;
 
-		target.option |=
+		std::fill(target.mot_options.begin(), target.mot_options.end(),
 			Plan::USE_VEL_OFFSET |
 			//#ifdef WIN32
 			Plan::NOT_CHECK_POS_MIN |
@@ -2734,7 +2734,7 @@ namespace forcecontrol
 			Plan::NOT_CHECK_VEL_MAX |
 			Plan::NOT_CHECK_VEL_CONTINUOUS |
 			Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-			Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+			Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
 
 	}
 	auto MoveJFB::executeRT(PlanTarget &target)->int
@@ -2798,7 +2798,7 @@ namespace forcecontrol
 
 		//求目标位置pq的运动学反解，获取电机实际位置、实际速度
 		target.model->generalMotionPool().at(0).setMpq(param.pqt.data());
-		if (!target.model->solverPool().at(0).kinPos())return -1;
+		if (target.model->solverPool().at(0).kinPos())return -1;
 		for (Size i = 0; i < param.pt.size(); ++i)
 		{
 			param.pt[i] = target.model->motionPool().at(i).mp();		//motionPool()指模型驱动器，at(0)表示第1个驱动器
@@ -2822,7 +2822,7 @@ namespace forcecontrol
 		std::array<double, 4> q = {0.0,0.0,0.0,1.0};
 		std::copy(q.begin(), q.end(), param.pqa.begin()+3);
 		target.model->generalMotionPool().at(0).setMpq(param.pqa.data());
-        if (!target.model->solverPool().at(0).kinPos())return -1;
+        if (target.model->solverPool().at(0).kinPos())return -1;
 		for (Size i = 3; i < param.pt.size(); ++i)
 		{
 			param.pt[i] = target.model->motionPool().at(i).mp();		//motionPool()指模型驱动器，at(0)表示第1个驱动器
@@ -3191,7 +3191,7 @@ namespace forcecontrol
 			}
 			target.param = param;
 
-			target.option |=
+			std::fill(target.mot_options.begin(), target.mot_options.end(),
 				Plan::USE_VEL_OFFSET |
 				//#ifdef WIN32
 				Plan::NOT_CHECK_POS_MIN |
@@ -3206,7 +3206,7 @@ namespace forcecontrol
 				Plan::NOT_CHECK_VEL_MAX |
 				Plan::NOT_CHECK_VEL_CONTINUOUS |
 				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
 
 		}
 	auto MoveJPID::executeRT(PlanTarget &target)->int

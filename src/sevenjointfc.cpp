@@ -171,7 +171,7 @@ auto SevenJointDyna::executeRT(PlanTarget &target)->int
 	}
 
 
-	//if (!target.model->solverPool().at(1).kinPos())return -1;
+	if (target.model->solverPool().at(1).kinPos())return -1;
 
 	// 访问主站 //
 	auto controller = target.controller;
@@ -432,7 +432,6 @@ auto SevenJointTest::executeRT(PlanTarget &target)->int
     for (int i = 0;i < 7;i++)
         CollisionFT[i] = CollisionFT[i] - ts[i];
     //if (!target.model->solverPool().at(1).kinPos())return -1;
-
 	
 	
 	if (target.count % 100 == 0)
@@ -825,7 +824,7 @@ auto SevenLoadDyna::executeRT(PlanTarget &target)->int
 
 
 
-	if (!target.model->solverPool().at(1).kinPos())return -1;
+	if (target.model->solverPool().at(1).kinPos())return -1;
 
 	// 访问主站 //
 	auto controller = target.controller;

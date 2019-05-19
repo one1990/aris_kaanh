@@ -118,7 +118,7 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 	}
 
 
-    //if (!target.model->solverPool().at(1).kinPos())return -1;
+	if (target.model->solverPool().at(1).kinPos())return -1;
 
 
 	///* Using Jacobian, TransMatrix from ARIS
@@ -511,7 +511,7 @@ auto MoveDistal::executeRT(PlanTarget &target)->int
 
 
 
-	if (!target.model->solverPool().at(1).kinPos())return -1;
+	if (target.model->solverPool().at(1).kinPos())return -1;
 
 	// 访问主站 //
 	auto controller = target.controller;
@@ -880,7 +880,7 @@ auto MovePressure::executeRT(PlanTarget &target)->int
 	}
 
 
-	if (!target.model->solverPool().at(1).kinPos())return -1;
+	if (target.model->solverPool().at(1).kinPos())return -1;
 
 
 	///* Using Jacobian, TransMatrix from ARIS
@@ -1259,7 +1259,7 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
 	}
 
 
-	if (!target.model->solverPool().at(1).kinPos())return -1;
+	if (target.model->solverPool().at(1).kinPos())return -1;
 
 
 	///* Using Jacobian, TransMatrix from ARIS
@@ -1916,7 +1916,7 @@ auto MovePressureToolXY::executeRT(PlanTarget &target)->int
 	}
 
 
-	if (!target.model->solverPool().at(1).kinPos())return -1;
+	if (target.model->solverPool().at(1).kinPos())return -1;
 
 
 	///* Using Jacobian, TransMatrix from ARIS
@@ -2597,7 +2597,7 @@ auto MoveFeed::executeRT(PlanTarget &target)->int
 	}
 
 
-	if (!target.model->solverPool().at(1).kinPos())return -1;
+	if (target.model->solverPool().at(1).kinPos())return -1;
 
 
 	///* Using Jacobian, TransMatrix from ARIS
@@ -3130,7 +3130,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 	}
 
 
-    //if (!target.model->solverPool().at(1).kinPos())return -1;
+	if (target.model->solverPool().at(1).kinPos())return -1;
 
 
 	///* Using Jacobian, TransMatrix from ARIS

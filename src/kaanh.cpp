@@ -191,6 +191,208 @@ namespace kaanh
 		return std::move(model);
 	}
 
+    auto createControllerDaye()->std::unique_ptr<aris::control::Controller>	/*函数返回的是一个类指针，指针指向Controller,controller的类型是智能指针std::unique_ptr*/
+    {
+
+        std::unique_ptr<aris::control::Controller> controller(aris::robot::createControllerRokaeXB4());/*创建std::unique_ptr实例*/
+
+        controller->slavePool().clear();	//清除slavePool中的元素，后面重新添加
+
+        for (aris::Size i = 0; i < 6; ++i)
+        {
+#ifdef WIN32
+            double pos_offset[6]
+            {
+                0,0,0,0,0,0
+            };
+#endif
+#ifdef UNIX
+            double pos_offset[6]
+            {
+                0.0345045068966465,   0.151295566371175,   -0.181133422007823,   0.00569660673541914,   0.0119907348546894,   0.0908806917782888
+            };
+#endif
+            double pos_factor[6]
+            {
+                131072.0 * 129.6 / 2 / PI, -131072.0 * 100 / 2 / PI, 131072.0 * 101 / 2 / PI, 131072.0 * 81.6 / 2 / PI, 131072.0 * 81 / 2 / PI, 131072.0 * 51 / 2 / PI
+            };
+            double max_pos[6]
+            {
+                170.0 / 360 * 2 * PI, 40.0 / 360 * 2 * PI,	150.0 / 360 * 2 * PI, 180.0 / 360 * 2 * PI, 125.0 / 360 * 2 * PI, 360.0 / 360 * 2 * PI
+            };
+            double min_pos[6]
+            {
+                -170.0 / 360 * 2 * PI, -165.0 / 360 * 2 * PI, -125.0 / 360 * 2 * PI, -180.0 / 360 * 2 * PI, -125.0 / 360 * 2 * PI, -360.0 / 360 * 2 * PI
+            };
+            double max_vel[6]
+            {
+                230.0 / 360 * 2 * PI, 300.0 / 360 * 2 * PI, 300.0 / 360 * 2 * PI, 300.0 / 360 * 2 * PI, 375.0 / 360 * 2 * PI, 600.0 / 360 * 2 * PI
+            };
+            double max_acc[6]
+            {
+                1150.0 / 360 * 2 * PI, 1500.0 / 360 * 2 * PI, 1500.0 / 360 * 2 * PI, 1500.0 / 360 * 2 * PI, 1875.0 / 360 * 2 * PI, 3000.0 / 360 * 2 * PI
+            };
+
+            std::string xml_str =
+                "<EthercatMotion phy_id=\"" + std::to_string(i+1) + "\" product_code=\"0x01\""
+                " vendor_id=\"0x00000748\" revision_num=\"0x0002\" dc_assign_activate=\"0x0300\""
+                " min_pos=\"" + std::to_string(min_pos[i]) + "\" max_pos=\"" + std::to_string(max_pos[i]) + "\" max_vel=\"" + std::to_string(max_vel[i]) + "\" min_vel=\"" + std::to_string(-max_vel[i]) + "\""
+                " max_acc=\"" + std::to_string(max_acc[i]) + "\" min_acc=\"" + std::to_string(-max_acc[i]) + "\" max_pos_following_error=\"0.1\" max_vel_following_error=\"0.5\""
+                " home_pos=\"0\" pos_factor=\"" + std::to_string(pos_factor[i]) + "\" pos_offset=\"" + std::to_string(pos_offset[i]) + "\">"
+                "	<SyncManagerPoolObject>"
+                "		<SyncManager is_tx=\"false\"/>"
+                "		<SyncManager is_tx=\"true\"/>"
+                "		<SyncManager is_tx=\"false\">"
+                "			<Pdo index=\"0x1600\" is_tx=\"false\">"
+                "				<PdoEntry name=\"control_word\" index=\"0x6040\" subindex=\"0x00\" size=\"16\"/>"
+                "				<PdoEntry name=\"target_pos\" index=\"0x607A\" subindex=\"0x00\" size=\"32\"/>"
+                "				<PdoEntry name=\"target_vel\" index=\"0x60FF\" subindex=\"0x00\" size=\"32\"/>"
+                "				<PdoEntry name=\"target_tor\" index=\"0x6071\" subindex=\"0x00\" size=\"16\"/>"
+                "				<PdoEntry name=\"mode_of_operation\" index=\"0x6060\" subindex=\"0x00\" size=\"8\"/>"
+                "				<PdoEntry name=\"dummy_byte\" index=\"0x5FFE\" subindex=\"0x00\" size=\"8\"/>"
+                "				<PdoEntry name=\"touch_probe_function\" index=\"0x60B8\" subindex=\"0x00\" size=\"16\"/>"
+                "				<PdoEntry name=\"pos_offset\" index=\"0x60B0\" subindex=\"0x00\" size=\"32\"/>"
+                "				<PdoEntry name=\"offset_vel\" index=\"0x60B1\" subindex=\"0x00\" size=\"32\"/>"
+                "				<PdoEntry name=\"tor_offset\" index=\"0x60B2\" subindex=\"0x00\" size=\"16\"/>"
+                "			</Pdo>"
+                "		</SyncManager>"
+                "		<SyncManager is_tx=\"true\">"
+                "			<Pdo index=\"0x1A00\" is_tx=\"true\">"
+                "				<PdoEntry name=\"status_word\" index=\"0x6041\" subindex=\"0x00\" size=\"16\"/>"
+                "				<PdoEntry name=\"pos_actual_value\" index=\"0x6064\" subindex=\"0x00\" size=\"32\"/>"
+                "				<PdoEntry name=\"vel_actual_value\" index=\"0x606c\" subindex=\"0x00\" size=\"32\"/>"
+                "				<PdoEntry name=\"cur_actual_value\" index=\"0x6077\" subindex=\"0x00\" size=\"16\"/>"
+                "				<PdoEntry name=\"mode_of_display\" index=\"0x6061\" subindex=\"0x00\" size=\"8\"/>"
+                "				<PdoEntry name=\"dummy_byte\" index=\"0x5FFF\" subindex=\"0x00\" size=\"8\"/>"
+                "				<PdoEntry name=\"following_error\" index=\"0x60F4\" subindex=\"0x00\" size=\"32\"/>"
+                "				<PdoEntry name=\"digital_inputs\" index=\"0x60FD\" subindex=\"0x00\" size=\"32\"/>"
+                "				<PdoEntry name=\"digital_inputs\" index=\"0x60B9\" subindex=\"0x00\" size=\"16\"/>"
+                "				<PdoEntry name=\"digital_inputs\" index=\"0x60BA\" subindex=\"0x00\" size=\"32\"/>"
+                "			</Pdo>"
+                "		</SyncManager>"
+                "	</SyncManagerPoolObject>"
+                "</EthercatMotion>";
+
+            controller->slavePool().add<aris::control::EthercatMotion>().loadXmlStr(xml_str);
+        }
+
+        //ATI force sensor//
+        std::string xml_str =
+            "<EthercatSlave phy_id=\"0\" product_code=\"0x26483053\""
+            " vendor_id=\"0x00000732\" revision_num=\"0x00000001\" dc_assign_activate=\"0x300\">"
+            "	<SyncManagerPoolObject>"
+            "		<SyncManager is_tx=\"false\"/>"
+            "		<SyncManager is_tx=\"true\"/>"
+            "		<SyncManager is_tx=\"false\">"
+            "			<Pdo index=\"0x1601\" is_tx=\"false\">"
+            "				<PdoEntry name=\"Control_1\" index=\"0x7010\" subindex=\"0x01\" size=\"32\"/>"
+            "				<PdoEntry name=\"Control_2\" index=\"0x7010\" subindex=\"0x02\" size=\"32\"/>"
+            "			</Pdo>"
+            "		</SyncManager>"
+            "		<SyncManager is_tx=\"true\">"
+            "			<Pdo index=\"0x1A00\" is_tx=\"true\">"
+            "				<PdoEntry name=\"Int_Input_Fx\" index=\"0x6000\" subindex=\"0x01\" size=\"32\"/>"
+            "				<PdoEntry name=\"Int_Input_Fy\" index=\"0x6000\" subindex=\"0x02\" size=\"32\"/>"
+            "				<PdoEntry name=\"Int_Input_Fz\" index=\"0x6000\" subindex=\"0x03\" size=\"32\"/>"
+            "				<PdoEntry name=\"Int_Input_Mx\" index=\"0x6000\" subindex=\"0x04\" size=\"32\"/>"
+            "				<PdoEntry name=\"Int_Input_My\" index=\"0x6000\" subindex=\"0x05\" size=\"32\"/>"
+            "				<PdoEntry name=\"Int_Input_Mz\" index=\"0x6000\" subindex=\"0x06\" size=\"32\"/>"
+            "				<PdoEntry name=\"Status_Code\" index=\"0x6010\" subindex=\"0x00\" size=\"32\"/>"
+            "				<PdoEntry name=\"Sample_Counter\" index=\"0x6020\" subindex=\"0x00\" size=\"32\"/>"
+            "			</Pdo>"
+            "		</SyncManager>"
+            "	</SyncManagerPoolObject>"
+            "</EthercatSlave>";
+
+        controller->slavePool().add<aris::control::EthercatSlave>().loadXmlStr(xml_str);
+
+        return controller;
+    };
+    auto createModelDaye(const double *robot_pm)->std::unique_ptr<aris::dynamic::Model>
+    {
+        std::unique_ptr<aris::dynamic::Model> model = std::make_unique<aris::dynamic::Model>("model");
+
+        // 设置重力 //
+        const double gravity[6]{ 0.0,0.0,-9.8,0.0,0.0,0.0 };
+        model->environment().setGravity(gravity);
+
+        // 添加变量 //
+        model->calculator().addVariable("PI", aris::core::Matrix(PI));
+
+        // add part //
+        auto &p1 = model->partPool().add<Part>("L1");
+        auto &p2 = model->partPool().add<Part>("L2");
+        auto &p3 = model->partPool().add<Part>("L3");
+        auto &p4 = model->partPool().add<Part>("L4");
+        auto &p5 = model->partPool().add<Part>("L5");
+        auto &p6 = model->partPool().add<Part>("L6");
+
+        // add joint //
+        const double j1_pos[3]{ 0.0, 0.0, 0.237 };
+        const double j2_pos[3]{ 0.088, 0.017, 0.327, };
+        const double j3_pos[3]{ 0.088, 0.0236, 0.787 };
+        const double j4_pos[3]{ 0.127, 0.0, 0.827, };
+        const double j5_pos[3]{ 0.523, 0.036, 0.827, };
+        const double j6_pos[3]{ 0.607, 0.0, 0.827, };
+
+        const double j1_axis[6]{ 0.0, 0.0, 1.0 };
+        const double j2_axis[6]{ 0.0, 1.0, 0.0 };
+        const double j3_axis[6]{ 0.0, 1.0, 0.0 };
+        const double j4_axis[6]{ 1.0, 0.0, 0.0 };
+        const double j5_axis[6]{ 0.0, 1.0, 0.0 };
+        const double j6_axis[6]{ 1.0, 0.0, 0.0 };
+
+        auto &j1 = model->addRevoluteJoint(p1, model->ground(), j1_pos, j1_axis);
+        auto &j2 = model->addRevoluteJoint(p2, p1, j2_pos, j2_axis);
+        auto &j3 = model->addRevoluteJoint(p3, p2, j3_pos, j3_axis);
+        auto &j4 = model->addRevoluteJoint(p4, p3, j4_pos, j4_axis);
+        auto &j5 = model->addRevoluteJoint(p5, p4, j5_pos, j5_axis);
+        auto &j6 = model->addRevoluteJoint(p6, p5, j6_pos, j6_axis);
+
+        // add actuation //
+        auto &m1 = model->addMotion(j1);
+        auto &m2 = model->addMotion(j2);
+        auto &m3 = model->addMotion(j3);
+        auto &m4 = model->addMotion(j4);
+        auto &m5 = model->addMotion(j5);
+        auto &m6 = model->addMotion(j6);
+
+        // add ee general motion //
+        //double pq_ee_i[]{ 0.570, -0.114, 0.84, -0.0414, 0.0414, 0.706, 0.706 };		//x方向加上0.1
+        double pq_ee_i[]{ 0.566, -0.134, 0.840, -0.0405, 0.0424, 0.694, 0.718 };
+        double pm_ee_i[16];
+        double pm_ee_j[16]{ 1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1 };
+
+        s_pq2pm(pq_ee_i, pm_ee_i);
+
+        auto &makI = p6.markerPool().add<Marker>("ee_makI", pm_ee_i);
+        auto &makJ = model->ground().markerPool().add<Marker>("ee_makJ", pm_ee_j);
+        auto &ee = model->generalMotionPool().add<aris::dynamic::GeneralMotion>("ee", &makI, &makJ, false);
+
+        // change robot pose //
+        if (robot_pm)
+        {
+            p1.setPm(s_pm_dot_pm(robot_pm, *p1.pm()));
+            p2.setPm(s_pm_dot_pm(robot_pm, *p2.pm()));
+            p3.setPm(s_pm_dot_pm(robot_pm, *p3.pm()));
+            p4.setPm(s_pm_dot_pm(robot_pm, *p4.pm()));
+            p5.setPm(s_pm_dot_pm(robot_pm, *p5.pm()));
+            p6.setPm(s_pm_dot_pm(robot_pm, *p6.pm()));
+            j1.makJ().setPrtPm(s_pm_dot_pm(robot_pm, *j1.makJ().prtPm()));
+        }
+
+        // add solver
+        auto &inverse_kinematic = model->solverPool().add<aris::dynamic::PumaInverseKinematicSolver>();
+        auto &forward_kinematic = model->solverPool().add<ForwardKinematicSolver>();
+
+        inverse_kinematic.allocateMemory();
+        forward_kinematic.allocateMemory();
+
+        inverse_kinematic.setWhichRoot(8);
+
+        return model;
+    }
+
 	auto createControllerSanXiang()->std::unique_ptr<aris::control::Controller>	/*函数返回的是一个类指针，指针指向Controller,controller的类型是智能指针std::unique_ptr*/
 	{
 		std::unique_ptr<aris::control::Controller> controller(new aris::control::EthercatController);/*创建std::unique_ptr实例*/
@@ -302,7 +504,7 @@ namespace kaanh
 		MoveInitParam param;
 		param.axis_pos_vec.resize(6, 0.0);
 		target.param = param;
-		target.option |=
+		std::fill(target.mot_options.begin(), target.mot_options.end(),
 			Plan::USE_TARGET_POS |
 #ifdef WIN32
 			Plan::NOT_CHECK_POS_MIN |
@@ -317,7 +519,7 @@ namespace kaanh
 			Plan::NOT_CHECK_VEL_MAX |
 			Plan::NOT_CHECK_VEL_CONTINUOUS |
 			Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-			Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+			Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
 
 	}
 	auto MoveInit::executeRT(PlanTarget &target)->int
@@ -364,7 +566,7 @@ namespace kaanh
 		}
 		lout << std::endl;
 
-		if (!target.model->solverPool().at(1).kinPos())return -1;
+		if (target.model->solverPool().at(1).kinPos())return -1;
 		return 1000-target.count;
 	}
 	auto MoveInit::collectNrt(PlanTarget &target)->void {}
@@ -458,7 +660,7 @@ namespace kaanh
 			}
 			target.param = param;
 
-			target.option |=
+			std::fill(target.mot_options.begin(), target.mot_options.end(),
 				//用于使用模型轨迹驱动电机//
 				Plan::USE_TARGET_POS |
                 //Plan::USE_VEL_OFFSET |
@@ -475,7 +677,7 @@ namespace kaanh
 				Plan::NOT_CHECK_VEL_MAX |
 				Plan::NOT_CHECK_VEL_CONTINUOUS |
 				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
 
 		}
 	auto MoveX::executeRT(PlanTarget &target)->int
@@ -502,7 +704,7 @@ namespace kaanh
             pqv[2] = 1000 * param.z*(PI / time)*std::sin(2 * PI*target.count / time);
             ee.setMvq(pqv);
 
-			if (!target.model->solverPool().at(0).kinPos())return -1;
+			if (target.model->solverPool().at(0).kinPos())return -1;
             target.model->solverPool().at(0).kinVel();
 
 			// 访问主站 //
@@ -652,7 +854,7 @@ namespace kaanh
 			}
 			target.param = param;
 
-			target.option |=
+			std::fill(target.mot_options.begin(), target.mot_options.end(),
 				Plan::USE_TARGET_POS |
 #ifdef WIN32
 				Plan::NOT_CHECK_POS_MIN |
@@ -667,7 +869,7 @@ namespace kaanh
 				Plan::NOT_CHECK_VEL_MAX |
 				Plan::NOT_CHECK_VEL_CONTINUOUS |
 				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
 
 		}
 	auto MoveJS::executeRT(PlanTarget &target)->int
@@ -731,7 +933,7 @@ namespace kaanh
 				}
 			}
 
-			if (!target.model->solverPool().at(1).kinPos())return -1;
+			if (target.model->solverPool().at(1).kinPos())return -1;
 
 			// 访问主站 //
 			auto controller = target.controller;
@@ -875,8 +1077,8 @@ namespace kaanh
 			}
 			target.param = param;
 
-			target.option |=
-				Plan::USE_TARGET_POS;
+			std::fill(target.mot_options.begin(), target.mot_options.end(),
+				Plan::USE_TARGET_POS);
 /*
 #ifdef WIN32
 				Plan::NOT_CHECK_POS_MIN |
@@ -951,7 +1153,7 @@ namespace kaanh
 				}
 			}
 
-			if (!target.model->solverPool().at(1).kinPos())return -1;
+			if (target.model->solverPool().at(1).kinPos())return -1;
 
 			// 访问主站 //
 			auto controller = target.controller;
@@ -1061,7 +1263,7 @@ namespace kaanh
 
 		target.param = param;
 
-		target.option |=
+		std::fill(target.mot_options.begin(), target.mot_options.end(),
 //				Plan::USE_TARGET_POS |
 #ifdef WIN32
 			Plan::NOT_CHECK_POS_MIN |
@@ -1076,7 +1278,7 @@ namespace kaanh
 			Plan::NOT_CHECK_VEL_MAX |
 			Plan::NOT_CHECK_VEL_CONTINUOUS |
 			Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-			Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+			Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
 
 	}
 	auto MoveJR::executeRT(PlanTarget &target)->int
@@ -1104,12 +1306,13 @@ namespace kaanh
 				aris::Size t_count;
 				aris::plan::moveAbsolute(target.count, param.begin_joint_pos_vec[i], param.begin_joint_pos_vec[i]+param.joint_pos_vec[i], param.vel / 1000, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
 				controller->motionAtAbs(i).setTargetPos(p);
+				target.model->motionPool().at(i).setMp(p);
 				total_count = std::max(total_count, t_count);
 			}
 		}
 
 		//controller与模型同步，保证3D仿真模型同步显示
-		//if (!target.model->solverPool().at(1).kinPos())return -1;
+		if (target.model->solverPool().at(1).kinPos())return -1;
 
 		// 打印电流 //
 		auto &cout = controller->mout();
@@ -1305,7 +1508,7 @@ namespace kaanh
 
 			target.param = param;
 
-			target.option |=
+			std::fill(target.mot_options.begin(), target.mot_options.end(),
 				Plan::USE_TARGET_POS |
 #ifdef WIN32target_pos
 				Plan::NOT_CHECK_POS_MIN |
@@ -1320,7 +1523,7 @@ namespace kaanh
 				Plan::NOT_CHECK_VEL_MAX |
 				Plan::NOT_CHECK_VEL_CONTINUOUS |
 				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
 
 		}
 	auto MoveTTT::executeRT(PlanTarget &target)->int
@@ -1359,7 +1562,7 @@ namespace kaanh
 				}
 			}
 
-            if (!target.model->solverPool().at(1).kinPos())return -1;
+            if (target.model->solverPool().at(1).kinPos())return -1;
 			   
 			// 打印电流 //
 			auto &cout = controller->mout();
@@ -1595,7 +1798,7 @@ namespace kaanh
 			}
 			target.param = param;
 
-			target.option |=
+			std::fill(target.mot_options.begin(), target.mot_options.end(),
                 //Plan::USE_VEL_OFFSET |
 #ifdef WIN32
 				Plan::NOT_CHECK_POS_MIN |
@@ -1610,7 +1813,7 @@ namespace kaanh
 				Plan::NOT_CHECK_VEL_MAX |
 				Plan::NOT_CHECK_VEL_CONTINUOUS |
 				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
 
 		}
 	auto MoveJM::executeRT(PlanTarget &target)->int
@@ -1656,7 +1859,7 @@ namespace kaanh
 				}
 			}
 				
-			if (!target.model->solverPool().at(1).kinPos())return -1;
+			if (target.model->solverPool().at(1).kinPos())return -1;
 
 			// 打印电流 //
 			auto &cout = controller->mout();
@@ -1827,7 +2030,7 @@ namespace kaanh
 			}
 			target.param = param;
 
-			target.option |=
+			std::fill(target.mot_options.begin(), target.mot_options.end(),
 				Plan::USE_VEL_OFFSET |
 #ifdef WIN32
 				Plan::NOT_CHECK_POS_MIN |
@@ -1842,7 +2045,7 @@ namespace kaanh
 				Plan::NOT_CHECK_VEL_MAX |
 				Plan::NOT_CHECK_VEL_CONTINUOUS |
 				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
 
 		}
 	auto MoveJI::executeRT(PlanTarget &target)->int
@@ -1856,7 +2059,7 @@ namespace kaanh
 			if (target.count == 1)
 			{
 				target.model->generalMotionPool().at(0).setMpq(param.pq.data());	//generalMotionPool()指模型末端，at(0)表示第1个末端，对于6足就有6个末端，对于机器人只有1个末端
-				if (!target.model->solverPool().at(0).kinPos())return -1;
+				if (target.model->solverPool().at(0).kinPos())return -1;
 				for (Size i = 0; i < param.axis_pos_vec.size(); ++i)
 				{
 					param.axis_begin_pos_vec[i] = controller->motionPool().at(i).targetPos();
@@ -1874,7 +2077,7 @@ namespace kaanh
 				controller->motionAtAbs(i).setOffsetVel(v*1000);
 				target.model->motionPool().at(i).setMp(p);
 			}		
-			if (!target.model->solverPool().at(1).kinPos())return -1;
+			if (target.model->solverPool().at(1).kinPos())return -1;
 
 			// 打印电流 //
 			auto &cout = controller->mout();
@@ -1976,6 +2179,7 @@ namespace kaanh
 
 
 				target.option |= EXECUTE_WHEN_ALL_PLAN_COLLECTED | NOT_PRINT_EXECUTE_COUNT | USE_TARGET_POS;
+				std::fill(target.mot_options.begin(), target.mot_options.end(), USE_TARGET_POS);
 			}
 			else if (p.first == "stop")
 			{
@@ -2011,7 +2215,7 @@ namespace kaanh
 			}
 		}
 		
-		target.option |= NOT_CHECK_POS_FOLLOWING_ERROR;
+		std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR);
 		target.param = param;
 	}
 	auto MovePoint::executeRT(PlanTarget &target)->int
@@ -2114,7 +2318,7 @@ namespace kaanh
 		target.model->generalMotionPool().at(0).setMpm(imp_->pm_target.data());
 		
 		// 运动学反解 //
-		if (!target.model->solverPool().at(0).kinPos())return -1;
+		if (target.model->solverPool().at(0).kinPos())return -1;
 
 		// 打印 //
 		auto &cout = controller->mout();
@@ -2297,7 +2501,7 @@ namespace kaanh
 			}
 		}
 
-		target.option |= NOT_CHECK_POS_FOLLOWING_ERROR;
+		std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR);
 		target.param = param;
 	}
 	auto MoveJP::executeRT(PlanTarget &target)->int
@@ -2359,7 +2563,7 @@ namespace kaanh
 		}
 
         // 运动学反解//
-		if (!target.model->solverPool().at(1).kinPos())return -1;
+		if (target.model->solverPool().at(1).kinPos())return -1;
 
 		// 打印 //
 		auto &cout = controller->mout();
@@ -2452,7 +2656,7 @@ namespace kaanh
 			target.param = param;
 
 #ifdef WIN32
-			target.option |=
+			std::fill(target.mot_options.begin(), target.mot_options.end(),
 
 				Plan::NOT_CHECK_POS_MIN |
 				Plan::NOT_CHECK_POS_MAX |
@@ -2465,7 +2669,7 @@ namespace kaanh
 				Plan::NOT_CHECK_VEL_MAX |
 				Plan::NOT_CHECK_VEL_CONTINUOUS |
 				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
 #endif
 		}
 	auto Grasp::executeRT(PlanTarget &target)->int
@@ -2503,7 +2707,7 @@ namespace kaanh
 	auto ListenDI::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 		{
 #ifdef WIN32
-			target.option |= 
+			std::fill(target.mot_options.begin(), target.mot_options.end(), 
 				Plan::NOT_CHECK_POS_MIN |
 				Plan::NOT_CHECK_POS_MAX |
 				Plan::NOT_CHECK_POS_CONTINUOUS |
@@ -2515,7 +2719,7 @@ namespace kaanh
 				Plan::NOT_CHECK_VEL_MAX |
 				Plan::NOT_CHECK_VEL_CONTINUOUS |
 				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
 #endif
 		}
 	auto ListenDI::executeRT(PlanTarget &target)->int
@@ -2720,7 +2924,7 @@ namespace kaanh
 			}
 			target.param = param;
 
-			target.option |=
+			std::fill(target.mot_options.begin(), target.mot_options.end(),
 				Plan::USE_TARGET_POS |
 #ifdef WIN32
 				Plan::NOT_CHECK_POS_MIN |
@@ -2734,13 +2938,13 @@ namespace kaanh
 				Plan::NOT_CHECK_VEL_MAX |
 				Plan::NOT_CHECK_VEL_CONTINUOUS |
 				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR |
 #endif
 				Plan::NOT_CHECK_VEL_MIN |
 				Plan::NOT_CHECK_VEL_MAX |
 				Plan::NOT_CHECK_VEL_CONTINUOUS |
 				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
 
 		}
 	auto MoveEA::executeRT(PlanTarget &target)->int
@@ -2926,7 +3130,7 @@ namespace kaanh
 			}
 			target.param = param;
 
-			target.option |=
+			std::fill(target.mot_options.begin(), target.mot_options.end(),
 				Plan::USE_TARGET_POS |
 				Plan::USE_VEL_OFFSET |
 #ifdef WIN32
@@ -2942,7 +3146,7 @@ namespace kaanh
 				Plan::NOT_CHECK_VEL_MAX |
 				Plan::NOT_CHECK_VEL_CONTINUOUS |
 				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
 
 		}
 	auto MoveEAP::executeRT(PlanTarget &target)->int
@@ -3147,7 +3351,7 @@ namespace kaanh
 			target.param = param;
 
 #ifdef WIN32
-			target.option |=
+			std::fill(target.mot_options.begin(), target.mot_options.end(),
 
 				Plan::NOT_CHECK_POS_MIN |
 				Plan::NOT_CHECK_POS_MAX |
@@ -3160,7 +3364,7 @@ namespace kaanh
 				Plan::NOT_CHECK_VEL_MAX |
 				Plan::NOT_CHECK_VEL_CONTINUOUS |
 				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
 #endif
 		}
 	auto FSSignal::executeRT(PlanTarget &target)->int
@@ -3182,7 +3386,7 @@ namespace kaanh
             double Mx = param.Mx*20.0 / 65536;
             double My = param.My*20.0 / 65536;
             double Mz = param.Mz*20.0 / 65536;
-			
+
 			//print//
 			auto &cout = controller->mout();
 			if (target.count % 100 == 0)
@@ -3221,6 +3425,100 @@ namespace kaanh
 			"	</GroupParam>"
 			"</Command>");
 	}
+
+
+    // ATI Force Sensor //
+    struct ATIFSParam
+    {
+        int time;
+        std::int32_t Fx,Fy,Fz,Mx,My,Mz,status_code,sample_counter;
+    };
+    auto ATIFS::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+        {
+            ATIFSParam param;
+            for (auto &p : params)
+            {
+                if (p.first == "time")
+                {
+                    param.time = std::stoi(p.second);
+                }
+            }
+            param.Fx = 0;
+            param.Fy = 0;
+            param.Fz = 0;
+            param.Mx = 0;
+            param.My = 0;
+            param.Mz = 0;
+            param.status_code = 0;
+            param.sample_counter = 0;
+            target.param = param;
+
+        }
+    auto ATIFS::executeRT(PlanTarget &target)->int
+        {
+            auto &param = std::any_cast<ATIFSParam&>(target.param);
+            // 访问主站 //
+            auto controller = dynamic_cast<aris::control::EthercatController*>(target.controller);
+
+            controller->ecSlavePool().at(6).readPdo(0x6000, 0x01, &param.Fx ,32);
+            controller->ecSlavePool().at(6).readPdo(0x6000, 0x02, &param.Fy, 32);
+            controller->ecSlavePool().at(6).readPdo(0x6000, 0x03, &param.Fz, 32);
+            controller->ecSlavePool().at(6).readPdo(0x6000, 0x04, &param.Mx, 32);
+            controller->ecSlavePool().at(6).readPdo(0x6000, 0x05, &param.My, 32);
+            controller->ecSlavePool().at(6).readPdo(0x6000, 0x06, &param.Mz, 32);
+            controller->ecSlavePool().at(6).readPdo(0x6010, 0x00, &param.status_code, 32);
+            controller->ecSlavePool().at(6).readPdo(0x6020, 0x00, &param.sample_counter, 32);
+
+            /*
+            double Fx = param.Fx*20.0 / 65536;
+            double Fy = param.Fy*20.0 / 65536;
+            double Fz = param.Fz*20.0 / 65536;
+            double Mx = param.Mx*20.0 / 65536;
+            double My = param.My*20.0 / 65536;
+            double Mz = param.Mz*20.0 / 65536;
+            */
+            //print//
+            auto &cout = controller->mout();
+            if (target.count % 100 == 0)
+            {
+                cout << std::setw(6) << param.Fx << "  ";
+                cout << std::setw(6) << param.Fy << "  ";
+                cout << std::setw(6) << param.Fz << "  ";
+                cout << std::setw(6) << param.Mx << "  ";
+                cout << std::setw(6) << param.My << "  ";
+                cout << std::setw(6) << param.Mz << "  ";
+                cout << std::setw(6) << param.status_code << "  ";
+                cout << std::setw(6) << param.sample_counter << "  ";
+                cout << std::endl;
+                cout << "----------------------------------------------------" << std::endl;
+            }
+
+            //log//
+            auto &lout = controller->lout();
+            {
+                lout << param.Fx << " ";
+                lout << param.Fy << " ";
+                lout << param.Fz << " ";
+                lout << param.Mx << " ";
+                lout << param.My << " ";
+                lout << param.Mz << " ";
+                lout << param.status_code << " ";
+                lout << param.sample_counter << " ";
+                lout << std::endl;
+            }
+            param.time--;
+            return param.time;
+        }
+    auto ATIFS::collectNrt(PlanTarget &target)->void {}
+    ATIFS::ATIFS(const std::string &name) :Plan(name)
+    {
+        command().loadXmlStr(
+            "<Command name=\"atifs\">"
+            "	<GroupParam>"
+            "		<Param name=\"time\" default=\"100000\"/>"
+            "	</GroupParam>"
+            "</Command>");
+    }
 
 	// 配置DH参数 //
 	struct SetDHParam
@@ -3391,9 +3689,91 @@ namespace kaanh
 			"</Command>");
 	}
 
-	auto createPlanRootRokaeXB4()->std::unique_ptr<aris::plan::PlanRoot>
+	// 配置关节角度、角速度、角加速度上下限 //
+	struct SetDriverParam
 	{
-		std::unique_ptr<aris::plan::PlanRoot> plan_root(aris::robot::createPlanRootRokaeXB4());
+		std::vector<double> pos_offset;
+		std::vector<bool> joint_active_vec;
+	};
+	auto SetDriver::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		//std::unique_ptr<aris::control::Controller> controller(kaanh::createControllerRokaeXB4());
+		auto controller = target.controller;
+
+		SetDriverParam param;
+		param.pos_offset.clear();
+		param.pos_offset.resize(target.controller->motionPool().size(), 0.0);
+		param.joint_active_vec.clear();
+
+		for (auto &p : params)
+		{
+			if (p.first == "all")
+			{
+				param.joint_active_vec.resize(target.controller->motionPool().size(), true);
+				auto mat = target.model->calculator().calculateExpression(params.at("all_offset"));
+				if (mat.size() == param.pos_offset.size())
+				{
+					param.pos_offset.assign(mat.begin(), mat.end());
+				}
+				else
+				{
+					throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+				}
+			}
+			else if (p.first == "motion_id")
+			{
+				param.joint_active_vec.resize(target.controller->motionPool().size(), false);
+				param.joint_active_vec.at(std::stoi(p.second)) = true;
+
+				param.pos_offset.at(std::stoi(p.second)) = std::stod(params.at("m_offset"));
+			}
+		}
+		// 设置驱动offset //
+		for (int i = 0; i < param.pos_offset.size(); i++)
+		{
+			if (param.joint_active_vec[i])
+			{
+				dynamic_cast<aris::control::Motion&>(controller->slavePool()[i]).setPosOffset(param.pos_offset[i]);
+			}
+		}
+
+		auto&cs = aris::server::ControlServer::instance();
+		if (cs.running())throw std::runtime_error("cs is running, can not set position offset,please stop the cs!");
+		auto xmlpath = std::filesystem::absolute(".");
+		const std::string xmlfile = "rokae.xml";
+		xmlpath = xmlpath / xmlfile;
+		cs.saveXmlFile(xmlpath.string().c_str());
+
+		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
+
+	}
+	SetDriver::SetDriver(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"setDriver\">"
+			"	<GroupParam>"
+			"		<UniqueParam>"
+			"			<GroupParam name=\"start_group\">"
+			"				<Param name=\"all\"/>"
+			"				<Param name=\"all_offset\" default=\"{0.00293480352126769, -2.50023777179214, -0.292382537944081, 0.0582675097338009, 1.53363576057128, 26.3545454214145}\"/>"
+			"			</GroupParam>"
+			"			<GroupParam>"
+			"				<Param name=\"motion_id\" abbreviation=\"m\" default=\"0\"/>"
+			"				<Param name=\"pos_max\" default=\"0.0\"/>"
+			"				<Param name=\"pos_min\" default=\"0.0\"/>"
+			"				<Param name=\"vel_max\" default=\"0.0\"/>"
+			"				<Param name=\"vel_min\" default=\"0.0\"/>"
+			"				<Param name=\"acc_max\" default=\"0.0\"/>"
+			"				<Param name=\"acc_min\" default=\"0.0\"/>"
+			"			</GroupParam>"
+			"		</UniqueParam>"
+			"	</GroupParam>"
+			"</Command>");
+	}
+
+    auto createPlanRootRokaeXB4()->std::unique_ptr<aris::plan::PlanRoot>
+	{
+        std::unique_ptr<aris::plan::PlanRoot> plan_root(new aris::plan::PlanRoot);
 
         plan_root->planPool().add<aris::plan::Enable>();
         plan_root->planPool().add<aris::plan::Disable>();
@@ -3404,8 +3784,8 @@ namespace kaanh
         plan_root->planPool().add<aris::plan::Recover>();
         plan_root->planPool().add<aris::plan::Reset>();
 
-        auto &mvaj = plan_root->planPool().add<aris::plan::MoveAbsJ>();
-        mvaj.command().findParam("vel")->setDefaultValue("0.1");
+
+        plan_root->planPool().add<aris::plan::MoveAbsJ>();
 
         plan_root->planPool().add<aris::plan::MoveL>();
         plan_root->planPool().add<aris::plan::MoveJ>();
@@ -3415,6 +3795,8 @@ namespace kaanh
         plan_root->planPool().add<aris::plan::SetXml>();
         plan_root->planPool().add<aris::plan::Start>();
         plan_root->planPool().add<aris::plan::Stop>();
+
+
 
 		plan_root->planPool().add<kaanh::MoveInit>();
 		plan_root->planPool().add<kaanh::Get_ee_pq>();
@@ -3442,6 +3824,7 @@ namespace kaanh
 		plan_root->planPool().add<kaanh::MoveEA>();
 		plan_root->planPool().add<kaanh::MoveEAP>();
 		plan_root->planPool().add<kaanh::FSSignal>();
+        plan_root->planPool().add<kaanh::ATIFS>();
 		plan_root->planPool().add<kaanh::SetDH>();
 		plan_root->planPool().add<kaanh::SetPOffset>();
 
