@@ -174,7 +174,7 @@
 	</InterfaceRoot>
     <EthercatController name="ethercat_controller">
         <SlavePoolObject name="slave_pool">
-            <EthercatMotion phy_id="0" vendor_id="0x000002e1" product_code="0x00000000" revision_num="0x00029001" dc_assign_activate="0x00000300" max_pos="2.96706" min_pos="-2.96706" max_vel="5.4105210000000001" min_vel="-5.4105210000000001" max_acc="26.179939000000001" min_acc="-26.179939000000001" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1689721.292776" pos_offset="0.0029348035212676902" home_pos="0">
+            <EthercatMotion phy_id="0" vendor_id="0x000002e1" product_code="0x00000000" revision_num="0x00029001" dc_assign_activate="0x00000300" max_pos="2.96706" min_pos="-2.96706" max_vel="5.4105210000000001" min_vel="-5.4105210000000001" max_acc="26.179939000000001" min_acc="-26.179939000000001" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1689721.292776" pos_offset="0" home_pos="0">
                 <SyncManagerPoolObject>
                     <SyncManager is_tx="false"/>
                     <SyncManager is_tx="true"/>
@@ -199,7 +199,7 @@
                     </SyncManager>
                 </SyncManagerPoolObject>
             </EthercatMotion>
-            <EthercatMotion phy_id="1" vendor_id="0x000002e1" product_code="0x00000000" revision_num="0x00029001" dc_assign_activate="0x00000300" max_pos="2.2689279999999998" min_pos="-1.4660770000000001" max_vel="4.18879" min_vel="-4.18879" max_acc="26.179939000000001" min_acc="-26.179939000000001" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1689721.292776" pos_offset="-2.5002377717921398" home_pos="0">
+            <EthercatMotion phy_id="1" vendor_id="0x000002e1" product_code="0x00000000" revision_num="0x00029001" dc_assign_activate="0x00000300" max_pos="2.2689279999999998" min_pos="-1.4660770000000001" max_vel="4.18879" min_vel="-4.18879" max_acc="26.179939000000001" min_acc="-26.179939000000001" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1689721.292776" pos_offset="0" home_pos="0">
                 <SyncManagerPoolObject>
                     <SyncManager is_tx="false"/>
                     <SyncManager is_tx="true"/>
@@ -224,7 +224,7 @@
                     </SyncManager>
                 </SyncManagerPoolObject>
             </EthercatMotion>
-            <EthercatMotion phy_id="2" vendor_id="0x000002e1" product_code="0x00000000" revision_num="0x00029001" dc_assign_activate="0x00000300" max_pos="0.87266500000000002" min_pos="-3.2812190000000001" max_vel="5.4105210000000001" min_vel="-5.4105210000000001" max_acc="26.179939000000001" min_acc="-26.179939000000001" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1689721.292776" pos_offset="-0.29238253794408098" home_pos="0">
+            <EthercatMotion phy_id="2" vendor_id="0x000002e1" product_code="0x00000000" revision_num="0x00029001" dc_assign_activate="0x00000300" max_pos="0.87266500000000002" min_pos="-3.2812190000000001" max_vel="5.4105210000000001" min_vel="-5.4105210000000001" max_acc="26.179939000000001" min_acc="-26.179939000000001" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1689721.292776" pos_offset="0" home_pos="0">
                 <SyncManagerPoolObject>
                     <SyncManager is_tx="false"/>
                     <SyncManager is_tx="true"/>
@@ -249,7 +249,7 @@
                     </SyncManager>
                 </SyncManagerPoolObject>
             </EthercatMotion>
-            <EthercatMotion phy_id="3" vendor_id="0x000002e1" product_code="0x00000000" revision_num="0x00029001" dc_assign_activate="0x00000300" max_pos="2.96706" min_pos="-2.96706" max_vel="4.3633230000000003" min_vel="-4.3633230000000003" max_acc="30.543261999999999" min_acc="-30.543261999999999" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1519852.15096" pos_offset="0.058267509733800897" home_pos="0">
+            <EthercatMotion phy_id="3" vendor_id="0x000002e1" product_code="0x00000000" revision_num="0x00029001" dc_assign_activate="0x00000300" max_pos="2.96706" min_pos="-2.96706" max_vel="4.3633230000000003" min_vel="-4.3633230000000003" max_acc="30.543261999999999" min_acc="-30.543261999999999" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1519852.15096" pos_offset="0" home_pos="0">
                 <SyncManagerPoolObject>
                     <SyncManager is_tx="false"/>
                     <SyncManager is_tx="true"/>
@@ -274,7 +274,7 @@
                     </SyncManager>
                 </SyncManagerPoolObject>
             </EthercatMotion>
-            <EthercatMotion phy_id="4" vendor_id="0x000002e1" product_code="0x00000000" revision_num="0x00029001" dc_assign_activate="0x00000300" max_pos="2.0420349999999998" min_pos="-2.0420349999999998" max_vel="5.1487210000000001" min_vel="-5.1487210000000001" max_acc="26.179939000000001" min_acc="-26.179939000000001" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1689721.292776" pos_offset="1.53363576057128" home_pos="0">
+            <EthercatMotion phy_id="4" vendor_id="0x000002e1" product_code="0x00000000" revision_num="0x00029001" dc_assign_activate="0x00000300" max_pos="2.0420349999999998" min_pos="-2.0420349999999998" max_vel="5.1487210000000001" min_vel="-5.1487210000000001" max_acc="26.179939000000001" min_acc="-26.179939000000001" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1689721.292776" pos_offset="0" home_pos="0">
                 <SyncManagerPoolObject>
                     <SyncManager is_tx="false"/>
                     <SyncManager is_tx="true"/>
@@ -299,7 +299,7 @@
                     </SyncManager>
                 </SyncManagerPoolObject>
             </EthercatMotion>
-            <EthercatMotion phy_id="5" vendor_id="0x000002e1" product_code="0x00000000" revision_num="0x00029001" dc_assign_activate="0x00000300" max_pos="6.2831849999999996" min_pos="-6.2831849999999996" max_vel="8.7266460000000006" min_vel="-8.7266460000000006" max_acc="43.633231000000002" min_acc="-43.633231000000002" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1043037.835047" pos_offset="26.3545454214145" home_pos="0">
+            <EthercatMotion phy_id="5" vendor_id="0x000002e1" product_code="0x00000000" revision_num="0x00029001" dc_assign_activate="0x00000300" max_pos="6.2831849999999996" min_pos="-6.2831849999999996" max_vel="8.7266460000000006" min_vel="-8.7266460000000006" max_acc="43.633231000000002" min_acc="-43.633231000000002" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1043037.835047" pos_offset="0" home_pos="0">
                 <SyncManagerPoolObject>
                     <SyncManager is_tx="false"/>
                     <SyncManager is_tx="true"/>
