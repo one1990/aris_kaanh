@@ -3772,7 +3772,7 @@ namespace kaanh
 			"</Command>");
 	}
 
-	auto createPlanRootRokaeXB4()->std::unique_ptr<aris::plan::PlanRoot>
+    auto createPlanRootRokaeXB4()->std::unique_ptr<aris::plan::PlanRoot>
 	{
         std::unique_ptr<aris::plan::PlanRoot> plan_root(new aris::plan::PlanRoot);
 
@@ -3784,6 +3784,7 @@ namespace kaanh
         plan_root->planPool().add<aris::plan::Sleep>();
         plan_root->planPool().add<aris::plan::Recover>();
         plan_root->planPool().add<aris::plan::Reset>();
+
 
         plan_root->planPool().add<aris::plan::MoveAbsJ>();
 
