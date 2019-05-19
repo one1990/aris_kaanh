@@ -26,6 +26,7 @@ int main(int argc, char *argv[])
 	auto&cs = aris::server::ControlServer::instance();
 	auto port = argc < 2 ? 5866 : std::stoi(argv[1]);
 
+
     /*
 	//生成rokae.xml文档
     //-------for rokae robot begin//
@@ -61,6 +62,8 @@ int main(int argc, char *argv[])
     cs.loadXmlFile(xmlpath.string().c_str());
 	cs.start();
 	
+
+
 	// interaction //
 	std::list<std::tuple<aris::core::Msg, std::shared_ptr<aris::plan::PlanTarget>>> result_list;
 	std::mutex result_mutex;

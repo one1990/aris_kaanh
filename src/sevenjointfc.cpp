@@ -59,7 +59,7 @@ auto SevenJointDyna::prepairNrt(const std::map<std::string, std::string> &params
 		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 
-
+	/*
 	int nn = 14; // n代表txt文档中数据的列数
 
 
@@ -92,7 +92,7 @@ auto SevenJointDyna::prepairNrt(const std::map<std::string, std::string> &params
 	{
 		SevenPOSRLS[j].pop_back();
 	}
-
+	*/
 }
 auto SevenJointDyna::executeRT(PlanTarget &target)->int
 {
@@ -112,24 +112,24 @@ auto SevenJointDyna::executeRT(PlanTarget &target)->int
 	{
 		for (int i = 0; i < RobotAxis; i++)
 		{
-			begin_pjs[i] = 0;//target.model->motionPool()[i].mp();
-			step_pjs[i] = 0;//target.model->motionPool()[i].mp();
+            begin_pjs[i] = target.model->motionPool()[i].mp();
+            step_pjs[i] = target.model->motionPool()[i].mp();
 		}
 	}
 	param.period = 60;
 
 
     static bool flag[7] = {true,true,true,true,true,true,true};
-    double PosLimit[7] = { 1,0.5,0.5,1,1,1,1 };
-    double NegLimit[7] = { -1,-0.5,-0.5,-1,-1,-1,-1 };
+    double PosLimit[7] = { 1,0.7,1,0.7,1,1,1 };
+    double NegLimit[7] = { -1,-0.7,-1,-0.7,-1,-1,-1 };
     double dTheta = 0.00001;
-	static double pArc[7], vArc[7], aArc[7], vArcMax[7] = { 0.15,0.15,0.15,0.15,0.15,0.15,0.15};
+    static double pArc[7], vArc[7], aArc[7], vArcMax[7] = { 0.05,0.05,0.05,0.05,0.05,0.05,0.05};
 	static aris::Size t_count[7] = { 0 };
 
 	static int CountOffsetPos[7] = { 1,1,1,1,1,1,1 }, CountOffsetNeg[7] = { 1,1,1,1,1,1,1 };
 
 
-	for (int i = 0;i < 6;i++)
+    for (int i = 0;i < 7;i++)
 	{
 
 		if (flag[i])
@@ -167,7 +167,7 @@ auto SevenJointDyna::executeRT(PlanTarget &target)->int
 			}
 
 		}
-			target.model->motionPool().at(i).setMp(step_pjs[i]);
+            target.model->motionPool().at(i).setMp(step_pjs[i]);
 	}
 
 
@@ -178,11 +178,24 @@ auto SevenJointDyna::executeRT(PlanTarget &target)->int
 
 	// 打印电流 //
 	auto &cout = controller->mout();
+    double f2c_index[7] = {-120*1.27, 120*1.27, -120*1.27, 120*0.47, -120*0.47, 100*0.159, -100*0.159 };
+    double TorJoint[7];
+    for (int i = 0; i < 7; i++)
+    {
+        std::int16_t data;
+        dynamic_cast<aris::control::EthercatMotion&>(controller->motionAtAbs(i)).readPdo(0x6077, 0x00, data);
+        TorJoint[i]=data/1000.0*f2c_index[i];
+
+        //cout << "vel" << i + 1 << ":" << target.model->motionPool()[i].mv() << "  ";
+        //cout << "cur" << i + 1 << ":" << target.model->motionPool()[i].ma() << "  ";
+    }
+
 	if (target.count % 100 == 0)
 	{
-		//for (int i = 0; i < 6; i++)
+        for (int i = 0; i < 7; i++)
 		{
-			cout << step_pjs[4] << "***"<< "  ";
+
+            cout <<  TorJoint[i] << "***"<< "  ";
 			//cout << "vel" << i + 1 << ":" << target.model->motionPool()[i].mv() << "  ";
 			//cout << "cur" << i + 1 << ":" << target.model->motionPool()[i].ma() << "  ";
 		}
@@ -192,36 +205,35 @@ auto SevenJointDyna::executeRT(PlanTarget &target)->int
 
 	auto &lout = controller->lout();
 
-	double f2c_index[7] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965, 107.566785527965 };
-    //if (target.count % 8 == 0)
+if (target.count % 8 == 0)
 	{
 		for (int i = 0; i < 7; i++)
 		{
 			//AngleList[RobotAxis * (target.count - 1) + i] = controller->motionAtAbs(i).actualPos();
 			//TorqueList[RobotAxis * (target.count - 1) + i] = controller->motionAtAbs(i).actualCur();
 
-			SevenAngleList[7 * (target.count - 1) + i] = SevenPOSRLS[i][target.count - 1];
-			SevenTorqueList[7 * (target.count - 1) + i] = SevenPOSRLS[i + 7][target.count - 1] / f2c_index[i];
+			//SevenAngleList[7 * (target.count - 1) + i] = SevenPOSRLS[i][target.count - 1];
+			//SevenTorqueList[7 * (target.count - 1) + i] = SevenPOSRLS[i + 7][target.count - 1] / f2c_index[i];
 
-			//SevenAngleList[7 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualPos();
-			//SevenTorqueList[7 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
+			SevenAngleList[7 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualPos();
+            SevenTorqueList[7 * (CollectNum - 1) + i] = TorJoint[i];
 		}
 
 		lout << target.count << ",";
 		lout << SevenAngleList[RobotAxis * (CollectNum - 1) + 0] << ",";lout << SevenAngleList[RobotAxis * (CollectNum - 1) + 1] << ",";
 		lout << SevenAngleList[RobotAxis * (CollectNum - 1) + 2] << ",";lout << SevenAngleList[RobotAxis * (CollectNum - 1) + 3] << ",";
 		lout << SevenAngleList[RobotAxis * (CollectNum - 1) + 4] << ",";lout << SevenAngleList[RobotAxis * (CollectNum - 1) + 5] << ",";
-		lout << SevenAngleList[RobotAxis * (CollectNum - 1) + 7] << ",";
+        lout << SevenAngleList[RobotAxis * (CollectNum - 1) + 6] << ",";
 		lout << SevenTorqueList[RobotAxis * (CollectNum - 1) + 0] << ",";lout << SevenTorqueList[RobotAxis * (CollectNum - 1) + 1] << ",";
 		lout << SevenTorqueList[RobotAxis * (CollectNum - 1) + 2] << ",";lout << SevenTorqueList[RobotAxis * (CollectNum - 1) + 3] << ",";
 		lout << SevenTorqueList[RobotAxis * (CollectNum - 1) + 4] << ",";lout << SevenTorqueList[RobotAxis * (CollectNum - 1) + 5] << ",";
-		lout << SevenTorqueList[RobotAxis * (CollectNum - 1) + 7] << ",";
+        lout << SevenTorqueList[RobotAxis * (CollectNum - 1) + 6] << ",";
 
 		lout << std::endl;
 		CollectNum = CollectNum + 1;
 	}
 
-	CollectNum = target.count;
+    //CollectNum = target.count;
 	return SampleNum - CollectNum;
 }
 
@@ -243,22 +255,43 @@ auto SevenJointDyna::collectNrt(aris::plan::PlanTarget &target)->void
 		cout << SevenJointMatrix.estParasJoint[i] << ",";
 
 
-	/*
-	//Save Estimated Paras
-	ofstream outfile("C:/Users/gk/Desktop/Kaanh_gk/EstParas.txt");
-	if (!outfile)
-	{
-		cout << "Unable to open otfile";
-		exit(1); // terminate with error
-	}
+    aris::core::Matrix mat0(1,JointReduceDim + 14, SevenJointMatrix.estParasJoint);
+    if (target.model->variablePool().findByName("estParasJoint") !=
+        target.model->variablePool().end())
+    {
+        dynamic_cast<aris::dynamic::MatrixVariable*>(
+            &*target.model->variablePool().findByName("estParasJoint"))->data() = mat0;
+    }
+    else
+    {
+        target.model->variablePool().add<aris::dynamic::MatrixVariable>("estParasJoint", mat0);
+    }
 
-	for (int k = 0; k < JointGroupDim; k++)
-	{
-		outfile << estParas[k] << "   " << std::endl;
-		//cout << "success outfile " << endl;
-	}
-	outfile.close();
-	*/
+    aris::core::Matrix mat1(1,JointReduceDim*JointGroupDim, SevenJointMatrix.CoefParasJoint);
+    if (target.model->variablePool().findByName("CoefParasJoint") !=
+        target.model->variablePool().end())
+    {
+        dynamic_cast<aris::dynamic::MatrixVariable*>(
+            &*target.model->variablePool().findByName("CoefParasJoint"))->data() = mat1;
+    }
+    else
+    {
+        target.model->variablePool().add<aris::dynamic::MatrixVariable>("CoefParasJoint", mat1);
+    }
+
+    aris::core::Matrix mat2(1,JointReduceDim*JointGroupDim, SevenJointMatrix.CoefParasJointInv);
+    if (target.model->variablePool().findByName("CoefParasJointInv") !=
+        target.model->variablePool().end())
+    {
+        dynamic_cast<aris::dynamic::MatrixVariable*>(
+            &*target.model->variablePool().findByName("CoefParasJointInv"))->data() = mat2;
+    }
+    else
+    {
+        target.model->variablePool().add<aris::dynamic::MatrixVariable>("CoefParasJointInv", mat2);
+    }
+
+
 
 	std::cout << endl;
 	std::cout << "*****************************Statictic Model Error*****************************************" << std::endl;
@@ -324,6 +357,22 @@ auto SevenJointTest::prepairNrt(const std::map<std::string, std::string> &params
 		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 
+    //读取动力学参数
+    auto mat0 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("estParasJoint"));
+    for (int i = 0;i < JointReduceDim + 14;i++)
+        SevenJointMatrix.estParasJoint[i] = mat0->data().data()[i];
+
+    auto mat1 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("CoefParasJoint"));
+    for (int i = 0;i < JointReduceDim*JointGroupDim;i++)
+        SevenJointMatrix.CoefParasJoint[i] = mat1->data().data()[i];
+
+    auto mat2 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("CoefParasJointInv"));
+    for (int i = 0;i < JointReduceDim*JointGroupDim;i++)
+        SevenJointMatrix.CoefParasJointInv[i] = mat2->data().data()[i];
+
+    //auto mat3 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("LoadParas"));
+    for (int i = 0;i < 10;i++)
+    SevenJointMatrix.LoadParas[i] = 0;
 
 }
 auto SevenJointTest::executeRT(PlanTarget &target)->int
@@ -335,17 +384,17 @@ auto SevenJointTest::executeRT(PlanTarget &target)->int
 	static double perVar = 0;
 	static double ampVar = 0;
 
-	if (target.count < 1000)
+    if (target.count < 2000)
 	{
-		ampVar = ampVar + param.amplitude / 1000;
+        ampVar = ampVar + param.amplitude / 2000;
 	}
 	// 获取当前起始点位置 //
 	if (target.count == 1)
 	{
 		for (int i = 0; i < 7; i++)
 		{
-			begin_pjs[i] = 0;//target.model->motionPool()[i].mp();
-			step_pjs[i] = 0;//target.model->motionPool()[i].mp();
+            begin_pjs[i] = target.model->motionPool()[i].mp();
+            step_pjs[i] = target.model->motionPool()[i].mp();
 		}
 	}
 	param.period = 10;
@@ -357,14 +406,13 @@ auto SevenJointTest::executeRT(PlanTarget &target)->int
 	{
 		step_pjs[i] = begin_pjs[i] + ampVar *sin(2 * aris::PI / param.period*target.count / 1000);
 
-		//target.model->motionPool().at(i).setMp(step_pjs[i]);
+        target.model->motionPool().at(i).setMp(step_pjs[i]);
 		omega = 2 * aris::PI / param.period;
 		q[i]= begin_pjs[i] + ampVar * sin(omega * target.count / 1000);
         dq[i] = ampVar * omega * sin(omega*target.count / 1000+aris::PI/2);
         ddq[i] = ampVar * omega* omega * sin(omega*target.count / 1000 + aris::PI);
 	}
-	double f2c_index[7] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
-
+    double f2c_index[7] = {-120*1.27, 120*1.27, -120*1.27, 120*0.47, -120*0.47, 100*0.159, -100*0.159 };
 	
 	// 访问主站 //
 	auto controller = target.controller;
@@ -373,21 +421,24 @@ auto SevenJointTest::executeRT(PlanTarget &target)->int
 
 	for (int i = 0;i < 7;i++)
 	{
-		ts[i] = 0;//controller->motionAtAbs(i).actualCur() / f2c_index[i];
+        std::int16_t data;
+        dynamic_cast<aris::control::EthercatMotion&>(controller->motionAtAbs(i)).readPdo(0x6077, 0x00, data);
+        ts[i]=data/1000.0*f2c_index[i];
 	}
 	
 
 	SevenJointMatrix.SevenJointCollision(q, dq, ddq, ts, SevenJointMatrix.estParasJoint, SevenJointMatrix.CoefParasJointInv,CollisionFT);
 
-	if (target.model->solverPool().at(1).kinPos())return -1;
-
+    for (int i = 0;i < 7;i++)
+        CollisionFT[i] = CollisionFT[i] - ts[i];
+    //if (!target.model->solverPool().at(1).kinPos())return -1;
 	
 	
 	if (target.count % 100 == 0)
 	{
 		//for (int i = 0; i < 6; i++)
 		{
-            cout << CollisionFT[0] << "***"<< CollisionFT[1] << "***"<< CollisionFT[2] << "***";
+             cout << CollisionFT[0] << "***"<< CollisionFT[1] << "***"<< CollisionFT[2] << "***"<< CollisionFT[3] << "***"<< CollisionFT[4] << "***"<< CollisionFT[5] << "***"<< CollisionFT[6] << "***";
 			//cout << "vel" << i + 1 << ":" << target.model->motionPool()[i].mv() << "  ";
 			//cout << "cur" << i + 1 << ":" << target.model->motionPool()[i].ma() << "  ";
 		}
@@ -412,6 +463,179 @@ SevenJointTest::SevenJointTest(const std::string &name) :Plan(name)
 		"</Command>");
 
 }
+
+
+
+struct SevenDragTeachParam
+{
+    double period;
+    double amplitude;
+
+};
+auto SevenDragTeach::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+{
+
+    SevenDragTeachParam param;
+
+    for (auto &p : params)
+    {
+        if (p.first == "period")
+            param.period = std::stod(p.second);
+        if (p.first == "amplitude")
+            param.amplitude = std::stod(p.second);
+
+    }
+
+    target.param = param;
+
+    target.option |=
+        Plan::USE_TARGET_POS |
+        //#ifdef WIN32
+        Plan::NOT_CHECK_POS_MIN |
+        Plan::NOT_CHECK_POS_MAX |
+        Plan::NOT_CHECK_POS_CONTINUOUS |
+        Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
+        Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
+        Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
+        Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
+        //#endif
+        Plan::NOT_CHECK_VEL_MIN |
+        Plan::NOT_CHECK_VEL_MAX |
+        Plan::NOT_CHECK_VEL_CONTINUOUS |
+        Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
+        Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+
+    //读取动力学参数
+    auto mat0 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("estParasJoint"));
+    for (int i = 0;i < JointReduceDim + 14;i++)
+        SevenJointMatrix.estParasJoint[i] = mat0->data().data()[i];
+
+    auto mat1 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("CoefParasJoint"));
+    for (int i = 0;i < JointReduceDim*JointGroupDim;i++)
+        SevenJointMatrix.CoefParasJoint[i] = mat1->data().data()[i];
+
+    auto mat2 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("CoefParasJointInv"));
+    for (int i = 0;i < JointReduceDim*JointGroupDim;i++)
+        SevenJointMatrix.CoefParasJointInv[i] = mat2->data().data()[i];
+
+    //auto mat3 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("LoadParas"));
+    for (int i = 0;i < 10;i++)
+        SevenJointMatrix.LoadParas[i] = 0;
+
+
+}
+auto SevenDragTeach::executeRT(PlanTarget &target)->int
+{
+    auto &param = std::any_cast<SevenDragTeachParam&>(target.param);
+
+    static double begin_pjs[7];
+    static double step_pjs[7];
+    static double perVar = 0;
+    static double ampVar = 0;
+
+    // 访问主站 //
+    auto controller = target.controller;
+    // 打印电流 //
+    auto &cout = controller->mout();
+
+    if (target.count == 1)
+    {
+        for (int i = 0; i < 1; ++i)
+        {
+            {
+                begin_pjs[i] = target.model->motionPool()[i].mp();
+                controller->motionPool().at(i).setModeOfOperation(10);	//切换到电流控制
+            }
+        }
+    }
+
+
+    double ModelTor[7], q[7], dq[7], ddq[7], ts[7];
+
+
+    for (int i = 0; i < 7; ++i)
+    {
+        {
+            q[i] = controller->motionAtAbs(i).actualPos();
+            dq[i] = 0;
+            ddq[i] = 0;
+        }
+    }
+
+
+    double f2c_index[7] = {-120*1.27, 120*1.27, -120*1.27, 120*0.47, -120*0.47, 100*0.159, -100*0.159 };
+
+    for (int i = 0;i < 7;i++)
+    {
+        std::int16_t data;
+        dynamic_cast<aris::control::EthercatMotion&>(controller->motionAtAbs(i)).readPdo(0x6077, 0x00, data);
+        ts[i]=data/1000.0*f2c_index[i];
+    }
+
+
+    SevenJointMatrix.SevenJointCollision(q, dq, ddq, ts, SevenJointMatrix.estParasJoint, SevenJointMatrix.CoefParasJointInv,ModelTor);
+
+    for (int i = 5;i < 7;i++)
+    {
+        double ft_offset = 0;
+        ft_offset = ModelTor[i]/f2c_index[i];
+        ft_offset = std::max(-500.0, ft_offset);
+        ft_offset = std::min(500.0, ft_offset);
+
+       // controller->motionAtAbs(i).setTargetCur(ft_offset);
+    }
+
+    //if (!target.model->solverPool().at(1).kinPos())return -1;
+
+    auto &lout = controller->lout();
+    lout << target.count << ",";
+    lout << ts[0]- ModelTor[0]<< ",";lout << ts[1]- ModelTor[1] << ",";
+    lout << ts[2]- ModelTor[2] << ",";lout << ts[3] - ModelTor[3]<< ",";
+    lout << ts[4]- ModelTor[4] << ",";lout << ts[5]- ModelTor[5] << ",";
+
+
+    lout << endl;
+
+
+    if (target.count % 100 == 0)
+    {
+        //for (int i = 0; i < 6; i++)
+        {
+            cout << ModelTor[0] << "***" << ModelTor[1] << "***" << ModelTor[2] << "***" << ModelTor[3] << "***" << ModelTor[4] << "***" << ModelTor[5] << "***";
+            //cout << "vel" << i + 1 << ":" << target.model->motionPool()[i].mv() << "  ";
+            //cout << "cur" << i + 1 << ":" << target.model->motionPool()[i].ma() << "  ";
+        }
+        //   cout << target.count << "  ";
+        cout << std::endl;
+    }
+
+
+
+    return 300000 - target.count;
+}
+
+SevenDragTeach::SevenDragTeach(const std::string &name) :Plan(name)
+{
+
+    command().loadXmlStr(
+        "<Command name=\"SevenDragTeach\">"
+        "	<GroupParam>"
+        "		<Param name=\"period\"default=\"20.0\"/>"
+        "		<Param name=\"amplitude\" default=\"0.2\"/>"
+        "	</GroupParam>"
+        "</Command>");
+
+}
+
+
+
+
+
+
+
+
+
+
 
 
 

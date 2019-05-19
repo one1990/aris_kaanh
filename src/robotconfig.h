@@ -29,23 +29,25 @@ namespace CONFIG
 		const double EndPoint[3] = { 0, 0, 0.078};//The Position of End Plate
         const double EndSensor[3] = { 0, 0, 0};//The Position of Torque Sensor
 
-		
+
 		//六轴工业
         const int RobotAxis = 6;
         const double ZeroOffset[6] = { 0, 0, 0, 0, 0, 0 };
         const double JointOffset[6] = { 0, -PII / 2, 0, 0, 0, 0 };
         const double DirectionFlag[6] = { 1, 1, 1, 1, 1, 1 };
 		const double a2 = 0.04,a3=0.275,a4=0.025,d3=0,d4=0.28,d5 = 0;
-		
 
-		/*
+
+        /*
 		//七轴
 		const int RobotAxis = 7;
 		const double ZeroOffset[7] = { 0, 0, 0, 0, 0, 0 ,0};
 		const double JointOffset[7] = { 0, -PII, -PII, -PII, -PII, -PII ,-PII};
-		const double DirectionFlag[7] = { 1, 1, 1, 1, 1, 1 ,1};
+        const double DirectionFlag[7] = { 1, -1, 1, -1, 1, -1 ,1};
 		const double a2=0, a3=0, a4=0, d4=0, d3 = 0.33, d5 = 0.32, d7 = 0.28;
-		*/
+        */
+
+		
 }
 
 #endif
