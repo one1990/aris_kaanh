@@ -25,6 +25,15 @@ auto SensorList = SensorList_vec.data();
 double ForceToMeng = 0;
 double TimeToMeng = 0;
 
+double Vol2FTCoef[36]={0.000133, 	-0.029834, 	0.000031, 	0.029925, 	-0.000006, 	-0.000034,
+                       0.000046, 	-0.017260, 	0.000137, 	-0.017237, 	0.000217, 	0.034588,
+                       -0.045122, 	0.000344, 	-0.045692, 	0.000084, 	-0.047397, 	-0.000011,
+                       -0.001332, 	0.000020, 	0.001212, 	0.000010, 	-0.000098, 	-0.000024,
+                       -0.000712, 	-0.000020, 	-0.000783, 	0.000034, 	0.001539, 	-0.000004,
+                       -0.000004, 	0.001104, 	-0.000001, 	0.001079, 	0.000007, 	0.001099};
+
+
+
 struct MoveXYZParam
 {
 	double damp[6];
@@ -109,30 +118,36 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 	}
 
 
-	if (!target.model->solverPool().at(1).kinPos())return -1;
+    //if (!target.model->solverPool().at(1).kinPos())return -1;
 
 
 	///* Using Jacobian, TransMatrix from ARIS
 	double EndW[3], EndP[3], BaseV[3];
 	double PqEnd[7], TransVector[16];
-	target.model->generalMotionPool().at(0).getMpm(TransVector);
-	target.model->generalMotionPool().at(0).getMpq(PqEnd);
+    target.model->generalMotionPool().at(0).getMpm(TransVector);
+    target.model->generalMotionPool().at(0).getMpq(PqEnd);
 
 	double dX[6] = { 0.00001, -0.0000, -0.0000, -0.0000, -0.0000, -0.0000 };
 	double dTheta[6] = { 0 };
 
-	float FT[6];
-	uint16_t FTnum;
-	auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.controller);
-	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x00, &FTnum, 16);
-	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x01, &FT[0], 32);  //Fx
-	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x02, &FT[1], 32);  //Fy
-	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x03, &FT[2], 32);  //Fz
-	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x04, &FT[3], 32);
-	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x05, &FT[4], 32);
-	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x06, &FT[5], 32);
+    int16_t FTint[6];
+    double FTReal[6],FT[6];
+    auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.controller);
 
-	FT[0] = -FT[0];FT[3] = -FT[3];
+    conSensor->ecSlavePool().at(7).readPdo(0x6000, 0x11, &FTint[0] ,16);
+    conSensor->ecSlavePool().at(7).readPdo(0x6010, 0x11, &FTint[1], 16);
+    conSensor->ecSlavePool().at(7).readPdo(0x6020, 0x11, &FTint[2], 16);
+    conSensor->ecSlavePool().at(7).readPdo(0x6030, 0x11, &FTint[3], 16);
+    conSensor->ecSlavePool().at(8).readPdo(0x6000, 0x11, &FTint[4], 16);
+    conSensor->ecSlavePool().at(8).readPdo(0x6010, 0x11, &FTint[5], 16);
+
+    for (int i=0;i<6;i++)
+    {
+         FTReal[i] = FTint[i]*20.0 / 65536.0*1000.0;
+    }
+
+    s_mm(6, 1, 6, Vol2FTCoef, FTReal, FT);
+
 
 
 	// 获取当前起始点位置 //
@@ -146,16 +161,10 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 		}
 	}
 
-	for (int j = 0; j < 6; j++)
-	{
-		if (abs(FT[j]) < 0.0001)
-			FT[j] = FT_be[j];
-	}
-
 
 	for (int j = 0; j < 6; j++)
 	{
-		double A[3][3], B[3], CutFreq = 5;
+        double A[3][3], B[3], CutFreq = 5;
 		A[0][0] = 0; A[0][1] = 1; A[0][2] = 0;
 		A[1][0] = 0; A[1][1] = 0; A[1][2] = 1;
 		A[2][0] = -CutFreq * CutFreq * CutFreq;
@@ -184,25 +193,25 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 	double FT_KAI[6];
 	for (int i = 0; i < 6; i++)
 	{
-		FT_KAI[i] = stateTor1[i][0] - estFT[i];
+        FT_KAI[i] = stateTor1[i][0] - FT0[i];
 	}
 
 
 
 	for (int i = 0; i < 3; i++)
 	{
-		if (abs(FT_KAI[i]) < 2)
+        if (abs(FT_KAI[i]) < 0.05)
 			FT_KAI[i] = 0;
 	}
 	for (int i = 3; i < 6; i++)
 	{
-		if (abs(FT_KAI[i]) < 0.05)
+        if (abs(FT_KAI[i]) < 0.01)
 			FT_KAI[i] = 0;
 	}
 
 	double FT_YANG[6];
-	FT_YANG[0] = FT_KAI[2];FT_YANG[1] = -FT_KAI[1];FT_YANG[2] = FT_KAI[0];
-	FT_YANG[3] = FT_KAI[5];FT_YANG[4] = -FT_KAI[4];FT_YANG[5] = FT_KAI[3];
+    FT_YANG[0] = -FT_KAI[0];FT_YANG[1] = -FT_KAI[1];FT_YANG[2] = FT_KAI[2];
+    FT_YANG[3] = -FT_KAI[3];FT_YANG[4] = -FT_KAI[4];FT_YANG[5] = FT_KAI[5];
 
 	double FmInWorld[6];
 
@@ -225,23 +234,23 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 
 
 
-	dX[0] = 1 * FmInWorld[0] / 80000;
-	dX[1] = 1 * FmInWorld[1] / 80000;
-	dX[2] = 1 * FmInWorld[2] / 80000;
-	dX[3] = 1 * FmInWorld[3] / 12000;
-	dX[4] = 1 * FmInWorld[4] / 12000;
-	dX[5] = 1 * FmInWorld[5] / 12000;
+    dX[0] = 1 * FmInWorld[0] / 6000;
+    dX[1] = 1 * FmInWorld[1] / 6000;
+    dX[2] = 1 * FmInWorld[2] / 6000;
+    dX[3] = 1 * FmInWorld[3] / 1000;
+    dX[4] = 1 * FmInWorld[4] / 1000;
+    dX[5] = 1 * FmInWorld[5] / 1000;
 
 
-	if (target.count % 100 == 0)
+    if (target.count % 300 == 0)
 	{
-		for (int i = 0; i < 6; i++)
+        //for (int i = 0; i < 6; i++)
 		{
-			cout << dX[i] << "***" << FT[i] << "***" << FmInWorld[i] << endl;
+            cout << FmInWorld[0] << "**" << FmInWorld[1]<< "**" << FmInWorld[2];
 
 		}
 
-		cout << std::endl;
+        cout << std::endl;
 
 	}
 
@@ -273,9 +282,9 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 	 //lout << target.model->motionPool()[5].mp() << ",";
 
 
-	lout << FT[1] << ",";lout << FT[2] << ",";
-	lout << FT[3] << ",";lout << FT[4] << ",";
-	lout << FT[5] << ",";lout << FT[6] << ",";
+    lout << FT[0] << ",";lout << FT[1] << ",";
+    lout << FT[2] << ",";lout << FT[3] << ",";
+    lout << FT[4] << ",";lout << FT[5] << ",";
 	lout << stateTor0[0][0] << ",";lout << stateTor0[1][0] << ",";
 	lout << stateTor0[2][0] << ",";lout << stateTor0[3][0] << ",";
 	lout << stateTor0[4][0] << ",";lout << stateTor0[5][0] << ",";
@@ -349,7 +358,7 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 	for (int i = 0; i < 6; i++)
 	{
 		step_pjs[i] = step_pjs[i] + dTheta[i];
-		target.model->motionPool().at(i).setMp(step_pjs[i]);
+        target.model->motionPool().at(i).setMp(step_pjs[i]);
 	}
 
 	for (int i = 0; i < 6; i++)
@@ -366,8 +375,8 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 		stateTor0[i][1] = stateTor1[i][1];
 		stateTor0[i][2] = stateTor1[i][2];
 	}
+/*
 
-	/*
 	for (int i = 0; i < 6; i++)
 	{
 		stateDm0[i, 0] = stateDm1[i, 0];
@@ -376,12 +385,13 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 		stateTor0[i, 0] = stateTor1[i, 0];
 		stateTor0[i, 1] = stateTor1[i, 1];
 		stateTor0[i, 2] = stateTor1[i, 2];
-	} */
-
+    }
+*/
 	for (int j = 0; j < 6; j++)
 	{
 		FT_be[j] = FT[j];
 	}
+
 	return 150000000 - target.count;
 }
 
@@ -1270,17 +1280,23 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
 	double dX[6] = { 0.00000, -0.0000, -0.0000, -0.0000, -0.0000, -0.0000 };
 	double dTheta[6] = { 0 };
 
-	float FT[6];
-	uint16_t FTnum;
-	auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.controller);
-	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x00, &FTnum, 16);
-	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x01, &FT[0], 32);  //Fx
-	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x02, &FT[1], 32);  //Fy
-	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x03, &FT[2], 32);  //Fz
-	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x04, &FT[3], 32);
-	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x05, &FT[4], 32);
-	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x06, &FT[5], 32);
-	FT[0] = -FT[0];FT[3] = -FT[3];
+    int16_t FTint[6];
+    double FTReal[6],FT[6];
+    auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.controller);
+
+    conSensor->ecSlavePool().at(7).readPdo(0x6000, 0x11, &FTint[0] ,16);
+    conSensor->ecSlavePool().at(7).readPdo(0x6010, 0x11, &FTint[1], 16);
+    conSensor->ecSlavePool().at(7).readPdo(0x6020, 0x11, &FTint[2], 16);
+    conSensor->ecSlavePool().at(7).readPdo(0x6030, 0x11, &FTint[3], 16);
+    conSensor->ecSlavePool().at(8).readPdo(0x6000, 0x11, &FTint[4], 16);
+    conSensor->ecSlavePool().at(8).readPdo(0x6010, 0x11, &FTint[5], 16);
+
+    for (int i=0;i<6;i++)
+    {
+         FTReal[i] = FTint[i]*20.0 / 65536.0*1000.0;
+    }
+
+    s_mm(6, 1, 6, Vol2FTCoef, FTReal, FT);
 
 	for (int i = 0;i < 6;i++)
 	{
@@ -1306,11 +1322,7 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
 			EndP0[i] = PqEnd[i];
 	}
 
-	for (int j = 0; j < 6; j++)
-	{
-		if (abs(FT[j]) < 0.0001)
-			FT[j] = FT_be[j];
-	}
+
 
 
 	for (int j = 0; j < 6; j++)
@@ -1363,8 +1375,8 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
 	dXpid[5] = 1 * (FT_KAI[5]) / 2000;
 
 	double FT_YANG[6];
-	FT_YANG[0] = dXpid[2];FT_YANG[1] = -dXpid[1];FT_YANG[2] = dXpid[0];
-	FT_YANG[3] = dXpid[5];FT_YANG[4] = -dXpid[4];FT_YANG[5] = dXpid[3];
+    FT_YANG[0] = -dXpid[0];FT_YANG[1] = -dXpid[1];FT_YANG[2] = dXpid[2];
+    FT_YANG[3] = -dXpid[3];FT_YANG[4] = -dXpid[4];FT_YANG[5] = dXpid[5];
 
 
 	double FmInWorld[6];
@@ -2909,6 +2921,144 @@ MoveFeed::MoveFeed(const std::string &name) :Plan(name)
 
 
 
+void robotJacobianEnd(const double* q, double* JacoEnd)
+       {
+    double t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16, t17;
+    double t18, t19, t20, t21, t22, t23, t24, t25, t26, t27, t28, t29, t30, t31, t32;
+    double t33, t34, t35, t36, t37, t38, t39, t40, t41, t42, t43, t44, t45, t46, t47;
+    double t48, t49, t50, t51, t52, t53, t54, t55, t56, t57, t58, t59, t60, t61, t62;
+    double t63, t64, t65, t66, t67, t68, t69, t70, t71, t72, t73, t74, t75, t76, t77;
+    double q1, q2, q3, q4, q5, q6;
+
+           q1 = q[0]  * DirectionFlag[0] + JointOffset[0] + ZeroOffset[0];
+           q2 = q[1]  * DirectionFlag[1] + JointOffset[1] + ZeroOffset[1];
+           q3 = q[2]  * DirectionFlag[2] + JointOffset[2] + ZeroOffset[2];
+           q4 = q[3]  * DirectionFlag[3] + JointOffset[3] + ZeroOffset[3];
+           q5 = q[4]  * DirectionFlag[4] + JointOffset[4] + ZeroOffset[4];
+           q6 = q[5]  * DirectionFlag[5] + JointOffset[5] + ZeroOffset[5];
+
+           double MC1, MC2, MC3;
+           MC1 = EndPoint[0]; MC2 = EndPoint[1]; MC3 = EndPoint[2];
+
+           double A0[6][6];
+           for (int i = 0;i < 6;i++)
+               for (int j = 0;j < 6;j++)
+                   A0[i][j]=0;
+
+           t2 = cos(q6);
+           t3 = sin(q6);
+           t4 = cos(q5);
+           t5 = sin(q5);
+           t6 = MC1 * t2;
+           t14 = MC2 * t3;
+           t7 = t6 - t14;
+           t8 = sin(q4);
+           t9 = MC2 * t2;
+           t10 = MC1 * t3;
+           t11 = t9 + t10;
+           t12 = cos(q4);
+           t13 = MC3 * t5;
+           t22 = t4 * t7;
+           t15 = t13 - t22;
+           t16 = cos(q3);
+           t17 = MC3 * t4;
+           t18 = t5 * t7;
+           t19 = d4 + t17 + t18;
+           t20 = sin(q3);
+           t21 = t8 * t11;
+           t23 = t12 * t15;
+           t24 = -a4 + t21 + t23;
+           t25 = cos(q1);
+           t26 = sin(q2);
+           t27 = t19 * t20;
+           t28 = t16 * t24;
+           t29 = -a3 + t27 + t28;
+           t30 = cos(q2);
+           t31 = t16 * t19;
+           t33 = t20 * t24;
+           t32 = t31 - t33;
+           t34 = sin(q1);
+           t35 = t8 * t15;
+           t36 = t17 + t18;
+           t37 = t7 * t8;
+           t38 = t4 * t11*t12;
+           t39 = t37 + t38;
+           t51 = t11 * t12;
+           t40 = t35 - t51;
+           t41 = t29 * t30;
+           t42 = t26 * t32;
+           t43 = -a2 + t41 + t42;
+           t44 = t26 * t29;
+           t46 = t30 * t32;
+           t45 = t44 - t46;
+           t47 = t27 + t28;
+           t48 = t21 + t23;
+           t49 = q2 + q3;
+           t50 = cos(t49);
+           t52 = t15 * t20;
+           t68 = t12 * t16*t36;
+           t53 = t52 - t68;
+           t54 = t30 * t53;
+           t55 = t15 * t16;
+           t56 = t12 * t20*t36;
+           t57 = t55 + t56;
+           t58 = t26 * t57;
+           t59 = t54 + t58;
+           t60 = t16 * t39;
+           t69 = t5 * t11*t20;
+           t61 = t60 - t69;
+           t62 = t20 * t39;
+           t63 = t5 * t11*t16;
+           t64 = t62 + t63;
+           t65 = t26 * t64;
+           t66 = t7 * t12;
+           t67 = t66 - t4 * t8*t11;
+           t70 = sin(t49);
+           A0[0][0] = -t25 * t40 + t34 * t43;
+           A0[0][1] = t25 * t45;
+           A0[0][2] = -t25 * (t30*t32 - t26 * t47);
+           A0[0][3] = -t34 * t48 + t25 * t40*t50;
+           A0[0][4] = t25 * t59 - t8 * t34*t36;
+           A0[0][5] = t34 * t67 + t25 * (t65 - t30 * t61);
+           A0[1][0] = -t25 * t43 - t34 * t40;
+           A0[1][1] = t34 * t45;
+           A0[1][2] = -t34 * (t46 - t26 * t47);
+           A0[1][3] = t25 * t48 + t34 * t50*(t35 - t51);
+           A0[1][4] = t34 * t59 + t8 * t25*t36;
+           A0[1][5] = -t25 * t67 + t34 * (t65 - t30 * t61);
+           A0[2][1] = t41 + t42;
+           A0[2][2] = t42 + t30 * t47;
+           A0[2][3] = -t40 * t70;
+           A0[2][4] = -t26 * t53 + t30 * t57;
+           A0[2][5] = t26 * t61 + t30 * t64;
+           A0[3][1] = -t34;
+           A0[3][2] = -t34;
+           A0[3][3] = -t25 * t70;
+           A0[3][4] = -t12 * t34 + t8 * t25*t50;
+           A0[3][5] = -t5 * (t8*t34 + t12 * t25*t50) - t4 * t25*t70;
+           A0[4][1] = t25;
+           A0[4][2] = t25;
+           A0[4][3] = -t34 * t70;
+           A0[4][4] = t12 * t25 + t8 * t34*t50;
+           A0[4][5] = t5 * (t8*t25 - t12 * t34*t50) - t4 * t34*t70;
+           A0[5][0] = 1.0;
+           A0[5][3] = -t50;
+           A0[5][4] = -t8 * t70;
+           A0[5][5] = -t4 * t50 + t5 * t12*t70;
+
+
+           for (int i = 0;i < 6;i++)
+               for (int j = 0;j < 6;j++)
+                   JacoEnd[i * 6 + j] = A0[i][j];
+
+
+       }
+
+
+
+
+
+
 
 
 struct MoveJointParam
@@ -2964,7 +3114,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 	static double begin_pjs[6];
 	static double step_pjs[6];
 	static double stateTor0[6][3], stateTor1[6][3];
-	static float FT0[6], FT_be[6];
+    static double FT0[6], FT_be[6];
 
 	// 访问主站 //
 	auto controller = target.controller;
@@ -2980,7 +3130,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 	}
 
 
-	if (!target.model->solverPool().at(1).kinPos())return -1;
+    //if (!target.model->solverPool().at(1).kinPos())return -1;
 
 
 	///* Using Jacobian, TransMatrix from ARIS
@@ -2992,17 +3142,23 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 	double dX[6] = { 0.00000, -0.0000, -0.0000, -0.0000, -0.0000, -0.0000 };
 	double dTheta[6] = { 0 };
 
-	float FT[6];
-	uint16_t FTnum;
-	auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.controller);
-	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x00, &FTnum, 16);
-	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x01, &FT[0], 32);  //Fx
-	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x02, &FT[1], 32);  //Fy
-	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x03, &FT[2], 32);  //Fz
-	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x04, &FT[3], 32);
-	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x05, &FT[4], 32);
-	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x06, &FT[5], 32);
-	FT[0] = -FT[0];FT[3] = -FT[3];
+    int16_t FTint[6];
+    double FTReal[6],FT[6];
+    auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.controller);
+
+    conSensor->ecSlavePool().at(7).readPdo(0x6000, 0x11, &FTint[0] ,16);
+    conSensor->ecSlavePool().at(7).readPdo(0x6010, 0x11, &FTint[1], 16);
+    conSensor->ecSlavePool().at(7).readPdo(0x6020, 0x11, &FTint[2], 16);
+    conSensor->ecSlavePool().at(7).readPdo(0x6030, 0x11, &FTint[3], 16);
+    conSensor->ecSlavePool().at(8).readPdo(0x6000, 0x11, &FTint[4], 16);
+    conSensor->ecSlavePool().at(8).readPdo(0x6010, 0x11, &FTint[5], 16);
+
+    for (int i=0;i<6;i++)
+    {
+         FTReal[i] = FTint[i]*20.0 / 65536.0*1000.0;
+    }
+
+    s_mm(6, 1, 6, Vol2FTCoef, FTReal, FT);
 
 	for (int i = 0;i < 6;i++)
 	{
@@ -3024,15 +3180,11 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 		}
 	}
 
-	for (int j = 0; j < 6; j++)
-	{
-		if (abs(FT[j]) < 0.0001)
-			FT[j] = FT_be[j];
-	}
+
 
 	for (int j = 0; j < 6; j++)
 	{
-		double A[3][3], B[3], CutFreq = 15;//SHANGHAI DIANQI EXP
+        double A[3][3], B[3], CutFreq = 15;//SHANGHAI DIANQI EXP
 
 		A[0][0] = 0; A[0][1] = 1; A[0][2] = 0;
 		A[1][0] = 0; A[1][1] = 0; A[1][2] = 1;
@@ -3053,9 +3205,21 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 		FT_KAI[i] = stateTor1[i][0] - FT0[i];//In KAI Coordinate
 	}
 
+    for (int i = 0; i < 3; i++)
+    {
+        if (abs(FT_KAI[i]) < 0.05)
+            FT_KAI[i] = 0;
+    }
+    for (int i = 3; i < 6; i++)
+    {
+        if (abs(FT_KAI[i]) < 0.01)
+            FT_KAI[i] = 0;
+    }
+
+
 	double FT_YANG[6];
-	FT_YANG[0] = FT_KAI[2];FT_YANG[1] = -FT_KAI[1];FT_YANG[2] = FT_KAI[0];
-	FT_YANG[3] = FT_KAI[5];FT_YANG[4] = -FT_KAI[4];FT_YANG[5] = FT_KAI[3];
+    FT_YANG[0] = -FT_KAI[0];FT_YANG[1] = -FT_KAI[1];FT_YANG[2] = FT_KAI[2];
+    FT_YANG[3] = -FT_KAI[3];FT_YANG[4] = -FT_KAI[4];FT_YANG[5] = FT_KAI[5];
 
 	double FmInWorld[6];
 
@@ -3077,17 +3241,6 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 	FmInWorld[5] = a[0] * FT_YANG[3] + a[1] * FT_YANG[4] + a[2] * FT_YANG[5];
 
 
-	if (target.count % 100 == 0)
-	{
-
-		//cout << FmInWorld[0] << "***" << FmInWorld[1] << "***" << FmInWorld[2] << "***" << FmInWorld[3] << "***" <<FmInWorld[4] << "***" <<FmInWorld[5] << "***" << FT0[2] << endl;
-
-		//cout <<  FT_KAI[0]<<"***"<<FmInWorld[2]<<endl;
-
-		cout << std::endl;
-
-	}
-
 
 	for (int j = 0; j < 6; j++)
 	{
@@ -3104,21 +3257,20 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 	// log 电流 //
 	auto &lout = controller->lout();
 
-	lout << FTnum << ",";
 	//lout << FT[2] << ",";lout << dX[2] << ",";
 	//lout << FmInWorld[2] << ",";lout << FT0[2] << ",";
 
 	lout << FmInWorld[0] << ",";lout << FmInWorld[1] << ",";
 	lout << FmInWorld[2] << ",";lout << FmInWorld[3] << ",";
 	lout << FmInWorld[4] << ",";
-	// lout << FT_KAI[0] << ",";lout << FT_KAI[1] << ",";
-	// lout << FT_KAI[2] << ",";lout << FT_KAI[3] << ",";
-	 //lout << FT_KAI[4] << ",";lout << FT_KAI[5] << ",";
+     lout << FT_KAI[0] << ",";lout << FT_KAI[1] << ",";
+     lout << FT_KAI[2] << ",";lout << FT_KAI[3] << ",";
+     lout << FT_KAI[4] << ",";lout << FT_KAI[5] << ",";
 
 	// lout << dX[0] << ",";
-	// lout << FT[1] << ",";lout << FT[2] << ",";
-	// lout << FT[3] << ",";lout << FT[4] << ",";
-	// lout << FT[5] << ",";lout << FT[6] << ",";
+     lout << FT[0] << ",";lout << FT[1] << ",";
+     lout << FT[2] << ",";lout << FT[3] << ",";
+     lout << FT[4] << ",";lout << FT[5] << ",";
 	lout << std::endl;
 
 
@@ -3128,10 +3280,13 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 	fwd.cptJacobi();
 	double pinv[36];
 	double tempS[6][6] = { 0 };
+
 	for (int i = 0;i < 6;i++)
 		for (int j = 0;j < 6;j++)
 			if (i == j)
-				tempS[i][j] = 1;
+                tempS[i][j] = 1;
+    double tempPq=0;
+    tempPq=PqEnd[0];PqEnd[0]=-PqEnd[2];PqEnd[2]=tempPq;
 	tempS[0][4] = -PqEnd[2];tempS[0][5] = PqEnd[1];
 	tempS[1][3] = PqEnd[2];tempS[1][5] = -PqEnd[0];
 	tempS[2][3] = -PqEnd[1];tempS[2][4] = PqEnd[0];
@@ -3140,19 +3295,39 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 		for (int j = 0;j < 6;j++)
 			tempVec[6 * i + j] = tempS[i][j];
 
+
+    double CoordTrans[36]={0,0,-1, 0,0,0,
+                           0,1,0,  0,0,0,
+                           1,0,0,  0,0,0,
+                           0,0,0, 0,0,-1,
+                           0,0,0,  0,1,0,
+                           0,0,0,  1,0,0};
+    double tempVecF[36];
+   s_mm(6, 6, 6, tempVec, CoordTrans, tempVecF);
+
 	double U[36], tau[6];
 	aris::Size p[6];
 	aris::Size rank;
 
-	s_householder_utp(6, 6, tempVec, U, tau, p, rank, 1e-10);
+    s_householder_utp(6, 6, tempVec, U, tau, p, rank, 1e-10);
 	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A) //
 	double tau2[6];
 	s_householder_utp2pinv(6, 6, rank, U, tau, p, pinv, tau2, 1e-10);
 
 	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A)*b //
 	double JacobEnd[36] = { 0 };
+
 	s_mm(6, 6, 6, pinv, fwd.Jf(), JacobEnd);
 	//robotDemo.jointIncrement(RobotPositionJ, dX, dTheta);
+
+    double q[6];
+
+    for (int i = 0; i < 6; ++i)
+    {
+        q[i] = target.model->motionPool()[i].mp();
+
+    }
+    robotJacobianEnd(q,JacobEnd);
 	double JacobEndTrans[36] = { 0 };
 	double temp[6][6] = { 0 };
 	double temp1[6][6] = { 0 };
@@ -3168,36 +3343,38 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 
 
 
-	FmInWorld[0] = -2; FmInWorld[1] = 0; FmInWorld[2] = 0; FmInWorld[3] = 0; FmInWorld[4] = 0; FmInWorld[5] = 0;
+    //FmInWorld[0] = -2; FmInWorld[1] = 0; FmInWorld[2] = 0; FmInWorld[3] = 0; FmInWorld[4] = 0; FmInWorld[5] = 0;
 	double JoinTau[6] = { 0 };
 	s_mm(6, 1, 6, JacobEndTrans, FmInWorld, JoinTau);
-	if (target.count % 100 == 0)
-	{
 
-		cout << JoinTau[0] << "***" << JoinTau[1] << "***" << JoinTau[2] << "***" << JoinTau[3] << "***" << JoinTau[4] << "***" << JoinTau[5] << "***" << FT0[2] << endl;
-
-		//cout <<  FT_KAI[0]<<"***"<<FmInWorld[2]<<endl;
-
-		cout << std::endl;
-
-	}
 	//for (int i = 0;i < 6;i++)
 	   // dTheta[i] = JoinTau[i] / 10000;
 
-	dTheta[0] = JoinTau[0] / 10000;
-	dTheta[1] = JoinTau[1] / 8000;
-	dTheta[2] = JoinTau[2] / 8000;
-	dTheta[3] = JoinTau[3] / 2000;
-	dTheta[4] = JoinTau[4] / 2000;
-	dTheta[5] = JoinTau[5] / 2000;
+    dTheta[0] = JoinTau[0] / 2500;
+    dTheta[1] = JoinTau[1] / 4000;
+    dTheta[2] = JoinTau[2] / 2500;
+    dTheta[3] = JoinTau[3] / 1600;
+    dTheta[4] = JoinTau[4] / 1600;
+    dTheta[5] = JoinTau[5] / 1600;
 	for (int i = 0; i < 6; i++)
 	{
-		if (dTheta[i] > 0.003)
-			dTheta[i] = 0.003;
-		if (dTheta[i] < -0.003)
-			dTheta[i] = -0.003;
+        if (dTheta[i] > 0.0003)
+            dTheta[i] = 0.0003;
+        if (dTheta[i] < -0.0003)
+            dTheta[i] = -0.0003;
 		//lout << dTheta[i] << ",";
 	}
+
+    if (target.count % 300 == 0)
+    {
+
+        cout << FT_KAI[0] << "***" << FT_KAI[1] << "***" << FT_KAI[2] << endl;
+
+        //cout <<  FT_KAI[0]<<"***"<<FmInWorld[2]<<endl;
+
+        cout << std::endl;
+
+    }
 
 	for (int i = 0; i < 6; i++)
 	{
@@ -3208,7 +3385,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 	for (int i = 0; i < 6; i++)
 	{
 		step_pjs[i] = step_pjs[i] + dTheta[i];
-		target.model->motionPool().at(i).setMp(step_pjs[i]);
+        //target.model->motionPool().at(i).setMp(step_pjs[i]);
 	}
 
 	for (int i = 0; i < 6; i++)
