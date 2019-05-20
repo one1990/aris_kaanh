@@ -119,7 +119,7 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 
 
 	if (target.model->solverPool().at(1).kinPos())return -1;
-
+	
 
 	///* Using Jacobian, TransMatrix from ARIS
 	double EndW[3], EndP[3], BaseV[3];
@@ -133,7 +133,7 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
     int16_t FTint[6];
     double FTReal[6],FT[6];
     auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.controller);
-
+	
     conSensor->ecSlavePool().at(7).readPdo(0x6000, 0x11, &FTint[0] ,16);
     conSensor->ecSlavePool().at(7).readPdo(0x6010, 0x11, &FTint[1], 16);
     conSensor->ecSlavePool().at(7).readPdo(0x6020, 0x11, &FTint[2], 16);
@@ -145,9 +145,9 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
     {
          FTReal[i] = FTint[i]*20.0 / 65536.0*1000.0;
     }
-
+	
     s_mm(6, 1, 6, Vol2FTCoef, FTReal, FT);
-
+	
 
 
 	// 获取当前起始点位置 //
@@ -387,10 +387,7 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 		stateTor0[i, 2] = stateTor1[i, 2];
     }
 */
-	for (int j = 0; j < 6; j++)
-	{
-		FT_be[j] = FT[j];
-	}
+
 
 	return 150000000 - target.count;
 }
@@ -1283,7 +1280,7 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
     int16_t FTint[6];
     double FTReal[6],FT[6];
     auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.controller);
-
+/*
     conSensor->ecSlavePool().at(7).readPdo(0x6000, 0x11, &FTint[0] ,16);
     conSensor->ecSlavePool().at(7).readPdo(0x6010, 0x11, &FTint[1], 16);
     conSensor->ecSlavePool().at(7).readPdo(0x6020, 0x11, &FTint[2], 16);
@@ -1297,7 +1294,7 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
     }
 
     s_mm(6, 1, 6, Vol2FTCoef, FTReal, FT);
-
+*/
 	for (int i = 0;i < 6;i++)
 	{
 		RobotPositionJ[i] = target.model->motionPool()[i].mp();
@@ -1399,7 +1396,7 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
 	FmInWorld[5] = a[0] * FT_YANG[3] + a[1] * FT_YANG[4] + a[2] * FT_YANG[5];
 
 	for (int i = 0;i < 6;i++)
-		dX[i] = FmInWorld[i];
+		dX[i] = 0;//;*FmInWorld[i];
 
 
 	double TangentArc[3] = { 0 };

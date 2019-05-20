@@ -29,7 +29,7 @@ namespace kaanh
         dynamic_cast<aris::control::Motion&>(controller->slavePool()[4]).setPosOffset(1.53363576057128);
         dynamic_cast<aris::control::Motion&>(controller->slavePool()[5]).setPosOffset(26.3545454214145-0.50997670662257);
 #endif
-
+		/*
         controller->slavePool().add<aris::control::EthercatSlave>();
         controller->slavePool().back().setPhyId(6);
         dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanInfoForCurrentSlave();
@@ -45,7 +45,7 @@ namespace kaanh
         controller->slavePool().back().setPhyId(8);
         dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanInfoForCurrentSlave();
         dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanPdoForCurrentSlave();
-
+		*/
 
 		return controller;
 	};
