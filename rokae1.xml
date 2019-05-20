@@ -81,12 +81,7 @@
 			<Id name="id_78"  value="id_78"/>
 			<Id name="id_79"  value="id_79"/>
 			<Id name="id_80"  value="id_80"/>
-			<Id name="id_81"  value="id_81"/>
-			<Id name="id_82"  value="id_82"/>	
-			<Id name="id_83"  value="id_83"/>
-			<Id name="id_84"  value="id_84"/>
-			<Id name="id_85"  value="id_85"/>	
-			<Id name="id_86"  value="id_86"/>			
+			<Id name="id_81"  value="id_81"/>			
 			<Id name="id_1001" value="id_1001"/>
 			<Id name="id_1002" value="id_1002"/>
 			<Id name="id_1003" value="id_1003"/>
@@ -117,29 +112,18 @@
 			<Id name="id_1028" value="id_1028"/>
 			<Id name="id_1029" value="id_1029"/>
 		</UiIdPoolObject>
-		<!--layout ä¸ºé¡µé¢å¸ƒå±€ï¼Œå¿…é¡»åŒ…æ‹¬ui-layout-centerã€‚å¸ƒå±€å¯ç›¸äº’åµŒå¥—-->
-		<!--layout idå¿…é¡»æœ‰-->
-		<!--å¯ä»¥è®¾ç½®sizeï¼Œä¸€èˆ¬centerä¸è®¾ç½®sizeï¼Œä¼šè‡ªåŠ¨æµ®åŠ¨-->
+		<!--layout ÎªÒ³Ãæ²¼¾Ö£¬±ØÐë°üÀ¨ui-layout-center¡£²¼¾Ö¿ÉÏà»¥Ç¶Ì×-->
+		<!--layout id±ØÐëÓÐ-->
+		<!--¿ÉÒÔÉèÖÃsize£¬Ò»°ãcenter²»ÉèÖÃsize£¬»á×Ô¶¯¸¡¶¯-->
 		<Layout pos="ui-layout-center"  id="id_1001">
 			<CmdInterfacePoolObject>	
 				<Tabs id="id_44" text="Tab">
 					<TabItem text="Controller">
-						<Panel text="|CMD" id="id_80">
-							<Button id="id_81" text="ClearController" cmd="clearCon" return_attached=""/>
+						<Panel text="Clear Controller|CMD" id="id_80">
+							<Button id="id_81" text="ClearCon" cmd="clearCon" return_attached=""/>
 						</Panel>
-						<Panel text="|CMD" id="id_54">
-							<Input id="id_55" default="0" parameter="motion_phyid" style="width:100px"/>
-							<Br/>
-							<Input id="id_56" default="6" parameter="ecslave_phyid" style="width:100px"/>
-							<Br/>
-							<Input id="id_78" default="768" parameter="ecslave_dc" style="width:100px"/>
-							<Br/>
-							<Button id="id_57" text="AddMotion" cmd="setCon --motion_phyid=${id_55}" return_attached=""/>
-							<Button id="id_58" text="AddECSlave" cmd="setCon --ecslave_phyid=${id_56} --ecslave_dc=${id_78}" return_attached=""/>
-							<Br/>
-						</Panel>	
-						<Panel text="|CMD" id="id_74">
-							<Select id="id_59" parameter="motion" style="width:30px">
+						<Panel text="Set Controller|CMD" id="id_54">
+							<Select id="id_59" parameter="motion" style="width:100px">
 								<Option value="0" selected="selected">axis0</Option>
 								<Option value="1">axis1</Option>
 								<Option value="2">axis2</Option>
@@ -148,6 +132,15 @@
 								<Option value="5">axis5</Option>
 								<Option value="6">axis6</Option>
 							</Select>
+							<Br/>
+							<Input id="id_55" default="0" parameter="motion_phyid" style="width:100px"/>
+							<Br/>
+							<Input id="id_56" default="6" parameter="ecslave_phyid" style="width:100px"/>
+							<Br/>
+							<Input id="id_78" default="768" parameter="ecslave_dc" style="width:100px"/>
+							<Br/>
+							<Button id="id_57" text="SetMotion" cmd="setCon --motion_phyid=${id_55}" return_attached=""/>
+							<Button id="id_58" text="SetECSlave" cmd="setCon --ecslave_phyid=${id_56} --ecslave_dc=${id_78}" return_attached=""/>
 							<Br/>		
 							<Input id="id_60" default="131072.0 * 81" parameter="pos_factor" style="width:100px"/>
 							<Br/>
@@ -165,54 +158,54 @@
 							<Br/>
 							<Input id="id_67" default="0.0" parameter="pos_offset" style="width:100px"/>
 							<Br/>
-							<Button id="id_68" text="Set Motions' Parameters" cmd="setDriver -m=${id_59} --pos_factor=${id_60} --pos_max=${id_61} --pos_min=${id_62} --vel_max=${id_63} --vel_min=${id_64} --acc_max=${id_65} --acc_min=${id_66} --pos_offset=${id_67}" return_attached=""/>						
-							<Br/>
-						</Panel>					
-					</TabItem>
-					<TabItem text="Model">
-						<Panel text="|CMD" id="id_73">
-							<Input id="id_69" default="{0.3295, 0.04, 0.275, 0.0, 0.025, 0.28}" parameter="dh_six_axes" style="width:600px"/>
-							<Br/>
-							<Input id="id_70" default="0.078" parameter="tool_offset_sixaxes" style="width:100px"/>
-							<Br/>
-							<Input id="id_71" default="{0.3705, 0.330, 0.320}" parameter="dh_seven_axes" style="width:600px"/>
-							<Br/>
-							<Input id="id_72" default="0.2205" parameter="tool_offset_sevenaxes" style="width:100px"/>
-							<Br/>							
-							<Button id="id_76" text="Set 6_Axes DH" cmd="setDH --six_axes --dh_six_axes=${id_69} --tool_offset_sixaxes=${id_70}" return_attached=""/>
-							<Button id="id_77" text="Set 7_Axes DH" cmd="setDH --seven_axes --dh_seven_axes=${id_71} --tool_offset_sevenaxes=${id_72}" return_attached=""/>
+							<Button id="id_68" text="SetDriver" cmd="setDriver -m=${id_59} --pos_factor=${id_60} --pos_max=${id_61} --pos_min=${id_62} --vel_max=${id_63} --vel_min=${id_64} --acc_max=${id_65} --acc_min=${id_66} --pos_offset=${id_67}" return_attached=""/>						
 							<Br/>
 						</Panel>
-						<Panel text="|CMD" id="id_82">
-							<Button id="id_83" text="SaveConfig" cmd="saveConfig" return_attached=""/>
+					</TabItem>
+					<TabItem text="Model">
+						<Panel text="Set DH|CMD" id="id_73">
+							<Input id="id_69" default="{0.3295, 0.04, 0.275, 0.0, 0.025, 0.28}" parameter="dh_6axes" style="width:600px"/>
+							<Br/>
+							<Input id="id_70" default="0.078" parameter="6axes_tool_offset" style="width:100px"/>
+							<Br/>
+							<Input id="id_71" default="{0.3705, 0.330, 0.320}" parameter="dh_7axes" style="width:600px"/>
+							<Br/>
+							<Input id="id_72" default="0.2205" parameter="7axes_tool_offset" style="width:100px"/>
+							<Br/>							
+							<Button id="id_76" text="Set 6_axes DH" cmd="setDH --six_axes --dh_6axes=${id_69} --6axes_tool_offset=${id_70}" return_attached=""/>
+							<Button id="id_77" text="Set 7_axes DH" cmd="setDH --seven_axes --dh_7axes=${id_71} --7axes_tool_offset=${id_72}" return_attached=""/>
+							<Br/>
 						</Panel>
 					</TabItem>
 					<TabItem text="Command">
-						<Panel text="|CMD" id="id_84">
-							<Button id="id_85" text="StartCS" cmd="startCS" return_attached=""/>
-							<Button id="id_86" text="StopCS" cmd="stopCS" return_attached=""/>
-						</Panel>
-						<Panel text="|CMD" id="id_1">
-							<!--defaultï¼šinputå†…çš„é»˜è®¤å€¼-->
-							<!--parameter:æ‰€å¯¹åº”çš„å‚æ•°åç§°ï¼Œä¼šæ˜¾ç¤ºåœ¨è¾“å…¥æ¡†çš„å‰é¢-->
+						<Panel text="ds-md-en|CMD" id="id_1">
+							<!--default£ºinputÄÚµÄÄ¬ÈÏÖµ-->
+							<!--parameter:Ëù¶ÔÓ¦µÄ²ÎÊýÃû³Æ£¬»áÏÔÊ¾ÔÚÊäÈë¿òµÄÇ°Ãæ-->
 							<Button id="id_48" text="ds" cmd="ds" style="width: 100px" return_attached=""/>
 							<Button id="id_49" text="md" cmd="md" style="width: 100px" return_attached=""/>
 							<Button id="id_50" text="en" cmd="en;rc" style="width: 100px" return_attached=""/>
-							<!--text:æ˜¾ç¤ºåœ¨UIä¸Šçš„æ–‡å­—-->
+							<!--text:ÏÔÊ¾ÔÚUIÉÏµÄÎÄ×Ö-->
 							<!---->
-							<!--repeat:-1:one time clickå•æ¬¡æŒ‰é’®ï¼Œä¸é‡å¤å‘é€;0: mouse down repeaté¼ æ ‡å·¦é”®æŒ‰ä¸‹é‡å¤å‘é€ï¼Œæ¾å¼€åœæ­¢å‘é€; 1:mouse click repeatæŒ‰é’®å•å‡»åŽé‡å¤å‘é€ï¼Œå†æ¬¡å•å‡»åœæ­¢å‘é€;-->
-							<!--rate:cmd send rate é‡å¤å‘é€çš„é—´éš”ms-->
-							<!--cmd:å‘½ä»¤çš„å†…å®¹ï¼Œå¤šæ¡å‘½ä»¤ä»¥";"éš”å¼€å‚æ•°å¯ä»¥æŒ‰idç´¢å¼•æŽ§ä»¶çš„å†…å®¹-->
-							<!--return_attachedï¼šè¿”å›žå€¼ç»‘å®šçš„UIæˆ–å¤„ç†çš„æ–¹å¼ï¼Œlabelç›´æŽ¥æ˜¾ç¤ºï¼Œchartç»˜åˆ¶å›¾è¡¨-->
-						</Panel>	
+							<!--repeat:-1:one time clickµ¥´Î°´Å¥£¬²»ÖØ¸´·¢ËÍ;0: mouse down repeatÊó±ê×ó¼ü°´ÏÂÖØ¸´·¢ËÍ£¬ËÉ¿ªÍ£Ö¹·¢ËÍ; 1:mouse click repeat°´Å¥µ¥»÷ºóÖØ¸´·¢ËÍ£¬ÔÙ´Îµ¥»÷Í£Ö¹·¢ËÍ;-->
+							<!--rate:cmd send rate ÖØ¸´·¢ËÍµÄ¼ä¸ôms-->
+							<!--cmd:ÃüÁîµÄÄÚÈÝ£¬¶àÌõÃüÁîÒÔ";"¸ô¿ª²ÎÊý¿ÉÒÔ°´idË÷Òý¿Ø¼þµÄÄÚÈÝ-->
+							<!--return_attached£º·µ»ØÖµ°ó¶¨µÄUI»ò´¦ÀíµÄ·½Ê½£¬labelÖ±½ÓÏÔÊ¾£¬chart»æÖÆÍ¼±í-->
+						</Panel>
 					</TabItem>
 				</Tabs>
+				<Panel text="Save Config|CMD" id="id_82">
+					<Button id="id_83" text="saveConfig" cmd="saveConfig" return_attached=""/>
+				</Panel>
+				<Panel text="ControlServer|CMD" id="id_84">
+					<Button id="id_85" text="startCS" cmd="startCS" return_attached=""/>
+					<Button id="id_86" text="stopCS" cmd="StopCS" return_attached=""/>
+				</Panel>
 			</CmdInterfacePoolObject>
 		</Layout>
 		<Layout pos="ui-layout-north" size="100" id="id_1002">
 			<CmdInterfacePoolObject>
 				<Figure src="images/logo.PNG" alt="" style="width: 200px;height: 60px;margin-left:0px;margin-top: 0px"/>
-				<!--Figureï¼Œæ˜¾ç¤ºå›¾ç‰‡-->
+				<!--Figure£¬ÏÔÊ¾Í¼Æ¬-->
 			</CmdInterfacePoolObject>
 
 		</Layout>
@@ -221,11 +214,11 @@
 				<Accordion id="51">
 					<AccordionItem text="single axis_jog" id="52">
 						<Panel>
-							<Panel text="|CMD" id="id_27">
+							<Panel text="moveJP|CMD" id="id_27">
 								<Button id="id_28" text="start" cmd="moveJP --start" return_attached=""/>
 								<Button id="id_30" text="stop" cmd="moveJP --stop" return_attached=""/>
 							</Panel>
-							<Panel text="|CMD" id="id_7">
+							<Panel text="moveJP|CMD" id="id_7">
 								<Slider id="id_9" default="10" max="100" min="0" step="1" parameter="vel_percent"/>
 								<Br/>
 								<Button id="id_31" text="j0-" repeat="0" rate="20" style="width: 100px" cmd="moveJP -m=0 --direction=-1 --vel_percent=$Slider{id_9}" return_attached=""/>
@@ -250,11 +243,11 @@
 					</AccordionItem>
 					<AccordionItem text="coordinate jog" id="53">
 						<Panel>
-							<Panel text="|CMD" id="id_23">
+							<Panel text="movePoint|CMD" id="id_23">
 								<Button id="id_24" text="start" cmd="movePoint --start" return_attached=""/>
 								<Button id="id_26" text="stop" cmd="movePoint --stop" return_attached=""/>
 							</Panel>
-							<Panel text="|CMD" id="id_22">
+							<Panel text="movePoint|CMD" id="id_22">
 								<Select id="id_8" parameter="cor">
 									<Option value="0" selected="selected">world</Option>
 									<Option value="1">end</Option>
@@ -282,14 +275,13 @@
 						</Panel>
 					</AccordionItem>
 				</Accordion>
-				<!--å¯æŠ˜å æŽ§ä»¶ï¼Œ-->
+				<!--¿ÉÕÛµþ¿Ø¼þ£¬-->
 			</CmdInterfacePoolObject>
 		</Layout>
 		<Layout pos="ui-layout-east" size="100"  id="id_1005">
 			<View3DInterfacePoolObject show="true" rate="50"/>
 		</Layout>
-	</InterfaceRoot>		
-		
+	</InterfaceRoot>
     <EthercatController name="ethercat_controller">
         <SlavePoolObject name="slave_pool">
             <EthercatMotion phy_id="0" vendor_id="0x000002e1" product_code="0x00000000" revision_num="0x00029001" dc_assign_activate="0x00000300" max_pos="2.96706" min_pos="-2.96706" max_vel="5.4105210000000001" min_vel="-5.4105210000000001" max_acc="26.179939000000001" min_acc="-26.179939000000001" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1689721.292776" pos_offset="0" home_pos="0">
@@ -1573,13 +1565,13 @@
                         <UniqueParam>
                             <GroupParam name="start_group">
                                 <Param name="six_axes"/>
-                                <Param name="dh_six_axes" default="{0.3295, 0.04, 0.275, 0.0, 0.025, 0.28}"/>
-                                <Param name="tool_offset_sixaxes" default="0.078"/>
+                                <Param name="dh_6axes" default="{0.3295, 0.04, 0.275, 0.0, 0.025, 0.28}"/>
+                                <Param name="6axes_tool_offset" default="0.078"/>
                             </GroupParam>
                             <GroupParam>
                                 <Param name="seven_axes"/>
-                                <Param name="dh_seven_axes" default="{0.3705, 0.330, 0.320}"/>
-                                <Param name="tool_offset_sevenaxes" default="0.2205"/>
+                                <Param name="dh_7axes" default="{0.3705, 0.330, 0.320}"/>
+                                <Param name="7axes_tool_offset" default="0.2205"/>
                             </GroupParam>
                         </UniqueParam>
                     </GroupParam>

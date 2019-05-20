@@ -29,7 +29,7 @@ namespace kaanh
         dynamic_cast<aris::control::Motion&>(controller->slavePool()[4]).setPosOffset(1.53363576057128);
         dynamic_cast<aris::control::Motion&>(controller->slavePool()[5]).setPosOffset(26.3545454214145);
 #endif
-
+		/*
         controller->slavePool().add<aris::control::EthercatSlave>();
         controller->slavePool().back().setPhyId(6);
         dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanInfoForCurrentSlave();
@@ -47,7 +47,7 @@ namespace kaanh
         dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanInfoForCurrentSlave();
         dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanPdoForCurrentSlave();
         //dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).setDcAssignActivate(0x300);
-
+		*/
 		return controller;
 	};
 	auto createModelRokaeXB4(const double *robot_pm)->std::unique_ptr<aris::dynamic::Model>
@@ -3522,72 +3522,93 @@ namespace kaanh
     }
 
 
-	// 配置DH参数 //
+	// 清理slavepool //
+	auto ClearCon::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		auto&cs = aris::server::ControlServer::instance();
+		if (cs.running())throw std::runtime_error("cs is running, can not set position offset,please stop the cs!");
+
+		auto &controller = target.controller;
+		controller->slavePool().clear();
+
+		std::string ret = "ok";
+		target.ret = ret;
+		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
+	}
+	ClearCon::ClearCon(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"clearCon\">"
+			"</Command>");
+	}
+
+
+	// 配置控制器参数 //
 	struct SetConParam
 	{
-		std::vector<uint16_t> motion_phyid;
-		std::vector<uint16_t> ecslave_phyid;
+		uint16_t motion_phyid;
+		uint16_t ecslave_phyid;
+		uint16_t ecslave_dc;
+		bool is_motion;
 	};
 	auto SetCon::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
-		SetConParam param;
-		param.motion_phyid.clear();
-		param.ecslave_phyid.clear();
+		auto&cs = aris::server::ControlServer::instance();
+		if (cs.running())throw std::runtime_error("cs is running, can not set controller,please stop the cs!");
 
+		SetConParam param;
+		param.motion_phyid = 0;
+		param.ecslave_phyid = 0;
+		param.is_motion = 1;
 		for (auto &p : params)
 		{
 			//motion physical id number//
 			if (p.first == "motion_phyid")
 			{
-				auto mat = target.model->calculator().calculateExpression(p.second);
-				param.motion_phyid.resize(mat.size(), 0);
-				param.motion_phyid.assign(mat.begin(), mat.end());
+				param.motion_phyid = std::stoi(p.second);
+				param.is_motion = 1;
 			}
 			//ethercat slave physical id number//
 			else if (p.first == "ecslave_phyid")
 			{
-				auto mat = target.model->calculator().calculateExpression(p.second);
-				param.ecslave_phyid.resize(mat.size(), 0);
-				param.ecslave_phyid.assign(mat.begin(), mat.end());
+				param.ecslave_phyid = std::stoi(p.second);
+				param.is_motion = 0;
+				param.ecslave_dc = std::stoi(params.at("ecslave_dc"));
 			}
 		}
 
-		auto&cs = aris::server::ControlServer::instance();
-		if (cs.running())throw std::runtime_error("cs is running, can not set controller,please stop the cs!");
+		//std::unique_ptr<aris::control::Controller> controller(aris::robot::createControllerRokaeXB4());
+		//controller->slavePool().clear();	//清除slavePool中的元素，后面重新添加
+		auto &controller = target.controller;
 
-		std::unique_ptr<aris::control::Controller> controller(aris::robot::createControllerRokaeXB4());
-		controller->slavePool().clear();	//清除slavePool中的元素，后面重新添加
-		
 		//configure motion//
-		for (aris::Size i = 0; i < param.motion_phyid.size(); i++)
+		if(param.is_motion)
 		{
 			controller->slavePool().add<aris::control::EthercatMotion>();
-			controller->slavePool().back().setPhyId(param.motion_phyid[i]);
+			controller->slavePool().back().setPhyId(param.motion_phyid);
 			dynamic_cast<aris::control::EthercatMotion&>(controller->slavePool().back()).scanInfoForCurrentSlave();
 			dynamic_cast<aris::control::EthercatMotion&>(controller->slavePool().back()).scanPdoForCurrentSlave();
+			dynamic_cast<aris::control::EthercatMotion&>(controller->slavePool().back()).setDcAssignActivate(0x300);
 		}	
 		//configure ect slave//
-		for (aris::Size i = 0; i < param.ecslave_phyid.size(); i++)
+		else if(!param.is_motion)
 		{
 			controller->slavePool().add<aris::control::EthercatSlave>();
-			controller->slavePool().back().setPhyId(param.ecslave_phyid[i]);
+			controller->slavePool().back().setPhyId(param.ecslave_phyid);
 			dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanInfoForCurrentSlave();
 			dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanPdoForCurrentSlave();
-			//适用于带倍福ECT Slave 耦合器的IO从站，非此情况，去掉if条件，保留条件结构里面内容//
-			if (i == 0)
-			{
-				dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).setDcAssignActivate(0x300);
-			}	
+			//倍福ECT Slave 耦合器,ecslave_dc=0x300；耦合器后面的模块，,ecslave_dc=0x00//
+			dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).setDcAssignActivate(param.ecslave_dc);
 		}
+		//cs.resetController(controller);
 
-		std::cout << controller->xmlString() << std::endl;
-
-		cs.resetController(controller.release());
-	
+		//std::cout << controller->xmlString() << std::endl;
+		/*
 		auto xmlpath = std::filesystem::absolute(".");
 		const std::string xmlfile = "rokae.xml";
 		xmlpath = xmlpath / xmlfile;
 		cs.saveXmlFile(xmlpath.string().c_str());
+		*/
 
 		std::string ret = "ok";
 		target.ret = ret;
@@ -3598,8 +3619,13 @@ namespace kaanh
 		command().loadXmlStr(
 			"<Command name=\"setCon\">"
 			"	<GroupParam>"
-			"		<Param name=\"motion_phyid\" default=\"{0, 1, 2, 3, 4, 5}\"/>"
-			"		<Param name=\"ecslave_phyid\" default=\"{6, 7, 8}\"/>"
+			"		<UniqueParam>"
+			"			<Param name=\"motion_phyid\" default=\"0\"/>"
+			"			<GroupParam>"
+			"				<Param name=\"ecslave_phyid\" default=\"6\"/>"
+			"				<Param name=\"ecslave_dc\" default=\"768\"/>"
+			"			</GroupParam>"
+			"		</UniqueParam>"
 			"	</GroupParam>"
 			"</Command>");
 	}
@@ -3614,6 +3640,9 @@ namespace kaanh
 	};
 	auto SetDH::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
+		auto&cs = aris::server::ControlServer::instance();
+		if (cs.running())throw std::runtime_error("cs is running, can not set DH parameters,please stop the cs!");
+
 		SetDHParam dhparam;
 		dhparam.dh.clear();
 
@@ -3623,7 +3652,7 @@ namespace kaanh
 			if (p.first == "six_axes")
 			{
 				dhparam.dh.resize(6, 0.0);
-				auto mat = target.model->calculator().calculateExpression(params.at("dh"));
+				auto mat = target.model->calculator().calculateExpression(params.at("dh_six_axes"));
 				if (mat.size() == dhparam.dh.size())
 				{
 					dhparam.dh.assign(mat.begin(), mat.end());
@@ -3632,14 +3661,14 @@ namespace kaanh
 				{
 					throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
 				}
-				dhparam.tool_offset = std::stod(params.at("tool_offset"));
+				dhparam.tool_offset = std::stod(params.at("tool_offset_sixaxes"));
 				dhparam.axis_num = 6;
 			}
 			//7轴DH参数//
 			else if (p.first == "seven_axes")
 			{
 				dhparam.dh.resize(3, 0.0);
-				auto mat = target.model->calculator().calculateExpression(params.at("dh"));
+				auto mat = target.model->calculator().calculateExpression(params.at("dh_seven_axes"));
 				if (mat.size() == dhparam.dh.size())
 				{
 					dhparam.dh.assign(mat.begin(), mat.end());
@@ -3648,13 +3677,10 @@ namespace kaanh
 				{
 					throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
 				}
-				dhparam.tool_offset = std::stod(params.at("tool_offset"));
+				dhparam.tool_offset = std::stod(params.at("tool_offset_sevenaxes"));
 				dhparam.axis_num = 7;
 			}
 		}
-
-		auto&cs = aris::server::ControlServer::instance();
-		if (cs.running())throw std::runtime_error("cs is running, can not set DH parameters,please stop the cs!");
 
 		aris::dynamic::PumaParam param_puma;
 		aris::dynamic::SevenAxisParam param_7axes;
@@ -3673,10 +3699,10 @@ namespace kaanh
 		}
 		else if (dhparam.axis_num == 7)
 		{
-			param_7axes.d1 = 0.3705;
-			param_7axes.d3 = 0.330;
-			param_7axes.d5 = 0.320;
-			param_7axes.tool0_pe[2] = 0.2205;
+			param_7axes.d1 = dhparam.dh[0];
+			param_7axes.d3 = dhparam.dh[1];
+			param_7axes.d5 = dhparam.dh[2];
+			param_7axes.tool0_pe[2] = dhparam.tool_offset;
 
 			auto m = aris::dynamic::createModelSevenAxis(param_7axes);
 			cs.resetModel(m.release());
@@ -3705,10 +3731,12 @@ namespace kaanh
 		};
 		*/
 		
+		/*
 		auto xmlpath = std::filesystem::absolute(".");
 		const std::string xmlfile = "rokae.xml";
 		xmlpath = xmlpath / xmlfile;
 		cs.saveXmlFile(xmlpath.string().c_str());
+		*/
 
 		std::string ret = "ok";
 		target.ret = ret;
@@ -3723,13 +3751,13 @@ namespace kaanh
 			"		<UniqueParam>"
 			"			<GroupParam name=\"start_group\">"
 			"				<Param name=\"six_axes\"/>"
-			"				<Param name=\"dh\" default=\"{0.3295, 0.04, 0.275, 0.0, 0.025, 0.28}\"/>"
-			"				<Param name=\"tool_offset\" default=\"0.078\"/>"
+			"				<Param name=\"dh_six_axes\" default=\"{0.3295, 0.04, 0.275, 0.0, 0.025, 0.28}\"/>"
+			"				<Param name=\"tool_offset_sixaxes\" default=\"0.078\"/>"
 			"			</GroupParam>"
 			"			<GroupParam>"
 			"				<Param name=\"seven_axes\"/>"
-			"				<Param name=\"dh\" default=\"{0.3705, 0.330, 0.320}\"/>"
-			"				<Param name=\"tool_offset\" default=\"0.2205\"/>"
+			"				<Param name=\"dh_seven_axes\" default=\"{0.3705, 0.330, 0.320}\"/>"
+			"				<Param name=\"tool_offset_sevenaxes\" default=\"0.2205\"/>"
 			"			</GroupParam>"
 			"		</UniqueParam>"
 			"	</GroupParam>"
@@ -3737,273 +3765,182 @@ namespace kaanh
 	}
 
 
-	// 配置关节offset //
-	struct SetPOffsetParam
-	{
-		std::vector<double> pos_offset;
-		std::vector<bool> joint_active_vec;
-	};
-	auto SetPOffset::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
-	{
-		//std::unique_ptr<aris::control::Controller> controller(kaanh::createControllerRokaeXB4());
-		auto controller = target.controller;
-
-		SetPOffsetParam param;
-		param.pos_offset.clear();
-		param.pos_offset.resize(target.controller->motionPool().size(), 0.0);
-		param.joint_active_vec.clear();
-
-		for (auto &p : params)
-		{
-			if (p.first == "all")
-			{
-				param.joint_active_vec.resize(target.controller->motionPool().size(), true);
-				auto mat = target.model->calculator().calculateExpression(params.at("all_offset"));
-				if (mat.size() == param.pos_offset.size())
-				{
-					param.pos_offset.assign(mat.begin(), mat.end());
-				}
-				else
-				{
-					throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
-				}
-			}
-			else if (p.first == "motion_id")
-			{
-				param.joint_active_vec.resize(target.controller->motionPool().size(), false);
-				param.joint_active_vec.at(std::stoi(p.second)) = true;
-
-				param.pos_offset.at(std::stoi(p.second)) = std::stod(params.at("m_offset"));
-			}
-		}
-		// 设置驱动offset //
-		for (int i = 0; i < param.pos_offset.size(); i++)
-		{
-			if (param.joint_active_vec[i])
-			{
-				dynamic_cast<aris::control::Motion&>(controller->slavePool()[i]).setPosOffset(param.pos_offset[i]);
-			}
-		}
-	
-		auto&cs = aris::server::ControlServer::instance();
-		if (cs.running())throw std::runtime_error("cs is running, can not set position offset,please stop the cs!");
-		auto xmlpath = std::filesystem::absolute(".");
-		const std::string xmlfile = "rokae.xml";
-		xmlpath = xmlpath / xmlfile;
-		cs.saveXmlFile(xmlpath.string().c_str());
-
-		std::string ret = "ok";
-		target.ret = ret;
-		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
-
-	}
-	SetPOffset::SetPOffset(const std::string &name) :Plan(name)
-	{
-		command().loadXmlStr(
-			"<Command name=\"setPOffset\">"
-			"	<GroupParam>"
-			"		<UniqueParam>"
-			"			<GroupParam name=\"start_group\">"
-			"				<Param name=\"all\"/>"
-			"				<Param name=\"all_offset\" default=\"{0.00293480352126769, -2.50023777179214, -0.292382537944081, 0.0582675097338009, 1.53363576057128, 26.3545454214145}\"/>"
-			"			</GroupParam>"
-			"			<GroupParam>"
-			"				<Param name=\"motion_id\" abbreviation=\"m\" default=\"0\"/>"
-			"				<Param name=\"m_offset\" default=\"0.0\"/>"
-			"			</GroupParam>"
-			"		</UniqueParam>"
-			"	</GroupParam>"
-			"</Command>");
-	}
-
-
-	// 配置关节角度-编码系数、角度、角速度、角加速度上下限 //
+	// 配置关节——home偏置、角度-编码系数、角度、角速度、角加速度上下限 //
 	struct SetDriverParam
 	{
 		std::vector<bool> joint_active_vec;
-		std::vector<double> pos_factor;
-		std::vector<double> pos_max;
-		std::vector<double> pos_min;
-		std::vector<double> vel_max;
-		std::vector<double> vel_min;
-		std::vector<double> acc_max;
-		std::vector<double> acc_min;
+		double pos_factor;
+		double pos_max;
+		double pos_min;
+		double vel_max;
+		double vel_min;
+		double acc_max;
+		double acc_min;
+		double pos_offset;
 	};
 	auto SetDriver::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
+		auto&cs = aris::server::ControlServer::instance();
+		if (cs.running())throw std::runtime_error("cs is running, can not set pos_factor,pos,vel and acc,please stop the cs!");
 		//std::unique_ptr<aris::control::Controller> controller(kaanh::createControllerRokaeXB4());
-		auto controller = target.controller;
+		auto &controller = target.controller;
 		SetDriverParam param;
-		
+
 		//initial//
 		{
 			param.joint_active_vec.clear();
-			param.pos_factor.clear();
-			param.pos_max.clear();
-			param.pos_min.clear();
-			param.vel_max.clear();
-			param.vel_min.clear();
-			param.acc_max.clear();
-			param.acc_min.clear();
-			param.pos_factor.resize(target.controller->motionPool().size(), 0.0);
-			param.pos_max.resize(target.controller->motionPool().size(), 0.0);
-			param.pos_min.resize(target.controller->motionPool().size(), 0.0);
-			param.vel_max.resize(target.controller->motionPool().size(), 0.0);
-			param.vel_min.resize(target.controller->motionPool().size(), 0.0);
-			param.acc_max.resize(target.controller->motionPool().size(), 0.0);
-			param.acc_min.resize(target.controller->motionPool().size(), 0.0);
+			param.pos_factor = 0.0;
+			param.pos_max = 0.0;
+			param.pos_min = 0.0;
+			param.vel_max = 0.0;
+			param.vel_min = 0.0;
+			param.acc_max = 0.0;
+			param.acc_min = 0.0;
+			param.pos_offset = 0.0;
 		}
 
 		for (auto &p : params)
 		{
-			//全部驱动器//
-			if (p.first == "all")
+			if (p.first == "motion_id")
 			{
-				param.joint_active_vec.resize(target.controller->motionPool().size(), true);
-				//pos_factor=电机一圈脉冲数*减速比//
-				auto mat = target.model->calculator().calculateExpression(params.at("pos_factor"));
-				if (mat.size() == param.pos_factor.size())
-				{
-					param.pos_factor.assign(mat.begin(), mat.end());
-					aris::dynamic::s_nv(3, 1 / (2 * PI), param.pos_factor.data());
-				}
-				else
-				{
-					throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
-				}
-				mat = target.model->calculator().calculateExpression(params.at("pos_max"));
-				if (mat.size() == param.pos_max.size())
-				{
-					param.pos_max.assign(mat.begin(), mat.end());
-					aris::dynamic::s_nv(3, 2 * PI / 360, param.pos_max.data());
-				}
-				else
-				{
-					throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
-				}
-				mat = target.model->calculator().calculateExpression(params.at("pos_min"));
-				if (mat.size() == param.pos_min.size())
-				{
-					param.pos_min.assign(mat.begin(), mat.end());
-					aris::dynamic::s_nv(3, 2 * PI / 360, param.pos_min.data());
-				}
-				else
-				{
-					throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
-				}
-				//vel//
-				mat = target.model->calculator().calculateExpression(params.at("vel_max"));
-				if (mat.size() == param.vel_max.size())
-				{
-					param.vel_max.assign(mat.begin(), mat.end());
-					aris::dynamic::s_nv(3, 2 * PI / 360, param.vel_max.data());
-				}
-				else
-				{
-					throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
-				}
-				mat = target.model->calculator().calculateExpression(params.at("vel_min"));
-				if (mat.size() == param.vel_min.size())
-				{
-					param.vel_min.assign(mat.begin(), mat.end());
-					aris::dynamic::s_nv(3, 2 * PI / 360, param.vel_min.data());
-				}
-				else
-				{
-					throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
-				}
-				//acc//
-				mat = target.model->calculator().calculateExpression(params.at("acc_max"));
-				if (mat.size() == param.acc_max.size())
-				{
-					param.acc_max.assign(mat.begin(), mat.end());
-					aris::dynamic::s_nv(3, 2 * PI / 360, param.acc_max.data());
-				}
-				else
-				{
-					throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
-				}
-				mat = target.model->calculator().calculateExpression(params.at("acc_min"));
-				if (mat.size() == param.acc_min.size())
-				{
-					param.acc_min.assign(mat.begin(), mat.end());
-					aris::dynamic::s_nv(3, 2 * PI / 360, param.acc_min.data());
-				}
-				else
-				{
-					throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
-				}
-			}
-			//单个驱动器//
-			else if (p.first == "motion_id")
-			{
-				param.joint_active_vec.resize(target.controller->motionPool().size(), false);
+				param.joint_active_vec.resize(50, false);
 				param.joint_active_vec.at(std::stoi(p.second)) = true;
-
-				param.pos_factor.at(std::stoi(p.second)) = std::stod(params.at("pos_factor")) / (2 * PI);
-				param.pos_max.at(std::stoi(p.second)) = std::stod(params.at("pos_max")) * 2 * PI / 360;
-				param.pos_min.at(std::stoi(p.second)) = std::stod(params.at("pos_min")) * 2 * PI / 360;
-				param.vel_max.at(std::stoi(p.second)) = std::stod(params.at("vel_max")) * 2 * PI / 360;
-				param.vel_min.at(std::stoi(p.second)) = std::stod(params.at("vel_min")) * 2 * PI / 360;
-				param.acc_max.at(std::stoi(p.second)) = std::stod(params.at("acc_max")) * 2 * PI / 360;
-				param.acc_min.at(std::stoi(p.second)) = std::stod(params.at("acc_min")) * 2 * PI / 360;
+			}
+			else if(p.first == "pos_factor")
+			{
+				param.pos_factor = std::stod(p.second) / (2.0 * PI);
+			}
+			else if (p.first == "pos_max")
+			{
+				param.pos_max = std::stod(p.second) * 2 * PI / 360;
+			}
+			else if (p.first == "pos_min")
+			{
+				param.pos_min = std::stod(p.second) * 2 * PI / 360;
+			}
+			else if (p.first == "vel_max")
+			{
+				param.vel_max = std::stod(p.second) * 2 * PI / 360;
+			}
+			else if (p.first == "vel_min")
+			{
+				param.vel_min = std::stod(p.second) * 2 * PI / 360;
+			}
+			else if (p.first == "acc_max")
+			{
+				param.acc_max = std::stod(p.second) * 2 * PI / 360;
+			}
+			else if (p.first == "acc_min")
+			{
+				param.acc_min = std::stod(p.second) * 2 * PI / 360;
+			}
+			else if (p.first == "pos_offset")
+			{
+				param.pos_offset = std::stod(p.second);
 			}
 		}
+		
 		// 设置驱动pos_factor,pos,vel,acc //
-		for (int i = 0; i < param.pos_factor.size(); i++)
+		for (int i = 0; i < param.joint_active_vec.size(); i++)
 		{
 			if (param.joint_active_vec[i])
 			{
-				dynamic_cast<aris::control::Motion&>(controller->slavePool()[i]).setPosOffset(param.pos_factor[i]);
-				dynamic_cast<aris::control::Motion&>(controller->slavePool()[i]).setPosOffset(param.pos_max[i]);
-				dynamic_cast<aris::control::Motion&>(controller->slavePool()[i]).setPosOffset(param.pos_min[i]);
-				dynamic_cast<aris::control::Motion&>(controller->slavePool()[i]).setPosOffset(param.vel_max[i]);
-				dynamic_cast<aris::control::Motion&>(controller->slavePool()[i]).setPosOffset(param.vel_min[i]);
-				dynamic_cast<aris::control::Motion&>(controller->slavePool()[i]).setPosOffset(param.acc_max[i]);
-				dynamic_cast<aris::control::Motion&>(controller->slavePool()[i]).setPosOffset(param.acc_min[i]);
+				dynamic_cast<aris::control::Motion&>(controller->slavePool()[i]).setPosFactor(param.pos_factor);
+				dynamic_cast<aris::control::Motion&>(controller->slavePool()[i]).setMaxPos(param.pos_max);
+				dynamic_cast<aris::control::Motion&>(controller->slavePool()[i]).setMinPos(param.pos_min);
+				dynamic_cast<aris::control::Motion&>(controller->slavePool()[i]).setMaxVel(param.vel_max);
+				dynamic_cast<aris::control::Motion&>(controller->slavePool()[i]).setMinVel(param.vel_min);
+				dynamic_cast<aris::control::Motion&>(controller->slavePool()[i]).setMaxAcc(param.acc_max);
+				dynamic_cast<aris::control::Motion&>(controller->slavePool()[i]).setMinAcc(param.acc_min);
+				dynamic_cast<aris::control::Motion&>(controller->slavePool()[i]).setPosOffset(param.pos_offset);
 			}
 		}
 
-		auto&cs = aris::server::ControlServer::instance();
-		if (cs.running())throw std::runtime_error("cs is running, can not set pos_factor,pos,vel and acc,please stop the cs!");
+		//cs.resetController(controller);
+		/*
 		auto xmlpath = std::filesystem::absolute(".");
 		const std::string xmlfile = "rokae.xml";
 		xmlpath = xmlpath / xmlfile;
 		cs.saveXmlFile(xmlpath.string().c_str());
-
+		*/
 		std::string ret = "ok";
 		target.ret = ret;
 		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
-
 	}
 	SetDriver::SetDriver(const std::string &name) :Plan(name)
 	{
 		command().loadXmlStr(
 			"<Command name=\"setDriver\">"
 			"	<GroupParam>"
-			"		<UniqueParam>"
-			"			<GroupParam name=\"start_group\">"
-			"				<Param name=\"all\"/>"
-			"				<Param name=\"pos_factor\" default=\"{131072.0 * 81, 131072.0 * 81, 131072.0 * 81, 131072.0 * 72.857, 131072.0 * 81, 131072.0 * 50}\"/>"
-			"				<Param name=\"pos_max\" default=\"{170.0, 130.0, 50.0, 70.0, 117.0, 360.0}\"/>"
-			"				<Param name=\"pos_min\" default=\"{-170.0, - 84.0, - 188.0, - 170.0, - 117.0, - 360.0}\"/>"
-			"				<Param name=\"vel_max\" default=\"{310.0, 240.0, 310.0, 250.0, 295.0, 500.0}\"/>"
-			"				<Param name=\"vel_min\" default=\"{-310.0, -240.0, -310.0, -250.0, -295.0, -500.0}\"/>"
-			"				<Param name=\"acc_max\" default=\"{1500.0, 1500.0, 1500.0, 1750.0, 1500.0, 2500.0}\"/>"
-			"				<Param name=\"acc_min\" default=\"{-1500.0, -1500.0, -1500.0, -1750.0, -1500.0, -2500.0}\"/>"
-			"			</GroupParam>"
-			"			<GroupParam>"
-			"				<Param name=\"motion_id\" abbreviation=\"m\" default=\"0\"/>"
-			"				<Param name=\"pos_factor\" default=\"0.0\"/>"
-			"				<Param name=\"pos_max\" default=\"0.0\"/>"
-			"				<Param name=\"pos_min\" default=\"0.0\"/>"
-			"				<Param name=\"vel_max\" default=\"0.0\"/>"
-			"				<Param name=\"vel_min\" default=\"0.0\"/>"
-			"				<Param name=\"acc_max\" default=\"0.0\"/>"
-			"				<Param name=\"acc_min\" default=\"0.0\"/>"
-			"			</GroupParam>"
-			"		</UniqueParam>"
+			"		<Param name=\"motion_id\" abbreviation=\"m\" default=\"0\"/>"
+			"		<Param name=\"pos_factor\" default=\"0.0\"/>"
+			"		<Param name=\"pos_max\" default=\"0.0\"/>"
+			"		<Param name=\"pos_min\" default=\"0.0\"/>"
+			"		<Param name=\"vel_max\" default=\"0.0\"/>"
+			"		<Param name=\"vel_min\" default=\"0.0\"/>"
+			"		<Param name=\"acc_max\" default=\"0.0\"/>"
+			"		<Param name=\"acc_min\" default=\"0.0\"/>"
+			"		<Param name=\"pos_offset\" default=\"0.0\"/>"
 			"	</GroupParam>"
+			"</Command>");
+	}
+
+
+	// 保存配置 //
+	auto SaveConfig::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		auto&cs = aris::server::ControlServer::instance();
+		if (cs.running())throw std::runtime_error("cs is running, can not set position offset,please stop the cs!");
+
+		auto xmlpath = std::filesystem::absolute(".");
+		const std::string xmlfile = "rokae.xml";
+		xmlpath = xmlpath / xmlfile;
+		cs.saveXmlFile(xmlpath.string().c_str());
+
+		std::string ret = "ok";
+		target.ret = ret;
+		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
+	}
+	SaveConfig::SaveConfig(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"saveConfig\">"
+			"</Command>");
+	}
+
+
+	// 开启controller server //
+	auto StartCS::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		auto&cs = aris::server::ControlServer::instance();
+		if (cs.running())throw std::runtime_error("cs is already running!");
+		cs.start();
+		std::string ret = "ok";
+		target.ret = ret;
+		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
+	}
+	StartCS::StartCS(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"startCS\">"
+			"</Command>");
+	}
+
+
+	// 关闭controller server //
+	auto StopCS::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		auto&cs = aris::server::ControlServer::instance();
+		if (!cs.running())throw std::runtime_error("cs is already stopping!");
+		cs.stop();
+		std::string ret = "ok";
+		target.ret = ret;
+		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
+	}
+	StopCS::StopCS(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"stopCS\">"
 			"</Command>");
 	}
 
@@ -4060,10 +3997,13 @@ namespace kaanh
 		plan_root->planPool().add<kaanh::MoveEAP>();
 		plan_root->planPool().add<kaanh::FSSignal>();
         plan_root->planPool().add<kaanh::ATIFS>();
+		plan_root->planPool().add<kaanh::ClearCon>();
 		plan_root->planPool().add<kaanh::SetCon>();
 		plan_root->planPool().add<kaanh::SetDH>();
-		plan_root->planPool().add<kaanh::SetPOffset>();
 		plan_root->planPool().add<kaanh::SetDriver>();
+		plan_root->planPool().add<kaanh::SaveConfig>();
+		plan_root->planPool().add<kaanh::StartCS>();
+		plan_root->planPool().add<kaanh::StopCS>();
 
 		plan_root->planPool().add<MoveXYZ>();
 		plan_root->planPool().add<MoveJoint>();
