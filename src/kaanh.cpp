@@ -3764,6 +3764,72 @@ namespace kaanh
 			"</Command>");
 	}
 
+	
+	// 配置PG参数 //
+	struct SetPGParam
+	{
+		std::string name;
+		std::vector<double> pe;
+		uint16_t part_id;
+		std::string file_path;	
+	};
+	auto SetPG::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		auto&cs = aris::server::ControlServer::instance();
+		if (cs.running())throw std::runtime_error("cs is running, can not set DH parameters,please stop the cs!");
+
+		SetPGParam param;
+		param.pe.clear();
+		param.pe.resize(6, 0.0);
+		for (auto &p : params)
+		{
+			if (p.first == "name")
+			{
+				param.name = p.second;
+			}
+			else if (p.first == "pe")
+			{
+				auto mat = target.model->calculator().calculateExpression(params.at("pe"));
+				if (mat.size() == param.pe.size())
+				{
+					param.pe.assign(mat.begin(), mat.end());
+				}
+				else
+				{
+					throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+				}
+			}
+			else if (p.first == "part_id")
+			{
+				param.part_id = std::stoi(p.second);
+			}
+			else if (p.first == "file_path")
+			{
+				param.file_path = p.second;
+			}
+		}
+
+		target.model->partPool().at(param.part_id).geometryPool().clear();
+		target.model->partPool().at(param.part_id).geometryPool().add<FileGeometry>(param.name, param.file_path, param.pe.data());
+
+		std::string ret = "ok";
+		target.ret = ret;
+		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
+
+	}
+	SetPG::SetPG(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"setPG\">"
+			"	<GroupParam>"
+			"		<Param name=\"name\" default=\"test\"/>"
+			"		<Param name=\"pe\" default=\"{0, 0, 0, -0, 0, -0}\"/>"
+			"		<Param name=\"part_id\" default=\"6\"/>"
+			"		<Param name=\"file_path\" default=\"/RobotGallery/Rokae/XB4/L0.data\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
+	
 
 	// 配置关节——home偏置、角度-编码系数、角度、角速度、角加速度上下限 //
 	struct SetDriverParam
@@ -3915,6 +3981,7 @@ namespace kaanh
 		auto&cs = aris::server::ControlServer::instance();
 		if (cs.running())throw std::runtime_error("cs is already running!");
 		cs.start();
+		
 		std::string ret = "ok";
 		target.ret = ret;
 		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
@@ -4000,6 +4067,7 @@ namespace kaanh
 		plan_root->planPool().add<kaanh::ClearCon>();
 		plan_root->planPool().add<kaanh::SetCon>();
 		plan_root->planPool().add<kaanh::SetDH>();
+		plan_root->planPool().add<kaanh::SetPG>();
 		plan_root->planPool().add<kaanh::SetDriver>();
 		plan_root->planPool().add<kaanh::SaveConfig>();
 		plan_root->planPool().add<kaanh::StartCS>();
