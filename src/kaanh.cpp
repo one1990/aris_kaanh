@@ -499,29 +499,19 @@ namespace kaanh
 	struct MoveInitParam
 	{
 		std::vector<double> axis_pos_vec;
+		std::vector<double> axis_pq_vec;
 	};
 	auto MoveInit::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
 		MoveInitParam param;
+		param.axis_pos_vec.clear();
+		param.axis_pq_vec.clear();
 		param.axis_pos_vec.resize(6, 0.0);
+		param.axis_pq_vec.resize(7, 0.0);
 		target.param = param;
-		std::fill(target.mot_options.begin(), target.mot_options.end(),
-			Plan::USE_TARGET_POS |
-#ifdef WIN32
-			Plan::NOT_CHECK_POS_MIN |
-			Plan::NOT_CHECK_POS_MAX |
-			Plan::NOT_CHECK_POS_CONTINUOUS |
-			Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
-			Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-			Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
-			Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
-#endif
-			Plan::NOT_CHECK_VEL_MIN |
-			Plan::NOT_CHECK_VEL_MAX |
-			Plan::NOT_CHECK_VEL_CONTINUOUS |
-			Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-			Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
 
+		std::fill(target.mot_options.begin(), target.mot_options.end(),
+			Plan::USE_TARGET_POS);
 	}
 	auto MoveInit::executeRT(PlanTarget &target)->int
 	{
@@ -534,41 +524,36 @@ namespace kaanh
 		{
 			for (Size i = 0; i < param.axis_pos_vec.size(); ++i)
 			{
+				target.model->motionPool().at(i).setMp(controller->motionAtAbs(i).actualPos());
 				param.axis_pos_vec[i] = controller->motionAtAbs(i).actualPos();
 			}
+			target.model->generalMotionPool().at(0).getMpq(param.axis_pq_vec.data());
 		}
+		if (target.model->solverPool().at(0).kinPos())return -1;
 
-		for (Size i = 0; i < 6; ++i)
-		{
-			target.model->motionPool().at(i).setMp(param.axis_pos_vec[i]);
-		}
-
-		// 打印电流 //
+		// 打印 //
 		auto &cout = controller->mout();
-		if (target.count % 100 == 0)
+		cout << "current pq:" << std::endl;
+		for (Size i = 0; i < 7; i++)
 		{
-			for (Size i = 0; i < 6; i++)
-			{
-				cout << "pos" << i + 1 << ":" << controller->motionAtAbs(i).actualPos() << "  ";
-				cout << "vel" << i + 1 << ":" << controller->motionAtAbs(i).actualVel() << "  ";
-				cout << "cur" << i + 1 << ":" << controller->motionAtAbs(i).actualCur() << "  ";
-			}
-			cout << std::endl;
+			cout << param.axis_pq_vec[i] << " ";
 		}
+		cout << std::endl;
+		cout << "current pos:" << std::endl;
+		for (Size i = 0; i < 6; i++)
+		{
+			cout << controller->motionAtAbs(i).actualPos() << "  ";
+		}
+		cout << std::endl;
 
-		// log 电流 //
+		// log //
 		auto &lout = controller->lout();
 		for (Size i = 0; i < 6; i++)
 		{
-			lout << param.axis_pos_vec[i] << " ";
 			lout << controller->motionAtAbs(i).actualPos() << " ";
-			lout << controller->motionAtAbs(i).actualVel() << " ";
-			lout << controller->motionAtAbs(i).actualCur() << " ";
 		}
 		lout << std::endl;
-
-		if (target.model->solverPool().at(1).kinPos())return -1;
-		return 1000-target.count;
+		return 0;
 	}
 	auto MoveInit::collectNrt(PlanTarget &target)->void {}
 	MoveInit::MoveInit(const std::string &name): Plan(name)
@@ -588,7 +573,11 @@ namespace kaanh
 			cs.model().generalMotionPool().at(0).getMpq(std::any_cast<std::vector<double>&>(data).data());
 		}, ee_pq_vec);
 		auto pq = std::any_cast<std::vector<double>&>(ee_pq_vec);
-
+		for (aris::Size i = 0; i < 7; i++)
+		{
+			std::cout << pq[i] << " ";
+		}
+		std::cout << std::endl;
 		std::string ret(reinterpret_cast<char*>(pq.data()), pq.size() * sizeof(double));
 		target.ret = ret;
 		target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_PRINT_CMD_INFO | NOT_PRINT_CMD_INFO;
