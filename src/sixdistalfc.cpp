@@ -55,7 +55,7 @@ auto MoveXYZ::prepairNrt(const std::map<std::string, std::string> &params, PlanT
 	}
 	target.param = param;
 
-	target.option |=
+      for(auto &option:target.mot_options) option|=
 		Plan::USE_TARGET_POS |
 #ifdef WIN32
 		Plan::NOT_CHECK_POS_MIN |
@@ -163,7 +163,7 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 
 	for (int j = 0; j < 6; j++)
 	{
-        double A[3][3], B[3], CutFreq = 5;
+        double A[3][3], B[3], CutFreq = 15;
 		A[0][0] = 0; A[0][1] = 1; A[0][2] = 0;
 		A[1][0] = 0; A[1][1] = 0; A[1][2] = 1;
 		A[2][0] = -CutFreq * CutFreq * CutFreq;
@@ -199,7 +199,7 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 
 	for (int i = 0; i < 3; i++)
 	{
-        if (abs(FT_KAI[i]) < 0.05)
+        if (abs(FT_KAI[i]) < 0.1)
 			FT_KAI[i] = 0;
 	}
 	for (int i = 3; i < 6; i++)
@@ -233,25 +233,14 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 
 
 
-    dX[0] = 1 * FmInWorld[0] / 6000;
-    dX[1] = 1 * FmInWorld[1] / 6000;
-    dX[2] = 1 * FmInWorld[2] / 6000;
-    dX[3] = 1 * FmInWorld[3] / 1000;
-    dX[4] = 1 * FmInWorld[4] / 1000;
-    dX[5] = 1 * FmInWorld[5] / 1000;
+    dX[0] = 1 * FmInWorld[0] / 16000;
+    dX[1] = 1 * FmInWorld[1] / 16000;
+    dX[2] = 1 * FmInWorld[2] / 16000;
+    dX[3] = 0 * FmInWorld[3] / 1000;
+    dX[4] = 0 * FmInWorld[4] / 1000;
+    dX[5] = 0 * FmInWorld[5] / 1000;
 
 
-    if (target.count % 300 == 0)
-	{
-        //for (int i = 0; i < 6; i++)
-		{
-            cout << FmInWorld[0] << "**" << FmInWorld[1]<< "**" << FmInWorld[2];
-
-		}
-
-        cout << std::endl;
-
-	}
 
 
 	for (int j = 0; j < 6; j++)
@@ -365,6 +354,20 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 		dTheta[i] = dTheta[i] * DirectionFlag[i];
 
 	}
+
+
+
+    if (target.count % 300 == 0)
+    {
+        //for (int i = 0; i < 6; i++)
+        {
+            cout << dX[0] << "**" << FT_KAI[2]<< "**" << dTheta[1];
+//cout << dX[0] << "**" << dX[1]<< "**" << dX[2]<<dX[3]<<dX[4]<<dX[5];
+        }
+
+        cout << std::endl;
+
+    }
 
 
 	for (int i = 0; i < 6; i++)
@@ -3335,7 +3338,7 @@ auto MoveJoint::prepairNrt(const std::map<std::string, std::string> &params, Pla
 
 	target.param = param;
 
-	target.option |=
+    for(auto &option:target.mot_options) option|=
 		Plan::USE_TARGET_POS |
 		//#ifdef WIN32
 		Plan::NOT_CHECK_POS_MIN |
@@ -3463,7 +3466,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 
     for (int i = 0; i < 3; i++)
     {
-        if (abs(FT_KAI[i]) < 0.05)
+        if (abs(FT_KAI[i]) < 0.3)
             FT_KAI[i] = 0;
     }
     for (int i = 3; i < 6; i++)
@@ -3606,12 +3609,12 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 	//for (int i = 0;i < 6;i++)
 	   // dTheta[i] = JoinTau[i] / 10000;
 
-    dTheta[0] = JoinTau[0] / 2500;
-    dTheta[1] = JoinTau[1] / 4000;
-    dTheta[2] = JoinTau[2] / 2500;
-    dTheta[3] = JoinTau[3] / 1600;
+    dTheta[0] = JoinTau[0] / 4500;
+    dTheta[1] = JoinTau[1] / 12000;
+    dTheta[2] = JoinTau[2] / 12500;
+    dTheta[3] = JoinTau[3] / 4600;
     dTheta[4] = JoinTau[4] / 1600;
-    dTheta[5] = JoinTau[5] / 1600;
+    dTheta[5] = JoinTau[5] / 4600;
 	for (int i = 0; i < 6; i++)
 	{
         if (dTheta[i] > 0.0003)
@@ -3641,7 +3644,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 	for (int i = 0; i < 6; i++)
 	{
 		step_pjs[i] = step_pjs[i] + dTheta[i];
-        //target.model->motionPool().at(i).setMp(step_pjs[i]);
+        target.model->motionPool().at(i).setMp(step_pjs[i]);
 	}
 
 	for (int i = 0; i < 6; i++)
