@@ -1504,7 +1504,7 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
 
 	target.model->generalMotionPool().at(0).getMpm(TransVector);
 	target.model->generalMotionPool().at(0).getMpq(PqEnd);
-	NormalVector[0] = TransVector[0];NormalVector[1] = TransVector[4];NormalVector[2] = TransVector[8];
+    NormalVector[0] = TransVector[2];NormalVector[1] = TransVector[6];NormalVector[2] = TransVector[10];
 
 	crossVector(NormalVector, ZBase, CrossNormalZbase);
 	CosNormalAng = NormalVector[2] / sqrt(NormalVector[0] * NormalVector[0] + NormalVector[1] * NormalVector[1] + NormalVector[2] * NormalVector[2]);
@@ -1634,9 +1634,9 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
 
 	double dXpid[6] = { 0,0,0,0,0,0 };
     dXpid[2] = 1 * (FT_KAI[2] - (-5)) / 620000;
-    dXpid[3] = 1 * (FT_KAI[3]) / 3000;
-    dXpid[4] = 1 * (FT_KAI[4]) / 3000;
-    dXpid[5] = 1 * (FT_KAI[5]) / 3000;
+    dXpid[3] = 1 * (FT_KAI[3]) / 6000;
+    dXpid[4] = 1 * (FT_KAI[4]) / 6000;
+    dXpid[5] = 0 * (FT_KAI[5]) / 3000;
 
 	double FT_YANG[6];
     FT_YANG[0] = -dXpid[0];FT_YANG[1] = -dXpid[1];FT_YANG[2] = dXpid[2];
@@ -1878,16 +1878,16 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
 	{
 		if (MoveDirection)
 		{
-			dX[0] = 0 * vArc * TangentArc[0] / 1000;
-			dX[1] = vArc * TangentArc[1] / 1000;
-			dX[2] = vArc * TangentArc[2] / 1000;
+            dX[0] = dX[0]+0 * vArc * TangentArc[0] / 1000;
+            dX[1] = dX[1]+0*vArc * TangentArc[1] / 1000;
+            dX[2] = dX[2]+0*vArc * TangentArc[2] / 1000;
 
 		}
 		else
 		{
-			dX[0] = 0 * vArc * TangentArc[0] / 1000;
-			dX[1] = vArc * TangentArc[1] / 1000;
-			dX[2] = vArc * TangentArc[2] / 1000;
+            dX[0] = dX[0]+0 * vArc * TangentArc[0] / 1000;
+            dX[1] = dX[1]+0*vArc * TangentArc[1] / 1000;
+            dX[2] = dX[2]+0*vArc * TangentArc[2] / 1000;
 		}
 		if (target.count > StartCount&&MoveDirectionT == true && MoveDirectionF == false)
 			if (MoveDirection)
@@ -2052,7 +2052,7 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
     if (target.count % 300 == 0)
     {
 
-        cout << FT_KAI[3] << "*" << CountFmax << "*" << FT_KAI[2]<< endl;
+        cout << FT_KAI[2] << "****" << FT_KAI[3] << "****" << FT_KAI[4]<< endl;
 
         //cout << FT_KAI[0] << "*" <<FT_KAI[1] << "*" << FT_KAI[2] << endl;
         //cout << FT_KAI[2] << "*" << NormalAng << "*" << TransVector[4] << "*" << TransVector[5] << "*" << TransVector[6] << "*" << FT0[2] << endl;
