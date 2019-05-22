@@ -2168,7 +2168,7 @@ namespace kaanh
 				std::copy(mat.begin(), mat.end(), imp_->dec);
 
 
-				target.option |= EXECUTE_WHEN_ALL_PLAN_COLLECTED | NOT_PRINT_EXECUTE_COUNT | USE_TARGET_POS;
+                target.option |= EXECUTE_WHEN_ALL_PLAN_COLLECTED | NOT_PRINT_EXECUTE_COUNT;
 				std::fill(target.mot_options.begin(), target.mot_options.end(), USE_TARGET_POS);
 			}
 			else if (p.first == "stop")
@@ -2205,7 +2205,6 @@ namespace kaanh
 			}
 		}
 		
-		std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR);
 		target.param = param;
 	}
 	auto MovePoint::executeRT(PlanTarget &target)->int
@@ -2458,6 +2457,8 @@ namespace kaanh
 				imp_->acc = std::stod(params.at("acc"));
 				imp_->dec = std::stod(params.at("dec"));
 
+
+                std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | USE_TARGET_POS);
                 //target.option |= EXECUTE_WHEN_ALL_PLAN_COLLECTED | NOT_PRINT_EXECUTE_COUNT | USE_TARGET_POS;
                 target.option |= EXECUTE_WHEN_ALL_PLAN_COLLECTED | NOT_PRINT_EXECUTE_COUNT;
 			}
@@ -2491,7 +2492,6 @@ namespace kaanh
 			}
 		}
 
-		std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR);
 		target.param = param;
 	}
 	auto MoveJP::executeRT(PlanTarget &target)->int
@@ -3863,7 +3863,8 @@ namespace kaanh
 			}
 			else if(p.first == "pos_factor")
 			{
-				param.pos_factor = std::stod(p.second) / (2.0 * PI);
+                auto m = target.model->calculator().calculateExpression(p.second);
+                param.pos_factor = m.toDouble() / (2.0 * PI);
 			}
 			else if (p.first == "pos_max")
 			{
@@ -3911,6 +3912,7 @@ namespace kaanh
 			}
 		}
 
+        std::cout << param.pos_factor << std::endl;
 		//cs.resetController(controller);
 		/*
 		auto xmlpath = std::filesystem::absolute(".");
