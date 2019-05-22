@@ -235,7 +235,7 @@ namespace kaanh
             };
 
             std::string xml_str =
-                "<EthercatMotion phy_id=\"" + std::to_string(i+1) + "\" product_code=\"0x01\""
+                "<EthercatMotion phy_id=\"" + std::to_string(i) + "\" product_code=\"0x01\""
                 " vendor_id=\"0x00000748\" revision_num=\"0x0002\" dc_assign_activate=\"0x0300\""
                 " min_pos=\"" + std::to_string(min_pos[i]) + "\" max_pos=\"" + std::to_string(max_pos[i]) + "\" max_vel=\"" + std::to_string(max_vel[i]) + "\" min_vel=\"" + std::to_string(-max_vel[i]) + "\""
                 " max_acc=\"" + std::to_string(max_acc[i]) + "\" min_acc=\"" + std::to_string(-max_acc[i]) + "\" max_pos_following_error=\"0.1\" max_vel_following_error=\"0.5\""
