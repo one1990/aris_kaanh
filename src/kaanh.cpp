@@ -2167,9 +2167,8 @@ namespace kaanh
 				if (mat.size() != 6)THROW_FILE_AND_LINE("");
 				std::copy(mat.begin(), mat.end(), imp_->dec);
 
-
-                target.option |= EXECUTE_WHEN_ALL_PLAN_COLLECTED | NOT_PRINT_EXECUTE_COUNT;
 				std::fill(target.mot_options.begin(), target.mot_options.end(), USE_TARGET_POS);
+				target.option |= EXECUTE_WHEN_ALL_PLAN_COLLECTED | NOT_PRINT_EXECUTE_COUNT;
 			}
 			else if (p.first == "stop")
 			{
@@ -2208,8 +2207,7 @@ namespace kaanh
 		target.param = param;
 	}
 	auto MovePoint::executeRT(PlanTarget &target)->int
-	{
-		
+	{	
 		//获取驱动//
 		auto controller = target.controller;
 		auto &param = std::any_cast<MovePointParam&>(target.param);
@@ -2457,9 +2455,7 @@ namespace kaanh
 				imp_->acc = std::stod(params.at("acc"));
 				imp_->dec = std::stod(params.at("dec"));
 
-
                 std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | USE_TARGET_POS);
-                //target.option |= EXECUTE_WHEN_ALL_PLAN_COLLECTED | NOT_PRINT_EXECUTE_COUNT | USE_TARGET_POS;
                 target.option |= EXECUTE_WHEN_ALL_PLAN_COLLECTED | NOT_PRINT_EXECUTE_COUNT;
 			}
 			else if (p.first == "stop")
@@ -2470,7 +2466,6 @@ namespace kaanh
                 imp_->s2_nrt.is_increase.assign(imp_->s2_nrt.is_increase.size(), 0);
 				is_changing = true;
 				while (is_changing.load())std::this_thread::sleep_for(std::chrono::milliseconds(1));
-				//target.option |= WAIT_FOR_COLLECTION;
 				target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION;
 			}
 			else if (p.first == "vel_percent")
@@ -3814,7 +3809,7 @@ namespace kaanh
 			"		<Param name=\"name\" default=\"test\"/>"
 			"		<Param name=\"pe\" default=\"{0, 0, 0, -0, 0, -0}\"/>"
 			"		<Param name=\"part_id\" default=\"6\"/>"
-			"		<Param name=\"file_path\" default=\"/RobotGallery/Rokae/XB4/L0.data\"/>"
+			"		<Param name=\"file_path\" default=\"/RobotGallery/Rokae/XB4/l0.data\"/>"
 			"	</GroupParam>"
 			"</Command>");
 	}
@@ -3868,31 +3863,38 @@ namespace kaanh
 			}
 			else if (p.first == "pos_max")
 			{
-				param.pos_max = std::stod(p.second) * 2 * PI / 360;
+				auto m = target.model->calculator().calculateExpression(p.second);
+				param.pos_max = m.toDouble() * 2 * PI / 360;
 			}
 			else if (p.first == "pos_min")
 			{
-				param.pos_min = std::stod(p.second) * 2 * PI / 360;
+				auto m = target.model->calculator().calculateExpression(p.second);
+				param.pos_min = m.toDouble() * 2 * PI / 360;
 			}
 			else if (p.first == "vel_max")
 			{
-				param.vel_max = std::stod(p.second) * 2 * PI / 360;
+				auto m = target.model->calculator().calculateExpression(p.second);
+				param.vel_max = m.toDouble() * 2 * PI / 360;
 			}
 			else if (p.first == "vel_min")
 			{
-				param.vel_min = std::stod(p.second) * 2 * PI / 360;
+				auto m = target.model->calculator().calculateExpression(p.second);
+				param.vel_min = m.toDouble() * 2 * PI / 360;
 			}
 			else if (p.first == "acc_max")
 			{
-				param.acc_max = std::stod(p.second) * 2 * PI / 360;
+				auto m = target.model->calculator().calculateExpression(p.second);
+				param.acc_max = m.toDouble() * 2 * PI / 360;
 			}
 			else if (p.first == "acc_min")
 			{
-				param.acc_min = std::stod(p.second) * 2 * PI / 360;
+				auto m = target.model->calculator().calculateExpression(p.second);
+				param.acc_min = m.toDouble() * 2 * PI / 360;
 			}
 			else if (p.first == "pos_offset")
 			{
-				param.pos_offset = std::stod(p.second);
+				auto m = target.model->calculator().calculateExpression(p.second);
+				param.pos_offset = m.toDouble();
 			}
 		}
 		
@@ -3948,6 +3950,8 @@ namespace kaanh
 	{
 		auto&cs = aris::server::ControlServer::instance();
 		if (cs.running())throw std::runtime_error("cs is running, can not set position offset,please stop the cs!");
+
+		cs.resetSensorRoot(new aris::sensor::SensorRoot);
 
 		auto xmlpath = std::filesystem::absolute(".");
 		const std::string xmlfile = "rokae.xml";
