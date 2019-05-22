@@ -2370,7 +2370,7 @@ namespace kaanh
 				imp_->dec = std::stod(params.at("dec"));
 
                 std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | USE_TARGET_POS);
-                target.option |= EXECUTE_WHEN_ALL_PLAN_COLLECTED | NOT_PRINT_EXECUTE_COUNT;
+                //target.option |= EXECUTE_WHEN_ALL_PLAN_COLLECTED | NOT_PRINT_EXECUTE_COUNT;
 			}
 			else if (p.first == "stop")
 			{
@@ -2424,7 +2424,7 @@ namespace kaanh
                 imp_->target_pos[i] = controller->motionAtAbs(i).actualPos();
                 imp_->p_now[i] = controller->motionAtAbs(i).actualPos();
                 imp_->v_now[i] = controller->motionAtAbs(i).actualVel();
-                imp_->a_now[i] = controller->motionAtAbs(i).actualCur();
+                imp_->a_now[i] = 0.0;
 			}
 		}
 		// init status and calculate target pos and max vel //
@@ -2500,7 +2500,7 @@ namespace kaanh
             lout << imp_->a_now[i] << " ";
             lout << controller->motionAtAbs(i).actualPos() << " ";
             lout << controller->motionAtAbs(i).actualVel() << " ";
-            lout << controller->motionAtAbs(i).actualCur() << " ";
+            //lout << controller->motionAtAbs(i).actualCur() << " ";
 		}
 		lout << std::endl;
 

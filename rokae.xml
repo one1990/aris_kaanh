@@ -333,7 +333,7 @@
     </InterfaceRoot>
     <EthercatController name="ethercat_controller">
         <SlavePoolObject name="slave_pool">
-            <EthercatMotion phy_id="0" vendor_id="0x00000748" product_code="0x00000001" revision_num="0x00000002" dc_assign_activate="0x00000300" max_pos="2.96706" min_pos="-2.96706" max_vel="4.0142569999999997" min_vel="-4.0142569999999997" max_acc="20.071286000000001" min_acc="-20.071286000000001" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="2703554.0684420001" pos_offset="0.034505000000000001" home_pos="0">
+            <EthercatMotion phy_id="0" vendor_id="0x00000748" product_code="0x00000001" revision_num="0x00000002" dc_assign_activate="0x00000300" max_pos="2.96706" min_pos="-2.96706" max_vel="4.0142569999999997" min_vel="-4.0142569999999997" max_acc="20.071286000000001" min_acc="-20.071286000000001" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="2703554.0684420001" pos_offset="0" home_pos="0">
                 <SyncManagerPoolObject>
                     <SyncManager is_tx="false"/>
                     <SyncManager is_tx="true"/>
@@ -367,7 +367,7 @@
                     </SyncManager>
                 </SyncManagerPoolObject>
             </EthercatMotion>
-            <EthercatMotion phy_id="1" vendor_id="0x00000748" product_code="0x00000001" revision_num="0x00000002" dc_assign_activate="0x00000300" max_pos="0.69813199999999997" min_pos="-2.8797929999999998" max_vel="5.2359879999999999" min_vel="-5.2359879999999999" max_acc="26.179939000000001" min_acc="-26.179939000000001" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="-2086075.6700939999" pos_offset="0.15129600000000001" home_pos="0">
+            <EthercatMotion phy_id="1" vendor_id="0x00000748" product_code="0x00000001" revision_num="0x00000002" dc_assign_activate="0x00000300" max_pos="0.69813199999999997" min_pos="-2.8797929999999998" max_vel="5.2359879999999999" min_vel="-5.2359879999999999" max_acc="26.179939000000001" min_acc="-26.179939000000001" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="-2086075.6700939999" pos_offset="0" home_pos="0">
                 <SyncManagerPoolObject>
                     <SyncManager is_tx="false"/>
                     <SyncManager is_tx="true"/>
@@ -401,7 +401,7 @@
                     </SyncManager>
                 </SyncManagerPoolObject>
             </EthercatMotion>
-            <EthercatMotion phy_id="2" vendor_id="0x00000748" product_code="0x00000001" revision_num="0x00000002" dc_assign_activate="0x00000300" max_pos="2.6179939999999999" min_pos="-2.1816620000000002" max_vel="5.2359879999999999" min_vel="-5.2359879999999999" max_acc="26.179939000000001" min_acc="-26.179939000000001" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="2106936.4267950002" pos_offset="-0.18113299999999999" home_pos="0">
+            <EthercatMotion phy_id="2" vendor_id="0x00000748" product_code="0x00000001" revision_num="0x00000002" dc_assign_activate="0x00000300" max_pos="2.6179939999999999" min_pos="-2.1816620000000002" max_vel="5.2359879999999999" min_vel="-5.2359879999999999" max_acc="26.179939000000001" min_acc="-26.179939000000001" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="2106936.4267950002" pos_offset="0" home_pos="0">
                 <SyncManagerPoolObject>
                     <SyncManager is_tx="false"/>
                     <SyncManager is_tx="true"/>
@@ -435,7 +435,7 @@
                     </SyncManager>
                 </SyncManagerPoolObject>
             </EthercatMotion>
-            <EthercatMotion phy_id="3" vendor_id="0x00000748" product_code="0x00000001" revision_num="0x00000002" dc_assign_activate="0x00000300" max_pos="3.1415929999999999" min_pos="-3.1415929999999999" max_vel="5.2359879999999999" min_vel="-5.2359879999999999" max_acc="26.179939000000001" min_acc="-26.179939000000001" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1702237.7467970001" pos_offset="0.0056969999999999998" home_pos="0">
+            <EthercatMotion phy_id="3" vendor_id="0x00000748" product_code="0x00000001" revision_num="0x00000002" dc_assign_activate="0x00000300" max_pos="3.1415929999999999" min_pos="-3.1415929999999999" max_vel="5.2359879999999999" min_vel="-5.2359879999999999" max_acc="26.179939000000001" min_acc="-26.179939000000001" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1702237.7467970001" pos_offset="0" home_pos="0">
                 <SyncManagerPoolObject>
                     <SyncManager is_tx="false"/>
                     <SyncManager is_tx="true"/>
@@ -469,7 +469,7 @@
                     </SyncManager>
                 </SyncManagerPoolObject>
             </EthercatMotion>
-            <EthercatMotion phy_id="4" vendor_id="0x00000748" product_code="0x00000001" revision_num="0x00000002" dc_assign_activate="0x00000300" max_pos="2.1816620000000002" min_pos="-2.1816620000000002" max_vel="6.5449849999999996" min_vel="-6.5449849999999996" max_acc="32.724922999999997" min_acc="-32.724922999999997" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1689721.292776" pos_offset="0.011991" home_pos="0">
+            <EthercatMotion phy_id="4" vendor_id="0x00000748" product_code="0x00000001" revision_num="0x00000002" dc_assign_activate="0x00000300" max_pos="2.1816620000000002" min_pos="-2.1816620000000002" max_vel="6.5449849999999996" min_vel="-6.5449849999999996" max_acc="32.724922999999997" min_acc="-32.724922999999997" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1689721.292776" pos_offset="0" home_pos="0">
                 <SyncManagerPoolObject>
                     <SyncManager is_tx="false"/>
                     <SyncManager is_tx="true"/>
@@ -503,7 +503,7 @@
                     </SyncManager>
                 </SyncManagerPoolObject>
             </EthercatMotion>
-            <EthercatMotion phy_id="5" vendor_id="0x00000748" product_code="0x00000001" revision_num="0x00000002" dc_assign_activate="0x00000300" max_pos="6.2831849999999996" min_pos="-6.2831849999999996" max_vel="10.471976" min_vel="-10.471976" max_acc="52.359878000000002" min_acc="-52.359878000000002" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1063898.5917479999" pos_offset="0.090881000000000003" home_pos="0">
+            <EthercatMotion phy_id="5" vendor_id="0x00000748" product_code="0x00000001" revision_num="0x00000002" dc_assign_activate="0x00000300" max_pos="6.2831849999999996" min_pos="-6.2831849999999996" max_vel="10.471976" min_vel="-10.471976" max_acc="52.359878000000002" min_acc="-52.359878000000002" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1063898.5917479999" pos_offset="0" home_pos="0">
                 <SyncManagerPoolObject>
                     <SyncManager is_tx="false"/>
                     <SyncManager is_tx="true"/>
@@ -550,49 +550,63 @@
                     <Marker name="joint_0_j" active="true" pe="{0,0,0.237,0.785398163397448,0,0.785398163397448}"/>
                     <Marker name="ee_makJ" active="true" pe="{0,0,0,-0,0,-0}"/>
                 </MarkerPoolElement>
-                <GeometryPoolElement name="geometry_pool"/>
+                <GeometryPoolElement name="geometry_pool">
+                    <FileGeometry name="test" pe="{0,0,0,-0,0,-0}" graphic_file_path="/RobotGallery/Daye/MJ08/L0.data"/>
+                </GeometryPoolElement>
             </Part>
             <Part name="L1" active="true" pe="{0,0,0,-0,0,-0}" vel="{0,0,0,0,0,0}" acc="{0,0,0,0,0,0}" inertia="{1,0,0,0,1,1,1,0,0,0}">
                 <MarkerPoolElement name="marker_pool">
                     <Marker name="joint_0_i" active="true" pe="{0,0,0.237,0.785398163397448,0,0.785398163397448}"/>
                     <Marker name="joint_1_j" active="true" pe="{0.088,0.017,0.327,3.14159265358979,1.5707963267949,4.71238898038469}"/>
                 </MarkerPoolElement>
-                <GeometryPoolElement name="geometry_pool"/>
+                <GeometryPoolElement name="geometry_pool">
+                    <FileGeometry name="test" pe="{0,0,0,-0,0,-0}" graphic_file_path="/RobotGallery/Daye/MJ08/L1.data"/>
+                </GeometryPoolElement>
             </Part>
             <Part name="L2" active="true" pe="{0,0,0,-0,0,-0}" vel="{0,0,0,0,0,0}" acc="{0,0,0,0,0,0}" inertia="{1,0,0,0,1,1,1,0,0,0}">
                 <MarkerPoolElement name="marker_pool">
                     <Marker name="joint_1_i" active="true" pe="{0.088,0.017,0.327,3.14159265358979,1.5707963267949,4.71238898038469}"/>
                     <Marker name="joint_2_j" active="true" pe="{0.088,0.0236,0.787,3.14159265358979,1.5707963267949,4.71238898038469}"/>
                 </MarkerPoolElement>
-                <GeometryPoolElement name="geometry_pool"/>
+                <GeometryPoolElement name="geometry_pool">
+                    <FileGeometry name="test" pe="{0,0,0,-0,0,-0}" graphic_file_path="/RobotGallery/Daye/MJ08/L2.data"/>
+                </GeometryPoolElement>
             </Part>
             <Part name="L3" active="true" pe="{0,0,0,-0,0,-0}" vel="{0,0,0,0,0,0}" acc="{0,0,0,0,0,0}" inertia="{1,0,0,0,1,1,1,0,0,0}">
                 <MarkerPoolElement name="marker_pool">
                     <Marker name="joint_2_i" active="true" pe="{0.088,0.0236,0.787,3.14159265358979,1.5707963267949,4.71238898038469}"/>
                     <Marker name="joint_3_j" active="true" pe="{0.127,0,0.827,1.5707963267949,1.5707963267949,1.5707963267949}"/>
                 </MarkerPoolElement>
-                <GeometryPoolElement name="geometry_pool"/>
+                <GeometryPoolElement name="geometry_pool">
+                    <FileGeometry name="test" pe="{0,0,0,-0,0,-0}" graphic_file_path="/RobotGallery/Daye/MJ08/L3.data"/>
+                </GeometryPoolElement>
             </Part>
             <Part name="L4" active="true" pe="{0,0,0,-0,0,-0}" vel="{0,0,0,0,0,0}" acc="{0,0,0,0,0,0}" inertia="{1,0,0,0,1,1,1,0,0,0}">
                 <MarkerPoolElement name="marker_pool">
                     <Marker name="joint_3_i" active="true" pe="{0.127,0,0.827,1.5707963267949,1.5707963267949,1.5707963267949}"/>
                     <Marker name="joint_4_j" active="true" pe="{0.523,0.036,0.827,3.14159265358979,1.5707963267949,4.71238898038469}"/>
                 </MarkerPoolElement>
-                <GeometryPoolElement name="geometry_pool"/>
+                <GeometryPoolElement name="geometry_pool">
+                    <FileGeometry name="test" pe="{0,0,0,-0,0,-0}" graphic_file_path="/RobotGallery/Daye/MJ08/L4.data"/>
+                </GeometryPoolElement>
             </Part>
             <Part name="L5" active="true" pe="{0,0,0,-0,0,-0}" vel="{0,0,0,0,0,0}" acc="{0,0,0,0,0,0}" inertia="{1,0,0,0,1,1,1,0,0,0}">
                 <MarkerPoolElement name="marker_pool">
                     <Marker name="joint_4_i" active="true" pe="{0.523,0.036,0.827,3.14159265358979,1.5707963267949,4.71238898038469}"/>
                     <Marker name="joint_5_j" active="true" pe="{0.607,0,0.827,1.5707963267949,1.5707963267949,1.5707963267949}"/>
                 </MarkerPoolElement>
-                <GeometryPoolElement name="geometry_pool"/>
+                <GeometryPoolElement name="geometry_pool">
+                    <FileGeometry name="test" pe="{0,0,0,-0,0,-0}" graphic_file_path="/RobotGallery/Daye/MJ08/L5.data"/>
+                </GeometryPoolElement>
             </Part>
             <Part name="L6" active="true" pe="{0,0,0,-0,0,-0}" vel="{0,0,0,0,0,0}" acc="{0,0,0,0,0,0}" inertia="{1,0,0,0,1,1,1,0,0,0}">
                 <MarkerPoolElement name="marker_pool">
                     <Marker name="joint_5_i" active="true" pe="{0.607,0,0.827,1.5707963267949,1.5707963267949,1.5707963267949}"/>
                     <Marker name="ee_makI" active="true" pe="{0.566,-0.134,0.84,3.10198164453475,0.117371269403588,4.71860830720194}"/>
                 </MarkerPoolElement>
-                <GeometryPoolElement name="geometry_pool"/>
+                <GeometryPoolElement name="geometry_pool">
+                    <FileGeometry name="test" pe="{0,0,0,-0,0,-0}" graphic_file_path="/RobotGallery/Daye/MJ08/L6.data"/>
+                </GeometryPoolElement>
             </Part>
         </PartPoolElement>
         <JointPoolElement name="joint_pool">
