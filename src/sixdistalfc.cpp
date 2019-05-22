@@ -2123,7 +2123,7 @@ auto MovePressureToolXY::prepairNrt(const std::map<std::string, std::string> &pa
 
 	target.param = param;
 
-	target.option |=
+     for(auto &option:target.mot_options) option|=
 		Plan::USE_TARGET_POS |
 		//#ifdef WIN32
 		Plan::NOT_CHECK_POS_MIN |
@@ -2186,7 +2186,7 @@ auto MovePressureToolXY::executeRT(PlanTarget &target)->int
 
 	target.model->generalMotionPool().at(0).getMpm(TransVector);
 	target.model->generalMotionPool().at(0).getMpq(PqEnd);
-	NormalVector[0] = TransVector[0];NormalVector[1] = TransVector[4];NormalVector[2] = TransVector[8];
+    NormalVector[0] = TransVector[2];NormalVector[1] = TransVector[6];NormalVector[2] = TransVector[10];
 
 	crossVector(NormalVector, ZBase, CrossNormalZbase);
 	CosNormalAng = NormalVector[2] / sqrt(NormalVector[0] * NormalVector[0] + NormalVector[1] * NormalVector[1] + NormalVector[2] * NormalVector[2]);
@@ -2196,17 +2196,24 @@ auto MovePressureToolXY::executeRT(PlanTarget &target)->int
 	double dX[6] = { 0.00000, -0.0000, -0.0000, -0.0000, -0.0000, -0.0000 };
 	double dTheta[6] = { 0 };
 
-	float FT[6];
-	uint16_t FTnum;
-	auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.controller);
-	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x00, &FTnum, 16);
-	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x01, &FT[0], 32);  //Fx
-	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x02, &FT[1], 32);  //Fy
-	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x03, &FT[2], 32);  //Fz
-	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x04, &FT[3], 32);
-	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x05, &FT[4], 32);
-	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x06, &FT[5], 32);
-	FT[0] = -FT[0];FT[3] = -FT[3];
+    int16_t FTint[6];
+    double FTReal[6],FT[6];
+    auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.controller);
+
+    conSensor->ecSlavePool().at(7).readPdo(0x6000, 0x11, &FTint[0] ,16);
+    conSensor->ecSlavePool().at(7).readPdo(0x6010, 0x11, &FTint[1], 16);
+    conSensor->ecSlavePool().at(7).readPdo(0x6020, 0x11, &FTint[2], 16);
+    conSensor->ecSlavePool().at(7).readPdo(0x6030, 0x11, &FTint[3], 16);
+    conSensor->ecSlavePool().at(8).readPdo(0x6000, 0x11, &FTint[4], 16);
+    conSensor->ecSlavePool().at(8).readPdo(0x6010, 0x11, &FTint[5], 16);
+
+    for (int i=0;i<6;i++)
+    {
+         FTReal[i] = FTint[i]*20.0 / 65536.0*1000.0;
+    }
+
+    s_mm(6, 1, 6, Vol2FTCoef, FTReal, FT);
+
 
 	for (int i = 0;i < 6;i++)
 	{
@@ -2232,11 +2239,7 @@ auto MovePressureToolXY::executeRT(PlanTarget &target)->int
 			EndP0[i] = PqEnd[i];
 	}
 
-	for (int j = 0; j < 6; j++)
-	{
-		if (abs(FT[j]) < 0.0001)
-			FT[j] = FT_be[j];
-	}
+
 
 
 	for (int j = 0; j < 6; j++)
@@ -2289,8 +2292,8 @@ auto MovePressureToolXY::executeRT(PlanTarget &target)->int
 	dXpid[5] = 1 * (FT_KAI[5]) / 2000;
 
 	double FT_YANG[6];
-	FT_YANG[0] = dXpid[2];FT_YANG[1] = -dXpid[1];FT_YANG[2] = dXpid[0];
-	FT_YANG[3] = dXpid[5];FT_YANG[4] = -dXpid[4];FT_YANG[5] = dXpid[3];
+    FT_YANG[0] = -dXpid[0];FT_YANG[1] = -dXpid[1];FT_YANG[2] = dXpid[2];
+    FT_YANG[3] = -dXpid[3];FT_YANG[4] = -dXpid[4];FT_YANG[5] = dXpid[5];
 
 
 	double FmInWorld[6];
@@ -2313,7 +2316,7 @@ auto MovePressureToolXY::executeRT(PlanTarget &target)->int
 	FmInWorld[5] = a[0] * FT_YANG[3] + a[1] * FT_YANG[4] + a[2] * FT_YANG[5];
 
 	for (int i = 0;i < 6;i++)
-		dX[i] = FmInWorld[i];
+        dX[i] = FmInWorld[i];
 
 
 	double TangentArc[3] = { 0 };
@@ -2542,9 +2545,9 @@ auto MovePressureToolXY::executeRT(PlanTarget &target)->int
 		}
 		if (target.count > StartCount&&MoveDirectionT == true && MoveDirectionF == false)
 			if (MoveDirection)
-				MoveLength = MoveLength + sqrt(dX[0] * dX[0] + dX[1] * dX[1]);
+                MoveLength = MoveLength + sqrt(dX[0] * dX[0] + dX[2] * dX[2]);
 			else
-				MoveLength = MoveLength - sqrt(dX[0] * dX[0] + dX[1] * dX[1]);
+                MoveLength = MoveLength - sqrt(dX[0] * dX[0] + dX[2] * dX[2]);
 
 
 
@@ -2705,7 +2708,7 @@ auto MovePressureToolXY::executeRT(PlanTarget &target)->int
 	for (int i = 0; i < 6; i++)
 	{
 		step_pjs[i] = step_pjs[i] + dTheta[i];
-		target.model->motionPool().at(i).setMp(step_pjs[i]);
+        target.model->motionPool().at(i).setMp(step_pjs[i]);
 	}
 
 
