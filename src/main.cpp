@@ -36,8 +36,8 @@ int main(int argc, char *argv[])
     cs.resetPlanRoot(kaanh::createPlanRootRokaeXB4().release());
     cs.resetSensorRoot(new aris::sensor::SensorRoot);
     cs.saveXmlFile(xmlpath.string().c_str());
-    //-------for rokae robot end//
-	*/
+    //-------for rokae robot end// 
+
     /*
     //-------for sanxiang robot begin//
     cs.resetController(kaanh::createControllerSanXiang().release());
