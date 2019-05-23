@@ -55,8 +55,8 @@ void distalMatrix(const double* q, const double* dq, const double* ddq, const do
     q5 = q[4];
     q6 = q[5];
 
-    dq1 = dq[0]; dq2 = dq[1]; dq3 = dq[2]; dq4 = dq[3]; dq5 = dq[4]; dq6 = dq[5];
-    ddq1 = ddq[0]; ddq2 = ddq[1]; ddq3 = ddq[2]; ddq4 = ddq[3]; ddq5 = ddq[4]; ddq6 = ddq[5];
+    dq1 = 0*dq[0]; dq2 = 0*dq[1]; dq3 = 0*dq[2]; dq4 = 0*dq[3]; dq5 = 0*dq[4]; dq6 = 0*dq[5];
+    ddq1 = 0*ddq[0]; ddq2 = 0*ddq[1]; ddq3 = 0*ddq[2]; ddq4 = 0*ddq[3]; ddq5 = 0*ddq[4]; ddq6 = 0*ddq[5];
 
     ts1 = ts[0]; ts2 = ts[1]; ts3 = ts[2]; ts4 = ts[3]; ts5 = ts[4]; ts6 = ts[5];
 
@@ -284,7 +284,7 @@ void sixdistaldynamics::RLS(const double *positionL, const double *sensorL, doub
     double ts[6];
     //std::array<double, 6> estParas;
 
-    double intDT = DT;
+    double intDT = 8*DT;
     int length = 6;
     std::vector<double> regressorMatrix_vec(6 * SampleNum*GroupDim);
     auto regressorVector = regressorMatrix_vec.data();
@@ -373,8 +373,15 @@ void sixdistaldynamics::RLS(const double *positionL, const double *sensorL, doub
     // 所需的中间变量，请对U的对角线元素做处理
     std::vector<double> U_vec(6 * SampleNum*GroupDim);
     auto U = U_vec.data();
-    double tau[6 * SampleNum];
-    aris::Size p[6 * SampleNum];
+
+    std::vector<double> tau_vec(6 * SampleNum);
+    auto tau=tau_vec.data();
+
+   // std::vector<aris::Size> p_vec(6 * SampleNum);
+    //auto p=tau_vec.data();
+    std::vector<aris::Size> p_vec(RobotAxis * SampleNum);
+    auto p = p_vec.data();
+
     aris::Size rank;
 
     // 根据 A 求出中间变量，相当于做 QR 分解 //
@@ -418,8 +425,17 @@ void sixdistaldynamics::sixDistalCollision(const double * q, const double *dq,co
         {
             double estTor[6] = { 0, 0, 0, 0, 0, 0};
 
+            double q0[6], dq0[6], ddq0[6];
+            for (int k = 0; k < RobotAxis; k++)
+            {
+                q0[k] = q[k] * DirectionFlag[k] + JointOffset[k] + ZeroOffset[k];
+                dq0[k] = dq[k] * DirectionFlag[k];
+                ddq0[k] = ddq[k] * DirectionFlag[k];
+
+            }
             double distalVec[6 * GroupDim];
-            distalMatrix(q, dq, ddq, ts, distalVec);
+            distalMatrix(q0, dq0, ddq0, ts, distalVec);
+
             double Y[6][GroupDim];
             for (int m = 0; m < 6; m++)
                 for (int n = 0; n < GroupDim; n++)
@@ -430,7 +446,7 @@ void sixdistaldynamics::sixDistalCollision(const double * q, const double *dq,co
                 for (int j = 0; j < GroupDim; j++)
                     estTor[i] = estTor[i] + Y[i][j] * estParas[j];
             for (int i = 0; i < 6; i++)
-                estFT[i] = estTor[i] ;
+                estFT[i] = ts[i]-estTor[i];
 
 
         }

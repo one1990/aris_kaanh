@@ -39,7 +39,6 @@ namespace kaanh
         controller->slavePool().back().setPhyId(7);
         dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanInfoForCurrentSlave();
         dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanPdoForCurrentSlave();
-        //dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).setDcAssignActivate(0x300);
 
         controller->slavePool().add<aris::control::EthercatSlave>();
         controller->slavePool().back().setPhyId(8);
@@ -47,6 +46,7 @@ namespace kaanh
         dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanPdoForCurrentSlave();
         //dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).setDcAssignActivate(0x300);
 #endif		
+
 		return controller;
 	};
 	auto createModelRokaeXB4(const double *robot_pm)->std::unique_ptr<aris::dynamic::Model>
@@ -1900,13 +1900,13 @@ namespace kaanh
 		}
 	auto MoveJI::executeRT(PlanTarget &target)->int
 		{
-			//获取驱动//
+            //获取驱动//
 			auto controller = target.controller;
 			auto &param = std::any_cast<MoveJIParam&>(target.param);
 			static double begin_pos[6];
 			static double pos[6];
 			// 取得起始位置 //
-			if (target.count == 1)
+            if (target.count == 1)
 			{
 				target.model->generalMotionPool().at(0).setMpq(param.pq.data());	//generalMotionPool()指模型末端，at(0)表示第1个末端，对于6足就有6个末端，对于机器人只有1个末端
 				if (target.model->solverPool().at(0).kinPos())return -1;
@@ -1916,7 +1916,7 @@ namespace kaanh
 					param.axis_pos_vec[i] = target.model->motionPool().at(i).mp();		//motionPool()指模型驱动器，at(0)表示第1个驱动器
 				}
 			}
-			// 设置驱动器的位置 //
+            // 设置驱动器的位置 //
 			for (Size i = 0; i < param.axis_pos_vec.size(); ++i)
 			{
 				double p, v, a;
@@ -1939,8 +1939,9 @@ namespace kaanh
 					cout << "vel" << i + 1 << ":" << controller->motionAtAbs(i).actualVel() << "  ";
 					cout << "cur" << i + 1 << ":" << controller->motionAtAbs(i).actualCur() << "  ";
 				}
-				cout << std::endl;
+                //cout <<endl;
 			}
+
 
 			// log 电流 //
 			auto &lout = controller->lout();
@@ -3794,8 +3795,8 @@ namespace kaanh
         plan_root->planPool().add<aris::plan::Show>();
         plan_root->planPool().add<aris::plan::Sleep>();
         plan_root->planPool().add<aris::plan::Recover>();
-        plan_root->planPool().add<aris::plan::Reset>();
-
+        auto &rs = plan_root->planPool().add<aris::plan::Reset>();
+        rs.command().findParam("pos")->setDefaultValue("{0.5,0.39252,0.7899,0.5,0.5,0.5}");
 
         plan_root->planPool().add<aris::plan::MoveAbsJ>();
 
@@ -3807,6 +3808,7 @@ namespace kaanh
         plan_root->planPool().add<aris::plan::SetXml>();
         plan_root->planPool().add<aris::plan::Start>();
         plan_root->planPool().add<aris::plan::Stop>();
+
 
 
 		plan_root->planPool().add<kaanh::MoveInit>();
@@ -3848,6 +3850,7 @@ namespace kaanh
 		plan_root->planPool().add<MoveXYZ>();
 		plan_root->planPool().add<MoveJoint>();
 		plan_root->planPool().add<MoveDistal>();
+        plan_root->planPool().add<DistalTest>();
 		plan_root->planPool().add<SetTool>();
 		plan_root->planPool().add<MovePressure>();
 		plan_root->planPool().add<MoveFeed>();
@@ -3863,6 +3866,7 @@ namespace kaanh
 
 		plan_root->planPool().add<SevenJointDyna>();
 		plan_root->planPool().add<SevenJointTest>();
+        plan_root->planPool().add<SevenDragTeach>();
 		plan_root->planPool().add<SevenLoadDyna>();
 
 		plan_root->planPool().add<cplan::MoveCircle>();

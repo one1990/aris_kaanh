@@ -24,6 +24,19 @@ public:
 	ARIS_REGISTER_TYPE(MoveDistal);
 };
 
+class DistalTest : public aris::plan::Plan
+{
+public:
+    auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+    auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+
+    explicit DistalTest(const std::string &name = "DistalTest");
+    ARIS_REGISTER_TYPE(DistalTest);
+};
+
+
+
+
 class MoveXYZ : public aris::plan::Plan
 {
 public:

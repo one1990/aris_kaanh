@@ -1442,9 +1442,9 @@ void jointdynamics::JointCollision(const double * q, const double *dq,const doub
 				{
 					Y1[m][n] = 0;
 					if (n == 2 * m)
-						Y1[m][n] = 1 * sign(dq[m]);
+                        Y1[m][n] = 1 * sign(dq0[m]);
 					if (n == 2 * m + 1)
-						Y1[m][n] = dq[m];
+                        Y1[m][n] = dq0[m];
 				}
 			}
 
