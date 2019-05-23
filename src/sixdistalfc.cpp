@@ -163,7 +163,7 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 
 	for (int j = 0; j < 6; j++)
 	{
-        double A[3][3], B[3], CutFreq = 15;
+        double A[3][3], B[3], CutFreq = 6;
 		A[0][0] = 0; A[0][1] = 1; A[0][2] = 0;
 		A[1][0] = 0; A[1][1] = 0; A[1][2] = 1;
 		A[2][0] = -CutFreq * CutFreq * CutFreq;
@@ -189,6 +189,26 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 	double estFT[6] = { 0 };
     sixDistalMatrix.sixDistalCollision(RobotPosition, RobotVelocity, RobotAcceleration, TorqueSensor, sixDistalMatrix.estParasFT, estFT);
 
+    // 获取当前起始点位置 //
+
+    if (target.count == 1)
+    {
+        for (int j = 0; j < 6; j++)
+        {
+            FT0[j] = FT[j];
+        }
+    }
+
+    if (target.count == 500)
+    {
+        for (int j = 0; j < 6; j++)
+        {
+            FT0[j] = stateTor1[j][0];
+             //FT0[j] = FT[j];
+        }
+    }
+
+
 	double FT_KAI[6];
 	for (int i = 0; i < 6; i++)
 	{
@@ -199,7 +219,7 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 
 	for (int i = 0; i < 3; i++)
 	{
-        if (abs(FT_KAI[i]) < 0.1)
+        if (abs(FT_KAI[i]) < 0.08)
 			FT_KAI[i] = 0;
 	}
 	for (int i = 3; i < 6; i++)
@@ -233,12 +253,12 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 
 
 
-    dX[0] = 1 * FmInWorld[0] / 16000;
+    dX[0] = 0 * FmInWorld[0] / 4000;
     dX[1] = 1 * FmInWorld[1] / 16000;
-    dX[2] = 1 * FmInWorld[2] / 16000;
-    dX[3] = 0 * FmInWorld[3] / 1000;
-    dX[4] = 0 * FmInWorld[4] / 1000;
-    dX[5] = 0 * FmInWorld[5] / 1000;
+    dX[2] = 0 * FmInWorld[2] / 16000;
+    dX[3] = 0 * FmInWorld[3] / 3000;
+    dX[4] = 0 * FmInWorld[4] / 3000;
+    dX[5] = 0 * FmInWorld[5] / 3000;
 
 
 
@@ -361,7 +381,7 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
     {
         //for (int i = 0; i < 6; i++)
         {
-            cout << dX[0] << "**" << FT_KAI[2]<< "**" << dTheta[1];
+            cout << stateTor1[2][0] << "**" << FT_KAI[2]<< "**" << FT0[2];
 //cout << dX[0] << "**" << dX[1]<< "**" << dX[2]<<dX[3]<<dX[4]<<dX[5];
         }
 
@@ -3431,22 +3451,20 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 		TorqueSensor[i] = FT[i];
 	}
 
-	// 获取当前起始点位置 //
-	if (target.count == 1)
-	{
-		for (int j = 0; j < 6; j++)
-		{
-			stateTor0[j][0] = FT[j];
-			FT0[j] = FT[j];
-			FT_be[j] = FT[j];
-		}
-	}
+
+    if (target.count == 1)
+    {
+        for (int j = 0; j < 6; j++)
+        {
+            stateTor0[j][0] = FT[j];
+        }
+    }
 
 
 
 	for (int j = 0; j < 6; j++)
 	{
-        double A[3][3], B[3], CutFreq = 15;//SHANGHAI DIANQI EXP
+        double A[3][3], B[3], CutFreq = 10;//SHANGHAI DIANQI EXP
 
 		A[0][0] = 0; A[0][1] = 1; A[0][2] = 0;
 		A[1][0] = 0; A[1][1] = 0; A[1][2] = 1;
@@ -3461,23 +3479,49 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 		stateTor1[j][2] = stateTor0[j][2] + intDT * (A[2][0] * stateTor0[j][0] + A[2][1] * stateTor0[j][1] + A[2][2] * stateTor0[j][2] + B[2] * FT[j]);
 	}
 
+
+    if (target.count == 1)
+    {
+        for (int j = 0; j < 6; j++)
+        {
+            FT0[j] = stateTor1[j][0];
+        }
+    }
+
+
+    if (target.count == 500)
+    {
+        for (int j = 0; j < 6; j++)
+        {
+            FT0[j] = stateTor1[j][0];
+        }
+    }
+
+
 	double FT_KAI[6];
 	for (int i = 0; i < 6; i++)
 	{
 		FT_KAI[i] = stateTor1[i][0] - FT0[i];//In KAI Coordinate
 	}
 
+
+
     for (int i = 0; i < 3; i++)
     {
-        if (abs(FT_KAI[i]) < 0.3)
-            FT_KAI[i] = 0;
-    }
-    for (int i = 3; i < 6; i++)
-    {
-        if (abs(FT_KAI[i]) < 0.01)
-            FT_KAI[i] = 0;
+        if (FT_KAI[i] < 0.1&&FT_KAI[i]>0)
+            FT_KAI[i] = 10 * FT_KAI[i] * FT_KAI[i];//In KAI Coordinate
+        else if (FT_KAI[i]<0 && FT_KAI[i]>-0.1)
+            FT_KAI[i] = -10 * FT_KAI[i] * FT_KAI[i];//In KAI Coordinate
     }
 
+
+    for (int i = 3; i < 6; i++)
+    {
+        if (FT_KAI[i] < 0.05&&FT_KAI[i]>0)
+            FT_KAI[i] = 20 * FT_KAI[i] * FT_KAI[i];//In KAI Coordinate
+        else if (FT_KAI[i]<0 && FT_KAI[i]>-0.05)
+            FT_KAI[i] = -20 * FT_KAI[i] * FT_KAI[i];//In KAI Coordinate
+    }
 
 	double FT_YANG[6];
     FT_YANG[0] = -FT_KAI[0];FT_YANG[1] = -FT_KAI[1];FT_YANG[2] = FT_KAI[2];
@@ -3525,62 +3569,20 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 	lout << FmInWorld[0] << ",";lout << FmInWorld[1] << ",";
 	lout << FmInWorld[2] << ",";lout << FmInWorld[3] << ",";
 	lout << FmInWorld[4] << ",";
-     lout << FT_KAI[0] << ",";lout << FT_KAI[1] << ",";
-     lout << FT_KAI[2] << ",";lout << FT_KAI[3] << ",";
-     lout << FT_KAI[4] << ",";lout << FT_KAI[5] << ",";
+    // lout << FT_KAI[0] << ",";lout << FT_KAI[1] << ",";
+    // lout << FT_KAI[2] << ",";lout << FT_KAI[3] << ",";
+    // lout << FT_KAI[4] << ",";lout << FT_KAI[5] << ",";
 
 	// lout << dX[0] << ",";
-     lout << FT[0] << ",";lout << FT[1] << ",";
-     lout << FT[2] << ",";lout << FT[3] << ",";
-     lout << FT[4] << ",";lout << FT[5] << ",";
-	lout << std::endl;
+    // lout << FT[0] << ",";lout << FT[1] << ",";
+    // lout << FT[2] << ",";lout << FT[3] << ",";
+     //lout << FT[4] << ",";lout << FT[5] << ",";
+    //lout << std::endl;
 
 
 
 	///* Using Jacobian, TransMatrix from ARIS
 	auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(target.model->solverPool()[1]);
-	fwd.cptJacobi();
-	double pinv[36];
-	double tempS[6][6] = { 0 };
-
-	for (int i = 0;i < 6;i++)
-		for (int j = 0;j < 6;j++)
-			if (i == j)
-                tempS[i][j] = 1;
-    double tempPq=0;
-    tempPq=PqEnd[0];PqEnd[0]=-PqEnd[2];PqEnd[2]=tempPq;
-	tempS[0][4] = -PqEnd[2];tempS[0][5] = PqEnd[1];
-	tempS[1][3] = PqEnd[2];tempS[1][5] = -PqEnd[0];
-	tempS[2][3] = -PqEnd[1];tempS[2][4] = PqEnd[0];
-	double tempVec[36] = { 0 };
-	for (int i = 0;i < 6;i++)
-		for (int j = 0;j < 6;j++)
-			tempVec[6 * i + j] = tempS[i][j];
-
-
-    double CoordTrans[36]={0,0,-1, 0,0,0,
-                           0,1,0,  0,0,0,
-                           1,0,0,  0,0,0,
-                           0,0,0, 0,0,-1,
-                           0,0,0,  0,1,0,
-                           0,0,0,  1,0,0};
-    double tempVecF[36];
-   s_mm(6, 6, 6, tempVec, CoordTrans, tempVecF);
-
-	double U[36], tau[6];
-	aris::Size p[6];
-	aris::Size rank;
-
-    s_householder_utp(6, 6, tempVec, U, tau, p, rank, 1e-10);
-	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A) //
-	double tau2[6];
-	s_householder_utp2pinv(6, 6, rank, U, tau, p, pinv, tau2, 1e-10);
-
-	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A)*b //
-	double JacobEnd[36] = { 0 };
-
-	s_mm(6, 6, 6, pinv, fwd.Jf(), JacobEnd);
-	//robotDemo.jointIncrement(RobotPositionJ, dX, dTheta);
 
     double q[6];
 
@@ -3589,6 +3591,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
         q[i] = target.model->motionPool()[i].mp();
 
     }
+    /*
     robotJacobianEnd(q,JacobEnd);
 	double JacobEndTrans[36] = { 0 };
 	double temp[6][6] = { 0 };
@@ -3602,22 +3605,23 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 	for (int i = 0;i < 6;i++)
 		for (int j = 0;j < 6;j++)
 			JacobEndTrans[6 * i + j] = temp1[i][j];
+    */
 
-
-
+    FmInWorld[0]=0;FmInWorld[2]=0;
+   fwd.cptJacobiWrtEE();
     //FmInWorld[0] = -2; FmInWorld[1] = 0; FmInWorld[2] = 0; FmInWorld[3] = 0; FmInWorld[4] = 0; FmInWorld[5] = 0;
 	double JoinTau[6] = { 0 };
-	s_mm(6, 1, 6, JacobEndTrans, FmInWorld, JoinTau);
+    s_mm(6, 1, 6,fwd.Jf() , T(6), FmInWorld, 1, JoinTau, 1);
 
 	//for (int i = 0;i < 6;i++)
 	   // dTheta[i] = JoinTau[i] / 10000;
 
-    dTheta[0] = JoinTau[0] / 4500;
+    dTheta[0] = JoinTau[0] / 1000;
     dTheta[1] = JoinTau[1] / 12000;
-    dTheta[2] = JoinTau[2] / 12500;
-    dTheta[3] = JoinTau[3] / 4600;
-    dTheta[4] = JoinTau[4] / 1600;
-    dTheta[5] = JoinTau[5] / 4600;
+    dTheta[2] = JoinTau[2] / 12000;
+    dTheta[3] = JoinTau[3] / 2600;
+    dTheta[4] = JoinTau[4] / 2200;
+    dTheta[5] = JoinTau[5] / 2600;
 	for (int i = 0; i < 6; i++)
 	{
         if (dTheta[i] > 0.0003)
@@ -3630,7 +3634,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
     if (target.count % 300 == 0)
     {
 
-        cout << FT_KAI[0] << "***" << FT_KAI[1] << "***" << FT_KAI[2] << endl;
+        cout << FT_KAI[0] << "***" << FT_KAI[1] << "***" << FmInWorld[1] << endl;
 
         //cout <<  FT_KAI[0]<<"***"<<FmInWorld[2]<<endl;
 
@@ -3643,6 +3647,11 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 		dTheta[i] = dTheta[i] * DirectionFlag[i];
 
 	}
+
+    lout << dTheta[0] << ",";lout << dTheta[1] << ",";
+    lout << dTheta[2] << ",";lout << dTheta[3] << ",";
+    lout << dTheta[4] << ",";lout << dTheta[5] << ",";
+    lout << std::endl;
 
 	for (int i = 0; i < 6; i++)
 	{
