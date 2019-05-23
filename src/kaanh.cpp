@@ -444,14 +444,14 @@ namespace kaanh
 
 
 	// 获取驱动器当前位置，并设置为起始位置 //
-	struct MoveInitParam
+	struct ShowAllParam
 	{
 		std::vector<double> axis_pos_vec;
 		std::vector<double> axis_pq_vec;
 	};
-	auto MoveInit::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	auto ShowAll::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
-		MoveInitParam param;
+		ShowAllParam param;
 		param.axis_pos_vec.clear();
 		param.axis_pq_vec.clear();
 		param.axis_pos_vec.resize(6, 0.0);
@@ -461,11 +461,11 @@ namespace kaanh
 		std::fill(target.mot_options.begin(), target.mot_options.end(),
 			Plan::USE_TARGET_POS);
 	}
-	auto MoveInit::executeRT(PlanTarget &target)->int
+	auto ShowAll::executeRT(PlanTarget &target)->int
 	{
 		// 访问主站 //
 		auto controller =target.controller;
-		auto &param = std::any_cast<MoveInitParam&>(target.param);
+		auto &param = std::any_cast<ShowAllParam&>(target.param);
 
 		// 取得起始位置 //
 		if (target.count == 1)
@@ -503,11 +503,11 @@ namespace kaanh
 		lout << std::endl;
 		return 0;
 	}
-	auto MoveInit::collectNrt(PlanTarget &target)->void {}
-	MoveInit::MoveInit(const std::string &name): Plan(name)
+	auto ShowAll::collectNrt(PlanTarget &target)->void {}
+	ShowAll::ShowAll(const std::string &name): Plan(name)
 	{
 		command().loadXmlStr(
-			"<Command name=\"moveInit\">"
+			"<Command name=\"sha\">"
 			"</Command>");
 	}
 
@@ -3811,7 +3811,7 @@ namespace kaanh
 
 
 
-		plan_root->planPool().add<kaanh::MoveInit>();
+		plan_root->planPool().add<kaanh::ShowAll>();
 		plan_root->planPool().add<kaanh::Get_ee_pq>();
 		plan_root->planPool().add<kaanh::Get_cur>();
 		plan_root->planPool().add<kaanh::MoveX>();

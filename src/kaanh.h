@@ -41,15 +41,15 @@ namespace kaanh
 
 	//auto registerPlan()->void;
 
-	class MoveInit : public aris::plan::Plan
+	class ShowAll : public aris::plan::Plan
 	{
 	public:
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
 		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
 		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
 
-		explicit MoveInit(const std::string &name = "MoveInit_plan");
-		ARIS_REGISTER_TYPE(MoveInit);
+		explicit ShowAll(const std::string &name = "ShowAll_plan");
+		ARIS_REGISTER_TYPE(ShowAll);
 
 
 	};
