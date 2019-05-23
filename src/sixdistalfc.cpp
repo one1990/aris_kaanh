@@ -1479,9 +1479,9 @@ auto MovePressureToolYZ::prepairNrt(const std::map<std::string, std::string> &pa
 
 
     //读取动力学参数
-    auto mat0 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("estParasFT"));
-    for (int i = 0;i < GroupDim;i++)
-        sixDistalMatrix.estParasFT[i] = mat0->data().data()[i];
+   // auto mat0 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("estParasFT"));
+    //for (int i = 0;i < GroupDim;i++)
+        //sixDistalMatrix.estParasFT[i] = mat0->data().data()[i];
 
 
 }
@@ -1541,12 +1541,12 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
     double FTReal[6],FT[6];
     auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.controller);
 
-    conSensor->ecSlavePool().at(7).readPdo(0x6000, 0x11, &FTint[0] ,16);
-    conSensor->ecSlavePool().at(7).readPdo(0x6010, 0x11, &FTint[1], 16);
-    conSensor->ecSlavePool().at(7).readPdo(0x6020, 0x11, &FTint[2], 16);
-    conSensor->ecSlavePool().at(7).readPdo(0x6030, 0x11, &FTint[3], 16);
-    conSensor->ecSlavePool().at(8).readPdo(0x6000, 0x11, &FTint[4], 16);
-    conSensor->ecSlavePool().at(8).readPdo(0x6010, 0x11, &FTint[5], 16);
+    //conSensor->ecSlavePool().at(7).readPdo(0x6000, 0x11, &FTint[0] ,16);
+    //conSensor->ecSlavePool().at(7).readPdo(0x6010, 0x11, &FTint[1], 16);
+    //conSensor->ecSlavePool().at(7).readPdo(0x6020, 0x11, &FTint[2], 16);
+    //conSensor->ecSlavePool().at(7).readPdo(0x6030, 0x11, &FTint[3], 16);
+    //conSensor->ecSlavePool().at(8).readPdo(0x6000, 0x11, &FTint[4], 16);
+    //conSensor->ecSlavePool().at(8).readPdo(0x6010, 0x11, &FTint[5], 16);
 
     for (int i=0;i<6;i++)
     {
