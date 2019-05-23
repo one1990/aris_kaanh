@@ -4,7 +4,7 @@
 #include "jointfc.h"
 #include "sevenjointfc.h"
 #include <array>
-
+#include"move_series.h"
 
 using namespace aris::dynamic;
 using namespace aris::plan;
@@ -3857,6 +3857,8 @@ namespace kaanh
 		plan_root->planPool().add<MovePressureToolYZ>();
 		plan_root->planPool().add<MovePressureToolXY>();
 		plan_root->planPool().add<GetForce>();
+		plan_root->planPool().add<MoveSeries>();
+
 		//plan_root->planPool().add<GetError>();
 		plan_root->planPool().add<JointDyna>();
 		plan_root->planPool().add<JointTest>();
