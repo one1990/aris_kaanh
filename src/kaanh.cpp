@@ -2082,7 +2082,7 @@ namespace kaanh
 				std::copy(mat.begin(), mat.end(), imp_->dec);
 
 				std::fill(target.mot_options.begin(), target.mot_options.end(), USE_TARGET_POS);
-				target.option |= EXECUTE_WHEN_ALL_PLAN_COLLECTED | NOT_PRINT_EXECUTE_COUNT;
+                //target.option |= EXECUTE_WHEN_ALL_PLAN_COLLECTED | NOT_PRINT_EXECUTE_COUNT;
 			}
 			else if (p.first == "stop")
 			{
@@ -2273,7 +2273,6 @@ namespace kaanh
 			lout << a_now[i] << " ";
 			lout << controller->motionAtAbs(i).actualPos() << " ";
 			lout << controller->motionAtAbs(i).actualVel() << " ";
-			lout << controller->motionAtAbs(i).actualCur() << " ";
 		}
 		lout << std::endl;
 
