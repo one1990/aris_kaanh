@@ -266,6 +266,14 @@ namespace kaanh
         ARIS_REGISTER_TYPE(ATIFS);
     };
 
+	class SetCon : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		explicit SetCon(const std::string &name = "SetCon_plan");
+		ARIS_REGISTER_TYPE(SetCon);
+	};
+
 	class SetDH : public aris::plan::Plan
 	{
 	public:
@@ -273,15 +281,15 @@ namespace kaanh
 		explicit SetDH(const std::string &name = "SetDH_plan");
 		ARIS_REGISTER_TYPE(SetDH);
 	};
-
-	class SetPOffset : public aris::plan::Plan
+	
+	class SetPG : public aris::plan::Plan
 	{
 	public:
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		explicit SetPOffset(const std::string &name = "SetPOffset_plan");
-		ARIS_REGISTER_TYPE(SetPOffset);
+		explicit SetPG(const std::string &name = "SetPG_plan");
+		ARIS_REGISTER_TYPE(SetPG);
 	};
-
+	
 	class SetDriver : public aris::plan::Plan
 	{
 	public:
@@ -290,6 +298,37 @@ namespace kaanh
 		ARIS_REGISTER_TYPE(SetDriver);
 	};
 
+	class SaveConfig : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		explicit SaveConfig(const std::string &name = "SaveConfig_plan");
+		ARIS_REGISTER_TYPE(SaveConfig);
+	};
+
+	class ClearCon : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		explicit ClearCon(const std::string &name = "ClearCon_plan");
+		ARIS_REGISTER_TYPE(ClearCon);
+	};
+
+	class StartCS : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		explicit StartCS(const std::string &name = "StartCS_plan");
+		ARIS_REGISTER_TYPE(StartCS);
+	};
+
+	class StopCS : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		explicit StopCS(const std::string &name = "StopCS_plan");
+		ARIS_REGISTER_TYPE(StopCS);
+	};
 }
 
 #endif

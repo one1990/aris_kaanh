@@ -27,9 +27,8 @@ namespace kaanh
         dynamic_cast<aris::control::Motion&>(controller->slavePool()[2]).setPosOffset(-0.292382537944081);
         dynamic_cast<aris::control::Motion&>(controller->slavePool()[3]).setPosOffset(0.0582675097338009);
         dynamic_cast<aris::control::Motion&>(controller->slavePool()[4]).setPosOffset(1.53363576057128);
-        dynamic_cast<aris::control::Motion&>(controller->slavePool()[5]).setPosOffset(26.3545454214145-0.50997670662257);
-#endif
-
+        dynamic_cast<aris::control::Motion&>(controller->slavePool()[5]).setPosOffset(26.3545454214145);
+		
         controller->slavePool().add<aris::control::EthercatSlave>();
         controller->slavePool().back().setPhyId(6);
         dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanInfoForCurrentSlave();
@@ -45,7 +44,8 @@ namespace kaanh
         controller->slavePool().back().setPhyId(8);
         dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanInfoForCurrentSlave();
         dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanPdoForCurrentSlave();
-
+        //dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).setDcAssignActivate(0x300);
+#endif		
 
 		return controller;
 	};
@@ -234,7 +234,7 @@ namespace kaanh
             };
 
             std::string xml_str =
-                "<EthercatMotion phy_id=\"" + std::to_string(i+1) + "\" product_code=\"0x01\""
+                "<EthercatMotion phy_id=\"" + std::to_string(i) + "\" product_code=\"0x01\""
                 " vendor_id=\"0x00000748\" revision_num=\"0x0002\" dc_assign_activate=\"0x0300\""
                 " min_pos=\"" + std::to_string(min_pos[i]) + "\" max_pos=\"" + std::to_string(max_pos[i]) + "\" max_vel=\"" + std::to_string(max_vel[i]) + "\" min_vel=\"" + std::to_string(-max_vel[i]) + "\""
                 " max_acc=\"" + std::to_string(max_acc[i]) + "\" min_acc=\"" + std::to_string(-max_acc[i]) + "\" max_pos_following_error=\"0.1\" max_vel_following_error=\"0.5\""
@@ -276,6 +276,7 @@ namespace kaanh
             controller->slavePool().add<aris::control::EthercatMotion>().loadXmlStr(xml_str);
         }
 
+        /*
         //ATI force sensor//
         std::string xml_str =
             "<EthercatSlave phy_id=\"0\" product_code=\"0x26483053\""
@@ -305,92 +306,41 @@ namespace kaanh
             "</EthercatSlave>";
 
         controller->slavePool().add<aris::control::EthercatSlave>().loadXmlStr(xml_str);
+        */
 
         return controller;
     };
     auto createModelDaye(const double *robot_pm)->std::unique_ptr<aris::dynamic::Model>
     {
-        std::unique_ptr<aris::dynamic::Model> model = std::make_unique<aris::dynamic::Model>("model");
+		aris::dynamic::PumaParam param;
+		param.d1 = 0.332;
+		param.a1 = 0.088;
+		param.a2 = 0.46;
+		param.d3 = 0.0;
+		param.a3 = 0.04;
+		param.d4 = 0.43;
 
-        // 设置重力 //
-        const double gravity[6]{ 0.0,0.0,-9.8,0.0,0.0,0.0 };
-        model->environment().setGravity(gravity);
+		param.tool0_pe[2] = 0.106;
 
-        // 添加变量 //
-        model->calculator().addVariable("PI", aris::core::Matrix(PI));
+		auto model = aris::dynamic::createModelPuma(param);
+		/*
+		//根据tool0，添加一个tool1，tool1相对于tool0在x方向加上0.1m//
+		auto &tool0 = model->partPool().back().markerPool().findByName("general_motion_0_i");//获取tool0
 
-        // add part //
-        auto &p1 = model->partPool().add<Part>("L1");
-        auto &p2 = model->partPool().add<Part>("L2");
-        auto &p3 = model->partPool().add<Part>("L3");
-        auto &p4 = model->partPool().add<Part>("L4");
-        auto &p5 = model->partPool().add<Part>("L5");
-        auto &p6 = model->partPool().add<Part>("L6");
+		double pq_ee_i[7];
+		s_pm2pq(*tool0->prtPm(), pq_ee_i);
+		pq_ee_i[0] += 0.1;//在tool0的x方向加上0.1m
 
-        // add joint //
-        const double j1_pos[3]{ 0.0, 0.0, 0.237 };
-        const double j2_pos[3]{ 0.088, 0.017, 0.327, };
-        const double j3_pos[3]{ 0.088, 0.0236, 0.787 };
-        const double j4_pos[3]{ 0.127, 0.0, 0.827, };
-        const double j5_pos[3]{ 0.523, 0.036, 0.827, };
-        const double j6_pos[3]{ 0.607, 0.0, 0.827, };
+		double pm_ee_i[16];
+		s_pq2pm(pq_ee_i, pm_ee_i);
 
-        const double j1_axis[6]{ 0.0, 0.0, 1.0 };
-        const double j2_axis[6]{ 0.0, 1.0, 0.0 };
-        const double j3_axis[6]{ 0.0, 1.0, 0.0 };
-        const double j4_axis[6]{ 1.0, 0.0, 0.0 };
-        const double j5_axis[6]{ 0.0, 1.0, 0.0 };
-        const double j6_axis[6]{ 1.0, 0.0, 0.0 };
+		auto &tool1 = model->partPool().back().markerPool().add<Marker>("tool1", pm_ee_i);//添加tool1
 
-        auto &j1 = model->addRevoluteJoint(p1, model->ground(), j1_pos, j1_axis);
-        auto &j2 = model->addRevoluteJoint(p2, p1, j2_pos, j2_axis);
-        auto &j3 = model->addRevoluteJoint(p3, p2, j3_pos, j3_axis);
-        auto &j4 = model->addRevoluteJoint(p4, p3, j4_pos, j4_axis);
-        auto &j5 = model->addRevoluteJoint(p5, p4, j5_pos, j5_axis);
-        auto &j6 = model->addRevoluteJoint(p6, p5, j6_pos, j6_axis);
-
-        // add actuation //
-        auto &m1 = model->addMotion(j1);
-        auto &m2 = model->addMotion(j2);
-        auto &m3 = model->addMotion(j3);
-        auto &m4 = model->addMotion(j4);
-        auto &m5 = model->addMotion(j5);
-        auto &m6 = model->addMotion(j6);
-
-        // add ee general motion //
-        //double pq_ee_i[]{ 0.570, -0.114, 0.84, -0.0414, 0.0414, 0.706, 0.706 };		//x方向加上0.1
-        double pq_ee_i[]{ 0.566, -0.134, 0.840, -0.0405, 0.0424, 0.694, 0.718 };
-        double pm_ee_i[16];
-        double pm_ee_j[16]{ 1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1 };
-
-        s_pq2pm(pq_ee_i, pm_ee_i);
-
-        auto &makI = p6.markerPool().add<Marker>("ee_makI", pm_ee_i);
-        auto &makJ = model->ground().markerPool().add<Marker>("ee_makJ", pm_ee_j);
-        auto &ee = model->generalMotionPool().add<aris::dynamic::GeneralMotion>("ee", &makI, &makJ, false);
-
-        // change robot pose //
-        if (robot_pm)
-        {
-            p1.setPm(s_pm_dot_pm(robot_pm, *p1.pm()));
-            p2.setPm(s_pm_dot_pm(robot_pm, *p2.pm()));
-            p3.setPm(s_pm_dot_pm(robot_pm, *p3.pm()));
-            p4.setPm(s_pm_dot_pm(robot_pm, *p4.pm()));
-            p5.setPm(s_pm_dot_pm(robot_pm, *p5.pm()));
-            p6.setPm(s_pm_dot_pm(robot_pm, *p6.pm()));
-            j1.makJ().setPrtPm(s_pm_dot_pm(robot_pm, *j1.makJ().prtPm()));
-        }
-
-        // add solver
-        auto &inverse_kinematic = model->solverPool().add<aris::dynamic::PumaInverseKinematicSolver>();
-        auto &forward_kinematic = model->solverPool().add<ForwardKinematicSolver>();
-
-        inverse_kinematic.allocateMemory();
-        forward_kinematic.allocateMemory();
-
-        inverse_kinematic.setWhichRoot(8);
-
-        return model;
+		//在根据tool1位姿反解到每一个关节时，需要调用下面两行代码来实现
+		//tool1.setPm(pm_ee_i);
+		//model->generalMotionPool()[0].updMpm();
+		*/
+		return std::move(model);
     }
 
 	auto createControllerSanXiang()->std::unique_ptr<aris::control::Controller>	/*函数返回的是一个类指针，指针指向Controller,controller的类型是智能指针std::unique_ptr*/
@@ -473,7 +423,6 @@ namespace kaanh
 
         std::cout << controller->xmlString()<<std::endl;
 
-
 		return controller;
 	};
 	auto createModelSanXiang()->std::unique_ptr<aris::dynamic::Model>
@@ -498,29 +447,19 @@ namespace kaanh
 	struct MoveInitParam
 	{
 		std::vector<double> axis_pos_vec;
+		std::vector<double> axis_pq_vec;
 	};
 	auto MoveInit::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
 		MoveInitParam param;
+		param.axis_pos_vec.clear();
+		param.axis_pq_vec.clear();
 		param.axis_pos_vec.resize(6, 0.0);
+		param.axis_pq_vec.resize(7, 0.0);
 		target.param = param;
-		std::fill(target.mot_options.begin(), target.mot_options.end(),
-			Plan::USE_TARGET_POS |
-#ifdef WIN32
-			Plan::NOT_CHECK_POS_MIN |
-			Plan::NOT_CHECK_POS_MAX |
-			Plan::NOT_CHECK_POS_CONTINUOUS |
-			Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
-			Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-			Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
-			Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
-#endif
-			Plan::NOT_CHECK_VEL_MIN |
-			Plan::NOT_CHECK_VEL_MAX |
-			Plan::NOT_CHECK_VEL_CONTINUOUS |
-			Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-			Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
 
+		std::fill(target.mot_options.begin(), target.mot_options.end(),
+			Plan::USE_TARGET_POS);
 	}
 	auto MoveInit::executeRT(PlanTarget &target)->int
 	{
@@ -533,41 +472,36 @@ namespace kaanh
 		{
 			for (Size i = 0; i < param.axis_pos_vec.size(); ++i)
 			{
+				target.model->motionPool().at(i).setMp(controller->motionAtAbs(i).actualPos());
 				param.axis_pos_vec[i] = controller->motionAtAbs(i).actualPos();
 			}
+			target.model->generalMotionPool().at(0).getMpq(param.axis_pq_vec.data());
 		}
+		if (target.model->solverPool().at(0).kinPos())return -1;
 
-		for (Size i = 0; i < 6; ++i)
-		{
-			target.model->motionPool().at(i).setMp(param.axis_pos_vec[i]);
-		}
-
-		// 打印电流 //
+		// 打印 //
 		auto &cout = controller->mout();
-		if (target.count % 100 == 0)
+		cout << "current pq:" << std::endl;
+		for (Size i = 0; i < 7; i++)
 		{
-			for (Size i = 0; i < 6; i++)
-			{
-				cout << "pos" << i + 1 << ":" << controller->motionAtAbs(i).actualPos() << "  ";
-				cout << "vel" << i + 1 << ":" << controller->motionAtAbs(i).actualVel() << "  ";
-				cout << "cur" << i + 1 << ":" << controller->motionAtAbs(i).actualCur() << "  ";
-			}
-			cout << std::endl;
+			cout << param.axis_pq_vec[i] << " ";
 		}
+		cout << std::endl;
+		cout << "current pos:" << std::endl;
+		for (Size i = 0; i < 6; i++)
+		{
+			cout << controller->motionAtAbs(i).actualPos() << "  ";
+		}
+		cout << std::endl;
 
-		// log 电流 //
+		// log //
 		auto &lout = controller->lout();
 		for (Size i = 0; i < 6; i++)
 		{
-			lout << param.axis_pos_vec[i] << " ";
 			lout << controller->motionAtAbs(i).actualPos() << " ";
-			lout << controller->motionAtAbs(i).actualVel() << " ";
-			lout << controller->motionAtAbs(i).actualCur() << " ";
 		}
 		lout << std::endl;
-
-		if (target.model->solverPool().at(1).kinPos())return -1;
-		return 1000-target.count;
+		return 0;
 	}
 	auto MoveInit::collectNrt(PlanTarget &target)->void {}
 	MoveInit::MoveInit(const std::string &name): Plan(name)
@@ -587,7 +521,11 @@ namespace kaanh
 			cs.model().generalMotionPool().at(0).getMpq(std::any_cast<std::vector<double>&>(data).data());
 		}, ee_pq_vec);
 		auto pq = std::any_cast<std::vector<double>&>(ee_pq_vec);
-
+		for (aris::Size i = 0; i < 7; i++)
+		{
+			std::cout << pq[i] << " ";
+		}
+		std::cout << std::endl;
 		std::string ret(reinterpret_cast<char*>(pq.data()), pq.size() * sizeof(double));
 		target.ret = ret;
 		target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_PRINT_CMD_INFO | NOT_PRINT_CMD_INFO;
@@ -662,22 +600,7 @@ namespace kaanh
 
 			std::fill(target.mot_options.begin(), target.mot_options.end(),
 				//用于使用模型轨迹驱动电机//
-				Plan::USE_TARGET_POS |
-                //Plan::USE_VEL_OFFSET |
-#ifdef WIN32
-				Plan::NOT_CHECK_POS_MIN |
-				Plan::NOT_CHECK_POS_MAX |
-				Plan::NOT_CHECK_POS_CONTINUOUS |
-				Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER|
-				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START|
-				Plan::NOT_CHECK_POS_FOLLOWING_ERROR|
-#endif
-				Plan::NOT_CHECK_VEL_MIN |
-				Plan::NOT_CHECK_VEL_MAX |
-				Plan::NOT_CHECK_VEL_CONTINUOUS |
-				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
+				Plan::USE_TARGET_POS);
 
 		}
 	auto MoveX::executeRT(PlanTarget &target)->int
@@ -750,7 +673,6 @@ namespace kaanh
 	};
 	auto MoveJS::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 		{
-			//MoveJSParam param = {{0.0,0.0,0.0,0.0,0.0,0.0},0.0,0};
 			MoveJSParam param;
 			for (Size i = 0; i < 6; i++)
 			{
@@ -855,21 +777,7 @@ namespace kaanh
 			target.param = param;
 
 			std::fill(target.mot_options.begin(), target.mot_options.end(),
-				Plan::USE_TARGET_POS |
-#ifdef WIN32
-				Plan::NOT_CHECK_POS_MIN |
-				Plan::NOT_CHECK_POS_MAX |
-				Plan::NOT_CHECK_POS_CONTINUOUS |
-				Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
-				Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
-#endif
-				Plan::NOT_CHECK_VEL_MIN |
-				Plan::NOT_CHECK_VEL_MAX |
-				Plan::NOT_CHECK_VEL_CONTINUOUS |
-				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
+				Plan::USE_TARGET_POS);
 
 		}
 	auto MoveJS::executeRT(PlanTarget &target)->int
@@ -1263,22 +1171,7 @@ namespace kaanh
 
 		target.param = param;
 
-		std::fill(target.mot_options.begin(), target.mot_options.end(),
-//				Plan::USE_TARGET_POS |
-#ifdef WIN32
-			Plan::NOT_CHECK_POS_MIN |
-			Plan::NOT_CHECK_POS_MAX |
-			Plan::NOT_CHECK_POS_CONTINUOUS |
-			Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
-			Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-			Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
-			Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
-#endif
-			Plan::NOT_CHECK_VEL_MIN |
-			Plan::NOT_CHECK_VEL_MAX |
-			Plan::NOT_CHECK_VEL_CONTINUOUS |
-			Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-			Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
+		//std::fill(target.mot_options.begin(), target.mot_options.end(), Plan::USE_TARGET_POS);
 
 	}
 	auto MoveJR::executeRT(PlanTarget &target)->int
@@ -1509,21 +1402,7 @@ namespace kaanh
 			target.param = param;
 
 			std::fill(target.mot_options.begin(), target.mot_options.end(),
-				Plan::USE_TARGET_POS |
-#ifdef WIN32target_pos
-				Plan::NOT_CHECK_POS_MIN |
-				Plan::NOT_CHECK_POS_MAX |
-				Plan::NOT_CHECK_POS_CONTINUOUS |
-				Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
-				Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
-#endif
-				Plan::NOT_CHECK_VEL_MIN |
-				Plan::NOT_CHECK_VEL_MAX |
-				Plan::NOT_CHECK_VEL_CONTINUOUS |
-				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
+				Plan::USE_TARGET_POS);
 
 		}
 	auto MoveTTT::executeRT(PlanTarget &target)->int
@@ -1798,22 +1677,7 @@ namespace kaanh
 			}
 			target.param = param;
 
-			std::fill(target.mot_options.begin(), target.mot_options.end(),
-                //Plan::USE_VEL_OFFSET |
-#ifdef WIN32
-				Plan::NOT_CHECK_POS_MIN |
-				Plan::NOT_CHECK_POS_MAX |
-				Plan::NOT_CHECK_POS_CONTINUOUS |
-				Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
-				Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
-#endif
-				Plan::NOT_CHECK_VEL_MIN |
-				Plan::NOT_CHECK_VEL_MAX |
-				Plan::NOT_CHECK_VEL_CONTINUOUS |
-				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
+			//std::fill(target.mot_options.begin(), target.mot_options.end(), Plan::USE_VEL_OFFSET);
 
 		}
 	auto MoveJM::executeRT(PlanTarget &target)->int
@@ -2031,21 +1895,7 @@ namespace kaanh
 			target.param = param;
 
 			std::fill(target.mot_options.begin(), target.mot_options.end(),
-				Plan::USE_VEL_OFFSET |
-#ifdef WIN32
-				Plan::NOT_CHECK_POS_MIN |
-				Plan::NOT_CHECK_POS_MAX |
-				Plan::NOT_CHECK_POS_CONTINUOUS |
-				Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
-				Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
-#endif
-				Plan::NOT_CHECK_VEL_MIN |
-				Plan::NOT_CHECK_VEL_MAX |
-				Plan::NOT_CHECK_VEL_CONTINUOUS |
-				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
+				Plan::USE_VEL_OFFSET);
 
 		}
 	auto MoveJI::executeRT(PlanTarget &target)->int
@@ -2178,9 +2028,8 @@ namespace kaanh
 				if (mat.size() != 6)THROW_FILE_AND_LINE("");
 				std::copy(mat.begin(), mat.end(), imp_->dec);
 
-
-				target.option |= EXECUTE_WHEN_ALL_PLAN_COLLECTED | NOT_PRINT_EXECUTE_COUNT | USE_TARGET_POS;
 				std::fill(target.mot_options.begin(), target.mot_options.end(), USE_TARGET_POS);
+                //target.option |= EXECUTE_WHEN_ALL_PLAN_COLLECTED | NOT_PRINT_EXECUTE_COUNT;
 			}
 			else if (p.first == "stop")
 			{
@@ -2216,12 +2065,10 @@ namespace kaanh
 			}
 		}
 		
-		std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR);
 		target.param = param;
 	}
 	auto MovePoint::executeRT(PlanTarget &target)->int
-	{
-		
+	{	
 		//获取驱动//
 		auto controller = target.controller;
 		auto &param = std::any_cast<MovePointParam&>(target.param);
@@ -2373,7 +2220,6 @@ namespace kaanh
 			lout << a_now[i] << " ";
 			lout << controller->motionAtAbs(i).actualPos() << " ";
 			lout << controller->motionAtAbs(i).actualVel() << " ";
-			lout << controller->motionAtAbs(i).actualCur() << " ";
 		}
 		lout << std::endl;
 
@@ -2469,8 +2315,8 @@ namespace kaanh
 				imp_->acc = std::stod(params.at("acc"));
 				imp_->dec = std::stod(params.at("dec"));
 
-                //target.option |= EXECUTE_WHEN_ALL_PLAN_COLLECTED | NOT_PRINT_EXECUTE_COUNT | USE_TARGET_POS;
-                target.option |= EXECUTE_WHEN_ALL_PLAN_COLLECTED | NOT_PRINT_EXECUTE_COUNT;
+                std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | USE_TARGET_POS);
+                //target.option |= EXECUTE_WHEN_ALL_PLAN_COLLECTED | NOT_PRINT_EXECUTE_COUNT;
 			}
 			else if (p.first == "stop")
 			{
@@ -2480,7 +2326,6 @@ namespace kaanh
                 imp_->s2_nrt.is_increase.assign(imp_->s2_nrt.is_increase.size(), 0);
 				is_changing = true;
 				while (is_changing.load())std::this_thread::sleep_for(std::chrono::milliseconds(1));
-				//target.option |= WAIT_FOR_COLLECTION;
 				target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION;
 			}
 			else if (p.first == "vel_percent")
@@ -2502,7 +2347,6 @@ namespace kaanh
 			}
 		}
 
-		std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR);
 		target.param = param;
 	}
 	auto MoveJP::executeRT(PlanTarget &target)->int
@@ -2526,7 +2370,7 @@ namespace kaanh
                 imp_->target_pos[i] = controller->motionAtAbs(i).actualPos();
                 imp_->p_now[i] = controller->motionAtAbs(i).actualPos();
                 imp_->v_now[i] = controller->motionAtAbs(i).actualVel();
-                imp_->a_now[i] = controller->motionAtAbs(i).actualCur();
+                imp_->a_now[i] = 0.0;
 			}
 		}
 		// init status and calculate target pos and max vel //
@@ -2602,7 +2446,7 @@ namespace kaanh
             lout << imp_->a_now[i] << " ";
             lout << controller->motionAtAbs(i).actualPos() << " ";
             lout << controller->motionAtAbs(i).actualVel() << " ";
-            lout << controller->motionAtAbs(i).actualCur() << " ";
+            //lout << controller->motionAtAbs(i).actualCur() << " ";
 		}
 		lout << std::endl;
 
@@ -2656,22 +2500,6 @@ namespace kaanh
 			}
 			target.param = param;
 
-#ifdef WIN32
-			std::fill(target.mot_options.begin(), target.mot_options.end(),
-
-				Plan::NOT_CHECK_POS_MIN |
-				Plan::NOT_CHECK_POS_MAX |
-				Plan::NOT_CHECK_POS_CONTINUOUS |
-				Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
-				Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
-				Plan::NOT_CHECK_VEL_MIN |
-				Plan::NOT_CHECK_VEL_MAX |
-				Plan::NOT_CHECK_VEL_CONTINUOUS |
-				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
-#endif
 		}
 	auto Grasp::executeRT(PlanTarget &target)->int
 		{
@@ -2705,24 +2533,7 @@ namespace kaanh
 
 
 	// 监听DI信号 //
-	auto ListenDI::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
-		{
-#ifdef WIN32
-			std::fill(target.mot_options.begin(), target.mot_options.end(), 
-				Plan::NOT_CHECK_POS_MIN |
-				Plan::NOT_CHECK_POS_MAX |
-				Plan::NOT_CHECK_POS_CONTINUOUS |
-				Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
-				Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
-				Plan::NOT_CHECK_VEL_MIN |
-				Plan::NOT_CHECK_VEL_MAX |
-				Plan::NOT_CHECK_VEL_CONTINUOUS |
-				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
-#endif
-		}
+	auto ListenDI::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void{}
 	auto ListenDI::executeRT(PlanTarget &target)->int
 		{
 			if (is_automatic)
@@ -2926,26 +2737,7 @@ namespace kaanh
 			target.param = param;
 
 			std::fill(target.mot_options.begin(), target.mot_options.end(),
-				Plan::USE_TARGET_POS |
-#ifdef WIN32
-				Plan::NOT_CHECK_POS_MIN |
-				Plan::NOT_CHECK_POS_MAX |
-				Plan::NOT_CHECK_POS_CONTINUOUS |
-				Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
-				Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
-				Plan::NOT_CHECK_VEL_MIN |
-				Plan::NOT_CHECK_VEL_MAX |
-				Plan::NOT_CHECK_VEL_CONTINUOUS |
-				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR |
-#endif
-				Plan::NOT_CHECK_VEL_MIN |
-				Plan::NOT_CHECK_VEL_MAX |
-				Plan::NOT_CHECK_VEL_CONTINUOUS |
-				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
+				Plan::USE_TARGET_POS);
 
 		}
 	auto MoveEA::executeRT(PlanTarget &target)->int
@@ -3133,21 +2925,7 @@ namespace kaanh
 
 			std::fill(target.mot_options.begin(), target.mot_options.end(),
 				Plan::USE_TARGET_POS |
-				Plan::USE_VEL_OFFSET |
-#ifdef WIN32
-				Plan::NOT_CHECK_POS_MIN |
-				Plan::NOT_CHECK_POS_MAX |
-				Plan::NOT_CHECK_POS_CONTINUOUS |
-				Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
-				Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
-#endif
-				Plan::NOT_CHECK_VEL_MIN |
-				Plan::NOT_CHECK_VEL_MAX |
-				Plan::NOT_CHECK_VEL_CONTINUOUS |
-				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
+				Plan::USE_VEL_OFFSET);
 
 		}
 	auto MoveEAP::executeRT(PlanTarget &target)->int
@@ -3351,22 +3129,6 @@ namespace kaanh
             param.Mz = 0;
 			target.param = param;
 
-#ifdef WIN32
-			std::fill(target.mot_options.begin(), target.mot_options.end(),
-
-				Plan::NOT_CHECK_POS_MIN |
-				Plan::NOT_CHECK_POS_MAX |
-				Plan::NOT_CHECK_POS_CONTINUOUS |
-				Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
-				Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
-				Plan::NOT_CHECK_VEL_MIN |
-				Plan::NOT_CHECK_VEL_MAX |
-				Plan::NOT_CHECK_VEL_CONTINUOUS |
-				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR);
-#endif
 		}
 	auto FSSignal::executeRT(PlanTarget &target)->int
 		{
@@ -3521,29 +3283,139 @@ namespace kaanh
             "</Command>");
     }
 
+
+	// 清理slavepool //
+	auto ClearCon::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		auto&cs = aris::server::ControlServer::instance();
+		if (cs.running())throw std::runtime_error("cs is running, can not set position offset,please stop the cs!");
+
+		auto &controller = target.controller;
+		controller->slavePool().clear();
+
+		std::string ret = "ok";
+		target.ret = ret;
+		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
+	}
+	ClearCon::ClearCon(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"clearCon\">"
+			"</Command>");
+	}
+
+
+	// 配置控制器参数 //
+	struct SetConParam
+	{
+		uint16_t motion_phyid;
+		uint16_t ecslave_phyid;
+		uint16_t ecslave_dc;
+		bool is_motion;
+	};
+	auto SetCon::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		auto&cs = aris::server::ControlServer::instance();
+		if (cs.running())throw std::runtime_error("cs is running, can not set controller,please stop the cs!");
+
+		SetConParam param;
+		param.motion_phyid = 0;
+		param.ecslave_phyid = 0;
+		param.is_motion = 1;
+		for (auto &p : params)
+		{
+			//motion physical id number//
+			if (p.first == "motion_phyid")
+			{
+				param.motion_phyid = std::stoi(p.second);
+				param.is_motion = 1;
+			}
+			//ethercat slave physical id number//
+			else if (p.first == "ecslave_phyid")
+			{
+				param.ecslave_phyid = std::stoi(p.second);
+				param.is_motion = 0;
+				param.ecslave_dc = std::stoi(params.at("ecslave_dc"));
+			}
+		}
+
+		//std::unique_ptr<aris::control::Controller> controller(aris::robot::createControllerRokaeXB4());
+		//controller->slavePool().clear();	//清除slavePool中的元素，后面重新添加
+		auto &controller = target.controller;
+
+		//configure motion//
+		if(param.is_motion)
+		{
+			controller->slavePool().add<aris::control::EthercatMotion>();
+			controller->slavePool().back().setPhyId(param.motion_phyid);
+			dynamic_cast<aris::control::EthercatMotion&>(controller->slavePool().back()).scanInfoForCurrentSlave();
+			dynamic_cast<aris::control::EthercatMotion&>(controller->slavePool().back()).scanPdoForCurrentSlave();
+			dynamic_cast<aris::control::EthercatMotion&>(controller->slavePool().back()).setDcAssignActivate(0x300);
+		}	
+		//configure ect slave//
+		else if(!param.is_motion)
+		{
+			controller->slavePool().add<aris::control::EthercatSlave>();
+			controller->slavePool().back().setPhyId(param.ecslave_phyid);
+			dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanInfoForCurrentSlave();
+			dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanPdoForCurrentSlave();
+			//倍福ECT Slave 耦合器,ecslave_dc=0x300；耦合器后面的模块，,ecslave_dc=0x00//
+			dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).setDcAssignActivate(param.ecslave_dc);
+		}
+		//cs.resetController(controller);
+
+		//std::cout << controller->xmlString() << std::endl;
+		/*
+		auto xmlpath = std::filesystem::absolute(".");
+		const std::string xmlfile = "rokae.xml";
+		xmlpath = xmlpath / xmlfile;
+		cs.saveXmlFile(xmlpath.string().c_str());
+		*/
+
+		std::string ret = "ok";
+		target.ret = ret;
+		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
+	}
+	SetCon::SetCon(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"setCon\">"
+			"	<GroupParam>"
+			"		<UniqueParam>"
+			"			<Param name=\"motion_phyid\" default=\"0\"/>"
+			"			<GroupParam>"
+			"				<Param name=\"ecslave_phyid\" default=\"6\"/>"
+			"				<Param name=\"ecslave_dc\" default=\"768\"/>"
+			"			</GroupParam>"
+			"		</UniqueParam>"
+			"	</GroupParam>"
+			"</Command>");
+	}
+
+
 	// 配置DH参数 //
 	struct SetDHParam
 	{
 		std::vector<double>dh;
 		double tool_offset;
+		int axis_num;
 	};
 	auto SetDH::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
-		auto c = target.controller;
+		auto&cs = aris::server::ControlServer::instance();
+		if (cs.running())throw std::runtime_error("cs is running, can not set DH parameters,please stop the cs!");
+
 		SetDHParam dhparam;
 		dhparam.dh.clear();
-		dhparam.dh.resize(c->motionPool().size(), 0.0);
 
 		for (auto &p : params)
 		{
-			if (p.first == "dh")
+			//6轴DH参数//
+			if (p.first == "six_axes")
 			{
-				auto mat = target.model->calculator().calculateExpression(p.second);
-				if (mat.size() == 1)
-				{
-					dhparam.dh.assign(dhparam.dh.size(), mat.toDouble());
-				}
-				else if (mat.size() == dhparam.dh.size())
+				dhparam.dh.resize(6, 0.0);
+				auto mat = target.model->calculator().calculateExpression(params.at("dh_six_axes"));
+				if (mat.size() == dhparam.dh.size())
 				{
 					dhparam.dh.assign(mat.begin(), mat.end());
 				}
@@ -3551,23 +3423,56 @@ namespace kaanh
 				{
 					throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
 				}
+				dhparam.tool_offset = std::stod(params.at("tool_offset_sixaxes"));
+				dhparam.axis_num = 6;
 			}
-			else if (p.first == "tool_offset")
+			//7轴DH参数//
+			else if (p.first == "seven_axes")
 			{
-				dhparam.tool_offset = std::stod(p.second);
+				dhparam.dh.resize(3, 0.0);
+				auto mat = target.model->calculator().calculateExpression(params.at("dh_seven_axes"));
+				if (mat.size() == dhparam.dh.size())
+				{
+					dhparam.dh.assign(mat.begin(), mat.end());
+				}
+				else
+				{
+					throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+				}
+				dhparam.tool_offset = std::stod(params.at("tool_offset_sevenaxes"));
+				dhparam.axis_num = 7;
 			}
 		}
 
-		aris::dynamic::PumaParam param;
-		param.d1 = dhparam.dh[0];
-		param.a1 = dhparam.dh[1];
-		param.a2 = dhparam.dh[2];
-		param.d3 = dhparam.dh[3];
-		param.a3 = dhparam.dh[4];
-		param.d4 = dhparam.dh[5];
+		aris::dynamic::PumaParam param_puma;
+		aris::dynamic::SevenAxisParam param_7axes;
+		if (dhparam.axis_num == 6)
+		{
+			param_puma.d1 = dhparam.dh[0];
+			param_puma.a1 = dhparam.dh[1];
+			param_puma.a2 = dhparam.dh[2];
+			param_puma.d3 = dhparam.dh[3];
+			param_puma.a3 = dhparam.dh[4];
+			param_puma.d4 = dhparam.dh[5];
+			param_puma.tool0_pe[2] = dhparam.tool_offset;
 
-		param.tool0_pe[2] = dhparam.tool_offset;
-		
+			auto model = aris::dynamic::createModelPuma(param_puma);
+			cs.resetModel(model.release());
+		}
+		else if (dhparam.axis_num == 7)
+		{
+			param_7axes.d1 = dhparam.dh[0];
+			param_7axes.d3 = dhparam.dh[1];
+			param_7axes.d5 = dhparam.dh[2];
+			param_7axes.tool0_pe[2] = dhparam.tool_offset;
+
+			auto m = aris::dynamic::createModelSevenAxis(param_7axes);
+			cs.resetModel(m.release());
+		}
+		else{ }
+
+		/*
+		//动力学标定参数//
 		param.iv_vec =
 		{
 			{ 0.00000000000000,   0.00000000000000,   0.00000000000000,   0.00000000000000,   0.00000000000000,   0.00000000000000,   0.59026333537827,   0.00000000000000,   0.00000000000000,   0.00000000000000 },
@@ -3577,7 +3482,6 @@ namespace kaanh
 			{ 0.00000000000000,   0.05362286897910,   0.00528925153464, -0.00842588023014,   0.00128498153337, -0.00389810210572,   0.00000000000000, -0.00223677867576, -0.03365036368035, -0.00415647085627 },
 			{ 0.00000000000000,   0.00000000000000,   0.00066049870832,   0.00012563800445, -0.00085124094833,   0.04209529937135,   0.04102481443654, -0.00067596644891,   0.00017482449876, -0.00041025776053 },
 		};
-
 		param.mot_frc_vec =
 		{
 			{ 9.34994758321915, 7.80825641041495, 0.00000000000000 },
@@ -3587,18 +3491,17 @@ namespace kaanh
 			{ 2.58310846982020, 1.41963212641879, 0.04855267273770 },
 			{ 1.78373986219597, 0.31920640440152, 0.03381545544099 },
 		};
+		*/
 		
-		auto&cs = aris::server::ControlServer::instance();
-		if (cs.running())throw std::runtime_error("cs is running, can not set DH parameters,please stop the cs!");
-
-		auto model = aris::dynamic::createModelPuma(param);
-		cs.resetModel(model.release());
-
+		/*
 		auto xmlpath = std::filesystem::absolute(".");
 		const std::string xmlfile = "rokae.xml";
 		xmlpath = xmlpath / xmlfile;
 		cs.saveXmlFile(xmlpath.string().c_str());
+		*/
 
+		std::string ret = "ok";
+		target.ret = ret;
 		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
 
 	}
@@ -3607,168 +3510,277 @@ namespace kaanh
 		command().loadXmlStr(
 			"<Command name=\"setDH\">"
 			"	<GroupParam>"
-			"		<Param name=\"dh\" default=\"{0.3295, 0.04, 0.275, 0.0, 0.025, 0.28}\"/>"
-			"		<Param name=\"tool_offset\" default=\"0.078\"/>"
-			"	</GroupParam>"
-			"</Command>");
-	}
-
-	// 配置关节offset //
-	struct SetPOffsetParam
-	{
-		std::vector<double> pos_offset;
-		std::vector<bool> joint_active_vec;
-	};
-	auto SetPOffset::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
-	{
-		//std::unique_ptr<aris::control::Controller> controller(kaanh::createControllerRokaeXB4());
-		auto controller = target.controller;
-
-		SetPOffsetParam param;
-		param.pos_offset.clear();
-		param.pos_offset.resize(target.controller->motionPool().size(), 0.0);
-		param.joint_active_vec.clear();
-
-		for (auto &p : params)
-		{
-			if (p.first == "all")
-			{
-				param.joint_active_vec.resize(target.controller->motionPool().size(), true);
-				auto mat = target.model->calculator().calculateExpression(params.at("all_offset"));
-				if (mat.size() == param.pos_offset.size())
-				{
-					param.pos_offset.assign(mat.begin(), mat.end());
-				}
-				else
-				{
-					throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
-				}
-			}
-			else if (p.first == "motion_id")
-			{
-				param.joint_active_vec.resize(target.controller->motionPool().size(), false);
-				param.joint_active_vec.at(std::stoi(p.second)) = true;
-
-				param.pos_offset.at(std::stoi(p.second)) = std::stod(params.at("m_offset"));
-			}
-		}
-		// 设置驱动offset //
-		for (int i = 0; i < param.pos_offset.size(); i++)
-		{
-			if (param.joint_active_vec[i])
-			{
-				dynamic_cast<aris::control::Motion&>(controller->slavePool()[i]).setPosOffset(param.pos_offset[i]);
-			}
-		}
-	
-		auto&cs = aris::server::ControlServer::instance();
-		if (cs.running())throw std::runtime_error("cs is running, can not set position offset,please stop the cs!");
-		auto xmlpath = std::filesystem::absolute(".");
-		const std::string xmlfile = "rokae.xml";
-		xmlpath = xmlpath / xmlfile;
-		cs.saveXmlFile(xmlpath.string().c_str());
-
-		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
-
-	}
-	SetPOffset::SetPOffset(const std::string &name) :Plan(name)
-	{
-		command().loadXmlStr(
-			"<Command name=\"setPOffset\">"
-			"	<GroupParam>"
 			"		<UniqueParam>"
 			"			<GroupParam name=\"start_group\">"
-			"				<Param name=\"all\"/>"
-			"				<Param name=\"all_offset\" default=\"{0.00293480352126769, -2.50023777179214, -0.292382537944081, 0.0582675097338009, 1.53363576057128, 26.3545454214145}\"/>"
+			"				<Param name=\"six_axes\"/>"
+			"				<Param name=\"dh_six_axes\" default=\"{0.3295, 0.04, 0.275, 0.0, 0.025, 0.28}\"/>"
+			"				<Param name=\"tool_offset_sixaxes\" default=\"0.078\"/>"
 			"			</GroupParam>"
 			"			<GroupParam>"
-			"				<Param name=\"motion_id\" abbreviation=\"m\" default=\"0\"/>"
-			"				<Param name=\"m_offset\" default=\"0.0\"/>"
+			"				<Param name=\"seven_axes\"/>"
+			"				<Param name=\"dh_seven_axes\" default=\"{0.3705, 0.330, 0.320}\"/>"
+			"				<Param name=\"tool_offset_sevenaxes\" default=\"0.2205\"/>"
 			"			</GroupParam>"
 			"		</UniqueParam>"
 			"	</GroupParam>"
 			"</Command>");
 	}
 
-	// 配置关节角度、角速度、角加速度上下限 //
-	struct SetDriverParam
+	
+	// 配置PG参数 //
+	struct SetPGParam
 	{
-		std::vector<double> pos_offset;
-		std::vector<bool> joint_active_vec;
+		std::string name;
+		std::vector<double> pe;
+		uint16_t part_id;
+		std::string file_path;	
 	};
-	auto SetDriver::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	auto SetPG::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
-		//std::unique_ptr<aris::control::Controller> controller(kaanh::createControllerRokaeXB4());
-		auto controller = target.controller;
+		auto&cs = aris::server::ControlServer::instance();
+		if (cs.running())throw std::runtime_error("cs is running, can not set DH parameters,please stop the cs!");
 
-		SetDriverParam param;
-		param.pos_offset.clear();
-		param.pos_offset.resize(target.controller->motionPool().size(), 0.0);
-		param.joint_active_vec.clear();
-
+		SetPGParam param;
+		param.pe.clear();
+		param.pe.resize(6, 0.0);
 		for (auto &p : params)
 		{
-			if (p.first == "all")
+			if (p.first == "name")
 			{
-				param.joint_active_vec.resize(target.controller->motionPool().size(), true);
-				auto mat = target.model->calculator().calculateExpression(params.at("all_offset"));
-				if (mat.size() == param.pos_offset.size())
+				param.name = p.second;
+			}
+			else if (p.first == "pe")
+			{
+				auto mat = target.model->calculator().calculateExpression(params.at("pe"));
+				if (mat.size() == param.pe.size())
 				{
-					param.pos_offset.assign(mat.begin(), mat.end());
+					param.pe.assign(mat.begin(), mat.end());
 				}
 				else
 				{
 					throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
 				}
 			}
-			else if (p.first == "motion_id")
+			else if (p.first == "part_id")
 			{
-				param.joint_active_vec.resize(target.controller->motionPool().size(), false);
-				param.joint_active_vec.at(std::stoi(p.second)) = true;
-
-				param.pos_offset.at(std::stoi(p.second)) = std::stod(params.at("m_offset"));
+				param.part_id = std::stoi(p.second);
+			}
+			else if (p.first == "file_path")
+			{
+				param.file_path = p.second;
 			}
 		}
-		// 设置驱动offset //
-		for (int i = 0; i < param.pos_offset.size(); i++)
+
+		target.model->partPool().at(param.part_id).geometryPool().clear();
+		target.model->partPool().at(param.part_id).geometryPool().add<FileGeometry>(param.name, param.file_path, param.pe.data());
+
+		std::string ret = "ok";
+		target.ret = ret;
+		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
+
+	}
+	SetPG::SetPG(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"setPG\">"
+			"	<GroupParam>"
+			"		<Param name=\"name\" default=\"test\"/>"
+			"		<Param name=\"pe\" default=\"{0, 0, 0, -0, 0, -0}\"/>"
+			"		<Param name=\"part_id\" default=\"6\"/>"
+			"		<Param name=\"file_path\" default=\"/RobotGallery/Rokae/XB4/l0.data\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
+	
+
+	// 配置关节——home偏置、角度-编码系数、角度、角速度、角加速度上下限 //
+	struct SetDriverParam
+	{
+		std::vector<bool> joint_active_vec;
+		double pos_factor;
+		double pos_max;
+		double pos_min;
+		double vel_max;
+		double vel_min;
+		double acc_max;
+		double acc_min;
+		double pos_offset;
+	};
+	auto SetDriver::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		auto&cs = aris::server::ControlServer::instance();
+		if (cs.running())throw std::runtime_error("cs is running, can not set pos_factor,pos,vel and acc,please stop the cs!");
+		//std::unique_ptr<aris::control::Controller> controller(kaanh::createControllerRokaeXB4());
+		auto &controller = target.controller;
+		SetDriverParam param;
+
+		//initial//
+		{
+			param.joint_active_vec.clear();
+			param.pos_factor = 0.0;
+			param.pos_max = 0.0;
+			param.pos_min = 0.0;
+			param.vel_max = 0.0;
+			param.vel_min = 0.0;
+			param.acc_max = 0.0;
+			param.acc_min = 0.0;
+			param.pos_offset = 0.0;
+		}
+
+		for (auto &p : params)
+		{
+			if (p.first == "motion_id")
+			{
+				param.joint_active_vec.resize(50, false);
+				param.joint_active_vec.at(std::stoi(p.second)) = true;
+			}
+			else if(p.first == "pos_factor")
+			{
+                auto m = target.model->calculator().calculateExpression(p.second);
+                param.pos_factor = m.toDouble() / (2.0 * PI);
+			}
+			else if (p.first == "pos_max")
+			{
+				auto m = target.model->calculator().calculateExpression(p.second);
+				param.pos_max = m.toDouble() * 2 * PI / 360;
+			}
+			else if (p.first == "pos_min")
+			{
+				auto m = target.model->calculator().calculateExpression(p.second);
+				param.pos_min = m.toDouble() * 2 * PI / 360;
+			}
+			else if (p.first == "vel_max")
+			{
+				auto m = target.model->calculator().calculateExpression(p.second);
+				param.vel_max = m.toDouble() * 2 * PI / 360;
+			}
+			else if (p.first == "vel_min")
+			{
+				auto m = target.model->calculator().calculateExpression(p.second);
+				param.vel_min = m.toDouble() * 2 * PI / 360;
+			}
+			else if (p.first == "acc_max")
+			{
+				auto m = target.model->calculator().calculateExpression(p.second);
+				param.acc_max = m.toDouble() * 2 * PI / 360;
+			}
+			else if (p.first == "acc_min")
+			{
+				auto m = target.model->calculator().calculateExpression(p.second);
+				param.acc_min = m.toDouble() * 2 * PI / 360;
+			}
+			else if (p.first == "pos_offset")
+			{
+				auto m = target.model->calculator().calculateExpression(p.second);
+				param.pos_offset = m.toDouble();
+			}
+		}
+		
+		// 设置驱动pos_factor,pos,vel,acc //
+		for (int i = 0; i < param.joint_active_vec.size(); i++)
 		{
 			if (param.joint_active_vec[i])
 			{
-				dynamic_cast<aris::control::Motion&>(controller->slavePool()[i]).setPosOffset(param.pos_offset[i]);
+				dynamic_cast<aris::control::Motion&>(controller->slavePool()[i]).setPosFactor(param.pos_factor);
+				dynamic_cast<aris::control::Motion&>(controller->slavePool()[i]).setMaxPos(param.pos_max);
+				dynamic_cast<aris::control::Motion&>(controller->slavePool()[i]).setMinPos(param.pos_min);
+				dynamic_cast<aris::control::Motion&>(controller->slavePool()[i]).setMaxVel(param.vel_max);
+				dynamic_cast<aris::control::Motion&>(controller->slavePool()[i]).setMinVel(param.vel_min);
+				dynamic_cast<aris::control::Motion&>(controller->slavePool()[i]).setMaxAcc(param.acc_max);
+				dynamic_cast<aris::control::Motion&>(controller->slavePool()[i]).setMinAcc(param.acc_min);
+				dynamic_cast<aris::control::Motion&>(controller->slavePool()[i]).setPosOffset(param.pos_offset);
 			}
 		}
 
-		auto&cs = aris::server::ControlServer::instance();
-		if (cs.running())throw std::runtime_error("cs is running, can not set position offset,please stop the cs!");
+        std::cout << param.pos_factor << std::endl;
+		//cs.resetController(controller);
+		/*
 		auto xmlpath = std::filesystem::absolute(".");
 		const std::string xmlfile = "rokae.xml";
 		xmlpath = xmlpath / xmlfile;
 		cs.saveXmlFile(xmlpath.string().c_str());
-
+		*/
+		std::string ret = "ok";
+		target.ret = ret;
 		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
-
 	}
 	SetDriver::SetDriver(const std::string &name) :Plan(name)
 	{
 		command().loadXmlStr(
 			"<Command name=\"setDriver\">"
 			"	<GroupParam>"
-			"		<UniqueParam>"
-			"			<GroupParam name=\"start_group\">"
-			"				<Param name=\"all\"/>"
-			"				<Param name=\"all_offset\" default=\"{0.00293480352126769, -2.50023777179214, -0.292382537944081, 0.0582675097338009, 1.53363576057128, 26.3545454214145}\"/>"
-			"			</GroupParam>"
-			"			<GroupParam>"
-			"				<Param name=\"motion_id\" abbreviation=\"m\" default=\"0\"/>"
-			"				<Param name=\"pos_max\" default=\"0.0\"/>"
-			"				<Param name=\"pos_min\" default=\"0.0\"/>"
-			"				<Param name=\"vel_max\" default=\"0.0\"/>"
-			"				<Param name=\"vel_min\" default=\"0.0\"/>"
-			"				<Param name=\"acc_max\" default=\"0.0\"/>"
-			"				<Param name=\"acc_min\" default=\"0.0\"/>"
-			"			</GroupParam>"
-			"		</UniqueParam>"
+			"		<Param name=\"motion_id\" abbreviation=\"m\" default=\"0\"/>"
+			"		<Param name=\"pos_factor\" default=\"0.0\"/>"
+			"		<Param name=\"pos_max\" default=\"0.0\"/>"
+			"		<Param name=\"pos_min\" default=\"0.0\"/>"
+			"		<Param name=\"vel_max\" default=\"0.0\"/>"
+			"		<Param name=\"vel_min\" default=\"0.0\"/>"
+			"		<Param name=\"acc_max\" default=\"0.0\"/>"
+			"		<Param name=\"acc_min\" default=\"0.0\"/>"
+			"		<Param name=\"pos_offset\" default=\"0.0\"/>"
 			"	</GroupParam>"
+			"</Command>");
+	}
+
+
+	// 保存配置 //
+	auto SaveConfig::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		auto&cs = aris::server::ControlServer::instance();
+		if (cs.running())throw std::runtime_error("cs is running, can not set position offset,please stop the cs!");
+
+		cs.resetSensorRoot(new aris::sensor::SensorRoot);
+
+		auto xmlpath = std::filesystem::absolute(".");
+		const std::string xmlfile = "rokae.xml";
+		xmlpath = xmlpath / xmlfile;
+		cs.saveXmlFile(xmlpath.string().c_str());
+
+		std::string ret = "ok";
+		target.ret = ret;
+		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
+	}
+	SaveConfig::SaveConfig(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"saveConfig\">"
+			"</Command>");
+	}
+
+
+	// 开启controller server //
+	auto StartCS::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		auto&cs = aris::server::ControlServer::instance();
+		if (cs.running())throw std::runtime_error("cs is already running!");
+		cs.start();
+		
+		std::string ret = "ok";
+		target.ret = ret;
+		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
+	}
+	StartCS::StartCS(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"startCS\">"
+			"</Command>");
+	}
+
+
+	// 关闭controller server //
+	auto StopCS::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		auto&cs = aris::server::ControlServer::instance();
+		if (!cs.running())throw std::runtime_error("cs is already stopping!");
+		cs.stop();
+		std::string ret = "ok";
+		target.ret = ret;
+		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
+	}
+	StopCS::StopCS(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"stopCS\">"
 			"</Command>");
 	}
 
@@ -3826,8 +3838,14 @@ namespace kaanh
 		plan_root->planPool().add<kaanh::MoveEAP>();
 		plan_root->planPool().add<kaanh::FSSignal>();
         plan_root->planPool().add<kaanh::ATIFS>();
+		plan_root->planPool().add<kaanh::ClearCon>();
+		plan_root->planPool().add<kaanh::SetCon>();
 		plan_root->planPool().add<kaanh::SetDH>();
-		plan_root->planPool().add<kaanh::SetPOffset>();
+		plan_root->planPool().add<kaanh::SetPG>();
+		plan_root->planPool().add<kaanh::SetDriver>();
+		plan_root->planPool().add<kaanh::SaveConfig>();
+		plan_root->planPool().add<kaanh::StartCS>();
+		plan_root->planPool().add<kaanh::StopCS>();
 
 		plan_root->planPool().add<MoveXYZ>();
 		plan_root->planPool().add<MoveJoint>();
