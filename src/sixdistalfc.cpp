@@ -1686,7 +1686,7 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
 	FmInWorld[5] = a[0] * FT_YANG[3] + a[1] * FT_YANG[4] + a[2] * FT_YANG[5];
 
 	for (int i = 0;i < 6;i++)
-        dX[i] = FmInWorld[i];
+        dX[i] = 0;//FmInWorld[i];
 
 
 	double TangentArc[3] = { 0 };
@@ -1705,10 +1705,10 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
     static double pArc, vArc, aArc, vArcMax = 0.05;
 	aris::Size t_count;
 
-    double Square[4][3] = { {0,0.07,0.3},
-                            {0,0.07,0.5},
-                            {0,-0.1,0.5},
-                            {0,-0.1,0.3}};
+    double Square[4][3] = { {0,0.07,0.5},
+                            {0,0.07,0.7},
+                            {0,-0.2,0.7},
+                            {0,-0.2,0.5}};
 
 
 	static double MoveLength = 0;
@@ -1902,15 +1902,15 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
 		if (MoveDirection)
 		{
             dX[0] = dX[0]+0 * vArc * TangentArc[0] / 1000;
-            dX[1] = dX[1]+0*vArc * TangentArc[1] / 1000;
-            dX[2] = dX[2]+0*vArc * TangentArc[2] / 1000;
+            dX[1] = dX[1]+1*vArc * TangentArc[1] / 1000;
+            dX[2] = dX[2]+1*vArc * TangentArc[2] / 1000;
 
 		}
 		else
 		{
             dX[0] = dX[0]+0 * vArc * TangentArc[0] / 1000;
-            dX[1] = dX[1]+0*vArc * TangentArc[1] / 1000;
-            dX[2] = dX[2]+0*vArc * TangentArc[2] / 1000;
+            dX[1] = dX[1]+1*vArc * TangentArc[1] / 1000;
+            dX[2] = dX[2]+1*vArc * TangentArc[2] / 1000;
 		}
 		if (target.count > StartCount&&MoveDirectionT == true && MoveDirectionF == false)
 			if (MoveDirection)
@@ -2069,13 +2069,13 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
 	for (int i = 0; i < 6; i++)
 	{
 		step_pjs[i] = step_pjs[i] + dTheta[i];
-        target.model->motionPool().at(i).setMp(step_pjs[i]);
+        //target.model->motionPool().at(i).setMp(step_pjs[i]);
 	}
 
     if (target.count % 300 == 0)
     {
 
-        cout << FT_KAI[2] << "****" << FT_KAI[3] << "****" << FT_KAI[4]<< endl;
+        cout << vArc << "****" << dTheta[1] << "****" <<CountFmax<< endl;
 
         //cout << FT_KAI[0] << "*" <<FT_KAI[1] << "*" << FT_KAI[2] << endl;
         //cout << FT_KAI[2] << "*" << NormalAng << "*" << TransVector[4] << "*" << TransVector[5] << "*" << TransVector[6] << "*" << FT0[2] << endl;
