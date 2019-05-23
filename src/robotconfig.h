@@ -23,11 +23,11 @@ namespace CONFIG
         const int SampleNum = 6000;
 	    const double ConRad = PII / 180;
         const double ConAng = 180 / PII;
-        const int GroupDim = 16;
+
 		const double DT = 0.001;
         const double CutoffFrequency = 5;
 		const double EndPoint[3] = { 0, 0, 0.078};//The Position of End Plate
-        const double EndSensor[3] = { 0, 0, 0};//The Position of Torque Sensor
+        const double EndSensor[3] = { 0, 0, 0.0955};//The Position of Torque Sensor
 
 
 		//六轴工业
@@ -35,7 +35,7 @@ namespace CONFIG
         const double ZeroOffset[6] = { 0, 0, 0, 0, 0, 0 };
         const double JointOffset[6] = { 0, -PII / 2, 0, 0, 0, 0 };
         const double DirectionFlag[6] = { 1, 1, 1, 1, 1, 1 };
-		const double a2 = 0.04,a3=0.275,a4=0.025,d3=0,d4=0.28,d5 = 0;
+        const double a2 = 0.04,a3=0.275,a4=0.025,d3=0,d4=0.28,d5 = 0;//Rokae DH
 
 
         /*
