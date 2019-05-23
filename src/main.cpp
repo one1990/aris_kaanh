@@ -39,7 +39,6 @@ int main(int argc, char *argv[])
     //-------for rokae robot end// 
 	*/
 	
-
     /*
     //-------for sanxiang robot begin//
     cs.resetController(kaanh::createControllerSanXiang().release());

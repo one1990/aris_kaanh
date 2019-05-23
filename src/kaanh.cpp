@@ -472,11 +472,18 @@ namespace kaanh
 		{
 			for (Size i = 0; i < param.axis_pos_vec.size(); ++i)
 			{
+#ifdef UNIX
 				target.model->motionPool().at(i).setMp(controller->motionAtAbs(i).actualPos());
 				param.axis_pos_vec[i] = controller->motionAtAbs(i).actualPos();
+#endif
+
+#ifdef WIN32
+				param.axis_pos_vec[i] = target.model->motionPool().at(i).mp();
+#endif
 			}
 			target.model->generalMotionPool().at(0).getMpq(param.axis_pq_vec.data());
 		}
+
 		if (target.model->solverPool().at(0).kinPos())return -1;
 
 		// 打印 //
@@ -490,7 +497,7 @@ namespace kaanh
 		cout << "current pos:" << std::endl;
 		for (Size i = 0; i < 6; i++)
 		{
-			cout << controller->motionAtAbs(i).actualPos() << "  ";
+			cout << param.axis_pos_vec[i] << "  ";
 		}
 		cout << std::endl;
 
@@ -498,7 +505,7 @@ namespace kaanh
 		auto &lout = controller->lout();
 		for (Size i = 0; i < 6; i++)
 		{
-			lout << controller->motionAtAbs(i).actualPos() << " ";
+			lout << param.axis_pos_vec[i] << " ";
 		}
 		lout << std::endl;
 		return 0;
