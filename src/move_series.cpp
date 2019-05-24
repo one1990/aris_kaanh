@@ -81,6 +81,28 @@ auto MoveSeries::prepairNrt(const std::map<std::string, std::string> &params, Pl
 	aris::dynamic::s_akima(param.t.size(), param.t.data(), param.y.data(), param.yp1.data(), param.yp2.data(), param.yp3.data(), 1e-7);
 
 	target.param = param;
+
+    for(auto &option:target.mot_options) option|=
+      Plan::USE_TARGET_POS |
+#ifdef WIN32
+      Plan::NOT_CHECK_POS_MIN |
+      Plan::NOT_CHECK_POS_MAX |
+      Plan::NOT_CHECK_POS_CONTINUOUS |
+      Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
+      Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
+      Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
+      Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
+#endif
+      Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
+      Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
+      Plan::NOT_CHECK_VEL_MIN |
+      Plan::NOT_CHECK_VEL_MAX |
+      Plan::NOT_CHECK_VEL_CONTINUOUS |
+      Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
+      Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+
+
+
 }
 	auto MoveSeries::executeRT(PlanTarget &target)->int 
 	{
@@ -201,15 +223,16 @@ auto MoveSeries::prepairNrt(const std::map<std::string, std::string> &params, Pl
 				dTheta[i] = 0.003;
 			if (dTheta[i] < -0.003)
 				dTheta[i] = -0.003;
-			//lout << dTheta[i] << ",";
+            lout << dTheta[i] << ",";
 		}
 
-
+        lout << x << ","<<y<<",";
+       lout << endl;
 
 		for (int i = 0; i < 6; i++)
 		{
 			step_pjs[i] = step_pjs[i] + dTheta[i];
-			target.model->motionPool().at(i).setMp(step_pjs[i]);
+            //target.model->motionPool().at(i).setMp(step_pjs[i]);
 		}
 
 		for (int i = 0; i < 6; ++i)
