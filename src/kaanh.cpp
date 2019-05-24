@@ -3201,84 +3201,94 @@ namespace kaanh
     struct ATIFSParam
     {
         int time;
-        std::int32_t Fx,Fy,Fz,Mx,My,Mz,status_code,sample_counter;
+        std::int32_t Fx,Fy,Fz,Mx,My,Mz,status_code,sample_counter,controlcodes;
     };
     auto ATIFS::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
         {
             ATIFSParam param;
+			param.Fx = 0;
+			param.Fy = 0;
+			param.Fz = 0;
+			param.Mx = 0;
+			param.My = 0;
+			param.Mz = 0;
+			param.status_code = 0;
+			param.sample_counter = 0;
+			param.controlcodes = 4096;
+
             for (auto &p : params)
             {
                 if (p.first == "time")
                 {
                     param.time = std::stoi(p.second);
                 }
+				else if (p.first == "controlcodes")
+				{
+					param.controlcodes = std::stoi(p.second);
+				}
             }
-            param.Fx = 0;
-            param.Fy = 0;
-            param.Fz = 0;
-            param.Mx = 0;
-            param.My = 0;
-            param.Mz = 0;
-            param.status_code = 0;
-            param.sample_counter = 0;
+
             target.param = param;
 
         }
     auto ATIFS::executeRT(PlanTarget &target)->int
+    {
+        auto &param = std::any_cast<ATIFSParam&>(target.param);
+        // 访问主站 //
+        auto controller = dynamic_cast<aris::control::EthercatController*>(target.controller);
+		if (target.count == 1)
+		{
+			controller->ecSlavePool().at(6).writePdo(0x7010, 0x01, &param.controlcodes, 32);
+		}
+        controller->ecSlavePool().at(6).readPdo(0x6000, 0x01, &param.Fx ,32);
+        controller->ecSlavePool().at(6).readPdo(0x6000, 0x02, &param.Fy, 32);
+        controller->ecSlavePool().at(6).readPdo(0x6000, 0x03, &param.Fz, 32);
+        controller->ecSlavePool().at(6).readPdo(0x6000, 0x04, &param.Mx, 32);
+        controller->ecSlavePool().at(6).readPdo(0x6000, 0x05, &param.My, 32);
+        controller->ecSlavePool().at(6).readPdo(0x6000, 0x06, &param.Mz, 32);
+        controller->ecSlavePool().at(6).readPdo(0x6010, 0x00, &param.status_code, 32);
+        controller->ecSlavePool().at(6).readPdo(0x6020, 0x00, &param.sample_counter, 32);
+
+        
+        double Fx = param.Fx*1000.0 / std::pow(2, 32);
+        double Fy = param.Fy*1000.0 / std::pow(2, 32);
+        double Fz = param.Fz*1800.0 / std::pow(2, 32);
+        double Mx = param.Mx*40.0 / std::pow(2, 32);
+        double My = param.My*40.0 / std::pow(2, 32);
+        double Mz = param.Mz*40.0 / std::pow(2, 32);
+        
+        //print//
+        auto &cout = controller->mout();
+        if (target.count % 100 == 0)
         {
-            auto &param = std::any_cast<ATIFSParam&>(target.param);
-            // 访问主站 //
-            auto controller = dynamic_cast<aris::control::EthercatController*>(target.controller);
-
-            controller->ecSlavePool().at(6).readPdo(0x6000, 0x01, &param.Fx ,32);
-            controller->ecSlavePool().at(6).readPdo(0x6000, 0x02, &param.Fy, 32);
-            controller->ecSlavePool().at(6).readPdo(0x6000, 0x03, &param.Fz, 32);
-            controller->ecSlavePool().at(6).readPdo(0x6000, 0x04, &param.Mx, 32);
-            controller->ecSlavePool().at(6).readPdo(0x6000, 0x05, &param.My, 32);
-            controller->ecSlavePool().at(6).readPdo(0x6000, 0x06, &param.Mz, 32);
-            controller->ecSlavePool().at(6).readPdo(0x6010, 0x00, &param.status_code, 32);
-            controller->ecSlavePool().at(6).readPdo(0x6020, 0x00, &param.sample_counter, 32);
-
-            /*
-            double Fx = param.Fx*20.0 / 65536;
-            double Fy = param.Fy*20.0 / 65536;
-            double Fz = param.Fz*20.0 / 65536;
-            double Mx = param.Mx*20.0 / 65536;
-            double My = param.My*20.0 / 65536;
-            double Mz = param.Mz*20.0 / 65536;
-            */
-            //print//
-            auto &cout = controller->mout();
-            if (target.count % 100 == 0)
-            {
-                cout << std::setw(6) << param.Fx << "  ";
-                cout << std::setw(6) << param.Fy << "  ";
-                cout << std::setw(6) << param.Fz << "  ";
-                cout << std::setw(6) << param.Mx << "  ";
-                cout << std::setw(6) << param.My << "  ";
-                cout << std::setw(6) << param.Mz << "  ";
-                cout << std::setw(6) << param.status_code << "  ";
-                cout << std::setw(6) << param.sample_counter << "  ";
-                cout << std::endl;
-                cout << "----------------------------------------------------" << std::endl;
-            }
-
-            //log//
-            auto &lout = controller->lout();
-            {
-                lout << param.Fx << " ";
-                lout << param.Fy << " ";
-                lout << param.Fz << " ";
-                lout << param.Mx << " ";
-                lout << param.My << " ";
-                lout << param.Mz << " ";
-                lout << param.status_code << " ";
-                lout << param.sample_counter << " ";
-                lout << std::endl;
-            }
-            param.time--;
-            return param.time;
+            cout << std::setw(6) << Fx << "  ";
+            cout << std::setw(6) << Fy << "  ";
+            cout << std::setw(6) << Fz << "  ";
+            cout << std::setw(6) << Mx << "  ";
+            cout << std::setw(6) << My << "  ";
+            cout << std::setw(6) << Mz << "  ";
+            cout << std::setw(6) << param.status_code << "  ";
+            cout << std::setw(6) << param.sample_counter << "  ";
+            cout << std::endl;
+            cout << "----------------------------------------------------" << std::endl;
         }
+
+        //log//
+        auto &lout = controller->lout();
+        {
+            lout << Fx << " ";
+            lout << Fy << " ";
+            lout << Fz << " ";
+            lout << Mx << " ";
+            lout << My << " ";
+            lout << Mz << " ";
+            lout << param.status_code << " ";
+            lout << param.sample_counter << " ";
+            lout << std::endl;
+        }
+        param.time--;
+        return param.time;
+    }
     auto ATIFS::collectNrt(PlanTarget &target)->void {}
     ATIFS::ATIFS(const std::string &name) :Plan(name)
     {
@@ -3286,6 +3296,7 @@ namespace kaanh
             "<Command name=\"atifs\">"
             "	<GroupParam>"
             "		<Param name=\"time\" default=\"100000\"/>"
+			"		<Param name=\"controlcodes\" default=\"4096\"/>"
             "	</GroupParam>"
             "</Command>");
     }
