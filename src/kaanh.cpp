@@ -276,10 +276,10 @@ namespace kaanh
             controller->slavePool().add<aris::control::EthercatMotion>().loadXmlStr(xml_str);
         }
 
-        /*
+#ifdef UNIX
         //ATI force sensor//
         std::string xml_str =
-            "<EthercatSlave phy_id=\"0\" product_code=\"0x26483053\""
+            "<EthercatSlave phy_id=\"6\" product_code=\"0x26483053\""
             " vendor_id=\"0x00000732\" revision_num=\"0x00000001\" dc_assign_activate=\"0x300\">"
             "	<SyncManagerPoolObject>"
             "		<SyncManager is_tx=\"false\"/>"
@@ -306,7 +306,7 @@ namespace kaanh
             "</EthercatSlave>";
 
         controller->slavePool().add<aris::control::EthercatSlave>().loadXmlStr(xml_str);
-        */
+#endif
 
         return controller;
     };
