@@ -232,7 +232,7 @@ auto MoveSeries::prepairNrt(const std::map<std::string, std::string> &params, Pl
 		for (int i = 0; i < 6; i++)
 		{
 			step_pjs[i] = step_pjs[i] + dTheta[i];
-            //target.model->motionPool().at(i).setMp(step_pjs[i]);
+            target.model->motionPool().at(i).setMp(step_pjs[i]);
 		}
 
 		for (int i = 0; i < 6; ++i)
