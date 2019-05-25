@@ -482,26 +482,26 @@
 							<Table id="id_1034">
 								<tr>
 									<td>	
-										<Button id="" text="Get pq" style="width:200px" repeat="1" rate="200" cmd="get_ee_pq" return_attached="$BinaryLabel{id_109}"/>
+										<Button id="" text="Get pq" style="width:180px" repeat="1" rate="200" cmd="get_ee_pq" return_attached="$BinaryLabel{id_109}"/>
 									</td>
 									<td>
-										<BinaryLabel id="id_109" style="width:350px"/>
+										<BinaryLabel id="id_109" style="width:400px"/>
 									</td>								
 								</tr>
 								<tr>
 									<td>
-										<Button id="" text="Get pe" style="width:200px" repeat="1" rate="200" cmd="get_ee_pe" return_attached="$BinaryLabel{id_110}"/>
+										<Button id="" text="Get pe" style="width:180px" repeat="1" rate="200" cmd="get_ee_pe" return_attached="$BinaryLabel{id_110}"/>
 									</td>
 									<td>							
-										<BinaryLabel id="id_110" style="width:350px"/>
+										<BinaryLabel id="id_110" style="width:400px"/>
 									</td>
 								</tr>
 								<tr>
 									<td>
-										<Button id="" text="Get joint pos" style="width:200px" repeat="1" rate="200" cmd="get_joint_pos" return_attached="$BinaryLabel{id_111}"/>
+										<Button id="" text="Get joint pos" style="width:180px" repeat="1" rate="200" cmd="get_joint_pos" return_attached="$BinaryLabel{id_111}"/>
 									</td>
 									<td>							
-										<BinaryLabel id="id_111" style="width:350px"/>	
+										<BinaryLabel id="id_111" style="width:400px"/>	
 									</td>
 								</tr>	
 							</Table>
