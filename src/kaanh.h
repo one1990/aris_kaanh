@@ -64,14 +64,24 @@ namespace kaanh
 		ARIS_REGISTER_TYPE(Get_ee_pq);
 	};
 
-	class Get_cur : public aris::plan::Plan
+	class Get_ee_pe : public aris::plan::Plan
 	{
 	public:
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
 		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
 
-		explicit Get_cur(const std::string &name = "Get_cur_plan");
-		ARIS_REGISTER_TYPE(Get_cur);
+		explicit Get_ee_pe(const std::string &name = "Get_ee_pe_plan");
+		ARIS_REGISTER_TYPE(Get_ee_pe);
+	};
+
+	class Get_joint_pos : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+
+		explicit Get_joint_pos(const std::string &name = "Get_joint_pos_plan");
+		ARIS_REGISTER_TYPE(Get_joint_pos);
 
 	};
 
