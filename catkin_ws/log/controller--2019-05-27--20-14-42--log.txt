@@ -1,0 +1,13 @@
+ INFO|2019-05-27--20-14-42|               server.cpp|  501|server receive cmd 1 : sh
+ INFO|2019-05-27--20-14-42|               server.cpp|  536|server prepair cmd 1
+ INFO|2019-05-27--20-14-42|               server.cpp|  546|sh
+ INFO|2019-05-27--20-14-42|               server.cpp|  576|server execute cmd 1
+ INFO|2019-05-27--20-14-42|               server.cpp|  680|cmd 1 stastics:
+                                                          |       avg time(ns):49164
+                                                          |       max time(ns):49164
+                                                          |           in count:0
+                                                          |       min time(ns):49164
+                                                          |           in count:0
+                                                          |        total count:1
+                                                          |           overruns:0
+ INFO|2019-05-27--20-14-42|               server.cpp|  691|server collect cmd 1

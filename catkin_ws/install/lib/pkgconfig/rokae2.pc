@@ -1,0 +1,8 @@
+prefix=/root/catkin_ws/install
+
+Name: rokae2
+Description: Description of rokae2
+Version: 1.0.0
+Cflags: 
+Libs: -L/root/catkin_ws/install/lib 
+Requires: 

@@ -1,0 +1,130 @@
+ INFO|2019-05-27--20-55-41|               server.cpp|  501|server receive cmd 1 : sh
+ INFO|2019-05-27--20-55-41|               server.cpp|  536|server prepair cmd 1
+ INFO|2019-05-27--20-55-41|               server.cpp|  546|sh
+ INFO|2019-05-27--20-55-41|               server.cpp|  576|server execute cmd 1
+ INFO|2019-05-27--20-55-41|               server.cpp|  680|cmd 1 stastics:
+                                                          |       avg time(ns):68818
+                                                          |       max time(ns):68818
+                                                          |           in count:0
+                                                          |       min time(ns):68818
+                                                          |           in count:0
+                                                          |        total count:1
+                                                          |           overruns:0
+ INFO|2019-05-27--20-55-41|               server.cpp|  691|server collect cmd 1
+ INFO|2019-05-27--20-55-42|               server.cpp|  501|server receive cmd 2 : sh
+ INFO|2019-05-27--20-55-42|               server.cpp|  536|server prepair cmd 2
+ INFO|2019-05-27--20-55-42|               server.cpp|  546|sh
+ INFO|2019-05-27--20-55-42|               server.cpp|  576|server execute cmd 2
+ INFO|2019-05-27--20-55-42|               server.cpp|  680|cmd 2 stastics:
+                                                          |       avg time(ns):66362
+                                                          |       max time(ns):66362
+                                                          |           in count:0
+                                                          |       min time(ns):66362
+                                                          |           in count:0
+                                                          |        total count:1
+                                                          |           overruns:0
+ INFO|2019-05-27--20-55-42|               server.cpp|  691|server collect cmd 2
+ INFO|2019-05-27--20-55-43|               server.cpp|  501|server receive cmd 3 : sh
+ INFO|2019-05-27--20-55-43|               server.cpp|  536|server prepair cmd 3
+ INFO|2019-05-27--20-55-43|               server.cpp|  546|sh
+ INFO|2019-05-27--20-55-43|               server.cpp|  576|server execute cmd 3
+ INFO|2019-05-27--20-55-43|               server.cpp|  680|cmd 3 stastics:
+                                                          |       avg time(ns):49478
+                                                          |       max time(ns):49478
+                                                          |           in count:0
+                                                          |       min time(ns):49478
+                                                          |           in count:0
+                                                          |        total count:1
+                                                          |           overruns:0
+ INFO|2019-05-27--20-55-43|               server.cpp|  691|server collect cmd 3
+ INFO|2019-05-27--20-55-44|               server.cpp|  501|server receive cmd 4 : sh
+ INFO|2019-05-27--20-55-44|               server.cpp|  536|server prepair cmd 4
+ INFO|2019-05-27--20-55-44|               server.cpp|  546|sh
+ INFO|2019-05-27--20-55-44|               server.cpp|  576|server execute cmd 4
+ INFO|2019-05-27--20-55-44|               server.cpp|  680|cmd 4 stastics:
+                                                          |       avg time(ns):51741
+                                                          |       max time(ns):51741
+                                                          |           in count:0
+                                                          |       min time(ns):51741
+                                                          |           in count:0
+                                                          |        total count:1
+                                                          |           overruns:0
+ INFO|2019-05-27--20-55-44|               server.cpp|  691|server collect cmd 4
+ INFO|2019-05-27--20-55-45|               server.cpp|  501|server receive cmd 5 : sh
+ INFO|2019-05-27--20-55-45|               server.cpp|  536|server prepair cmd 5
+ INFO|2019-05-27--20-55-45|               server.cpp|  546|sh
+ INFO|2019-05-27--20-55-45|               server.cpp|  576|server execute cmd 5
+ INFO|2019-05-27--20-55-45|               server.cpp|  680|cmd 5 stastics:
+                                                          |       avg time(ns):48891
+                                                          |       max time(ns):48891
+                                                          |           in count:0
+                                                          |       min time(ns):48891
+                                                          |           in count:0
+                                                          |        total count:1
+                                                          |           overruns:0
+ INFO|2019-05-27--20-55-45|               server.cpp|  691|server collect cmd 5
+ INFO|2019-05-27--20-55-46|               server.cpp|  501|server receive cmd 6 : sh
+ INFO|2019-05-27--20-55-46|               server.cpp|  536|server prepair cmd 6
+ INFO|2019-05-27--20-55-46|               server.cpp|  546|sh
+ INFO|2019-05-27--20-55-46|               server.cpp|  576|server execute cmd 6
+ INFO|2019-05-27--20-55-46|               server.cpp|  680|cmd 6 stastics:
+                                                          |       avg time(ns):163426
+                                                          |       max time(ns):163426
+                                                          |           in count:0
+                                                          |       min time(ns):163426
+                                                          |           in count:0
+                                                          |        total count:1
+                                                          |           overruns:0
+ INFO|2019-05-27--20-55-46|               server.cpp|  691|server collect cmd 6
+ INFO|2019-05-27--20-55-47|               server.cpp|  501|server receive cmd 7 : sh
+ INFO|2019-05-27--20-55-47|               server.cpp|  536|server prepair cmd 7
+ INFO|2019-05-27--20-55-47|               server.cpp|  546|sh
+ INFO|2019-05-27--20-55-47|               server.cpp|  576|server execute cmd 7
+ INFO|2019-05-27--20-55-47|               server.cpp|  680|cmd 7 stastics:
+                                                          |       avg time(ns):49495
+                                                          |       max time(ns):49495
+                                                          |           in count:0
+                                                          |       min time(ns):49495
+                                                          |           in count:0
+                                                          |        total count:1
+                                                          |           overruns:0
+ INFO|2019-05-27--20-55-47|               server.cpp|  691|server collect cmd 7
+ INFO|2019-05-27--20-55-48|               server.cpp|  501|server receive cmd 8 : sh
+ INFO|2019-05-27--20-55-48|               server.cpp|  536|server prepair cmd 8
+ INFO|2019-05-27--20-55-48|               server.cpp|  546|sh
+ INFO|2019-05-27--20-55-48|               server.cpp|  576|server execute cmd 8
+ INFO|2019-05-27--20-55-48|               server.cpp|  680|cmd 8 stastics:
+                                                          |       avg time(ns):186782
+                                                          |       max time(ns):186782
+                                                          |           in count:0
+                                                          |       min time(ns):186782
+                                                          |           in count:0
+                                                          |        total count:1
+                                                          |           overruns:0
+ INFO|2019-05-27--20-55-48|               server.cpp|  691|server collect cmd 8
+ INFO|2019-05-27--20-55-49|               server.cpp|  501|server receive cmd 9 : sh
+ INFO|2019-05-27--20-55-49|               server.cpp|  536|server prepair cmd 9
+ INFO|2019-05-27--20-55-49|               server.cpp|  546|sh
+ INFO|2019-05-27--20-55-49|               server.cpp|  576|server execute cmd 9
+ INFO|2019-05-27--20-55-49|               server.cpp|  680|cmd 9 stastics:
+                                                          |       avg time(ns):45773
+                                                          |       max time(ns):45773
+                                                          |           in count:0
+                                                          |       min time(ns):45773
+                                                          |           in count:0
+                                                          |        total count:1
+                                                          |           overruns:0
+ INFO|2019-05-27--20-55-49|               server.cpp|  691|server collect cmd 9
+ INFO|2019-05-27--20-55-50|               server.cpp|  501|server receive cmd 10 : sh
+ INFO|2019-05-27--20-55-50|               server.cpp|  536|server prepair cmd 10
+ INFO|2019-05-27--20-55-50|               server.cpp|  546|sh
+ INFO|2019-05-27--20-55-50|               server.cpp|  576|server execute cmd 10
+ INFO|2019-05-27--20-55-50|               server.cpp|  680|cmd 10 stastics:
+                                                          |       avg time(ns):53746
+                                                          |       max time(ns):53746
+                                                          |           in count:0
+                                                          |       min time(ns):53746
+                                                          |           in count:0
+                                                          |        total count:1
+                                                          |           overruns:0
+ INFO|2019-05-27--20-55-50|               server.cpp|  691|server collect cmd 10
