@@ -1,7 +1,0 @@
- INFO|2019-05-21--20-43-03|               server.cpp|  501|server receive cmd 1 : moveJR -m=0 --pos=0.1
- INFO|2019-05-21--20-43-04|               server.cpp|  501|server receive cmd 2 : moveJR -m=0 --pos=0.1
- INFO|2019-05-21--20-43-05|               server.cpp|  501|server receive cmd 3 : moveJR -m=0 --pos=0.1
- INFO|2019-05-21--20-43-06|               server.cpp|  501|server receive cmd 4 : moveJR -m=0 --pos=0.1
- INFO|2019-05-21--20-43-07|               server.cpp|  501|server receive cmd 5 : moveJR -m=0 --pos=0.1
- INFO|2019-05-21--20-43-08|               server.cpp|  501|server receive cmd 6 : moveJR -m=0 --pos=0.1
- INFO|2019-05-21--20-43-09|               server.cpp|  501|server receive cmd 7 : moveJR -m=0 --pos=0.1
