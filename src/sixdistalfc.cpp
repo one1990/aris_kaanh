@@ -449,7 +449,7 @@ auto MoveDistal::prepairNrt(const std::map<std::string, std::string> &params, Pl
 
 	target.param = param;
 
-	target.option |=
+     for(auto &option:target.mot_options) option|=
 		Plan::USE_TARGET_POS |
 		//#ifdef WIN32
 		Plan::NOT_CHECK_POS_MIN |
@@ -551,25 +551,27 @@ auto MoveDistal::executeRT(PlanTarget &target)->int
 	// 访问主站 //
 	auto controller = target.controller;
 
-    int16_t FTint[6];
+    int32_t FTint[6],status_code,sample_counter;
     double FTReal[6],FT[6];
     auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.controller);
 
-    conSensor->ecSlavePool().at(7).readPdo(0x6000, 0x11, &FTint[0] ,16);
-    conSensor->ecSlavePool().at(7).readPdo(0x6010, 0x11, &FTint[1], 16);
-    conSensor->ecSlavePool().at(7).readPdo(0x6020, 0x11, &FTint[2], 16);
-    conSensor->ecSlavePool().at(7).readPdo(0x6030, 0x11, &FTint[3], 16);
-    conSensor->ecSlavePool().at(8).readPdo(0x6000, 0x11, &FTint[4], 16);
-    conSensor->ecSlavePool().at(8).readPdo(0x6010, 0x11, &FTint[5], 16);
+    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x01, &FTint[0] ,32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x02, &FTint[1], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x03, &FTint[2], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x04, &FTint[3], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x05, &FTint[4], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x06, &FTint[5], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6010, 0x00, &status_code, 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6020, 0x00, &sample_counter, 32);
 
+    double ATIscale=1000000;
+    FT[0] = FTint[0]/ ATIscale;
+    FT[1] = FTint[1] / ATIscale;
+    FT[2] = FTint[2]/ ATIscale;
+    FT[3] = FTint[3]/ ATIscale;
+    FT[4] = FTint[4]/ ATIscale;
+    FT[5] = FTint[5] / ATIscale;
 
-
-    for (int i=0;i<6;i++)
-    {
-         FTReal[i] = FTint[i]*20.0 / 65536.0*1000.0;
-    }
-
-    s_mm(6, 1, 6, Vol2FTCoef, FTReal, FT);
 
 
 	// 打印电流 //
@@ -695,7 +697,7 @@ auto DistalTest::prepairNrt(const std::map<std::string, std::string> &params, Pl
 
     target.param = param;
 
-    target.option |=
+     for(auto &option:target.mot_options) option|=
         Plan::USE_TARGET_POS |
         //#ifdef WIN32
         Plan::NOT_CHECK_POS_MIN |
@@ -710,7 +712,8 @@ auto DistalTest::prepairNrt(const std::map<std::string, std::string> &params, Pl
         Plan::NOT_CHECK_VEL_MAX |
         Plan::NOT_CHECK_VEL_CONTINUOUS |
         Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-        Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+        Plan::NOT_CHECK_VEL_FOLLOWING_ERROR|
+        Plan::NOT_CHECK_ENABLE;
 
 
 
@@ -746,8 +749,8 @@ auto DistalTest::executeRT(PlanTarget &target)->int
     param.period = 60;
 
     static bool flag[6] = {true,true,true,true,true,true};
-    double PosLimit[6] = { 1,0.1,0.1,1,1,1 };
-    double NegLimit[6] = { -1,-0.1,-0.1,-1,-1,-1 };
+    double PosLimit[6] = { 0.5,0.1,0.1,1,1,1 };
+    double NegLimit[6] = { -0.5,-0.1,-0.1,-1,-1,-1 };
     double dTheta = 0.00001;
     static double pArc[6], vArc[6], aArc[6], vArcMax[6] = { 0.05,0.05,0.05,0.05,0.05,0.15 };
     static aris::Size t_count[6] = { 0 };
@@ -794,7 +797,7 @@ auto DistalTest::executeRT(PlanTarget &target)->int
 
         }
         //if(i==4||i==5)
-            target.model->motionPool().at(i).setMp(step_pjs[i]);
+            //target.model->motionPool().at(i).setMp(step_pjs[i]);
     }
 
 
@@ -804,25 +807,29 @@ auto DistalTest::executeRT(PlanTarget &target)->int
     // 访问主站 //
     auto controller = target.controller;
 
-    int16_t FTint[6];
+    int32_t FTint[6],status_code,sample_counter;
     double FTReal[6],FT[6];
     auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.controller);
 
-    conSensor->ecSlavePool().at(7).readPdo(0x6000, 0x11, &FTint[0] ,16);
-    conSensor->ecSlavePool().at(7).readPdo(0x6010, 0x11, &FTint[1], 16);
-    conSensor->ecSlavePool().at(7).readPdo(0x6020, 0x11, &FTint[2], 16);
-    conSensor->ecSlavePool().at(7).readPdo(0x6030, 0x11, &FTint[3], 16);
-    conSensor->ecSlavePool().at(8).readPdo(0x6000, 0x11, &FTint[4], 16);
-    conSensor->ecSlavePool().at(8).readPdo(0x6010, 0x11, &FTint[5], 16);
+    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x01, &FTint[0] ,32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x02, &FTint[1], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x03, &FTint[2], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x04, &FTint[3], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x05, &FTint[4], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x06, &FTint[5], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6010, 0x00, &status_code, 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6020, 0x00, &sample_counter, 32);
+
+    double ATIscale=1000000;
+    FT[0] = FTint[0]/ ATIscale;
+    FT[1] = FTint[1] / ATIscale;
+    FT[2] = FTint[2]/ ATIscale;
+    FT[3] = FTint[3]/ ATIscale;
+    FT[4] = FTint[4]/ ATIscale;
+    FT[5] = FTint[5] / ATIscale;
 
 
 
-    for (int i=0;i<6;i++)
-    {
-         FTReal[i] = FTint[i]*20.0 / 65536.0*1000.0;
-    }
-
-    s_mm(6, 1, 6, Vol2FTCoef, FTReal, FT);
 
     double CollisionFT[6],q[6],dq[6],ddq[6],ts[6];
     double omega = 0;
@@ -834,6 +841,23 @@ auto DistalTest::executeRT(PlanTarget &target)->int
     }
 
     sixDistalMatrix.sixDistalCollision(q, dq, ddq, FT, sixDistalMatrix.estParasFT, CollisionFT);
+
+    for (int j = 0; j < 6; j++)
+    {
+        FT[j]=CollisionFT[j];
+
+
+    }
+
+    double FT0[6]={0};
+    if (target.count == 1)
+        for (int j = 0; j < 6; j++)
+            FT0[j]=CollisionFT[j];
+
+    for (int j = 0; j < 6; j++)
+        FT[j]=FT[j]-FT0[j];
+
+
     // 打印电流 //
     auto &cout = controller->mout();
     if (target.count % 100 == 0)
@@ -1475,16 +1499,17 @@ auto MovePressureToolYZ::prepairNrt(const std::map<std::string, std::string> &pa
     for(auto &option:target.mot_options) option|=
 		Plan::USE_TARGET_POS |
         Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-        Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START;
-
+        Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START|
+        Plan::NOT_CHECK_ENABLE;
 
     //读取动力学参数
-   // auto mat0 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("estParasFT"));
-    //for (int i = 0;i < GroupDim;i++)
-        //sixDistalMatrix.estParasFT[i] = mat0->data().data()[i];
+    auto mat0 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("estParasFT"));
+    for (int i = 0;i < GroupDim;i++)
+        sixDistalMatrix.estParasFT[i] = mat0->data().data()[i];
 
 
 }
+
 auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
 {
 	auto &param = std::any_cast<MovePressureToolYZParam&>(target.param);
@@ -1500,7 +1525,7 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
 	static double step_pjs[6];
 	static double stateTor0[6][3], stateTor1[6][3], EndP0[3];
 	static double sT0[6][3], sT1[6][3];
-	static float FT0[6], FT_be[6];
+    static double FT0[6];
 
 	// 访问主站 //
 	auto controller = target.controller;
@@ -1537,23 +1562,27 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
 	double dX[6] = { 0.00000, -0.0000, -0.0000, -0.0000, -0.0000, -0.0000 };
 	double dTheta[6] = { 0 };
 
-    int16_t FTint[6];
+    int32_t FTint[6],status_code,sample_counter;
     double FTReal[6],FT[6];
     auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.controller);
 
-    //conSensor->ecSlavePool().at(7).readPdo(0x6000, 0x11, &FTint[0] ,16);
-    //conSensor->ecSlavePool().at(7).readPdo(0x6010, 0x11, &FTint[1], 16);
-    //conSensor->ecSlavePool().at(7).readPdo(0x6020, 0x11, &FTint[2], 16);
-    //conSensor->ecSlavePool().at(7).readPdo(0x6030, 0x11, &FTint[3], 16);
-    //conSensor->ecSlavePool().at(8).readPdo(0x6000, 0x11, &FTint[4], 16);
-    //conSensor->ecSlavePool().at(8).readPdo(0x6010, 0x11, &FTint[5], 16);
+    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x01, &FTint[0] ,32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x02, &FTint[1], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x03, &FTint[2], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x04, &FTint[3], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x05, &FTint[4], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x06, &FTint[5], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6010, 0x00, &status_code, 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6020, 0x00, &sample_counter, 32);
 
-    for (int i=0;i<6;i++)
-    {
-         FTReal[i] = FTint[i]*20.0 / 65536.0*1000.0;
-    }
+    double ATIscale=1000000.0;
+    FT[0] = FTint[0]/ ATIscale;
+    FT[1] = FTint[1] / ATIscale;
+    FT[2] = FTint[2]/ ATIscale;
+    FT[3] = FTint[3]/ ATIscale;
+    FT[4] = FTint[4]/ ATIscale;
+    FT[5] = FTint[5] / ATIscale;
 
-    s_mm(6, 1, 6, Vol2FTCoef, FTReal, FT);
 
 	for (int i = 0;i < 6;i++)
 	{
@@ -1579,8 +1608,7 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
 
     for (int j = 0; j < 6; j++)
     {
-        //FT[j]=CollisionFT[j];
-        ;
+        FT[j]=CollisionFT[j];
 
     }
 
@@ -1592,7 +1620,6 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
 		{
 			stateTor0[j][0] = FT[j];
 			FT0[j] = FT[j];
-			FT_be[j] = FT[j];
 		}
 		for (int i = 0;i < 3;i++)
 			EndP0[i] = PqEnd[i];
@@ -1603,7 +1630,7 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
 
 	for (int j = 0; j < 6; j++)
 	{
-        double A[3][3], B[3], CutFreq = 35;//SHANGHAI DIANQI EXP
+        double A[3][3], B[3], CutFreq = 85;//SHANGHAI DIANQI EXP
 		//CutFreq = 85;
 		A[0][0] = 0; A[0][1] = 1; A[0][2] = 0;
 		A[1][0] = 0; A[1][1] = 0; A[1][2] = 1;
@@ -1626,7 +1653,7 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
         for (int i = 0; i < 6; ++i)
         {
             FT0[i] = stateTor1[i][0];
-            // controller->motionPool().at(i).setModeOfOperation(10);	//切换到电流控制
+
         }
     }
 
@@ -1635,6 +1662,9 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
 	{
         FT_KAI[i] = stateTor1[i][0]-FT0[i];//In KAI Coordinate
 	}
+
+
+
 
 
 	for (int i = 0; i < 3; i++)
@@ -1647,26 +1677,45 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
 
 	for (int i = 3; i < 6; i++)
 	{
-		if (FT_KAI[i] < 0.05&&FT_KAI[i]>0)
-			FT_KAI[i] = 20 * FT_KAI[i] * FT_KAI[i];//In KAI Coordinate
-		else if (FT_KAI[i]<0 && FT_KAI[i]>-0.05)
-			FT_KAI[i] = -20 * FT_KAI[i] * FT_KAI[i];//In KAI Coordinate
+        if (FT_KAI[i] < 0.2&&FT_KAI[i]>0)
+            FT_KAI[i] = 5 * FT_KAI[i] * FT_KAI[i];//In KAI Coordinate
+        else if (FT_KAI[i]<0 && FT_KAI[i]>-0.2)
+            FT_KAI[i] = -5 * FT_KAI[i] * FT_KAI[i];//In KAI Coordinate
 	}
 
 
 
 	double dXpid[6] = { 0,0,0,0,0,0 };
-    dXpid[2] = 1 * (FT_KAI[2] - (-5)) / 620000;
-    dXpid[3] = 1 * (FT_KAI[3]) / 6000;
-    dXpid[4] = 1 * (FT_KAI[4]) / 6000;
-    dXpid[5] = 0 * (FT_KAI[5]) / 3000;
+    dXpid[2] = 1 * (FT_KAI[2] - (-5)) / 350000;
+    dXpid[3] = 1 * (FT_KAI[3]) / 18000;
+    dXpid[4] = 1 * (FT_KAI[4]) / 28000;
+    dXpid[5] = 0 * (FT_KAI[5]) / 8000;
+
+
+    double TangentArc[3] = { 0 };
+    static double TangentArc0[3] = { 0 };
+    static double TangentArc1[3] = { 0 };
+    static double TangentArc2[3] = { 0 };
+    static bool MoveDirection = true;
+    static bool MoveDirectionT = true, MoveDirectionF = false;
+    static bool MoveDirectionChange = false;
+    static int StartCount = 20000;
+    double CosTheta1, CosTheta2;
+
+    if (target.count > StartCount&&MoveDirectionF == true)
+    {
+        dXpid[3] = 0;
+        dXpid[4] = 0;
+        dXpid[5] = 0;
+    }
+
+
 
 	double FT_YANG[6];
     FT_YANG[0] = -dXpid[0];FT_YANG[1] = -dXpid[1];FT_YANG[2] = dXpid[2];
     FT_YANG[3] = -dXpid[3];FT_YANG[4] = -dXpid[4];FT_YANG[5] = dXpid[5];
 
 
-	double FmInWorld[6];
 
 	double TransMatrix[4][4];
 	for (int i = 0;i < 4;i++)
@@ -1678,37 +1727,36 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
 	double a[3] = { TransMatrix[2][0], TransMatrix[2][1], TransMatrix[2][2] };
 
 	//FT[0] = 0;FT[1] = 0;FT[2] = 1;FT[3] = 0;FT[4] = 0;FT[5] = 0;
-	FmInWorld[0] = n[0] * FT_YANG[0] + n[1] * FT_YANG[1] + n[2] * FT_YANG[2];
-	FmInWorld[1] = o[0] * FT_YANG[0] + o[1] * FT_YANG[1] + o[2] * FT_YANG[2];
-	FmInWorld[2] = a[0] * FT_YANG[0] + a[1] * FT_YANG[1] + a[2] * FT_YANG[2];
-	FmInWorld[3] = n[0] * FT_YANG[3] + n[1] * FT_YANG[4] + n[2] * FT_YANG[5];
-	FmInWorld[4] = o[0] * FT_YANG[3] + o[1] * FT_YANG[4] + o[2] * FT_YANG[5];
-	FmInWorld[5] = a[0] * FT_YANG[3] + a[1] * FT_YANG[4] + a[2] * FT_YANG[5];
-
-	for (int i = 0;i < 6;i++)
-        dX[i] = 0;//FmInWorld[i];
+    dX[0] = n[0] * FT_YANG[0] + n[1] * FT_YANG[1] + n[2] * FT_YANG[2];
+    dX[1] = o[0] * FT_YANG[0] + o[1] * FT_YANG[1] + o[2] * FT_YANG[2];
+    dX[2] = a[0] * FT_YANG[0] + a[1] * FT_YANG[1] + a[2] * FT_YANG[2];
+    dX[3] = n[0] * FT_YANG[3] + n[1] * FT_YANG[4] + n[2] * FT_YANG[5];
+    dX[4] = o[0] * FT_YANG[3] + o[1] * FT_YANG[4] + o[2] * FT_YANG[5];
+    dX[5] = a[0] * FT_YANG[3] + a[1] * FT_YANG[4] + a[2] * FT_YANG[5];
 
 
-	double TangentArc[3] = { 0 };
-	static double TangentArc0[3] = { 0 };
-	static double TangentArc1[3] = { 0 };
-	static double TangentArc2[3] = { 0 };
-	static bool MoveDirection = true;
-	static bool MoveDirectionT = true, MoveDirectionF = false;
-	static bool MoveDirectionChange = false;
-	static int StartCount = 1000;
-	double CosTheta1, CosTheta2;
+    FT_YANG[0] = -FT_KAI[0];FT_YANG[1] = -FT_KAI[1];FT_YANG[2] = FT_KAI[2];
+    FT_YANG[3] = -FT_KAI[3];FT_YANG[4] = -FT_KAI[4];FT_YANG[5] = FT_KAI[5];
 
+
+    double FmInWorld[6];
+    FmInWorld[0] = n[0] * FT_YANG[0] + n[1] * FT_YANG[1] + n[2] * FT_YANG[2];
+    FmInWorld[1] = o[0] * FT_YANG[0] + o[1] * FT_YANG[1] + o[2] * FT_YANG[2];
+    FmInWorld[2] = a[0] * FT_YANG[0] + a[1] * FT_YANG[1] + a[2] * FT_YANG[2];
+    FmInWorld[3] = n[0] * FT_YANG[3] + n[1] * FT_YANG[4] + n[2] * FT_YANG[5];
+    FmInWorld[4] = o[0] * FT_YANG[3] + o[1] * FT_YANG[4] + o[2] * FT_YANG[5];
+    FmInWorld[5] = a[0] * FT_YANG[3] + a[1] * FT_YANG[4] + a[2] * FT_YANG[5];
 
 
 
-    static double pArc, vArc, aArc, vArcMax = 0.05;
+
+    static double pArc, vArc, aArc, vArcMax = 0.07;
 	aris::Size t_count;
 
-    double Square[4][3] = { {0,0.07,0.5},
-                            {0,0.07,0.7},
-                            {0,-0.2,0.7},
-                            {0,-0.2,0.5}};
+    double Square[4][3] = { {0,0,0.73},
+                            {0,0,0.3},
+                            {0,-0.3,0.3},
+                            {0,-0.3,0.73}};
 
 
 	static double MoveLength = 0;
@@ -1896,27 +1944,27 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
 		vArc = 0;
 	}
 
-
+//vArc=0;
 	if (target.count > StartCount)
 	{
 		if (MoveDirection)
 		{
-            dX[0] = dX[0]+0 * vArc * TangentArc[0] / 1000;
+            dX[0] = dX[0]+1 * vArc * TangentArc[0] / 1000;
             dX[1] = dX[1]+1*vArc * TangentArc[1] / 1000;
             dX[2] = dX[2]+1*vArc * TangentArc[2] / 1000;
 
 		}
 		else
 		{
-            dX[0] = dX[0]+0 * vArc * TangentArc[0] / 1000;
+            dX[0] = dX[0]+1 * vArc * TangentArc[0] / 1000;
             dX[1] = dX[1]+1*vArc * TangentArc[1] / 1000;
             dX[2] = dX[2]+1*vArc * TangentArc[2] / 1000;
 		}
 		if (target.count > StartCount&&MoveDirectionT == true && MoveDirectionF == false)
 			if (MoveDirection)
-				MoveLength = MoveLength + sqrt(dX[1] * dX[1] + dX[2] * dX[2]);
+                MoveLength = MoveLength + sqrt(dX[0] * dX[0] + dX[2] * dX[2]);
 			else
-				MoveLength = MoveLength - sqrt(dX[1] * dX[1] + dX[2] * dX[2]);
+                MoveLength = MoveLength - sqrt(dX[0] * dX[0] + dX[2] * dX[2]);
 	}
 
 
@@ -1998,6 +2046,14 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
      lout << FT[0] << ",";lout << FT[1] << ",";
      lout << FT[2] << ",";lout << FT[3] << ",";
      lout << FT[4] << ",";lout << FT[5] << ",";
+
+     lout << TangentArc[0] << ",";lout << TangentArc[1] << ",";
+     lout << TangentArc[2] << ",";
+
+     lout << FTint[0] << ",";lout << FTint[1] << ",";
+     lout << FTint[2] << ",";lout << FTint[3] << ",";
+     lout << FTint[4] << ",";lout << FTint[5] << ",";
+
     lout << std::endl;
 
 
@@ -2064,20 +2120,22 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
 
 
 
+    if(abs(FT_KAI[2])<20)
+    {
+        for (int i = 0; i < 6; i++)
+        {
+            step_pjs[i] = step_pjs[i] + dTheta[i];
+            target.model->motionPool().at(i).setMp(step_pjs[i]);
+        }
+    }
 
-
-	for (int i = 0; i < 6; i++)
-	{
-		step_pjs[i] = step_pjs[i] + dTheta[i];
-        //target.model->motionPool().at(i).setMp(step_pjs[i]);
-	}
 
     if (target.count % 300 == 0)
     {
 
-        cout << vArc << "****" << dTheta[1] << "****" <<CountFmax<< endl;
+        //cout << vArc << "****" << dTheta[1] << "****" <<CountFmax<< endl;
 
-        //cout << FT_KAI[0] << "*" <<FT_KAI[1] << "*" << FT_KAI[2] << endl;
+        cout << FT_KAI[2] << "*" <<FT_KAI[3] << "*" << FT_KAI[4] <<"*"<<TangentArc[0]<< "*"<<TangentArc[1]<<"*"<<TangentArc[2]<<endl;
         //cout << FT_KAI[2] << "*" << NormalAng << "*" << TransVector[4] << "*" << TransVector[5] << "*" << TransVector[6] << "*" << FT0[2] << endl;
         //cout << FT_KAI[2] << "*" << NormalAng << "*" << TransVector[8] << "*" << TransVector[9] << "*" << TransVector[10] << "*" << FT0[2] << endl;
 

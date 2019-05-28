@@ -276,11 +276,11 @@ namespace kaanh
             controller->slavePool().add<aris::control::EthercatMotion>().loadXmlStr(xml_str);
         }
 
-        /*
+
         //ATI force sensor//
         std::string xml_str =
-            "<EthercatSlave phy_id=\"0\" product_code=\"0x26483053\""
-            " vendor_id=\"0x00000732\" revision_num=\"0x00000001\" dc_assign_activate=\"0x300\">"
+            "<EthercatSlave phy_id=\"6\" product_code=\"0x26483053\""
+            " vendor_id=\"0x00000732\" revision_num=\"0x00000001\" dc_assign_activate=\"0x00\">"
             "	<SyncManagerPoolObject>"
             "		<SyncManager is_tx=\"false\"/>"
             "		<SyncManager is_tx=\"true\"/>"
@@ -306,7 +306,7 @@ namespace kaanh
             "</EthercatSlave>";
 
         controller->slavePool().add<aris::control::EthercatSlave>().loadXmlStr(xml_str);
-        */
+
 
         return controller;
     };
@@ -3239,39 +3239,41 @@ namespace kaanh
             controller->ecSlavePool().at(6).readPdo(0x6010, 0x00, &param.status_code, 32);
             controller->ecSlavePool().at(6).readPdo(0x6020, 0x00, &param.sample_counter, 32);
 
-            /*
-            double Fx = param.Fx*20.0 / 65536;
-            double Fy = param.Fy*20.0 / 65536;
-            double Fz = param.Fz*20.0 / 65536;
-            double Mx = param.Mx*20.0 / 65536;
-            double My = param.My*20.0 / 65536;
-            double Mz = param.Mz*20.0 / 65536;
-            */
+
+            double Fx = param.Fx*1000.0 / std::pow(2,32);
+            double Fy = param.Fy*1000.0 / std::pow(2,32);
+            double Fz = param.Fz*1800.0 / std::pow(2,32);
+            double Mx = param.Mx*40.0 / std::pow(2,32);
+            double My = param.My*40.0 / std::pow(2,32);
+            double Mz = param.Mz*40.0 / std::pow(2,32);
+
             //print//
             auto &cout = controller->mout();
             if (target.count % 100 == 0)
             {
-                cout << std::setw(6) << param.Fx << "  ";
-                cout << std::setw(6) << param.Fy << "  ";
-                cout << std::setw(6) << param.Fz << "  ";
-                cout << std::setw(6) << param.Mx << "  ";
-                cout << std::setw(6) << param.My << "  ";
-                cout << std::setw(6) << param.Mz << "  ";
+                cout << std::setw(6) << Fx << "  ";
+                cout << std::setw(6) << Fy << "  ";
+                cout << std::setw(6) << Fz << "  ";
+                cout << std::setw(6) << Mx << "  ";
+                cout << std::setw(6) << My << "  ";
+                cout << std::setw(6) << Mz << "  ";
                 cout << std::setw(6) << param.status_code << "  ";
                 cout << std::setw(6) << param.sample_counter << "  ";
+                cout << std::pow(2,32) <<" ";
                 cout << std::endl;
+
                 cout << "----------------------------------------------------" << std::endl;
             }
 
             //log//
             auto &lout = controller->lout();
             {
-                lout << param.Fx << " ";
-                lout << param.Fy << " ";
-                lout << param.Fz << " ";
-                lout << param.Mx << " ";
-                lout << param.My << " ";
-                lout << param.Mz << " ";
+                lout << Fx << " ";
+                lout << Fy << " ";
+                lout << Fz << " ";
+                lout << Mx << " ";
+                lout << My << " ";
+                lout << Mz << " ";
                 lout << param.status_code << " ";
                 lout << param.sample_counter << " ";
                 lout << std::endl;
