@@ -2135,7 +2135,7 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
 
         //cout << vArc << "****" << dTheta[1] << "****" <<CountFmax<< endl;
 
-        cout << FT_KAI[2] << "*" <<FT_KAI[3] << "*" << FT_KAI[4] <<"*"<<TangentArc[0]<< "*"<<TangentArc[1]<<"*"<<TangentArc[2]<<endl;
+        cout << FT_KAI[2] << "*" <<FT_KAI[2] << "*" << FT_KAI[4] <<"*"<<q[0]<< "*"<<q[1]<<"*"<<q[2]<<endl;
         //cout << FT_KAI[2] << "*" << NormalAng << "*" << TransVector[4] << "*" << TransVector[5] << "*" << TransVector[6] << "*" << FT0[2] << endl;
         //cout << FT_KAI[2] << "*" << NormalAng << "*" << TransVector[8] << "*" << TransVector[9] << "*" << TransVector[10] << "*" << FT0[2] << endl;
 

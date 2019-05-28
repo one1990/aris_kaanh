@@ -449,6 +449,8 @@ void sixdistaldynamics::sixDistalCollision(const double * q, const double *dq,co
                 estFT[i] = ts[i]-estTor[i];
 
 
+
+
         }
 
 
