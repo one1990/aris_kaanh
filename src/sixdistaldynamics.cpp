@@ -446,7 +446,7 @@ void sixdistaldynamics::sixDistalCollision(const double * q, const double *dq,co
                 for (int j = 0; j < GroupDim; j++)
                     estTor[i] = estTor[i] + Y[i][j] * estParas[j];
             for (int i = 0; i < 6; i++)
-                estFT[i] = ts[i]-estTor[i];
+                estFT[i] = estTor[i];
 
 
 

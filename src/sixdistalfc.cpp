@@ -564,7 +564,7 @@ auto MoveDistal::executeRT(PlanTarget &target)->int
     conSensor->ecSlavePool().at(6).readPdo(0x6010, 0x00, &status_code, 32);
     conSensor->ecSlavePool().at(6).readPdo(0x6020, 0x00, &sample_counter, 32);
 
-    double ATIscale=1000000;
+    double ATIscale=1000000.0;
     FT[0] = FTint[0]/ ATIscale;
     FT[1] = FTint[1] / ATIscale;
     FT[2] = FTint[2]/ ATIscale;
@@ -1576,12 +1576,12 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
     conSensor->ecSlavePool().at(6).readPdo(0x6020, 0x00, &sample_counter, 32);
 
     double ATIscale=1000000.0;
-    FT[0] = FTint[0]/ ATIscale;
-    FT[1] = FTint[1] / ATIscale;
-    FT[2] = FTint[2]/ ATIscale;
-    FT[3] = FTint[3]/ ATIscale;
-    FT[4] = FTint[4]/ ATIscale;
-    FT[5] = FTint[5] / ATIscale;
+    FTReal[0] = FTint[0]/ ATIscale;
+    FTReal[1] = FTint[1] / ATIscale;
+    FTReal[2] = FTint[2]/ ATIscale;
+    FTReal[3] = FTint[3]/ ATIscale;
+    FTReal[4] = FTint[4]/ ATIscale;
+    FTReal[5] = FTint[5] / ATIscale;
 
 
 	for (int i = 0;i < 6;i++)
@@ -1602,13 +1602,13 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
         ddq[i] =0;
     }
 
-    sixDistalMatrix.sixDistalCollision(q, dq, ddq, FT, sixDistalMatrix.estParasFT, CollisionFT);
+    sixDistalMatrix.sixDistalCollision(q, dq, ddq, FTReal, sixDistalMatrix.estParasFT, CollisionFT);
 
 
 
     for (int j = 0; j < 6; j++)
     {
-        FT[j]=CollisionFT[j];
+        FT[j]=FTReal[j]-CollisionFT[j];
 
     }
 
@@ -1628,9 +1628,9 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
 
 
 
-	for (int j = 0; j < 6; j++)
+    for (int j = 0; j < 3; j++)
 	{
-        double A[3][3], B[3], CutFreq = 85;//SHANGHAI DIANQI EXP
+        double A[3][3], B[3], CutFreq = 105;//SHANGHAI DIANQI EXP
 		//CutFreq = 85;
 		A[0][0] = 0; A[0][1] = 1; A[0][2] = 0;
 		A[1][0] = 0; A[1][1] = 0; A[1][2] = 1;
@@ -1644,6 +1644,24 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
 		stateTor1[j][1] = stateTor0[j][1] + intDT * (A[1][0] * stateTor0[j][0] + A[1][1] * stateTor0[j][1] + A[1][2] * stateTor0[j][2] + B[1] * FT[j]);
 		stateTor1[j][2] = stateTor0[j][2] + intDT * (A[2][0] * stateTor0[j][0] + A[2][1] * stateTor0[j][1] + A[2][2] * stateTor0[j][2] + B[2] * FT[j]);
 	}
+
+    for (int j = 3; j < 6; j++)
+    {
+        double A[3][3], B[3], CutFreq = 105;//SHANGHAI DIANQI EXP
+        //CutFreq = 85;
+        A[0][0] = 0; A[0][1] = 1; A[0][2] = 0;
+        A[1][0] = 0; A[1][1] = 0; A[1][2] = 1;
+        A[2][0] = -CutFreq * CutFreq * CutFreq;
+        A[2][1] = -2 * CutFreq * CutFreq;
+        A[2][2] = -2 * CutFreq;
+        B[0] = 0; B[1] = 0;
+        B[2] = -A[2][0];
+        double intDT = 0.001;
+        stateTor1[j][0] = stateTor0[j][0] + intDT * (A[0][0] * stateTor0[j][0] + A[0][1] * stateTor0[j][1] + A[0][2] * stateTor0[j][2] + B[0] * FT[j]);
+        stateTor1[j][1] = stateTor0[j][1] + intDT * (A[1][0] * stateTor0[j][0] + A[1][1] * stateTor0[j][1] + A[1][2] * stateTor0[j][2] + B[1] * FT[j]);
+        stateTor1[j][2] = stateTor0[j][2] + intDT * (A[2][0] * stateTor0[j][0] + A[2][1] * stateTor0[j][1] + A[2][2] * stateTor0[j][2] + B[2] * FT[j]);
+    }
+
 
 
 	double FT_KAI[6];
@@ -1684,11 +1702,12 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
 	}
 
 
-
+double preF=-5;
 	double dXpid[6] = { 0,0,0,0,0,0 };
-    dXpid[2] = 1 * (FT_KAI[2] - (-5)) / 350000;
-    dXpid[3] = 1 * (FT_KAI[3]) / 18000;
-    dXpid[4] = 1 * (FT_KAI[4]) / 28000;
+
+    dXpid[2] = 1 * (FT_KAI[2] - (preF)) / 650000;
+    dXpid[3] = 1 * (FT_KAI[3]) / 4000;
+    dXpid[4] = 1 * (FT_KAI[4]) / 4000;
     dXpid[5] = 0 * (FT_KAI[5]) / 8000;
 
 
@@ -1699,11 +1718,23 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
     static bool MoveDirection = true;
     static bool MoveDirectionT = true, MoveDirectionF = false;
     static bool MoveDirectionChange = false;
-    static int StartCount = 20000;
+    static int StartCount = 12000;
     double CosTheta1, CosTheta2;
 
+
+/*
+    if (target.count > StartCount)
+    {
+        dXpid[2] = 1 * (FT_KAI[2] - (preF)) / 350000;
+        dXpid[3] = 1 * (FT_KAI[3]) / 20000;
+        dXpid[4] = 1 * (FT_KAI[4]) / 20000;
+        dXpid[5] = 0 * (FT_KAI[5]) / 8000;
+    }
+
+*/
     if (target.count > StartCount&&MoveDirectionF == true)
     {
+        dXpid[2] = 1 * (FT_KAI[2] - (preF)) / 650000;
         dXpid[3] = 0;
         dXpid[4] = 0;
         dXpid[5] = 0;
@@ -1750,22 +1781,26 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
 
 
 
-    static double pArc, vArc, aArc, vArcMax = 0.07;
+    static double pArc, vArc, aArc, vArcMax = 0.03;
 	aris::Size t_count;
 
-    double Square[4][3] = { {0,0,0.73},
-                            {0,0,0.3},
-                            {0,-0.3,0.3},
-                            {0,-0.3,0.73}};
+   // double Square[4][3] = { {0,-0.04,0.73},
+     //                       {0,-0.04,0.3},
+     //                       {0,-0.25,0.3},
+     //                       {0,-0.25,0.73}};
 
+    double Square[4][3] = { {0,-0.06,0.35},
+                            {0,-0.06,0.76},
+                            {0,-0.27,0.76},
+                            {0,-0.27,0.35}};
 
 	static double MoveLength = 0;
-	static double DecLength = 0.01, LengthT = 0.2, LengthF = 0.05;//LengthT>LengthF
+    static double DecLength = 0.01, LengthT = 0.2, LengthF = 0.45;//LengthT>LengthF
 
 	LengthT = sqrt((Square[0][1] - Square[1][1])*(Square[0][1] - Square[1][1]) + (Square[0][2] - Square[1][2])*(Square[0][2] - Square[1][2]));
 	double CountFmax = sqrt((Square[2][1] - Square[1][1])*(Square[2][1] - Square[1][1]) + (Square[2][2] - Square[1][2])*(Square[2][2] - Square[1][2])) / LengthF;
 
-
+CountFmax=4;
 	double DecTime = 0, Dec = 0;
 	static int count_offsetT = StartCount, count_offsetF = StartCount;
 	static double vArcEndT = 0, vArcEndF = 0;
@@ -1788,9 +1823,9 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
 	if (target.count > StartCount&&MoveDirectionT == true && MoveDirectionF == false)
 	{
 		if (CountT % 2 == 0)
-			MoveDirection = true;
+            MoveDirection = true;
 		else
-			MoveDirection = false;
+            MoveDirection = false;
 
 		if (abs(NormalVector[0]) < 0.01)
 		{
@@ -2015,7 +2050,61 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
             dX[j] = 0.00025;
         if (dX[j] < -0.00025)
             dX[j] = -0.00025;
+
 	}
+
+
+/*
+    if(PqEnd[2]>0.5&&MoveDirectionT == true&&MoveDirection==true)
+        dX[4]=0.00001;
+
+    if(PqEnd[2]>0.53&&MoveDirectionT == true&&MoveDirection==true)
+        dX[4]=0.00006;
+    if(PqEnd[2]>0.55&&MoveDirectionT == true&&MoveDirection==true)
+        dX[4]=0.00004;
+    if(PqEnd[2]>0.6&&MoveDirectionT == true&&MoveDirection==true)
+        dX[4]=0.00002;
+
+
+    if(PqEnd[2]>0.5&&MoveDirectionT == true&&MoveDirection==false)
+        dX[4]=-0.00001;
+    if(PqEnd[2]>0.53&&MoveDirectionT == true&&MoveDirection==false)
+        dX[4]=-0.00006;
+    if(PqEnd[2]>0.55&&MoveDirectionT == true&&MoveDirection==false)
+        dX[4]=-0.00004;
+    if(PqEnd[2]>0.6&&MoveDirectionT == true&&MoveDirection==false)
+        dX[4]=-0.00002;
+*/
+
+
+
+
+
+
+     /* shuzhi
+    if(PqEnd[2]>0.5&&MoveDirectionT == true&&MoveDirection==true)
+        dX[4]=0.00006;
+
+    if(PqEnd[2]>0.53&&MoveDirectionT == true&&MoveDirection==true)
+        dX[4]=0.00008;
+    if(PqEnd[2]>0.55&&MoveDirectionT == true&&MoveDirection==true)
+        dX[4]=0.00005;
+    if(PqEnd[2]>0.6&&MoveDirectionT == true&&MoveDirection==true)
+        dX[4]=0.00002;
+
+
+    if(PqEnd[2]>0.5&&MoveDirectionT == true&&MoveDirection==false)
+        dX[4]=-0.00006;
+    if(PqEnd[2]>0.53&&MoveDirectionT == true&&MoveDirection==false)
+        dX[4]=-0.00005;
+    if(PqEnd[2]>0.55&&MoveDirectionT == true&&MoveDirection==false)
+        dX[4]=-0.00008;
+    if(PqEnd[2]>0.6&&MoveDirectionT == true&&MoveDirection==false)
+        dX[4]=-0.00002;
+    */
+
+
+
 
 
 	// 打印电流 //
@@ -2038,21 +2127,21 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
 	//lout << stateTor1[0][0] << ",";lout << stateTor1[1][0] << ",";
 	//lout << stateTor1[2][0] << ",";lout << stateTor1[3][0] << ",";
    // lout << stateTor1[4][0] << ",";lout << stateTor1[5][0] << ",";
-    lout << FT_KAI[0] << ",";lout << FT_KAI[1] << ",";
-    lout << FT_KAI[2] << ",";lout << FT_KAI[3] << ",";
-    lout << FT_KAI[4] << ",";lout << FT_KAI[5] << ",";
+    lout << FT[0] << ",";lout << FT[1] << ",";
+    lout << FT[2] << ",";lout << FT[3] << ",";
+    lout << FT[4] << ",";lout << FT[5] << ",";
 
 
-     lout << FT[0] << ",";lout << FT[1] << ",";
-     lout << FT[2] << ",";lout << FT[3] << ",";
-     lout << FT[4] << ",";lout << FT[5] << ",";
+     lout << CollisionFT[0] << ",";lout << CollisionFT[1] << ",";
+     lout << CollisionFT[2] << ",";lout << CollisionFT[3] << ",";
+     lout << CollisionFT[4] << ",";lout << CollisionFT[5] << ",";
 
-     lout << TangentArc[0] << ",";lout << TangentArc[1] << ",";
-     lout << TangentArc[2] << ",";
+     //lout << TangentArc[0] << ",";lout << TangentArc[1] << ",";
+     //lout << TangentArc[2] << ",";
 
-     lout << FTint[0] << ",";lout << FTint[1] << ",";
-     lout << FTint[2] << ",";lout << FTint[3] << ",";
-     lout << FTint[4] << ",";lout << FTint[5] << ",";
+     lout << FTReal[0] << ",";lout << FTReal[1] << ",";
+     lout << FTReal[2] << ",";lout << FTReal[3] << ",";
+     lout << FTReal[4] << ",";lout << FTReal[5] << ",";
 
     lout << std::endl;
 
@@ -2120,7 +2209,7 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
 
 
 
-    if(abs(FT_KAI[2])<20)
+    if(abs(FT_KAI[2])<60)
     {
         for (int i = 0; i < 6; i++)
         {
@@ -2133,11 +2222,10 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
     if (target.count % 300 == 0)
     {
 
-        //cout << vArc << "****" << dTheta[1] << "****" <<CountFmax<< endl;
+        //cout <<FT_KAI[2] << "****"<<TangentArc[0] << "****" << TangentArc[1] << "****" <<TangentArc[2]<< endl;
 
-        cout << FT_KAI[2] << "*" <<FT_KAI[2] << "*" << FT_KAI[4] <<"*"<<q[0]<< "*"<<q[1]<<"*"<<q[2]<<endl;
-        //cout << FT_KAI[2] << "*" << NormalAng << "*" << TransVector[4] << "*" << TransVector[5] << "*" << TransVector[6] << "*" << FT0[2] << endl;
-        //cout << FT_KAI[2] << "*" << NormalAng << "*" << TransVector[8] << "*" << TransVector[9] << "*" << TransVector[10] << "*" << FT0[2] << endl;
+        cout << FT_KAI[2] << "*" <<FT[2] << "*" << FTReal[2] <<"*"<<dX[0]<< "*"<<dX[1]<<"*"<<PqEnd[2]<<endl;
+
 
                 //cout <<  FT_KAI[0]<<"***"<<FmInWorld[2]<<endl;
 

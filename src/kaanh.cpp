@@ -320,7 +320,7 @@ namespace kaanh
 		param.a3 = 0.04;
 		param.d4 = 0.43;
 
-		param.tool0_pe[2] = 0.106;
+        param.tool0_pe[2] = 0.106+0.07;
 
 		auto model = aris::dynamic::createModelPuma(param);
 		/*
