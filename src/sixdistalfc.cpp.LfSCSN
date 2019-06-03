@@ -3393,14 +3393,6 @@ void robotJacobianEnd(const double* q, double* JacoEnd)
 
 
 
-int signV(double x)
-{
-    double margin=0.01;
-    if (x > margin) return 1;
-    if (abs(x) < margin||abs(x) == margin) return 0;
-    if (x < -margin) return -1;
-}
-
 
 
 
@@ -3452,7 +3444,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 	double RobotVelocity[6];
 	double RobotAcceleration[6];
 	double TorqueSensor[6];
-    static double step_pjs[6],begin_pjs[6];
+	static double step_pjs[6];
     static double stateTor0[6][2], stateTor1[6][2];
     static double FT0[6];
 
@@ -3465,16 +3457,9 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 		for (int i = 0; i < 6; ++i)
 		{
 			step_pjs[i] = target.model->motionPool()[i].mp();
-            begin_pjs[i] = target.model->motionPool()[i].mp();
-            controller->motionPool().at(i).setModeOfOperation(10);	//切换到电流控制
+			// controller->motionPool().at(i).setModeOfOperation(10);	//切换到电流控制
 		}
-
 	}
-
-
-
-
-
 
 
 	if (target.model->solverPool().at(1).kinPos())return -1;
@@ -3536,7 +3521,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
     // /*Second-Order Filter
     for (int j = 0; j < 6; j++)
     {
-        double A[2][2], B[2], CutFreq = 600;//SHANGHAI DIANQI EXP
+        double A[2][2], B[2], CutFreq = 20;//SHANGHAI DIANQI EXP
         //CutFreq = 85;
         A[0][0] = 0; A[0][1] = 1;
         A[1][0] = -CutFreq*CutFreq; A[1][1] = -sqrt(2)*CutFreq;
@@ -3559,7 +3544,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
     {
         for (int j = 0; j < 6; j++)
         {
-            FT0[j] = FT[j];
+            FT0[j] = stateTor1[j][0];
         }
     }
 
@@ -3568,7 +3553,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
     {
         for (int j = 0; j < 6; j++)
         {
-            FT0[j] = FT[j];
+            FT0[j] = stateTor1[j][0];
         }
     }
 
@@ -3576,7 +3561,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 	double FT_KAI[6];
 	for (int i = 0; i < 6; i++)
 	{
-        FT_KAI[i] = FT[i] - FT0[i];//In KAI Coordinate
+        FT_KAI[i] = stateTor1[i][0] - FT0[i];//In KAI Coordinate
 	}
 
 
@@ -3642,9 +3627,9 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 	//lout << FmInWorld[2] << ",";lout << FT0[2] << ",";
 
 
-    //lout << FT[0] << ",";lout << FT[1] << ",";
-    //lout << FT[2] << ",";lout << FT[3] << ",";
-    //lout << FT[4] << ",";lout << FT[5] << ",";
+    lout << FT[0] << ",";lout << FT[1] << ",";
+    lout << FT[2] << ",";lout << FT[3] << ",";
+    lout << FT[4] << ",";lout << FT[5] << ",";
 
 
 
@@ -3731,7 +3716,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
      // /*Second-Order Filter
      for (int j = 0; j < 6; j++)
      {
-         double A[2][2], B[2], CutFreq = 20;//SHANGHAI DIANQI EXP
+         double A[2][2], B[2], CutFreq = 10;//SHANGHAI DIANQI EXP
          //CutFreq = 85;
          A[0][0] = 0; A[0][1] = 1;
          A[1][0] = -CutFreq*CutFreq; A[1][1] = -sqrt(2)*CutFreq;
@@ -3748,7 +3733,16 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 
 
 
+    if (target.count % 300 == 0)
+    {
 
+        cout << FT_KAI[0] << "***" << FT_KAI[1] << "***" << FmInWorld[1] << endl;
+
+        //cout <<  FT_KAI[0]<<"***"<<FmInWorld[2]<<endl;
+
+        cout << std::endl;
+
+    }
 
 	for (int i = 0; i < 6; i++)
 	{
@@ -3756,71 +3750,20 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 
 	}
 
-
-
-	for (int i = 0; i < 6; i++)
-	{
-        step_pjs[i] = step_pjs[i] + dTheta[i];
-       // target.model->motionPool().at(i).setMp(step_pjs[i]);
-	}
-
-
-
-    double pa[6]={0},va[6]={0};
-    double ft_offset[6] = {0};
-    double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
-    double f_static[6] = { 0,0,0,0,0,0 };
-    double f_vel_JRC[6] = { 0,0,0,0,0,0};
-
-
-    double KP[6]={180,180,100,30,30,30};
-
-    //动力学
-    for (int i = 0; i < 6; ++i)
-    {
-        target.model->motionPool()[i].setMp(controller->motionPool()[i].actualPos());
-        target.model->motionPool().at(i).setMv(controller->motionAtAbs(i).actualVel());
-        target.model->motionPool().at(i).setMa(0.0);
-    }
-
-    target.model->solverPool()[1].kinPos();
-    target.model->solverPool()[1].kinVel();
-    target.model->solverPool()[2].dynAccAndFce();
-
-
-
-    for (int i = 0; i < 6; i++)
-    {
-    pa[i] = controller->motionAtAbs(i).actualPos();
-    va[i] = controller->motionAtAbs(i).actualVel();
-    ft_offset[i]=(10*KP[i]*(step_pjs[i]-pa[i])+target.model->motionPool()[i].mfDyn()+f_vel_JRC[i]*va[i] + f_static[i]*signV(va[i]))*f2c_index[i];
-    ft_offset[i] = std::max(-500.0, ft_offset[i]);
-    ft_offset[i] = std::min(500.0, ft_offset[i]);
-    //if(abs(pa[i])<1)
-        controller->motionAtAbs(i).setTargetCur(ft_offset[i]);
-    }
-
-
     lout << dTheta[0] << ",";lout << dTheta[1] << ",";
     lout << dTheta[2] << ",";lout << dTheta[3] << ",";
     lout << dTheta[4] << ",";lout << dTheta[5] << ",";
 
-    //lout << va[0] << ",";lout << va[1] << ",";
-    //lout << va[2] << ",";lout << va[3] << ",";
-    //lout << va[4] << ",";lout << va[5] << ",";
+    lout << dThetaFil[0] << ",";lout << dThetaFil[1] << ",";
+    lout << dThetaFil[2] << ",";lout << dThetaFil[3] << ",";
+    lout << dThetaFil[4] << ",";lout << dThetaFil[5] << ",";
     lout << std::endl;
 
-
-    if (target.count % 300 == 0)
-    {
-
-        cout << step_pjs[2] << "***" << ft_offset[2] << "***" << step_pjs[2] << endl;
-
-        //cout <<  FT_KAI[0]<<"***"<<FmInWorld[2]<<endl;
-
-    }
-
-
+	for (int i = 0; i < 6; i++)
+	{
+        step_pjs[i] = step_pjs[i] + dThetaFil[i];
+        target.model->motionPool().at(i).setMp(step_pjs[i]);
+	}
 
 	for (int i = 0; i < 6; i++)
 	{
