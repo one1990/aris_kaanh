@@ -327,8 +327,15 @@ auto JointTest::prepairNrt(const std::map<std::string, std::string> &params, Pla
     for (int i = 0;i < 10;i++)
          JointMatrix.LoadParas[i] = mat3->data().data()[i];
 
-    //for (int i = 0;i < JointReduceDim;i++)
+	double LoadAll[JointGroupDim] = { 0 };
+	for (int i = JointGroupDim-10;i < JointGroupDim;i++)
+		LoadAll[i] = JointMatrix.LoadParas[i-(JointGroupDim - 10)];
 
+	
+	double LoadParasAdd[JointReduceDim] = { 0 };
+	s_mm(JointReduceDim, 1, JointGroupDim, JointMatrix.CoefParasJoint, LoadAll, LoadParasAdd);
+	for (int i = 0;i < JointReduceDim;i++)
+		JointMatrix.estParasJoint[i] = JointMatrix.estParasJoint[i]+ LoadParasAdd[i];
 
 }
 auto JointTest::executeRT(PlanTarget &target)->int
