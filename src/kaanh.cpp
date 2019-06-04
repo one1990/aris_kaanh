@@ -33,8 +33,8 @@ namespace kaanh
         controller->slavePool().back().setPhyId(6);
         dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanInfoForCurrentSlave();
         dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanPdoForCurrentSlave();
-        dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).setDcAssignActivate(0x300);
-
+        dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).setDcAssignActivate(0x00);
+/*
         controller->slavePool().add<aris::control::EthercatSlave>();
         controller->slavePool().back().setPhyId(7);
         dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanInfoForCurrentSlave();
@@ -45,6 +45,7 @@ namespace kaanh
         dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanInfoForCurrentSlave();
         dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanPdoForCurrentSlave();
         //dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).setDcAssignActivate(0x300);
+*/
 #endif		
 
 		return controller;
@@ -3780,7 +3781,7 @@ namespace kaanh
 		auto&cs = aris::server::ControlServer::instance();
 		if (cs.running())throw std::runtime_error("cs is running, can not set position offset,please stop the cs!");
 
-		cs.resetSensorRoot(new aris::sensor::SensorRoot);
+        //cs.resetSensorRoot(new aris::sensor::SensorRoot);
 
 		auto xmlpath = std::filesystem::absolute(".");
 		const std::string xmlfile = "kaanh.xml";
