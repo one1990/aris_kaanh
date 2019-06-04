@@ -335,7 +335,7 @@ auto JointTest::prepairNrt(const std::map<std::string, std::string> &params, Pla
 	double LoadParasAdd[JointReduceDim] = { 0 };
 	s_mm(JointReduceDim, 1, JointGroupDim, JointMatrix.CoefParasJoint, LoadAll, LoadParasAdd);
 	for (int i = 0;i < JointReduceDim;i++)
-		JointMatrix.estParasJoint[i] = JointMatrix.estParasJoint[i]+ LoadParasAdd[i];
+        JointMatrix.estParasJoint[i] = JointMatrix.estParasJoint[i]+ 1*LoadParasAdd[i];
 
 }
 auto JointTest::executeRT(PlanTarget &target)->int
@@ -498,10 +498,15 @@ auto DragTeach::prepairNrt(const std::map<std::string, std::string> &params, Pla
 	for (int i = 0;i < JointReduceDim*JointGroupDim;i++)
 		JointMatrix.CoefParasJointInv[i] = mat2->data().data()[i];
 
-	//auto mat3 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("LoadParas"));
-	for (int i = 0;i < 10;i++)
-		JointMatrix.LoadParas[i] = 0;
+    double LoadAll[JointGroupDim] = { 0 };
+        for (int i = JointGroupDim-10;i < JointGroupDim;i++)
+            LoadAll[i] = JointMatrix.LoadParas[i-(JointGroupDim - 10)];
 
+
+    double LoadParasAdd[JointReduceDim] = { 0 };
+    s_mm(JointReduceDim, 1, JointGroupDim, JointMatrix.CoefParasJoint, LoadAll, LoadParasAdd);
+    for (int i = 0;i < JointReduceDim;i++)
+          JointMatrix.estParasJoint[i] = JointMatrix.estParasJoint[i]+ 1*LoadParasAdd[i];
 
 }
 auto DragTeach::executeRT(PlanTarget &target)->int
