@@ -42,7 +42,7 @@ auto JointDyna::prepairNrt(const std::map<std::string, std::string> &params, Pla
 
 	target.param = param;
 
-	target.option |=
+ for(auto &option:target.mot_options) option|=
 		Plan::USE_TARGET_POS |
 		//#ifdef WIN32
 		Plan::NOT_CHECK_POS_MIN |
@@ -293,7 +293,7 @@ auto JointTest::prepairNrt(const std::map<std::string, std::string> &params, Pla
 
 	target.param = param;
 
-	target.option |=
+    for(auto &option:target.mot_options) option|=
 		Plan::USE_TARGET_POS |
 		//#ifdef WIN32
 		Plan::NOT_CHECK_POS_MIN |
@@ -323,9 +323,11 @@ auto JointTest::prepairNrt(const std::map<std::string, std::string> &params, Pla
 	for (int i = 0;i < JointReduceDim*JointGroupDim;i++)
 		JointMatrix.CoefParasJointInv[i] = mat2->data().data()[i];
 
-    //auto mat3 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("LoadParas"));
+    auto mat3 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("LoadParas"));
     for (int i = 0;i < 10;i++)
-    JointMatrix.LoadParas[i] = 0;
+         JointMatrix.LoadParas[i] = mat3->data().data()[i];
+
+    //for (int i = 0;i < JointReduceDim;i++)
 
 
 }
@@ -459,7 +461,7 @@ auto DragTeach::prepairNrt(const std::map<std::string, std::string> &params, Pla
 
 	target.param = param;
 
-	target.option |=
+    for(auto &option:target.mot_options) option|=
 		Plan::USE_TARGET_POS |
 		//#ifdef WIN32
 		Plan::NOT_CHECK_POS_MIN |
@@ -624,7 +626,7 @@ auto LoadDyna::prepairNrt(const std::map<std::string, std::string> &params, Plan
 
 	target.param = param;
 
-	target.option |=
+    for(auto &option:target.mot_options) option|=
 		Plan::USE_TARGET_POS |
 		//#ifdef WIN32
 		Plan::NOT_CHECK_POS_MIN |
@@ -862,7 +864,7 @@ auto LoadDyna::collectNrt(aris::plan::PlanTarget &target)->void
 
 	if (param.amplitude > 0)
 	{
-		JointMatrix.LoadRLS(AngleList, TorqueList, JointMatrix.estParasL0, JointMatrix.CoefParasL0, StatisError);
+        JointMatrix.LoadRLS(AngleList, TorqueList, JointMatrix.estParasL0, StatisError);
 		for (int i = 0;i < LoadReduceParas + 6;i++)
 			cout << JointMatrix.estParasL0[i] << ",";
 
@@ -878,18 +880,8 @@ auto LoadDyna::collectNrt(aris::plan::PlanTarget &target)->void
 			target.model->variablePool().add<aris::dynamic::MatrixVariable>("estParasL0", mat0);
 		}
 
-		
-		aris::core::Matrix mat1(1,LoadReduceParas*LoadTotalParas, JointMatrix.CoefParasL0);
-		if (target.model->variablePool().findByName("CoefParasL0") !=
-			target.model->variablePool().end())
-		{
-			dynamic_cast<aris::dynamic::MatrixVariable*>(
-				&*target.model->variablePool().findByName("CoefParasL0"))->data() = mat1;
-		}
-		else
-		{
-			target.model->variablePool().add<aris::dynamic::MatrixVariable>("CoefParasL0", mat1);
-		}
+
+
 
 		cout << "collect0" <<endl;
 	}
@@ -900,23 +892,15 @@ auto LoadDyna::collectNrt(aris::plan::PlanTarget &target)->void
 		for (int i = 0;i < LoadReduceParas + 6;i++)
 			JointMatrix.estParasL0[i] = mat0->data().data()[i];
 
-		auto mat1 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("CoefParasL0"));
-		for (int i = 0;i < LoadReduceParas*LoadTotalParas;i++)
-			JointMatrix.CoefParasL0[i] = mat0->data().data()[i];
-
-
-		JointMatrix.LoadRLS(AngleList, TorqueList, JointMatrix.estParasL, JointMatrix.CoefParasL,StatisError);
+        JointMatrix.LoadRLS(AngleList, TorqueList, JointMatrix.estParasL, StatisError);
 
 
 		for (int i = 0;i < LoadReduceParas;i++)
 			dEst[i] = JointMatrix.estParasL[i] - JointMatrix.estParasL0[i];
 
-		for (int i = 0;i < LoadReduceParas;i++)
-			for (int j = 0;j < 10;j++)
-				dCoef[i * 10 + j] = JointMatrix.CoefParasL[i*LoadTotalParas+30+j] - JointMatrix.CoefParasL0[i * LoadTotalParas + 30 + j];
 
 
-		JointMatrix.LoadParasExt(dEst,dCoef, JointMatrix.LoadParas);
+        JointMatrix.LoadParasExt(dEst,JointMatrix.LoadParas);
 		for (int i = 0;i < 10;i++)
 			cout << JointMatrix.LoadParas[i] << ",";
 

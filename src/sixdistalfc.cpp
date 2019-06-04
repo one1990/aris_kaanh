@@ -564,7 +564,7 @@ auto MoveDistal::executeRT(PlanTarget &target)->int
     conSensor->ecSlavePool().at(6).readPdo(0x6010, 0x00, &status_code, 32);
     conSensor->ecSlavePool().at(6).readPdo(0x6020, 0x00, &sample_counter, 32);
 
-    double ATIscale=1000000;
+    double ATIscale=1000000.0;
     FT[0] = FTint[0]/ ATIscale;
     FT[1] = FTint[1] / ATIscale;
     FT[2] = FTint[2]/ ATIscale;
@@ -1576,12 +1576,12 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
     conSensor->ecSlavePool().at(6).readPdo(0x6020, 0x00, &sample_counter, 32);
 
     double ATIscale=1000000.0;
-    FT[0] = FTint[0]/ ATIscale;
-    FT[1] = FTint[1] / ATIscale;
-    FT[2] = FTint[2]/ ATIscale;
-    FT[3] = FTint[3]/ ATIscale;
-    FT[4] = FTint[4]/ ATIscale;
-    FT[5] = FTint[5] / ATIscale;
+    FTReal[0] = FTint[0]/ ATIscale;
+    FTReal[1] = FTint[1] / ATIscale;
+    FTReal[2] = FTint[2]/ ATIscale;
+    FTReal[3] = FTint[3]/ ATIscale;
+    FTReal[4] = FTint[4]/ ATIscale;
+    FTReal[5] = FTint[5] / ATIscale;
 
 
 	for (int i = 0;i < 6;i++)
@@ -1602,13 +1602,13 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
         ddq[i] =0;
     }
 
-    sixDistalMatrix.sixDistalCollision(q, dq, ddq, FT, sixDistalMatrix.estParasFT, CollisionFT);
+    sixDistalMatrix.sixDistalCollision(q, dq, ddq, FTReal, sixDistalMatrix.estParasFT, CollisionFT);
 
 
 
     for (int j = 0; j < 6; j++)
     {
-        FT[j]=CollisionFT[j];
+        FT[j]=FTReal[j]-CollisionFT[j];
 
     }
 
@@ -1628,9 +1628,9 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
 
 
 
-	for (int j = 0; j < 6; j++)
+    for (int j = 0; j < 3; j++)
 	{
-        double A[3][3], B[3], CutFreq = 85;//SHANGHAI DIANQI EXP
+        double A[3][3], B[3], CutFreq = 105;//SHANGHAI DIANQI EXP
 		//CutFreq = 85;
 		A[0][0] = 0; A[0][1] = 1; A[0][2] = 0;
 		A[1][0] = 0; A[1][1] = 0; A[1][2] = 1;
@@ -1644,6 +1644,24 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
 		stateTor1[j][1] = stateTor0[j][1] + intDT * (A[1][0] * stateTor0[j][0] + A[1][1] * stateTor0[j][1] + A[1][2] * stateTor0[j][2] + B[1] * FT[j]);
 		stateTor1[j][2] = stateTor0[j][2] + intDT * (A[2][0] * stateTor0[j][0] + A[2][1] * stateTor0[j][1] + A[2][2] * stateTor0[j][2] + B[2] * FT[j]);
 	}
+
+    for (int j = 3; j < 6; j++)
+    {
+        double A[3][3], B[3], CutFreq = 105;//SHANGHAI DIANQI EXP
+        //CutFreq = 85;
+        A[0][0] = 0; A[0][1] = 1; A[0][2] = 0;
+        A[1][0] = 0; A[1][1] = 0; A[1][2] = 1;
+        A[2][0] = -CutFreq * CutFreq * CutFreq;
+        A[2][1] = -2 * CutFreq * CutFreq;
+        A[2][2] = -2 * CutFreq;
+        B[0] = 0; B[1] = 0;
+        B[2] = -A[2][0];
+        double intDT = 0.001;
+        stateTor1[j][0] = stateTor0[j][0] + intDT * (A[0][0] * stateTor0[j][0] + A[0][1] * stateTor0[j][1] + A[0][2] * stateTor0[j][2] + B[0] * FT[j]);
+        stateTor1[j][1] = stateTor0[j][1] + intDT * (A[1][0] * stateTor0[j][0] + A[1][1] * stateTor0[j][1] + A[1][2] * stateTor0[j][2] + B[1] * FT[j]);
+        stateTor1[j][2] = stateTor0[j][2] + intDT * (A[2][0] * stateTor0[j][0] + A[2][1] * stateTor0[j][1] + A[2][2] * stateTor0[j][2] + B[2] * FT[j]);
+    }
+
 
 
 	double FT_KAI[6];
@@ -1684,11 +1702,12 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
 	}
 
 
-
+double preF=-5;
 	double dXpid[6] = { 0,0,0,0,0,0 };
-    dXpid[2] = 1 * (FT_KAI[2] - (-5)) / 350000;
-    dXpid[3] = 1 * (FT_KAI[3]) / 18000;
-    dXpid[4] = 1 * (FT_KAI[4]) / 28000;
+
+    dXpid[2] = 1 * (FT_KAI[2] - (preF)) / 650000;
+    dXpid[3] = 1 * (FT_KAI[3]) / 4000;
+    dXpid[4] = 1 * (FT_KAI[4]) / 4000;
     dXpid[5] = 0 * (FT_KAI[5]) / 8000;
 
 
@@ -1699,11 +1718,23 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
     static bool MoveDirection = true;
     static bool MoveDirectionT = true, MoveDirectionF = false;
     static bool MoveDirectionChange = false;
-    static int StartCount = 20000;
+    static int StartCount = 12000;
     double CosTheta1, CosTheta2;
 
+
+/*
+    if (target.count > StartCount)
+    {
+        dXpid[2] = 1 * (FT_KAI[2] - (preF)) / 350000;
+        dXpid[3] = 1 * (FT_KAI[3]) / 20000;
+        dXpid[4] = 1 * (FT_KAI[4]) / 20000;
+        dXpid[5] = 0 * (FT_KAI[5]) / 8000;
+    }
+
+*/
     if (target.count > StartCount&&MoveDirectionF == true)
     {
+        dXpid[2] = 1 * (FT_KAI[2] - (preF)) / 650000;
         dXpid[3] = 0;
         dXpid[4] = 0;
         dXpid[5] = 0;
@@ -1750,22 +1781,26 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
 
 
 
-    static double pArc, vArc, aArc, vArcMax = 0.07;
+    static double pArc, vArc, aArc, vArcMax = 0.03;
 	aris::Size t_count;
 
-    double Square[4][3] = { {0,0,0.73},
-                            {0,0,0.3},
-                            {0,-0.3,0.3},
-                            {0,-0.3,0.73}};
+   // double Square[4][3] = { {0,-0.04,0.73},
+     //                       {0,-0.04,0.3},
+     //                       {0,-0.25,0.3},
+     //                       {0,-0.25,0.73}};
 
+    double Square[4][3] = { {0,-0.06,0.35},
+                            {0,-0.06,0.76},
+                            {0,-0.27,0.76},
+                            {0,-0.27,0.35}};
 
 	static double MoveLength = 0;
-	static double DecLength = 0.01, LengthT = 0.2, LengthF = 0.05;//LengthT>LengthF
+    static double DecLength = 0.01, LengthT = 0.2, LengthF = 0.45;//LengthT>LengthF
 
 	LengthT = sqrt((Square[0][1] - Square[1][1])*(Square[0][1] - Square[1][1]) + (Square[0][2] - Square[1][2])*(Square[0][2] - Square[1][2]));
 	double CountFmax = sqrt((Square[2][1] - Square[1][1])*(Square[2][1] - Square[1][1]) + (Square[2][2] - Square[1][2])*(Square[2][2] - Square[1][2])) / LengthF;
 
-
+CountFmax=4;
 	double DecTime = 0, Dec = 0;
 	static int count_offsetT = StartCount, count_offsetF = StartCount;
 	static double vArcEndT = 0, vArcEndF = 0;
@@ -1788,9 +1823,9 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
 	if (target.count > StartCount&&MoveDirectionT == true && MoveDirectionF == false)
 	{
 		if (CountT % 2 == 0)
-			MoveDirection = true;
+            MoveDirection = true;
 		else
-			MoveDirection = false;
+            MoveDirection = false;
 
 		if (abs(NormalVector[0]) < 0.01)
 		{
@@ -2015,7 +2050,61 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
             dX[j] = 0.00025;
         if (dX[j] < -0.00025)
             dX[j] = -0.00025;
+
 	}
+
+
+/*
+    if(PqEnd[2]>0.5&&MoveDirectionT == true&&MoveDirection==true)
+        dX[4]=0.00001;
+
+    if(PqEnd[2]>0.53&&MoveDirectionT == true&&MoveDirection==true)
+        dX[4]=0.00006;
+    if(PqEnd[2]>0.55&&MoveDirectionT == true&&MoveDirection==true)
+        dX[4]=0.00004;
+    if(PqEnd[2]>0.6&&MoveDirectionT == true&&MoveDirection==true)
+        dX[4]=0.00002;
+
+
+    if(PqEnd[2]>0.5&&MoveDirectionT == true&&MoveDirection==false)
+        dX[4]=-0.00001;
+    if(PqEnd[2]>0.53&&MoveDirectionT == true&&MoveDirection==false)
+        dX[4]=-0.00006;
+    if(PqEnd[2]>0.55&&MoveDirectionT == true&&MoveDirection==false)
+        dX[4]=-0.00004;
+    if(PqEnd[2]>0.6&&MoveDirectionT == true&&MoveDirection==false)
+        dX[4]=-0.00002;
+*/
+
+
+
+
+
+
+     /* shuzhi
+    if(PqEnd[2]>0.5&&MoveDirectionT == true&&MoveDirection==true)
+        dX[4]=0.00006;
+
+    if(PqEnd[2]>0.53&&MoveDirectionT == true&&MoveDirection==true)
+        dX[4]=0.00008;
+    if(PqEnd[2]>0.55&&MoveDirectionT == true&&MoveDirection==true)
+        dX[4]=0.00005;
+    if(PqEnd[2]>0.6&&MoveDirectionT == true&&MoveDirection==true)
+        dX[4]=0.00002;
+
+
+    if(PqEnd[2]>0.5&&MoveDirectionT == true&&MoveDirection==false)
+        dX[4]=-0.00006;
+    if(PqEnd[2]>0.53&&MoveDirectionT == true&&MoveDirection==false)
+        dX[4]=-0.00005;
+    if(PqEnd[2]>0.55&&MoveDirectionT == true&&MoveDirection==false)
+        dX[4]=-0.00008;
+    if(PqEnd[2]>0.6&&MoveDirectionT == true&&MoveDirection==false)
+        dX[4]=-0.00002;
+    */
+
+
+
 
 
 	// 打印电流 //
@@ -2038,21 +2127,21 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
 	//lout << stateTor1[0][0] << ",";lout << stateTor1[1][0] << ",";
 	//lout << stateTor1[2][0] << ",";lout << stateTor1[3][0] << ",";
    // lout << stateTor1[4][0] << ",";lout << stateTor1[5][0] << ",";
-    lout << FT_KAI[0] << ",";lout << FT_KAI[1] << ",";
-    lout << FT_KAI[2] << ",";lout << FT_KAI[3] << ",";
-    lout << FT_KAI[4] << ",";lout << FT_KAI[5] << ",";
+    lout << FT[0] << ",";lout << FT[1] << ",";
+    lout << FT[2] << ",";lout << FT[3] << ",";
+    lout << FT[4] << ",";lout << FT[5] << ",";
 
 
-     lout << FT[0] << ",";lout << FT[1] << ",";
-     lout << FT[2] << ",";lout << FT[3] << ",";
-     lout << FT[4] << ",";lout << FT[5] << ",";
+     lout << CollisionFT[0] << ",";lout << CollisionFT[1] << ",";
+     lout << CollisionFT[2] << ",";lout << CollisionFT[3] << ",";
+     lout << CollisionFT[4] << ",";lout << CollisionFT[5] << ",";
 
-     lout << TangentArc[0] << ",";lout << TangentArc[1] << ",";
-     lout << TangentArc[2] << ",";
+     //lout << TangentArc[0] << ",";lout << TangentArc[1] << ",";
+     //lout << TangentArc[2] << ",";
 
-     lout << FTint[0] << ",";lout << FTint[1] << ",";
-     lout << FTint[2] << ",";lout << FTint[3] << ",";
-     lout << FTint[4] << ",";lout << FTint[5] << ",";
+     lout << FTReal[0] << ",";lout << FTReal[1] << ",";
+     lout << FTReal[2] << ",";lout << FTReal[3] << ",";
+     lout << FTReal[4] << ",";lout << FTReal[5] << ",";
 
     lout << std::endl;
 
@@ -2120,7 +2209,7 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
 
 
 
-    if(abs(FT_KAI[2])<20)
+    if(abs(FT_KAI[2])<60)
     {
         for (int i = 0; i < 6; i++)
         {
@@ -2133,11 +2222,10 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
     if (target.count % 300 == 0)
     {
 
-        //cout << vArc << "****" << dTheta[1] << "****" <<CountFmax<< endl;
+        //cout <<FT_KAI[2] << "****"<<TangentArc[0] << "****" << TangentArc[1] << "****" <<TangentArc[2]<< endl;
 
-        cout << FT_KAI[2] << "*" <<FT_KAI[3] << "*" << FT_KAI[4] <<"*"<<TangentArc[0]<< "*"<<TangentArc[1]<<"*"<<TangentArc[2]<<endl;
-        //cout << FT_KAI[2] << "*" << NormalAng << "*" << TransVector[4] << "*" << TransVector[5] << "*" << TransVector[6] << "*" << FT0[2] << endl;
-        //cout << FT_KAI[2] << "*" << NormalAng << "*" << TransVector[8] << "*" << TransVector[9] << "*" << TransVector[10] << "*" << FT0[2] << endl;
+        cout << FT_KAI[2] << "*" <<FT[2] << "*" << FTReal[2] <<"*"<<dX[0]<< "*"<<dX[1]<<"*"<<PqEnd[2]<<endl;
+
 
                 //cout <<  FT_KAI[0]<<"***"<<FmInWorld[2]<<endl;
 
@@ -3249,146 +3337,6 @@ MoveFeed::MoveFeed(const std::string &name) :Plan(name)
 		"</Command>");
 
 }
-
-
-
-
-
-
-
-void robotJacobianEnd(const double* q, double* JacoEnd)
-       {
-    double t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16, t17;
-    double t18, t19, t20, t21, t22, t23, t24, t25, t26, t27, t28, t29, t30, t31, t32;
-    double t33, t34, t35, t36, t37, t38, t39, t40, t41, t42, t43, t44, t45, t46, t47;
-    double t48, t49, t50, t51, t52, t53, t54, t55, t56, t57, t58, t59, t60, t61, t62;
-    double t63, t64, t65, t66, t67, t68, t69, t70, t71, t72, t73, t74, t75, t76, t77;
-    double q1, q2, q3, q4, q5, q6;
-
-           q1 = q[0]  * DirectionFlag[0] + JointOffset[0] + ZeroOffset[0];
-           q2 = q[1]  * DirectionFlag[1] + JointOffset[1] + ZeroOffset[1];
-           q3 = q[2]  * DirectionFlag[2] + JointOffset[2] + ZeroOffset[2];
-           q4 = q[3]  * DirectionFlag[3] + JointOffset[3] + ZeroOffset[3];
-           q5 = q[4]  * DirectionFlag[4] + JointOffset[4] + ZeroOffset[4];
-           q6 = q[5]  * DirectionFlag[5] + JointOffset[5] + ZeroOffset[5];
-
-           double MC1, MC2, MC3;
-           MC1 = EndPoint[0]; MC2 = EndPoint[1]; MC3 = EndPoint[2];
-
-           double A0[6][6];
-           for (int i = 0;i < 6;i++)
-               for (int j = 0;j < 6;j++)
-                   A0[i][j]=0;
-
-           t2 = cos(q6);
-           t3 = sin(q6);
-           t4 = cos(q5);
-           t5 = sin(q5);
-           t6 = MC1 * t2;
-           t14 = MC2 * t3;
-           t7 = t6 - t14;
-           t8 = sin(q4);
-           t9 = MC2 * t2;
-           t10 = MC1 * t3;
-           t11 = t9 + t10;
-           t12 = cos(q4);
-           t13 = MC3 * t5;
-           t22 = t4 * t7;
-           t15 = t13 - t22;
-           t16 = cos(q3);
-           t17 = MC3 * t4;
-           t18 = t5 * t7;
-           t19 = d4 + t17 + t18;
-           t20 = sin(q3);
-           t21 = t8 * t11;
-           t23 = t12 * t15;
-           t24 = -a4 + t21 + t23;
-           t25 = cos(q1);
-           t26 = sin(q2);
-           t27 = t19 * t20;
-           t28 = t16 * t24;
-           t29 = -a3 + t27 + t28;
-           t30 = cos(q2);
-           t31 = t16 * t19;
-           t33 = t20 * t24;
-           t32 = t31 - t33;
-           t34 = sin(q1);
-           t35 = t8 * t15;
-           t36 = t17 + t18;
-           t37 = t7 * t8;
-           t38 = t4 * t11*t12;
-           t39 = t37 + t38;
-           t51 = t11 * t12;
-           t40 = t35 - t51;
-           t41 = t29 * t30;
-           t42 = t26 * t32;
-           t43 = -a2 + t41 + t42;
-           t44 = t26 * t29;
-           t46 = t30 * t32;
-           t45 = t44 - t46;
-           t47 = t27 + t28;
-           t48 = t21 + t23;
-           t49 = q2 + q3;
-           t50 = cos(t49);
-           t52 = t15 * t20;
-           t68 = t12 * t16*t36;
-           t53 = t52 - t68;
-           t54 = t30 * t53;
-           t55 = t15 * t16;
-           t56 = t12 * t20*t36;
-           t57 = t55 + t56;
-           t58 = t26 * t57;
-           t59 = t54 + t58;
-           t60 = t16 * t39;
-           t69 = t5 * t11*t20;
-           t61 = t60 - t69;
-           t62 = t20 * t39;
-           t63 = t5 * t11*t16;
-           t64 = t62 + t63;
-           t65 = t26 * t64;
-           t66 = t7 * t12;
-           t67 = t66 - t4 * t8*t11;
-           t70 = sin(t49);
-           A0[0][0] = -t25 * t40 + t34 * t43;
-           A0[0][1] = t25 * t45;
-           A0[0][2] = -t25 * (t30*t32 - t26 * t47);
-           A0[0][3] = -t34 * t48 + t25 * t40*t50;
-           A0[0][4] = t25 * t59 - t8 * t34*t36;
-           A0[0][5] = t34 * t67 + t25 * (t65 - t30 * t61);
-           A0[1][0] = -t25 * t43 - t34 * t40;
-           A0[1][1] = t34 * t45;
-           A0[1][2] = -t34 * (t46 - t26 * t47);
-           A0[1][3] = t25 * t48 + t34 * t50*(t35 - t51);
-           A0[1][4] = t34 * t59 + t8 * t25*t36;
-           A0[1][5] = -t25 * t67 + t34 * (t65 - t30 * t61);
-           A0[2][1] = t41 + t42;
-           A0[2][2] = t42 + t30 * t47;
-           A0[2][3] = -t40 * t70;
-           A0[2][4] = -t26 * t53 + t30 * t57;
-           A0[2][5] = t26 * t61 + t30 * t64;
-           A0[3][1] = -t34;
-           A0[3][2] = -t34;
-           A0[3][3] = -t25 * t70;
-           A0[3][4] = -t12 * t34 + t8 * t25*t50;
-           A0[3][5] = -t5 * (t8*t34 + t12 * t25*t50) - t4 * t25*t70;
-           A0[4][1] = t25;
-           A0[4][2] = t25;
-           A0[4][3] = -t34 * t70;
-           A0[4][4] = t12 * t25 + t8 * t34*t50;
-           A0[4][5] = t5 * (t8*t25 - t12 * t34*t50) - t4 * t34*t70;
-           A0[5][0] = 1.0;
-           A0[5][3] = -t50;
-           A0[5][4] = -t8 * t70;
-           A0[5][5] = -t4 * t50 + t5 * t12*t70;
-
-
-           for (int i = 0;i < 6;i++)
-               for (int j = 0;j < 6;j++)
-                   JacoEnd[i * 6 + j] = A0[i][j];
-
-
-       }
-
 
 
 
