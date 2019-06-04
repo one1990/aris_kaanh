@@ -15,7 +15,8 @@ std::vector<std::vector<std::string>> plantrack(6, std::vector<std::string>());
 std::atomic_int which_di = 0;
 
 auto xmlpath = std::filesystem::absolute(".");//获取当前工程所在的路径
-const std::string xmlfile = "rokae.xml";
+const std::string xmlfile = "kaanh.xml";
+
 
 int main(int argc, char *argv[])
 {
@@ -26,7 +27,7 @@ int main(int argc, char *argv[])
 	auto&cs = aris::server::ControlServer::instance();
 	auto port = argc < 2 ? 5866 : std::stoi(argv[1]);
 
-	//生成rokae.xml文档
+	//生成kaanh.xml文档
 	/*
     //-------for rokae robot begin//
     cs.resetController(kaanh::createControllerRokaeXB4().release());
@@ -37,7 +38,7 @@ int main(int argc, char *argv[])
     cs.saveXmlFile(xmlpath.string().c_str());
     //-------for rokae robot end// 
 	*/
-	
+
     /*
     //-------for sanxiang robot begin//
     cs.resetController(kaanh::createControllerSanXiang().release());

@@ -3420,7 +3420,7 @@ namespace kaanh
 		//std::cout << controller->xmlString() << std::endl;
 		/*
 		auto xmlpath = std::filesystem::absolute(".");
-		const std::string xmlfile = "rokae.xml";
+		const std::string xmlfile = "kaanh.xml";
 		xmlpath = xmlpath / xmlfile;
 		cs.saveXmlFile(xmlpath.string().c_str());
 		*/
@@ -3539,7 +3539,7 @@ namespace kaanh
 		
 		/*
 		auto xmlpath = std::filesystem::absolute(".");
-		const std::string xmlfile = "rokae.xml";
+		const std::string xmlfile = "kaanh.xml";
 		xmlpath = xmlpath / xmlfile;
 		cs.saveXmlFile(xmlpath.string().c_str());
 		*/
@@ -3747,7 +3747,7 @@ namespace kaanh
 		//cs.resetController(controller);
 		/*
 		auto xmlpath = std::filesystem::absolute(".");
-		const std::string xmlfile = "rokae.xml";
+		const std::string xmlfile = "kaanh.xml";
 		xmlpath = xmlpath / xmlfile;
 		cs.saveXmlFile(xmlpath.string().c_str());
 		*/
@@ -3783,7 +3783,7 @@ namespace kaanh
 		cs.resetSensorRoot(new aris::sensor::SensorRoot);
 
 		auto xmlpath = std::filesystem::absolute(".");
-		const std::string xmlfile = "rokae.xml";
+		const std::string xmlfile = "kaanh.xml";
 		xmlpath = xmlpath / xmlfile;
 		cs.saveXmlFile(xmlpath.string().c_str());
 
