@@ -29,6 +29,7 @@ namespace kaanh
 	//其他参数和函数声明 
 	using Size = std::size_t;
 	constexpr double PI = 3.141592653589793;
+	auto createInterface()->std::unique_ptr<aris::server::InterfaceRoot>;
 	auto createModelRokaeXB4(const double *robot_pm = nullptr)->std::unique_ptr<aris::dynamic::Model>;
 	auto createControllerRokaeXB4()->std::unique_ptr<aris::control::Controller>;
 	auto createPlanRootRokaeXB4()->std::unique_ptr<aris::plan::PlanRoot>;
@@ -298,6 +299,14 @@ namespace kaanh
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
 		explicit SetPG(const std::string &name = "SetPG_plan");
 		ARIS_REGISTER_TYPE(SetPG);
+	};
+
+	class SetUI : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		explicit SetUI(const std::string &name = "SetUI_plan");
+		ARIS_REGISTER_TYPE(SetUI);
 	};
 	
 	class SetDriver : public aris::plan::Plan

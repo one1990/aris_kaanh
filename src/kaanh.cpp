@@ -17,6 +17,21 @@ extern std::atomic_bool is_automatic;
 namespace kaanh
 {
 	aris::dynamic::Marker tool1;
+	auto createInterface()->std::unique_ptr<aris::server::InterfaceRoot>
+	{
+		std::unique_ptr<aris::server::InterfaceRoot> interfaceroot;/*创建std::unique_ptr实例*/
+	
+		auto uixmlpath = std::filesystem::absolute(".");//获取当前工程所在的路径
+		const std::string uixmlfile = "interface_kaanh.xml";
+		uixmlpath = uixmlpath / uixmlfile;
+		aris::core::XmlDocument ui_doc;
+		ui_doc.LoadFile(uixmlpath.string().c_str());
+
+		interfaceroot->loadXmlDoc(ui_doc);
+
+		return interfaceroot;
+	};
+
 	auto createControllerRokaeXB4()->std::unique_ptr<aris::control::Controller>	/*函数返回的是一个类指针，指针指向Controller,controller的类型是智能指针std::unique_ptr*/
 	{
 		std::unique_ptr<aris::control::Controller> controller(aris::robot::createControllerRokaeXB4());/*创建std::unique_ptr实例*/
@@ -3645,6 +3660,50 @@ namespace kaanh
 	}
 	
 
+	// 配置UI //
+	struct SetUIParam
+	{
+		std::string ui_path;
+	};
+	auto SetUI::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		auto&cs = aris::server::ControlServer::instance();
+		if (cs.running())throw std::runtime_error("cs is running, can not set UI, please stop the cs!");
+
+		SetUIParam param;
+
+		for (auto &p : params)
+		{
+			if (p.first == "ui_path")
+			{
+				param.ui_path = p.second;
+			}
+		}
+		
+		auto xmlpath = std::filesystem::absolute(".");
+		const std::string xmlfile = "kaanh.xml";
+		auto xmlpath_ui = xmlpath / param.ui_path;	
+		xmlpath = xmlpath / xmlfile;
+
+		cs.interfaceRoot().loadXmlFile(xmlpath_ui.string().c_str());
+		//cs.saveXmlFile(xmlpath.string().c_str());
+
+		std::string ret = "ok";
+		target.ret = ret;
+		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
+
+	}
+	SetUI::SetUI(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"setUI\">"
+			"	<GroupParam>"
+			"		<Param name=\"ui_path\" default=\"interface_kaanh.xml\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
+
+
 	// 配置关节——home偏置、角度-编码系数、角度、角速度、角加速度上下限 //
 	struct SetDriverParam
 	{
@@ -3895,6 +3954,7 @@ namespace kaanh
 		plan_root->planPool().add<kaanh::SetCon>();
 		plan_root->planPool().add<kaanh::SetDH>();
 		plan_root->planPool().add<kaanh::SetPG>();
+		plan_root->planPool().add<kaanh::SetUI>();
 		plan_root->planPool().add<kaanh::SetDriver>();
 		plan_root->planPool().add<kaanh::SaveConfig>();
 		plan_root->planPool().add<kaanh::StartCS>();

@@ -16,13 +16,14 @@ std::atomic_int which_di = 0;
 
 auto xmlpath = std::filesystem::absolute(".");//获取当前工程所在的路径
 const std::string xmlfile = "kaanh.xml";
-
+const std::string uixmlfile = "interface_kaanh.xml";
 
 int main(int argc, char *argv[])
 {
     std::cout <<"new"<<std::endl;
 
     xmlpath = xmlpath / xmlfile;
+	auto xmlpath_ui = xmlpath / uixmlfile;
     std::cout<< xmlpath <<std::endl;
 	auto&cs = aris::server::ControlServer::instance();
 	auto port = argc < 2 ? 5866 : std::stoi(argv[1]);
@@ -59,7 +60,14 @@ int main(int argc, char *argv[])
     //-------for daye robot end//
     */
 
+
+#ifdef UINX
+	dynamic_cast<aris::control::EthercatMaster&>(cs).scan();
+	cs.saveXmlFile(xmlpath.string().c_str());
+#endif // UINX
+
     cs.loadXmlFile(xmlpath.string().c_str());
+	cs.interfaceRoot().loadXmlFile(xmlpath_ui.string().c_str());
     //cs.start();
 	
 	//Start Web Socket//
