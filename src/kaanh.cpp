@@ -3862,10 +3862,13 @@ namespace kaanh
 	// 开启controller server //
 	auto StartCS::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
+        std::cout<<0<<std::endl;
 		auto&cs = aris::server::ControlServer::instance();
 		if (cs.running())throw std::runtime_error("cs is already running!");
-		cs.start();
+        std::cout<<1<<std::endl;
+        cs.start();
 		
+        std::cout<<2<<std::endl;
 		std::string ret = "ok";
 		target.ret = ret;
 		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;

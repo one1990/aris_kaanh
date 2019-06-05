@@ -460,7 +460,7 @@
                                         <B id="id_114" text="Path" style="width:30px"/>
                                     </td>
                                     <td>
-                                        <Input id="id_92" default="/RobotGallery/Rokae/XB4/L0.data" style="width:350px"/>
+                                        <Input id="id_92" default="/RobotGallery/Rokae/XB4/l0.data" style="width:350px"/>
                                     </td>
                                 </tr>
                             </Table>
