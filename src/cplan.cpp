@@ -608,7 +608,7 @@ namespace cplan
 		//target.server->interfaceRoot().saveXmlDoc(doc);这是从interfaceroot这个节点开始保存
 		target.server->root().saveXmlDoc(doc);	
 		//cs.root().saveXmlDoc(doc);
-
+	
 		//auto panel = doc.FirstChildElement("ControlServer")->FirstChildElement("InterfaceRoot");
 		//auto panel = doc.FirstChildElement("ControlServer");
 		//auto panel5= doc.FirstChildElement("InterfaceRoot"); 

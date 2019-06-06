@@ -17,6 +17,21 @@ extern std::atomic_bool is_automatic;
 namespace kaanh
 {
 	aris::dynamic::Marker tool1;
+	auto createInterface()->std::unique_ptr<aris::server::InterfaceRoot>
+	{
+		std::unique_ptr<aris::server::InterfaceRoot> interfaceroot;/*创建std::unique_ptr实例*/
+	
+		auto uixmlpath = std::filesystem::absolute(".");//获取当前工程所在的路径
+		const std::string uixmlfile = "interface_kaanh.xml";
+		uixmlpath = uixmlpath / uixmlfile;
+		aris::core::XmlDocument ui_doc;
+		ui_doc.LoadFile(uixmlpath.string().c_str());
+
+		interfaceroot->loadXmlDoc(ui_doc);
+
+		return interfaceroot;
+	};
+
 	auto createControllerRokaeXB4()->std::unique_ptr<aris::control::Controller>	/*函数返回的是一个类指针，指针指向Controller,controller的类型是智能指针std::unique_ptr*/
 	{
 		std::unique_ptr<aris::control::Controller> controller(aris::robot::createControllerRokaeXB4());/*创建std::unique_ptr实例*/
@@ -45,7 +60,18 @@ namespace kaanh
         dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanInfoForCurrentSlave();
         dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanPdoForCurrentSlave();
         dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).setDcAssignActivate(0x00);
+/*
+        controller->slavePool().add<aris::control::EthercatSlave>();
+        controller->slavePool().back().setPhyId(7);
+        dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanInfoForCurrentSlave();
+        dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanPdoForCurrentSlave();
 
+        controller->slavePool().add<aris::control::EthercatSlave>();
+        controller->slavePool().back().setPhyId(8);
+        dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanInfoForCurrentSlave();
+        dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanPdoForCurrentSlave();
+        //dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).setDcAssignActivate(0x300);
+*/
 
 		return controller;
 	};
@@ -307,7 +333,6 @@ namespace kaanh
 
         controller->slavePool().add<aris::control::EthercatSlave>().loadXmlStr(xml_str);
 
-
         return controller;
     };
     auto createModelDaye(const double *robot_pm)->std::unique_ptr<aris::dynamic::Model>
@@ -519,7 +544,7 @@ namespace kaanh
 	}
 
 
-	// 获取末端位置 //
+	// 获取末端位姿pq //
 	auto Get_ee_pq::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
 		auto ee_pq_vec = std::make_any<std::vector<double> >(7);
@@ -528,11 +553,13 @@ namespace kaanh
 			cs.model().generalMotionPool().at(0).getMpq(std::any_cast<std::vector<double>&>(data).data());
 		}, ee_pq_vec);
 		auto pq = std::any_cast<std::vector<double>&>(ee_pq_vec);
+		
+		//取小数点后三位//
 		for (aris::Size i = 0; i < 7; i++)
 		{
-			std::cout << pq[i] << " ";
+			pq[i] = std::floor(pq[i]*1000.0f + 0.5)/1000.0f;
 		}
-		std::cout << std::endl;
+		
 		std::string ret(reinterpret_cast<char*>(pq.data()), pq.size() * sizeof(double));
 		target.ret = ret;
 		target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_PRINT_CMD_INFO | NOT_PRINT_CMD_INFO;
@@ -546,31 +573,64 @@ namespace kaanh
 	}
 
 
-	// 获取电机电流 //
-	auto Get_cur::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	// 获取末端位姿pe //
+	auto Get_ee_pe::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
-		auto i = std::stoi(params.at("which_motor"));
-		std::any cur_a = double(0);
-		target.server->getRtData([&](aris::server::ControlServer& cs, std::any &data)->void
+		auto ee_pe_vec = std::make_any<std::vector<double> >(6);
+		target.server->getRtData([](aris::server::ControlServer& cs, std::any& data)
 		{
-			std::any_cast<double&>(data) = cs.controller().motionPool().at(i).actualCur();
-		}, cur_a);
-
-		//auto cur = std::any_cast<double&>(cur_a);
-		static double cur = 0.0;
-		static int counter = 1;
-		cur = 10 * std::sin(2*PI*counter++/100);
-
-		std::string ret(reinterpret_cast<char*>(&cur), 1 * sizeof(double));
+			cs.model().generalMotionPool().at(0).getMpe(std::any_cast<std::vector<double>&>(data).data());
+		}, ee_pe_vec);
+		auto pe = std::any_cast<std::vector<double>&>(ee_pe_vec);
+		
+		//取小数点后三位//
+		for (aris::Size i = 0; i < pe.size(); i++)
+		{
+			pe[i] = std::floor(pe[i] * 1000.0f + 0.5) / 1000.0f;
+		}
+		
+		std::string ret(reinterpret_cast<char*>(pe.data()), pe.size() * sizeof(double));
 		target.ret = ret;
 		target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_PRINT_CMD_INFO | NOT_PRINT_CMD_INFO;
 	}
-	auto Get_cur::collectNrt(PlanTarget &target)->void {}
-	Get_cur::Get_cur(const std::string &name) : Plan(name)
+	auto Get_ee_pe::collectNrt(PlanTarget &target)->void {}
+	Get_ee_pe::Get_ee_pe(const std::string &name) : Plan(name)
 	{
 		command().loadXmlStr(
-			"<Command name=\"get_cur\">"
-			"		<Param name=\"which_motor\" default=\"1\"/>"
+			"<Command name=\"get_ee_pe\">"
+			"</Command>");
+	}
+
+
+	// 获取关节位置 //
+	auto Get_joint_pos::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		auto joint_pos = std::make_any<std::vector<double> >(target.model->motionPool().size(), 0.0);
+		target.server->getRtData([&](aris::server::ControlServer& cs, std::any &data)->void
+		{
+			for (aris::Size i = 0; i < cs.model().motionPool().size(); i++)
+			{
+				std::any_cast<std::vector<double>&>(data)[i] = cs.model().motionPool()[i].mp();
+			}		
+		}, joint_pos);
+
+		auto pos = std::any_cast<std::vector<double>&>(joint_pos);
+		
+		//取小数点后三位//
+		for (aris::Size i = 0; i < pos.size(); i++)
+		{
+			pos[i] = std::floor(pos[i] * 1000.0f + 0.5) / 1000.0f;
+		}
+		
+		std::string ret(reinterpret_cast<char*>(pos.data()), pos.size() * sizeof(double));
+		target.ret = ret;
+		target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_PRINT_CMD_INFO | NOT_PRINT_CMD_INFO;
+	}
+	auto Get_joint_pos::collectNrt(PlanTarget &target)->void {}
+	Get_joint_pos::Get_joint_pos(const std::string &name) : Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"get_joint_pos\">"
 			"</Command>");
 	}
 
@@ -3134,6 +3194,7 @@ namespace kaanh
                         param.time = std::stoi(p.second);
                     }
                 }
+
                 param.Fx = 0.0;
                 param.Fy = 0.0;
                 param.Fz = 0.0;
@@ -3370,7 +3431,6 @@ namespace kaanh
        }
 
 
-
 	// 清理slavepool //
 	auto ClearCon::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
@@ -3454,7 +3514,7 @@ namespace kaanh
 		//std::cout << controller->xmlString() << std::endl;
 		/*
 		auto xmlpath = std::filesystem::absolute(".");
-		const std::string xmlfile = "rokae.xml";
+		const std::string xmlfile = "kaanh.xml";
 		xmlpath = xmlpath / xmlfile;
 		cs.saveXmlFile(xmlpath.string().c_str());
 		*/
@@ -3501,32 +3561,23 @@ namespace kaanh
 			if (p.first == "six_axes")
 			{
 				dhparam.dh.resize(6, 0.0);
-				auto mat = target.model->calculator().calculateExpression(params.at("dh_six_axes"));
-				if (mat.size() == dhparam.dh.size())
-				{
-					dhparam.dh.assign(mat.begin(), mat.end());
-				}
-				else
-				{
-					throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
-				}
-				dhparam.tool_offset = std::stod(params.at("tool_offset_sixaxes"));
+				dhparam.dh[0] = std::stod(params.at("d1_six_axes"));
+				dhparam.dh[1] = std::stod(params.at("a1_six_axes"));
+				dhparam.dh[2] = std::stod(params.at("a2_six_axes"));
+				dhparam.dh[3] = std::stod(params.at("d3_six_axes"));
+				dhparam.dh[4] = std::stod(params.at("a3_six_axes"));
+				dhparam.dh[5] = std::stod(params.at("d4_six_axes"));
+				dhparam.tool_offset = std::stod(params.at("tool0_six_axes"));
 				dhparam.axis_num = 6;
 			}
 			//7轴DH参数//
 			else if (p.first == "seven_axes")
 			{
 				dhparam.dh.resize(3, 0.0);
-				auto mat = target.model->calculator().calculateExpression(params.at("dh_seven_axes"));
-				if (mat.size() == dhparam.dh.size())
-				{
-					dhparam.dh.assign(mat.begin(), mat.end());
-				}
-				else
-				{
-					throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
-				}
-				dhparam.tool_offset = std::stod(params.at("tool_offset_sevenaxes"));
+				dhparam.dh[0] = std::stod(params.at("d1_seven_axes"));
+				dhparam.dh[1] = std::stod(params.at("d3_seven_axes"));
+				dhparam.dh[2] = std::stod(params.at("d5_seven_axes"));
+				dhparam.tool_offset = std::stod(params.at("tool0_seven_axes"));
 				dhparam.axis_num = 7;
 			}
 		}
@@ -3582,7 +3633,7 @@ namespace kaanh
 		
 		/*
 		auto xmlpath = std::filesystem::absolute(".");
-		const std::string xmlfile = "rokae.xml";
+		const std::string xmlfile = "kaanh.xml";
 		xmlpath = xmlpath / xmlfile;
 		cs.saveXmlFile(xmlpath.string().c_str());
 		*/
@@ -3600,13 +3651,20 @@ namespace kaanh
 			"		<UniqueParam>"
 			"			<GroupParam name=\"start_group\">"
 			"				<Param name=\"six_axes\"/>"
-			"				<Param name=\"dh_six_axes\" default=\"{0.3295, 0.04, 0.275, 0.0, 0.025, 0.28}\"/>"
-			"				<Param name=\"tool_offset_sixaxes\" default=\"0.078\"/>"
+			"				<Param name=\"d1_six_axes\" default=\"0.3295\"/>"
+			"				<Param name=\"a1_six_axes\" default=\"0.04\"/>"
+			"				<Param name=\"a2_six_axes\" default=\"0.275\"/>"
+			"				<Param name=\"d3_six_axes\" default=\"0.0\"/>"
+			"				<Param name=\"a3_six_axes\" default=\"0.025\"/>"
+			"				<Param name=\"d4_six_axes\" default=\"0.28\"/>"
+			"				<Param name=\"tool0_six_axes\" default=\"0.078\"/>"
 			"			</GroupParam>"
 			"			<GroupParam>"
 			"				<Param name=\"seven_axes\"/>"
-			"				<Param name=\"dh_seven_axes\" default=\"{0.3705, 0.330, 0.320}\"/>"
-			"				<Param name=\"tool_offset_sevenaxes\" default=\"0.2205\"/>"
+			"				<Param name=\"d1_seven_axes\" default=\"0.3705\"/>"
+			"				<Param name=\"d3_seven_axes\" default=\"0.330\"/>"
+			"				<Param name=\"d5_seven_axes\" default=\"0.320\"/>"
+			"				<Param name=\"tool0_seven_axes\" default=\"0.2205\"/>"
 			"			</GroupParam>"
 			"		</UniqueParam>"
 			"	</GroupParam>"
@@ -3679,6 +3737,50 @@ namespace kaanh
 			"</Command>");
 	}
 	
+
+	// 配置UI //
+	struct SetUIParam
+	{
+		std::string ui_path;
+	};
+	auto SetUI::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		auto&cs = aris::server::ControlServer::instance();
+		if (cs.running())throw std::runtime_error("cs is running, can not set UI, please stop the cs!");
+
+		SetUIParam param;
+
+		for (auto &p : params)
+		{
+			if (p.first == "ui_path")
+			{
+				param.ui_path = p.second;
+			}
+		}
+		
+		auto xmlpath = std::filesystem::absolute(".");
+		const std::string xmlfile = "kaanh.xml";
+		auto xmlpath_ui = xmlpath / param.ui_path;	
+		xmlpath = xmlpath / xmlfile;
+
+		cs.interfaceRoot().loadXmlFile(xmlpath_ui.string().c_str());
+		//cs.saveXmlFile(xmlpath.string().c_str());
+
+		std::string ret = "ok";
+		target.ret = ret;
+		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
+
+	}
+	SetUI::SetUI(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"setUI\">"
+			"	<GroupParam>"
+			"		<Param name=\"ui_path\" default=\"interface_kaanh.xml\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
+
 
 	// 配置关节——home偏置、角度-编码系数、角度、角速度、角加速度上下限 //
 	struct SetDriverParam
@@ -3783,7 +3885,7 @@ namespace kaanh
 		//cs.resetController(controller);
 		/*
 		auto xmlpath = std::filesystem::absolute(".");
-		const std::string xmlfile = "rokae.xml";
+		const std::string xmlfile = "kaanh.xml";
 		xmlpath = xmlpath / xmlfile;
 		cs.saveXmlFile(xmlpath.string().c_str());
 		*/
@@ -3816,10 +3918,10 @@ namespace kaanh
 		auto&cs = aris::server::ControlServer::instance();
 		if (cs.running())throw std::runtime_error("cs is running, can not set position offset,please stop the cs!");
 
-		cs.resetSensorRoot(new aris::sensor::SensorRoot);
+        //cs.resetSensorRoot(new aris::sensor::SensorRoot);
 
 		auto xmlpath = std::filesystem::absolute(".");
-		const std::string xmlfile = "rokae.xml";
+		const std::string xmlfile = "kaanh.xml";
 		xmlpath = xmlpath / xmlfile;
 		cs.saveXmlFile(xmlpath.string().c_str());
 
@@ -3838,10 +3940,13 @@ namespace kaanh
 	// 开启controller server //
 	auto StartCS::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
+        std::cout<<0<<std::endl;
 		auto&cs = aris::server::ControlServer::instance();
 		if (cs.running())throw std::runtime_error("cs is already running!");
-		cs.start();
+        std::cout<<1<<std::endl;
+        cs.start();
 		
+        std::cout<<2<<std::endl;
 		std::string ret = "ok";
 		target.ret = ret;
 		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
@@ -3900,7 +4005,8 @@ namespace kaanh
 
 		plan_root->planPool().add<kaanh::ShowAll>();
 		plan_root->planPool().add<kaanh::Get_ee_pq>();
-		plan_root->planPool().add<kaanh::Get_cur>();
+		plan_root->planPool().add<kaanh::Get_ee_pe>();
+		plan_root->planPool().add<kaanh::Get_joint_pos>();
 		plan_root->planPool().add<kaanh::MoveX>();
 		plan_root->planPool().add<kaanh::MoveJS>();
 		plan_root->planPool().add<kaanh::MoveJSN>();
@@ -3929,6 +4035,7 @@ namespace kaanh
 		plan_root->planPool().add<kaanh::SetCon>();
 		plan_root->planPool().add<kaanh::SetDH>();
 		plan_root->planPool().add<kaanh::SetPG>();
+		plan_root->planPool().add<kaanh::SetUI>();
 		plan_root->planPool().add<kaanh::SetDriver>();
 		plan_root->planPool().add<kaanh::SaveConfig>();
 		plan_root->planPool().add<kaanh::StartCS>();
