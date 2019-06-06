@@ -183,15 +183,15 @@ t3281, t3282, t3283, t3284, t3285, t3286, t3287, t3288, t3289, t3290, t3291, t32
 
 
 sevenjointdynamics::sevenjointdynamics()
-        {
-            A[0][0] = 0; A[0][1] = 1; A[0][2] = 0;
-            A[1][0] = 0; A[1][1] = 0; A[1][2] = 1;
-            A[2][0] = -CutoffFrequency * CutoffFrequency * CutoffFrequency;
-            A[2][1] = -2 * CutoffFrequency * CutoffFrequency;
-            A[2][2] = -2 * CutoffFrequency;
-            B[0] = 0; B[1] = 0;
-            B[2] = -A[2][0];
-        }
+{
+	A[0][0] = 0; A[0][1] = 1; A[0][2] = 0;
+	A[1][0] = 0; A[1][1] = 0; A[1][2] = 1;
+	A[2][0] = -CutoffFrequency * CutoffFrequency * CutoffFrequency;
+	A[2][1] = -2 * CutoffFrequency * CutoffFrequency;
+	A[2][2] = -2 * CutoffFrequency;
+	B[0] = 0; B[1] = 0;
+	B[2] = -A[2][0];
+}
 
 int SevenSign(double x)
 {
@@ -202,32 +202,32 @@ int SevenSign(double x)
 
 void SevenJointMatrix(const double* q, const double* dq, const double* ddq, const double* ts, double* distalVec)
 {
-    
-		//double[] qTemp=new double[common.RobotAxis];
-      //  , dqTemp, ddqTemp;
-    double q1, q2, q3, q4, q5, q6, q7;
-    double dq1, dq2, dq3, dq4, dq5, dq6, dq7;
-    double ddq1, ddq2, ddq3, ddq4, ddq5, ddq6, ddq7;
-    double ts1, ts2, ts3, ts4, ts5, ts6, ts7;
-    double g = 9.81;
 
-    q1 = q[0];
-    q2 = q[1];
-    q3 = q[2];
-    q4 = q[3];
-    q5 = q[4];
-    q6 = q[5];
+	//double[] qTemp=new double[common.RobotAxis];
+  //  , dqTemp, ddqTemp;
+	double q1, q2, q3, q4, q5, q6, q7;
+	double dq1, dq2, dq3, dq4, dq5, dq6, dq7;
+	double ddq1, ddq2, ddq3, ddq4, ddq5, ddq6, ddq7;
+	double ts1, ts2, ts3, ts4, ts5, ts6, ts7;
+	double g = 9.81;
+
+	q1 = q[0];
+	q2 = q[1];
+	q3 = q[2];
+	q4 = q[3];
+	q5 = q[4];
+	q6 = q[5];
 	q7 = q[6];
 
-    dq1 = dq[0]; dq2 = dq[1]; dq3 = dq[2]; dq4 = dq[3]; dq5 = dq[4]; dq6 = dq[5]; dq7 = dq[6];
-    ddq1 = ddq[0]; ddq2 = ddq[1]; ddq3 = ddq[2]; ddq4 = ddq[3]; ddq5 = ddq[4]; ddq6 = ddq[5]; ddq7 = ddq[6];
+	dq1 = dq[0]; dq2 = dq[1]; dq3 = dq[2]; dq4 = dq[3]; dq5 = dq[4]; dq6 = dq[5]; dq7 = dq[6];
+	ddq1 = ddq[0]; ddq2 = ddq[1]; ddq3 = ddq[2]; ddq4 = ddq[3]; ddq5 = ddq[4]; ddq6 = ddq[5]; ddq7 = ddq[6];
 
-    ts1 = ts[0]; ts2 = ts[1]; ts3 = ts[2]; ts4 = ts[3]; ts5 = ts[4]; ts6 = ts[5]; ts7 = ts[6];
+	ts1 = ts[0]; ts2 = ts[1]; ts3 = ts[2]; ts4 = ts[3]; ts5 = ts[4]; ts6 = ts[5]; ts7 = ts[6];
 
-    double A0[RobotAxis][JointGroupDim];
-    for (int i = 0; i < RobotAxis; i++)
-        for (int j = 0; j < JointGroupDim; j++)
-            A0[i][j] = 0;
+	double A0[RobotAxis][JointGroupDim];
+	for (int i = 0; i < RobotAxis; i++)
+		for (int j = 0; j < JointGroupDim; j++)
+			A0[i][j] = 0;
 
 	double DF = 0;//The Sixth Coordinate in Wrist
 	t2 = sin(q2);
@@ -1338,9 +1338,9 @@ void SevenJointMatrix(const double* q, const double* dq, const double* ddq, cons
 	A0[6][67] = -t466 + t321 * (t162 - t195 + t433 - DF * t212*(t206 - t208));
 
 
-    for (int i = 0; i < 7; i++)
-        for (int j = 0; j < JointGroupDim; j++)
-           distalVec[(JointGroupDim) * i + j] = A0[i][j];
+	for (int i = 0; i < 7; i++)
+		for (int j = 0; j < JointGroupDim; j++)
+			distalVec[(JointGroupDim)* i + j] = A0[i][j];
 
 }
 
@@ -1349,89 +1349,89 @@ void SevenJointMatrix(const double* q, const double* dq, const double* ddq, cons
 
 
 
-void sevenjointdynamics::SevenRLS(const double *positionL, const double *sensorL, double *estParas,double *Coef,double *CoefInv,double *StatisError)
+void sevenjointdynamics::SevenRLS(const double *positionL, const double *sensorL, double *estParas, double *Coef, double *CoefInv, double *StatisError)
 {
-    //positionList[id(2, 2, 6)];
-    double stateMot0[7][3] = { 0 };
-    double stateMot1[7][3] = { 0 };
-    double stateTor0[7][3] = { 0 };
-    double stateTor1[7][3] = { 0 };
+	//positionList[id(2, 2, 6)];
+	double stateMot0[7][3] = { 0 };
+	double stateMot1[7][3] = { 0 };
+	double stateTor0[7][3] = { 0 };
+	double stateTor1[7][3] = { 0 };
 
 
 
-    double q[7];
-    double dq[7];
-    double ddq[7];
-    double ts[7];
-    //std::array<double, 6> estParas;
+	double q[7];
+	double dq[7];
+	double ddq[7];
+	double ts[7];
+	//std::array<double, 6> estParas;
 
-    double intDT = 8*DT;
-    int length = 7;
-    std::vector<double> regressorMatrix_vec(7 * SampleNum * JointGroupDim);
-    double* regressorVector = regressorMatrix_vec.data();
+	double intDT = 8 * DT;
+	int length = 7;
+	std::vector<double> regressorMatrix_vec(7 * SampleNum * JointGroupDim);
+	double* regressorVector = regressorMatrix_vec.data();
 
-    std::vector<double> regressorMatrixFric_vec(7 * SampleNum * (2* 7));
-    double* regressorVectorFric = regressorMatrixFric_vec.data();
+	std::vector<double> regressorMatrixFric_vec(7 * SampleNum * (2 * 7));
+	double* regressorVectorFric = regressorMatrixFric_vec.data();
 
-    std::vector<double> regressorForces_vec(7 * SampleNum);
-    double* regressorForces = regressorForces_vec.data();
+	std::vector<double> regressorForces_vec(7 * SampleNum);
+	double* regressorForces = regressorForces_vec.data();
 
-    double posCur[7];
-    double torCur[7];
-    for (int j = 0; j < 7; j++)
-    {
-        stateMot0[j][0] = positionL[j];
-        stateTor0[j][0] = sensorL[j];
-    }
+	double posCur[7];
+	double torCur[7];
+	for (int j = 0; j < 7; j++)
+	{
+		stateMot0[j][0] = positionL[j];
+		stateTor0[j][0] = sensorL[j];
+	}
 
-    for (int i = 0; i < SampleNum; i++)
-    {
+	for (int i = 0; i < SampleNum; i++)
+	{
 
-        for (int j = 0; j < 7; j++)
-        {
+		for (int j = 0; j < 7; j++)
+		{
 
-            posCur[j] = positionL[RobotAxis*i+j];
-            torCur[j] = sensorL[RobotAxis*i+j];
+			posCur[j] = positionL[RobotAxis*i + j];
+			torCur[j] = sensorL[RobotAxis*i + j];
 
-            stateMot1[j][0] = stateMot0[j][0] + intDT * (A[0][0] * stateMot0[j][0] + A[0][1] * stateMot0[j][1] + A[0][2] * stateMot0[j][2] + B[0] * posCur[j]);
-            stateMot1[j][1] = stateMot0[j][1] + intDT * (A[1][0] * stateMot0[j][0] + A[1][1] * stateMot0[j][1] + A[1][2] * stateMot0[j][2] + B[1] * posCur[j]);
-            stateMot1[j][2] = stateMot0[j][2] + intDT * (A[2][0] * stateMot0[j][0] + A[2][1] * stateMot0[j][1] + A[2][2] * stateMot0[j][2] + B[2] * posCur[j]);
+			stateMot1[j][0] = stateMot0[j][0] + intDT * (A[0][0] * stateMot0[j][0] + A[0][1] * stateMot0[j][1] + A[0][2] * stateMot0[j][2] + B[0] * posCur[j]);
+			stateMot1[j][1] = stateMot0[j][1] + intDT * (A[1][0] * stateMot0[j][0] + A[1][1] * stateMot0[j][1] + A[1][2] * stateMot0[j][2] + B[1] * posCur[j]);
+			stateMot1[j][2] = stateMot0[j][2] + intDT * (A[2][0] * stateMot0[j][0] + A[2][1] * stateMot0[j][1] + A[2][2] * stateMot0[j][2] + B[2] * posCur[j]);
 
-            stateTor1[j][0] = stateTor0[j][0] + intDT * (A[0][0] * stateTor0[j][0] + A[0][1] * stateTor0[j][1] + A[0][2] * stateTor0[j][2] + B[0] * torCur[j]);
-            stateTor1[j][1] = stateTor0[j][1] + intDT * (A[1][0] * stateTor0[j][0] + A[1][1] * stateTor0[j][1] + A[1][2] * stateTor0[j][2] + B[1] * torCur[j]);
-            stateTor1[j][2] = stateTor0[j][2] + intDT * (A[2][0] * stateTor0[j][0] + A[2][1] * stateTor0[j][1] + A[2][2] * stateTor0[j][2] + B[2] * torCur[j]);
-        }
+			stateTor1[j][0] = stateTor0[j][0] + intDT * (A[0][0] * stateTor0[j][0] + A[0][1] * stateTor0[j][1] + A[0][2] * stateTor0[j][2] + B[0] * torCur[j]);
+			stateTor1[j][1] = stateTor0[j][1] + intDT * (A[1][0] * stateTor0[j][0] + A[1][1] * stateTor0[j][1] + A[1][2] * stateTor0[j][2] + B[1] * torCur[j]);
+			stateTor1[j][2] = stateTor0[j][2] + intDT * (A[2][0] * stateTor0[j][0] + A[2][1] * stateTor0[j][1] + A[2][2] * stateTor0[j][2] + B[2] * torCur[j]);
+		}
 
-        for (int j = 0; j < 7; j++)
-        {
-            q[j] = stateMot1[j][0];
-            dq[j] = stateMot1[j][1];
-            ddq[j] = stateMot1[j][2];
-            ts[j] = stateTor1[j][0];
-        }
+		for (int j = 0; j < 7; j++)
+		{
+			q[j] = stateMot1[j][0];
+			dq[j] = stateMot1[j][1];
+			ddq[j] = stateMot1[j][2];
+			ts[j] = stateTor1[j][0];
+		}
 
-        for (int k = 0; k < 7; k++)
-        {
-            q[k] = q[k] * DirectionFlag[k] + JointOffset[k] + ZeroOffset[k];
-            dq[k] = dq[k] * DirectionFlag[k];
-            ddq[k] = ddq[k] * DirectionFlag[k];
+		for (int k = 0; k < 7; k++)
+		{
+			q[k] = q[k] * DirectionFlag[k] + JointOffset[k] + ZeroOffset[k];
+			dq[k] = dq[k] * DirectionFlag[k];
+			ddq[k] = ddq[k] * DirectionFlag[k];
 
-        }
-        double distalVec[7 * JointGroupDim];
-        SevenJointMatrix(q, dq, ddq, ts, distalVec);
-        double Y[7][JointGroupDim];
-        for (int m = 0; m < 7; m++)
-            for (int n = 0; n < JointGroupDim; n++)
-                Y[m][n]=distalVec[JointGroupDim * m + n];
+		}
+		double distalVec[7 * JointGroupDim];
+		SevenJointMatrix(q, dq, ddq, ts, distalVec);
+		double Y[7][JointGroupDim];
+		for (int m = 0; m < 7; m++)
+			for (int n = 0; n < JointGroupDim; n++)
+				Y[m][n] = distalVec[JointGroupDim * m + n];
 
-		double Y1[7][2*7];
+		double Y1[7][2 * 7];
 		for (int m = 0; m < 7; m++)
 		{
 			for (int n = 0; n < 2 * 7; n++)
 			{
 				Y1[m][n] = 0;
 				if (n == 2 * m)
-                    Y1[m][n] = 1* SevenSign(dq[m]);
+					Y1[m][n] = 1 * SevenSign(dq[m]);
 				if (n == 2 * m + 1)
 					Y1[m][n] = dq[m];
 			}
@@ -1439,13 +1439,13 @@ void sevenjointdynamics::SevenRLS(const double *positionL, const double *sensorL
 
 
 
-        for (int m = 0; m < 7; m++)
-        {
-            for (int n = 0; n < JointGroupDim; n++)
-            {
-                regressorVector[(i * 7 +m)*JointGroupDim +n] = Y[m][n];
+		for (int m = 0; m < 7; m++)
+		{
+			for (int n = 0; n < JointGroupDim; n++)
+			{
+				regressorVector[(i * 7 + m)*JointGroupDim + n] = Y[m][n];
 
-            }
+			}
 
 			for (int n = 0; n < 2 * 7; n++)
 			{
@@ -1454,49 +1454,49 @@ void sevenjointdynamics::SevenRLS(const double *positionL, const double *sensorL
 			}
 
 
-            regressorForces[i * 7 + m] = ts[m];
+			regressorForces[i * 7 + m] = ts[m];
 
-        }
+		}
 
-        for (int j = 0; j < 7; j++)
-        {
+		for (int j = 0; j < 7; j++)
+		{
 
-            stateMot0[j][0] = stateMot1[j][0];
-            stateMot0[j][1] = stateMot1[j][1];
-            stateMot0[j][2] = stateMot1[j][2];
+			stateMot0[j][0] = stateMot1[j][0];
+			stateMot0[j][1] = stateMot1[j][1];
+			stateMot0[j][2] = stateMot1[j][2];
 
-            stateTor0[j][0] = stateTor1[j][0];
-            stateTor0[j][1] = stateTor1[j][1];
-            stateTor0[j][2] = stateTor1[j][2];
-        }
-        std::cout<<i<<std::endl;
-    }
-	
+			stateTor0[j][0] = stateTor1[j][0];
+			stateTor0[j][1] = stateTor1[j][1];
+			stateTor0[j][2] = stateTor1[j][2];
+		}
+		std::cout << i << std::endl;
+	}
+
 	// 所需的中间变量，请对U的对角线元素做处理
-    std::vector<double> U_vec(7 * SampleNum * JointGroupDim);
-    auto U = U_vec.data();
+	std::vector<double> U_vec(7 * SampleNum * JointGroupDim);
+	auto U = U_vec.data();
 
 	std::vector<double> tau_vec(7 * SampleNum);
 	auto tau = tau_vec.data();
-    
+
 	std::vector<aris::Size> p_vec(7 * SampleNum);
 	auto p = p_vec.data();
-    
+
 	aris::Size rank;
 
 	// 根据 A 求出中间变量，相当于做 QR 分解 //
    // 请对 U 的对角线元素做处理
-    s_householder_utp(7 * SampleNum, JointGroupDim, regressorVector, U, tau, p, rank, 1e-10);
+	s_householder_utp(7 * SampleNum, JointGroupDim, regressorVector, U, tau, p, rank, 1e-10);
 
 	std::vector<double> TestQ_vec(7 * SampleNum * JointGroupDim);
 	auto TestQ = TestQ_vec.data();
 
-    std::vector<double> TestR_vec(7 * SampleNum * JointGroupDim);
-    auto TestR = TestR_vec.data();
+	std::vector<double> TestR_vec(7 * SampleNum * JointGroupDim);
+	auto TestR = TestR_vec.data();
 
-    s_householder_ut2qmn(7 * SampleNum, JointGroupDim, U, tau, TestQ);
-    s_householder_ut2r(7 * SampleNum, JointGroupDim, U, tau, TestR);
-    s_permutate_inv(JointGroupDim, 7 * SampleNum, p, TestR, T(JointGroupDim));
+	s_householder_ut2qmn(7 * SampleNum, JointGroupDim, U, tau, TestQ);
+	s_householder_ut2r(7 * SampleNum, JointGroupDim, U, tau, TestR);
+	s_permutate_inv(JointGroupDim, 7 * SampleNum, p, TestR, T(JointGroupDim));
 
 	//Test QR
 	//s_permutate(TotalParas, 3 * SampleNum, p, TestR, T(TotalParas));
@@ -1507,13 +1507,13 @@ void sevenjointdynamics::SevenRLS(const double *positionL, const double *sensorL
 		//dU[i]= regressorVector[i]-UU[i];
 
 
-    std::vector<double> Q_vec(7 * SampleNum * JointReduceDim);
-    auto Q = Q_vec.data();
-    std::vector<double> R_vec(JointReduceDim * JointGroupDim);
-    auto R = R_vec.data();
-    for (int i = 0;i < 7 * SampleNum;i++)
+	std::vector<double> Q_vec(7 * SampleNum * JointReduceDim);
+	auto Q = Q_vec.data();
+	std::vector<double> R_vec(JointReduceDim * JointGroupDim);
+	auto R = R_vec.data();
+	for (int i = 0;i < 7 * SampleNum;i++)
 		for (int j = 0;j < JointReduceDim;j++)
-            Q[i*JointReduceDim + j] = TestQ[i * JointGroupDim + j];
+			Q[i*JointReduceDim + j] = TestQ[i * JointGroupDim + j];
 
 	for (int i = 0;i < JointReduceDim;i++)
 		for (int j = 0;j < JointGroupDim;j++)
@@ -1528,23 +1528,23 @@ void sevenjointdynamics::SevenRLS(const double *positionL, const double *sensorL
 
 
 
-    std::vector<double> QwithFric_vec(7 * SampleNum * (JointReduceDim + 2*7));
-    auto QwithFric = QwithFric_vec.data();
-    for (int i = 0;i < 7 * SampleNum;i++)
+	std::vector<double> QwithFric_vec(7 * SampleNum * (JointReduceDim + 2 * 7));
+	auto QwithFric = QwithFric_vec.data();
+	for (int i = 0;i < 7 * SampleNum;i++)
 	{
 		for (int j = 0;j < JointReduceDim;j++)
-            QwithFric[i*(JointReduceDim + 2*7) + j] = Q[i*JointReduceDim + j];
-        for (int j = JointReduceDim;j < JointReduceDim + 2*7;j++)
-            QwithFric[i*(JointReduceDim + 2*7) + j] = regressorVectorFric[i * 2*7 + j - JointReduceDim];
+			QwithFric[i*(JointReduceDim + 2 * 7) + j] = Q[i*JointReduceDim + j];
+		for (int j = JointReduceDim;j < JointReduceDim + 2 * 7;j++)
+			QwithFric[i*(JointReduceDim + 2 * 7) + j] = regressorVectorFric[i * 2 * 7 + j - JointReduceDim];
 	}
 
 	// 求解 A的广义逆pinv 和 x
-    std::vector<double> pinv_vec(7 * SampleNum * (JointReduceDim+2*7));
+	std::vector<double> pinv_vec(7 * SampleNum * (JointReduceDim + 2 * 7));
 	auto pinv = pinv_vec.data();
 
 	// 所需的中间变量，请对U的对角线元素做处理
-    std::vector<double> UQ_vec(7 * SampleNum * (JointReduceDim + 2*7));
-    auto UQ = UQ_vec.data();
+	std::vector<double> UQ_vec(7 * SampleNum * (JointReduceDim + 2 * 7));
+	auto UQ = UQ_vec.data();
 
 	std::vector<double> tauQ_vec(7 * SampleNum);
 	auto tauQ = tauQ_vec.data();
@@ -1554,15 +1554,15 @@ void sevenjointdynamics::SevenRLS(const double *positionL, const double *sensorL
 
 	aris::Size rankQ;
 
-    s_householder_utp(7 * SampleNum, JointReduceDim + 2*7, QwithFric, UQ, tauQ, pQ, rankQ, 1e-10);
+	s_householder_utp(7 * SampleNum, JointReduceDim + 2 * 7, QwithFric, UQ, tauQ, pQ, rankQ, 1e-10);
 
 	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A) //
 	std::vector<double> tauQ2_vec(7 * SampleNum);
 	auto tauQ2 = tauQ2_vec.data();
 
-    s_householder_utp2pinv(7 * SampleNum, JointReduceDim + 2*7, rankQ, UQ, tauQ, pQ, pinv, tauQ2, 1e-10);
+	s_householder_utp2pinv(7 * SampleNum, JointReduceDim + 2 * 7, rankQ, UQ, tauQ, pQ, pinv, tauQ2, 1e-10);
 	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A)*b //
-    s_mm(JointReduceDim + 2*7, 1, 7 * SampleNum, pinv, regressorForces, estParas);
+	s_mm(JointReduceDim + 2 * 7, 1, 7 * SampleNum, pinv, regressorForces, estParas);
 
 
 	/*
@@ -1579,21 +1579,21 @@ void sevenjointdynamics::SevenRLS(const double *positionL, const double *sensorL
 	outfile.close();
 	*/
 
-    //Calculate Model Error
-    std::vector<double> Error_vec(7 * SampleNum);
-    auto Error = Error_vec.data();
-	
-    s_mm(7 * SampleNum, 1, JointReduceDim+2*7, QwithFric,estParas, Error);
-    for(int i=0;i< 7*SampleNum;i++)
-        Error[i]= Error[i]-regressorVector[i];
+	//Calculate Model Error
+	std::vector<double> Error_vec(7 * SampleNum);
+	auto Error = Error_vec.data();
 
-    double SumError[7]={0};
-    for(int i=0;i<SampleNum;i++)
-        for(int j=0;j< 7;j++)
-            SumError[j]= SumError[j]+Error[i*7 +j]*Error[i*7 +j];
+	s_mm(7 * SampleNum, 1, JointReduceDim + 2 * 7, QwithFric, estParas, Error);
+	for (int i = 0;i < 7 * SampleNum;i++)
+		Error[i] = Error[i] - regressorVector[i];
 
-    for(int j=0;j< 7;j++)
-        StatisError[j]= sqrt(SumError[j])/SampleNum;
+	double SumError[7] = { 0 };
+	for (int i = 0;i < SampleNum;i++)
+		for (int j = 0;j < 7;j++)
+			SumError[j] = SumError[j] + Error[i * 7 + j] * Error[i * 7 + j];
+
+	for (int j = 0;j < 7;j++)
+		StatisError[j] = sqrt(SumError[j]) / SampleNum;
 
 
 	//计算CoefInv, Coef*CoefInv=EYE(30)
@@ -1629,73 +1629,73 @@ void sevenjointdynamics::SevenRLS(const double *positionL, const double *sensorL
 	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A)*b //
 	s_mm(JointGroupDim, JointReduceDim, JointGroupDim, EYE, pinvInv, CoefInv);
 
-    }
+}
 
 
 
-void sevenjointdynamics::SevenJointCollision(const double * q, const double *dq,const double *ddq,const double *ts, const double *estParas, double * CoefInv, double * CollisionFT)
-        {
-   
-			double q0[RobotAxis], dq0[RobotAxis], ddq0[RobotAxis];
-			for (int k = 0; k < RobotAxis; k++)
-			{
-				q0[k] = q[k] * DirectionFlag[k] + JointOffset[k] + ZeroOffset[k];
-				dq0[k] = dq[k] * DirectionFlag[k];
-				ddq0[k] = ddq[k] * DirectionFlag[k];
+void sevenjointdynamics::SevenJointCollision(const double * q, const double *dq, const double *ddq, const double *ts, const double *estParas, double * CoefInv, double * CollisionFT)
+{
 
-			}
+	double q0[RobotAxis], dq0[RobotAxis], ddq0[RobotAxis];
+	for (int k = 0; k < RobotAxis; k++)
+	{
+		q0[k] = q[k] * DirectionFlag[k] + JointOffset[k] + ZeroOffset[k];
+		dq0[k] = dq[k] * DirectionFlag[k];
+		ddq0[k] = ddq[k] * DirectionFlag[k];
 
-			double distalVec[RobotAxis * JointGroupDim];
-			SevenJointMatrix(q0, dq0, ddq0, ts, distalVec);
-			std::vector<double> Ybase_vec(RobotAxis * JointReduceDim);
-			auto Ybase = Ybase_vec.data();
-			s_mm(RobotAxis, JointReduceDim, JointGroupDim, distalVec, CoefInv, Ybase);
+	}
 
-
-			double YbaseMat[RobotAxis][JointReduceDim];
-			for (int m = 0; m < RobotAxis; m++)
-				for (int n = 0; n < JointReduceDim; n++)
-					YbaseMat[m][n] = Ybase[JointReduceDim * m + n];
-
-			double Y1[RobotAxis][2 * RobotAxis];
-			for (int m = 0; m < RobotAxis; m++)
-			{
-				for (int n = 0; n < 2 * RobotAxis; n++)
-				{
-					Y1[m][n] = 0;
-					if (n == 2 * m)
-                        Y1[m][n] = 1 * SevenSign(dq0[m]);
-					if (n == 2 * m + 1)
-                        Y1[m][n] = dq0[m];
-				}
-			}
-
-			double YtolMat[RobotAxis][JointReduceDim+2* RobotAxis];
-
-			for (int m = 0; m < RobotAxis; m++)
-			{
-				for (int n = 0; n < JointReduceDim; n++)
-				{
-					YtolMat[m][n] = YbaseMat[m][n];
-				}
-
-				for (int n = JointReduceDim; n < JointReduceDim + 2 * RobotAxis; n++)
-				{
-                    YtolMat[m][n] = Y1[m][n-JointReduceDim];
-				}
-			}
-			
-
-			double estTor[7] = {0};
-            for (int i = 0; i < 7; i++)
-                for (int j = 0; j < JointReduceDim + 2 * 7; j++)
-                    estTor[i] = estTor[i] + YtolMat[i][j] * estParas[j];
-
-            for (int i = 0; i < 7; i++)
-                CollisionFT[i] = estTor[i] ;
+	double distalVec[RobotAxis * JointGroupDim];
+	SevenJointMatrix(q0, dq0, ddq0, ts, distalVec);
+	std::vector<double> Ybase_vec(RobotAxis * JointReduceDim);
+	auto Ybase = Ybase_vec.data();
+	s_mm(RobotAxis, JointReduceDim, JointGroupDim, distalVec, CoefInv, Ybase);
 
 
-        }
+	double YbaseMat[RobotAxis][JointReduceDim];
+	for (int m = 0; m < RobotAxis; m++)
+		for (int n = 0; n < JointReduceDim; n++)
+			YbaseMat[m][n] = Ybase[JointReduceDim * m + n];
+
+	double Y1[RobotAxis][2 * RobotAxis];
+	for (int m = 0; m < RobotAxis; m++)
+	{
+		for (int n = 0; n < 2 * RobotAxis; n++)
+		{
+			Y1[m][n] = 0;
+			if (n == 2 * m)
+				Y1[m][n] = 1 * SevenSign(dq0[m]);
+			if (n == 2 * m + 1)
+				Y1[m][n] = 0 * dq0[m];
+		}
+	}
+
+	double YtolMat[RobotAxis][JointReduceDim + 2 * RobotAxis];
+
+	for (int m = 0; m < RobotAxis; m++)
+	{
+		for (int n = 0; n < JointReduceDim; n++)
+		{
+			YtolMat[m][n] = YbaseMat[m][n];
+		}
+
+		for (int n = JointReduceDim; n < JointReduceDim + 2 * RobotAxis; n++)
+		{
+			YtolMat[m][n] = Y1[m][n - JointReduceDim];
+		}
+	}
+
+
+	double estTor[7] = { 0 };
+	for (int i = 0; i < 7; i++)
+		for (int j = 0; j < JointReduceDim + 2 * 7; j++)
+			estTor[i] = estTor[i] + YtolMat[i][j] * estParas[j];
+
+	for (int i = 0; i < 7; i++)
+		CollisionFT[i] = estTor[i];
+
+
+}
 
 
 
@@ -1707,7 +1707,7 @@ void SevenLoadMatrix(const double* q, const double* dq, const double* ddq, const
 	double ddq1, ddq2, ddq3, ddq4, ddq5, ddq6;
 	double ts1, ts2, ts3, ts4, ts5, ts6;
 	double g = 9.81;
-	
+
 
 	q1 = q[0];
 	q2 = q[1];
@@ -1726,10 +1726,10 @@ void SevenLoadMatrix(const double* q, const double* dq, const double* ddq, const
 		for (int j = 0; j < 40; j++)
 			A0[i][j] = 0;
 
-	
-	double DF=0;
-	
-	
+
+	double DF = 0;
+
+
 
 	for (int i = 0; i < 3; i++)
 		for (int j = 0; j < 40; j++)
@@ -1739,7 +1739,7 @@ void SevenLoadMatrix(const double* q, const double* dq, const double* ddq, const
 
 
 
-void sevenjointdynamics::SevenLoadRLS(const double *positionL, const double *sensorL, double *estParas, double *Coef,double *StatisError)
+void sevenjointdynamics::SevenLoadRLS(const double *positionL, const double *sensorL, double *estParas, double *Coef, double *StatisError)
 {
 	//positionList[id(2, 2, 6)];
 	double stateMot0[RobotAxis][3] = { 0 };
@@ -1754,7 +1754,7 @@ void sevenjointdynamics::SevenLoadRLS(const double *positionL, const double *sen
 	double ddq[RobotAxis];
 	double ts[RobotAxis];
 
-    double intDT = 8*DT;
+	double intDT = 8 * DT;
 	int length = 6;
 	std::vector<double> regressorMatrix_vec(3 * SampleNum * LoadTotalParas);
 	double* regressorVector = regressorMatrix_vec.data();
@@ -1816,9 +1816,9 @@ void sevenjointdynamics::SevenLoadRLS(const double *positionL, const double *sen
 				Y[m][n] = LoadVec[40 * m + n];
 
 		double Y1[3][6] = { 0 };
-        Y1[0][0] = 1 * SevenSign(dq[2]); Y1[0][1] = dq[2];
-        Y1[1][2] = 1 * SevenSign(dq[4]); Y1[1][3] = dq[4];
-        Y1[2][4] = 1 * SevenSign(dq[5]); Y1[2][5] = dq[5];
+		Y1[0][0] = 1 * SevenSign(dq[2]); Y1[0][1] = dq[2];
+		Y1[1][2] = 1 * SevenSign(dq[4]); Y1[1][3] = dq[4];
+		Y1[2][4] = 1 * SevenSign(dq[5]); Y1[2][5] = dq[5];
 
 
 		for (int m = 0; m < 3; m++)
@@ -1877,7 +1877,7 @@ void sevenjointdynamics::SevenLoadRLS(const double *positionL, const double *sen
    // 请对 U 的对角线元素做处理
 	s_householder_utp(3 * SampleNum, LoadTotalParas, regressorVector, U, tau, p, rank, 1e-10);
 
-	
+
 	std::vector<double> TestR_vec(3 * SampleNum * LoadTotalParas);
 	auto TestR = TestR_vec.data();
 	std::vector<double> TestQ_vec(3 * SampleNum * LoadTotalParas);
@@ -1888,11 +1888,11 @@ void sevenjointdynamics::SevenLoadRLS(const double *positionL, const double *sen
 	auto R = R_vec.data();
 	//s_householder_ut2q(3 * SampleNum, LoadTotalParas, U, tau, TestQ);
 	s_householder_ut2qmn(3 * SampleNum, LoadTotalParas, U, tau, TestQ);
-	
+
 	s_householder_ut2r(3 * SampleNum, LoadTotalParas, U, tau, TestR);
 	s_permutate_inv(LoadTotalParas, 3 * SampleNum, p, TestR, T(LoadTotalParas));
 
-	
+
 	//Test QR
 	//s_permutate(TotalParas, 3 * SampleNum, p, TestR, T(TotalParas));
 	//s_mm(3 * SampleNum, TotalParas, 3 * SampleNum, TestQ, TestR, UU);
@@ -1904,7 +1904,7 @@ void sevenjointdynamics::SevenLoadRLS(const double *positionL, const double *sen
 
 
 
-	
+
 
 	for (int i = 0;i < LoadReduceParas;i++)
 		for (int j = 0;j < LoadTotalParas;j++)
@@ -1924,16 +1924,16 @@ void sevenjointdynamics::SevenLoadRLS(const double *positionL, const double *sen
 
 
 
-	std::vector<double> QwithFric_vec(3 * SampleNum * (LoadReduceParas+6));
+	std::vector<double> QwithFric_vec(3 * SampleNum * (LoadReduceParas + 6));
 	auto QwithFric = QwithFric_vec.data();
 	for (int i = 0;i < 3 * SampleNum;i++)
 	{
 		for (int j = 0;j < LoadReduceParas;j++)
 			QwithFric[i*(LoadReduceParas + 6) + j] = Q[i*LoadReduceParas + j];
-		for (int j = LoadReduceParas;j < LoadReduceParas+6;j++)
-			QwithFric[i*(LoadReduceParas + 6) + j] = regressorVectorFric[i*6 + j-LoadReduceParas];
+		for (int j = LoadReduceParas;j < LoadReduceParas + 6;j++)
+			QwithFric[i*(LoadReduceParas + 6) + j] = regressorVectorFric[i * 6 + j - LoadReduceParas];
 	}
-		
+
 
 
 	// 求解 A的广义逆pinv 和 x
@@ -1952,16 +1952,16 @@ void sevenjointdynamics::SevenLoadRLS(const double *positionL, const double *sen
 
 	aris::Size rankQ;
 
-	s_householder_utp(3 * SampleNum, LoadReduceParas+6, QwithFric, UQ, tauQ, pQ, rankQ, 1e-10);
+	s_householder_utp(3 * SampleNum, LoadReduceParas + 6, QwithFric, UQ, tauQ, pQ, rankQ, 1e-10);
 
 	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A) //
 	double tauQ2[3 * SampleNum];
-	
+
 	s_householder_utp2pinv(3 * SampleNum, LoadReduceParas + 6, rankQ, UQ, tauQ, pQ, pinv, tauQ2, 1e-10);
 	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A)*b //
-	s_mm(LoadReduceParas+6, 1, 3 * SampleNum, pinv, regressorForces, estParas);
+	s_mm(LoadReduceParas + 6, 1, 3 * SampleNum, pinv, regressorForces, estParas);
 
-	
+
 	/*
 	std::ofstream outfile("C:/Users/gk/Desktop/Kaanh_gk/EstParas.txt");
 	if (!outfile)
@@ -1976,19 +1976,19 @@ void sevenjointdynamics::SevenLoadRLS(const double *positionL, const double *sen
 	outfile.close();
 	*/
 
-	
+
 	//Calculate Model Error
 	std::vector<double> Error_vec(3 * SampleNum);
 	auto Error = Error_vec.data();
 
-	s_mm(3 * SampleNum, 1, LoadReduceParas+6, QwithFric, estParas, Error);
-	for (int i = 0;i < 3*SampleNum;i++)
+	s_mm(3 * SampleNum, 1, LoadReduceParas + 6, QwithFric, estParas, Error);
+	for (int i = 0;i < 3 * SampleNum;i++)
 		Error[i] = Error[i] - regressorVector[i];
 
 	double SumError[3] = { 0 };
 	for (int i = 0;i < SampleNum;i++)
 		for (int j = 0;j < 3;j++)
-			SumError[j] = SumError[j] + Error[i*3 + j] * Error[i*3 + j];
+			SumError[j] = SumError[j] + Error[i * 3 + j] * Error[i * 3 + j];
 
 	for (int j = 0;j < 3;j++)
 		StatisError[j] = sqrt(SumError[j]) / SampleNum;
@@ -1999,10 +1999,10 @@ void sevenjointdynamics::SevenLoadRLS(const double *positionL, const double *sen
 void sevenjointdynamics::SevenLoadParasExt(const double *dEst, const double *dCoef, double *Load)
 {
 	// 求解 A的广义逆pinv 和 x
-	double pinv[LoadReduceParas* 10];
+	double pinv[LoadReduceParas * 10];
 
 	// 所需的中间变量，请对U的对角线元素做处理
-	double U[LoadReduceParas* 10];
+	double U[LoadReduceParas * 10];
 	double tau[LoadReduceParas];
 	aris::Size p[LoadReduceParas];
 	aris::Size rank;

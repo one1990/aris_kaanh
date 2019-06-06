@@ -32,82 +32,6 @@ double Vol2FTCoef[36]={0.000133, 	-0.029834, 	0.000031, 	0.029925, 	-0.000006, 	
                        -0.000004, 	0.001104, 	-0.000001, 	0.001079, 	0.000007, 	0.001099};
 
 
-void GetATI(PlanTarget &target,double* FT)
-{
-    int32_t FTint[6],status_code,sample_counter;
-
-    #ifdef UNIX
-    auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.controller);
-
-    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x01, &FTint[0] ,32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x02, &FTint[1], 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x03, &FTint[2], 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x04, &FTint[3], 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x05, &FTint[4], 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x06, &FTint[5], 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6010, 0x00, &status_code, 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6020, 0x00, &sample_counter, 32);
-    #endif
-
-    double ATIscale=1000000.0;
-    FT[0] = FTint[0]/ ATIscale;
-    FT[1] = FTint[1] / ATIscale;
-    FT[2] = FTint[2]/ ATIscale;
-    FT[3] = FTint[3]/ ATIscale;
-    FT[4] = FTint[4]/ ATIscale;
-    FT[5] = FTint[5] / ATIscale;
-
-}
-
-void GetYuLi(PlanTarget &target,double* FT)
-{
-
-    int16_t FTnum;
-    float FTtemp[6];
-
-    #ifdef UNIX
-    auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.controller);
-    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x00, &FTnum ,16);
-    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x01, &FTtemp[0] ,32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x02, &FTtemp[1], 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x03, &FTtemp[2], 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x04, &FTtemp[3], 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x05, &FTtemp[4], 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x06, &FTtemp[5], 32);
-    #endif
-
-    for(int i=0;i<6;i++)
-        FT[i]=FTtemp[i];
-
-}
-
-void BeiFu(PlanTarget &target,double* FT)
-{
-
-    int16_t FTint[6];
-    double FTReal[6];
-
-    #ifdef UNIX
-    auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.controller);
-    conSensor->ecSlavePool().at(7).readPdo(0x6000, 0x11, &FTint[0] ,16);
-    conSensor->ecSlavePool().at(7).readPdo(0x6010, 0x11, &FTint[1], 16);
-    conSensor->ecSlavePool().at(7).readPdo(0x6020, 0x11, &FTint[2], 16);
-    conSensor->ecSlavePool().at(7).readPdo(0x6030, 0x11, &FTint[3], 16);
-    conSensor->ecSlavePool().at(8).readPdo(0x6000, 0x11, &FTint[4], 16);
-    conSensor->ecSlavePool().at(8).readPdo(0x6010, 0x11, &FTint[5], 16);
-    #endif
-
-    for (int i=0;i<6;i++)
-    {
-         FTReal[i] = FTint[i]*20.0 / 65536.0*1000.0;
-    }
-
-    s_mm(6, 1, 6, Vol2FTCoef, FTReal, FT);
-
-
-}
-
-
 
 struct MoveXYZParam
 {
@@ -506,7 +430,7 @@ MoveXYZ::MoveXYZ(const std::string &name) :Plan(name)
 
 struct MoveDistalParam
 {
-    double SensorType;
+	double period;
 	double amplitude;
 
 };
@@ -516,8 +440,8 @@ auto MoveDistal::prepairNrt(const std::map<std::string, std::string> &params, Pl
 
 	for (auto &p : params)
 	{
-        if (p.first == "SensorType")
-            param.SensorType = std::stod(p.second);
+		if (p.first == "period")
+			param.period = std::stod(p.second);
 		if (p.first == "amplitude")
 			param.amplitude = std::stod(p.second);
 
@@ -540,8 +464,7 @@ auto MoveDistal::prepairNrt(const std::map<std::string, std::string> &params, Pl
 		Plan::NOT_CHECK_VEL_MAX |
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
 		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-        Plan::NOT_CHECK_VEL_FOLLOWING_ERROR|
-        Plan::NOT_CHECK_ENABLE;
+		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 
 
 }
@@ -567,7 +490,7 @@ auto MoveDistal::executeRT(PlanTarget &target)->int
 			step_pjs[i] = target.model->motionPool()[i].mp();
 		}
 	}
-
+	param.period = 60;
 
     static bool flag[6] = {true,true,true,true,true,true};
     double PosLimit[6] = { 1,0.5,0.5,1,1,2 };
@@ -625,16 +548,31 @@ auto MoveDistal::executeRT(PlanTarget &target)->int
 
 	if (target.model->solverPool().at(1).kinPos())return -1;
 
+	// 访问主站 //
+	auto controller = target.controller;
 
-    double FT[6];
-    if(param.SensorType>0)
-        GetATI(target,FT);
-    else
-        GetYuLi(target,FT);
+    int32_t FTint[6],status_code,sample_counter;
+    double FTReal[6],FT[6];
+    auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.controller);
+
+    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x01, &FTint[0] ,32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x02, &FTint[1], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x03, &FTint[2], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x04, &FTint[3], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x05, &FTint[4], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x06, &FTint[5], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6010, 0x00, &status_code, 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6020, 0x00, &sample_counter, 32);
+
+    double ATIscale=1000000;
+    FT[0] = FTint[0]/ ATIscale;
+    FT[1] = FTint[1] / ATIscale;
+    FT[2] = FTint[2]/ ATIscale;
+    FT[3] = FTint[3]/ ATIscale;
+    FT[4] = FTint[4]/ ATIscale;
+    FT[5] = FTint[5] / ATIscale;
 
 
-    // 访问主站 //
-    auto controller = target.controller;
 
 	// 打印电流 //
 	auto &cout = controller->mout();
@@ -728,7 +666,7 @@ MoveDistal::MoveDistal(const std::string &name) :Plan(name)
 	command().loadXmlStr(
 		"<Command name=\"mvDistal\">"
 		"	<GroupParam>"
-        "		<Param name=\"SensorType\"default=\"1.0\"/>"
+		"		<Param name=\"period\"default=\"20.0\"/>"
 		"		<Param name=\"amplitude\" default=\"0.2\"/>"
 		"	</GroupParam>"
 		"</Command>");
@@ -740,7 +678,7 @@ MoveDistal::MoveDistal(const std::string &name) :Plan(name)
 
 struct DistalTestParam
 {
-    double SensorType;
+    double period;
     double amplitude;
 
 };
@@ -750,8 +688,8 @@ auto DistalTest::prepairNrt(const std::map<std::string, std::string> &params, Pl
 
     for (auto &p : params)
     {
-        if (p.first == "SensorType")
-            param.SensorType = std::stod(p.second);
+        if (p.first == "period")
+            param.period = std::stod(p.second);
         if (p.first == "amplitude")
             param.amplitude = std::stod(p.second);
 
@@ -807,11 +745,12 @@ auto DistalTest::executeRT(PlanTarget &target)->int
             begin_pjs[i] = target.model->motionPool()[i].mp();
             step_pjs[i] = target.model->motionPool()[i].mp();
         }
-    } 
+    }
+    param.period = 60;
 
     static bool flag[6] = {true,true,true,true,true,true};
-    double PosLimit[6] = { 0.5,0.6,0.4,1,1,1 };
-    double NegLimit[6] = { -0.5,-0.6,-0.4,-1,-1,-1 };
+    double PosLimit[6] = { 0.5,0.1,0.1,1,1,1 };
+    double NegLimit[6] = { -0.5,-0.1,-0.1,-1,-1,-1 };
     double dTheta = 0.00001;
     static double pArc[6], vArc[6], aArc[6], vArcMax[6] = { 0.05,0.05,0.05,0.05,0.05,0.15 };
     static aris::Size t_count[6] = { 0 };
@@ -858,22 +797,39 @@ auto DistalTest::executeRT(PlanTarget &target)->int
 
         }
         //if(i==4||i==5)
-            target.model->motionPool().at(i).setMp(step_pjs[i]);
+            //target.model->motionPool().at(i).setMp(step_pjs[i]);
     }
 
 
 
     if (target.model->solverPool().at(1).kinPos())return -1;
 
-    double FT[6];
-    if(param.SensorType>0)
-        GetATI(target,FT);
-    else
-        GetYuLi(target,FT);
-
-
     // 访问主站 //
     auto controller = target.controller;
+
+    int32_t FTint[6],status_code,sample_counter;
+    double FTReal[6],FT[6];
+    auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.controller);
+
+    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x01, &FTint[0] ,32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x02, &FTint[1], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x03, &FTint[2], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x04, &FTint[3], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x05, &FTint[4], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x06, &FTint[5], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6010, 0x00, &status_code, 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6020, 0x00, &sample_counter, 32);
+
+    double ATIscale=1000000;
+    FT[0] = FTint[0]/ ATIscale;
+    FT[1] = FTint[1] / ATIscale;
+    FT[2] = FTint[2]/ ATIscale;
+    FT[3] = FTint[3]/ ATIscale;
+    FT[4] = FTint[4]/ ATIscale;
+    FT[5] = FTint[5] / ATIscale;
+
+
+
 
     double CollisionFT[6],q[6],dq[6],ddq[6],ts[6];
     double omega = 0;
@@ -888,15 +844,15 @@ auto DistalTest::executeRT(PlanTarget &target)->int
 
     for (int j = 0; j < 6; j++)
     {
-        FT[j]=FT[j]-CollisionFT[j];
+        FT[j]=CollisionFT[j];
 
 
     }
 
-    static double FT0[6]={0};
+    double FT0[6]={0};
     if (target.count == 1)
         for (int j = 0; j < 6; j++)
-            FT0[j]=FT[j];
+            FT0[j]=CollisionFT[j];
 
     for (int j = 0; j < 6; j++)
         FT[j]=FT[j]-FT0[j];
@@ -908,9 +864,7 @@ auto DistalTest::executeRT(PlanTarget &target)->int
     {
         //for (int i = 0; i < 6; i++)
         {
-            //cout << CollisionFT[0]<< "  "<<CollisionFT[1]<<"  "<<CollisionFT[2];
-            cout << FT[0]<< "  "<<FT[1]<<"  "<<FT[2];
-            cout << FT0[0]<< "  "<<FT0[1]<<"  "<<FT0[2];
+            cout << CollisionFT[0]<< "  "<<CollisionFT[1]<<"  "<<CollisionFT[2];
             //cout << "vel" << i + 1 << ":" << target.model->motionPool()[i].mv() << "  ";
             //cout << "cur" << i + 1 << ":" << target.model->motionPool()[i].ma() << "  ";
         }
@@ -942,7 +896,7 @@ DistalTest::DistalTest(const std::string &name) :Plan(name)
     command().loadXmlStr(
         "<Command name=\"DistalTest\">"
         "	<GroupParam>"
-        "		<Param name=\"SensorType\"default=\"20.0\"/>"
+        "		<Param name=\"period\"default=\"20.0\"/>"
         "		<Param name=\"amplitude\" default=\"0.2\"/>"
         "	</GroupParam>"
         "</Command>");
@@ -1523,7 +1477,6 @@ MovePressure::MovePressure(const std::string &name) :Plan(name)
 struct MovePressureToolYZParam
 {
 	double PressF;
-    double SensorType;
 
 
 };
@@ -1536,8 +1489,6 @@ auto MovePressureToolYZ::prepairNrt(const std::map<std::string, std::string> &pa
 	{
 		if (p.first == "PressF")
 			param.PressF = std::stod(p.second);
-        if (p.first == "SensorType")
-            param.SensorType = std::stod(p.second);
 
 	}
 
@@ -1611,11 +1562,26 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
 	double dX[6] = { 0.00000, -0.0000, -0.0000, -0.0000, -0.0000, -0.0000 };
 	double dTheta[6] = { 0 };
 
+    int32_t FTint[6],status_code,sample_counter;
     double FTReal[6],FT[6];
-    if(param.SensorType>0)
-        GetATI(target,FTReal);
-    else
-        GetYuLi(target,FTReal);
+    auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.controller);
+
+    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x01, &FTint[0] ,32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x02, &FTint[1], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x03, &FTint[2], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x04, &FTint[3], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x05, &FTint[4], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x06, &FTint[5], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6010, 0x00, &status_code, 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6020, 0x00, &sample_counter, 32);
+
+    double ATIscale=1000000.0;
+    FT[0] = FTint[0]/ ATIscale;
+    FT[1] = FTint[1] / ATIscale;
+    FT[2] = FTint[2]/ ATIscale;
+    FT[3] = FTint[3]/ ATIscale;
+    FT[4] = FTint[4]/ ATIscale;
+    FT[5] = FTint[5] / ATIscale;
 
 
 	for (int i = 0;i < 6;i++)
@@ -1636,13 +1602,13 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
         ddq[i] =0;
     }
 
-    sixDistalMatrix.sixDistalCollision(q, dq, ddq, FTReal, sixDistalMatrix.estParasFT, CollisionFT);
+    sixDistalMatrix.sixDistalCollision(q, dq, ddq, FT, sixDistalMatrix.estParasFT, CollisionFT);
 
 
 
     for (int j = 0; j < 6; j++)
     {
-        FT[j]=FTReal[j]-CollisionFT[j];
+        FT[j]=CollisionFT[j];
 
     }
 
@@ -1662,9 +1628,9 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
 
 
 
-    for (int j = 0; j < 3; j++)
+	for (int j = 0; j < 6; j++)
 	{
-        double A[3][3], B[3], CutFreq = 105;//SHANGHAI DIANQI EXP
+        double A[3][3], B[3], CutFreq = 85;//SHANGHAI DIANQI EXP
 		//CutFreq = 85;
 		A[0][0] = 0; A[0][1] = 1; A[0][2] = 0;
 		A[1][0] = 0; A[1][1] = 0; A[1][2] = 1;
@@ -1678,24 +1644,6 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
 		stateTor1[j][1] = stateTor0[j][1] + intDT * (A[1][0] * stateTor0[j][0] + A[1][1] * stateTor0[j][1] + A[1][2] * stateTor0[j][2] + B[1] * FT[j]);
 		stateTor1[j][2] = stateTor0[j][2] + intDT * (A[2][0] * stateTor0[j][0] + A[2][1] * stateTor0[j][1] + A[2][2] * stateTor0[j][2] + B[2] * FT[j]);
 	}
-
-    for (int j = 3; j < 6; j++)
-    {
-        double A[3][3], B[3], CutFreq = 105;//SHANGHAI DIANQI EXP
-        //CutFreq = 85;
-        A[0][0] = 0; A[0][1] = 1; A[0][2] = 0;
-        A[1][0] = 0; A[1][1] = 0; A[1][2] = 1;
-        A[2][0] = -CutFreq * CutFreq * CutFreq;
-        A[2][1] = -2 * CutFreq * CutFreq;
-        A[2][2] = -2 * CutFreq;
-        B[0] = 0; B[1] = 0;
-        B[2] = -A[2][0];
-        double intDT = 0.001;
-        stateTor1[j][0] = stateTor0[j][0] + intDT * (A[0][0] * stateTor0[j][0] + A[0][1] * stateTor0[j][1] + A[0][2] * stateTor0[j][2] + B[0] * FT[j]);
-        stateTor1[j][1] = stateTor0[j][1] + intDT * (A[1][0] * stateTor0[j][0] + A[1][1] * stateTor0[j][1] + A[1][2] * stateTor0[j][2] + B[1] * FT[j]);
-        stateTor1[j][2] = stateTor0[j][2] + intDT * (A[2][0] * stateTor0[j][0] + A[2][1] * stateTor0[j][1] + A[2][2] * stateTor0[j][2] + B[2] * FT[j]);
-    }
-
 
 
 	double FT_KAI[6];
@@ -1736,12 +1684,11 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
 	}
 
 
-double preF=-5;
-	double dXpid[6] = { 0,0,0,0,0,0 };
 
-    dXpid[2] = 1 * (FT_KAI[2] - (preF)) / 650000;
-    dXpid[3] = 1 * (FT_KAI[3]) / 4000;
-    dXpid[4] = 1 * (FT_KAI[4]) / 4000;
+	double dXpid[6] = { 0,0,0,0,0,0 };
+    dXpid[2] = 1 * (FT_KAI[2] - (-5)) / 350000;
+    dXpid[3] = 1 * (FT_KAI[3]) / 18000;
+    dXpid[4] = 1 * (FT_KAI[4]) / 28000;
     dXpid[5] = 0 * (FT_KAI[5]) / 8000;
 
 
@@ -1752,23 +1699,11 @@ double preF=-5;
     static bool MoveDirection = true;
     static bool MoveDirectionT = true, MoveDirectionF = false;
     static bool MoveDirectionChange = false;
-    static int StartCount = 12000;
+    static int StartCount = 20000;
     double CosTheta1, CosTheta2;
 
-
-/*
-    if (target.count > StartCount)
-    {
-        dXpid[2] = 1 * (FT_KAI[2] - (preF)) / 350000;
-        dXpid[3] = 1 * (FT_KAI[3]) / 20000;
-        dXpid[4] = 1 * (FT_KAI[4]) / 20000;
-        dXpid[5] = 0 * (FT_KAI[5]) / 8000;
-    }
-
-*/
     if (target.count > StartCount&&MoveDirectionF == true)
     {
-        dXpid[2] = 1 * (FT_KAI[2] - (preF)) / 650000;
         dXpid[3] = 0;
         dXpid[4] = 0;
         dXpid[5] = 0;
@@ -1815,26 +1750,22 @@ double preF=-5;
 
 
 
-    static double pArc, vArc, aArc, vArcMax = 0.03;
+    static double pArc, vArc, aArc, vArcMax = 0.07;
 	aris::Size t_count;
 
-   // double Square[4][3] = { {0,-0.04,0.73},
-     //                       {0,-0.04,0.3},
-     //                       {0,-0.25,0.3},
-     //                       {0,-0.25,0.73}};
+    double Square[4][3] = { {0,0,0.73},
+                            {0,0,0.3},
+                            {0,-0.3,0.3},
+                            {0,-0.3,0.73}};
 
-    double Square[4][3] = { {0,-0.06,0.35},
-                            {0,-0.06,0.76},
-                            {0,-0.27,0.76},
-                            {0,-0.27,0.35}};
 
 	static double MoveLength = 0;
-    static double DecLength = 0.01, LengthT = 0.2, LengthF = 0.45;//LengthT>LengthF
+	static double DecLength = 0.01, LengthT = 0.2, LengthF = 0.05;//LengthT>LengthF
 
 	LengthT = sqrt((Square[0][1] - Square[1][1])*(Square[0][1] - Square[1][1]) + (Square[0][2] - Square[1][2])*(Square[0][2] - Square[1][2]));
 	double CountFmax = sqrt((Square[2][1] - Square[1][1])*(Square[2][1] - Square[1][1]) + (Square[2][2] - Square[1][2])*(Square[2][2] - Square[1][2])) / LengthF;
 
-CountFmax=4;
+
 	double DecTime = 0, Dec = 0;
 	static int count_offsetT = StartCount, count_offsetF = StartCount;
 	static double vArcEndT = 0, vArcEndF = 0;
@@ -1857,9 +1788,9 @@ CountFmax=4;
 	if (target.count > StartCount&&MoveDirectionT == true && MoveDirectionF == false)
 	{
 		if (CountT % 2 == 0)
-            MoveDirection = true;
+			MoveDirection = true;
 		else
-            MoveDirection = false;
+			MoveDirection = false;
 
 		if (abs(NormalVector[0]) < 0.01)
 		{
@@ -2084,61 +2015,7 @@ CountFmax=4;
             dX[j] = 0.00025;
         if (dX[j] < -0.00025)
             dX[j] = -0.00025;
-
 	}
-
-
-/*
-    if(PqEnd[2]>0.5&&MoveDirectionT == true&&MoveDirection==true)
-        dX[4]=0.00001;
-
-    if(PqEnd[2]>0.53&&MoveDirectionT == true&&MoveDirection==true)
-        dX[4]=0.00006;
-    if(PqEnd[2]>0.55&&MoveDirectionT == true&&MoveDirection==true)
-        dX[4]=0.00004;
-    if(PqEnd[2]>0.6&&MoveDirectionT == true&&MoveDirection==true)
-        dX[4]=0.00002;
-
-
-    if(PqEnd[2]>0.5&&MoveDirectionT == true&&MoveDirection==false)
-        dX[4]=-0.00001;
-    if(PqEnd[2]>0.53&&MoveDirectionT == true&&MoveDirection==false)
-        dX[4]=-0.00006;
-    if(PqEnd[2]>0.55&&MoveDirectionT == true&&MoveDirection==false)
-        dX[4]=-0.00004;
-    if(PqEnd[2]>0.6&&MoveDirectionT == true&&MoveDirection==false)
-        dX[4]=-0.00002;
-*/
-
-
-
-
-
-
-     /* shuzhi
-    if(PqEnd[2]>0.5&&MoveDirectionT == true&&MoveDirection==true)
-        dX[4]=0.00006;
-
-    if(PqEnd[2]>0.53&&MoveDirectionT == true&&MoveDirection==true)
-        dX[4]=0.00008;
-    if(PqEnd[2]>0.55&&MoveDirectionT == true&&MoveDirection==true)
-        dX[4]=0.00005;
-    if(PqEnd[2]>0.6&&MoveDirectionT == true&&MoveDirection==true)
-        dX[4]=0.00002;
-
-
-    if(PqEnd[2]>0.5&&MoveDirectionT == true&&MoveDirection==false)
-        dX[4]=-0.00006;
-    if(PqEnd[2]>0.53&&MoveDirectionT == true&&MoveDirection==false)
-        dX[4]=-0.00005;
-    if(PqEnd[2]>0.55&&MoveDirectionT == true&&MoveDirection==false)
-        dX[4]=-0.00008;
-    if(PqEnd[2]>0.6&&MoveDirectionT == true&&MoveDirection==false)
-        dX[4]=-0.00002;
-    */
-
-
-
 
 
 	// 打印电流 //
@@ -2161,21 +2038,21 @@ CountFmax=4;
 	//lout << stateTor1[0][0] << ",";lout << stateTor1[1][0] << ",";
 	//lout << stateTor1[2][0] << ",";lout << stateTor1[3][0] << ",";
    // lout << stateTor1[4][0] << ",";lout << stateTor1[5][0] << ",";
-    lout << FT[0] << ",";lout << FT[1] << ",";
-    lout << FT[2] << ",";lout << FT[3] << ",";
-    lout << FT[4] << ",";lout << FT[5] << ",";
+    lout << FT_KAI[0] << ",";lout << FT_KAI[1] << ",";
+    lout << FT_KAI[2] << ",";lout << FT_KAI[3] << ",";
+    lout << FT_KAI[4] << ",";lout << FT_KAI[5] << ",";
 
 
-     lout << CollisionFT[0] << ",";lout << CollisionFT[1] << ",";
-     lout << CollisionFT[2] << ",";lout << CollisionFT[3] << ",";
-     lout << CollisionFT[4] << ",";lout << CollisionFT[5] << ",";
+     lout << FT[0] << ",";lout << FT[1] << ",";
+     lout << FT[2] << ",";lout << FT[3] << ",";
+     lout << FT[4] << ",";lout << FT[5] << ",";
 
-     //lout << TangentArc[0] << ",";lout << TangentArc[1] << ",";
-     //lout << TangentArc[2] << ",";
+     lout << TangentArc[0] << ",";lout << TangentArc[1] << ",";
+     lout << TangentArc[2] << ",";
 
-     lout << FTReal[0] << ",";lout << FTReal[1] << ",";
-     lout << FTReal[2] << ",";lout << FTReal[3] << ",";
-     lout << FTReal[4] << ",";lout << FTReal[5] << ",";
+     lout << FTint[0] << ",";lout << FTint[1] << ",";
+     lout << FTint[2] << ",";lout << FTint[3] << ",";
+     lout << FTint[4] << ",";lout << FTint[5] << ",";
 
     lout << std::endl;
 
@@ -2243,7 +2120,7 @@ CountFmax=4;
 
 
 
-    if(abs(FT_KAI[2])<60)
+    if(abs(FT_KAI[2])<20)
     {
         for (int i = 0; i < 6; i++)
         {
@@ -2256,10 +2133,11 @@ CountFmax=4;
     if (target.count % 300 == 0)
     {
 
-        //cout <<FT_KAI[2] << "****"<<TangentArc[0] << "****" << TangentArc[1] << "****" <<TangentArc[2]<< endl;
+        //cout << vArc << "****" << dTheta[1] << "****" <<CountFmax<< endl;
 
-        cout << FT_KAI[2] << "*" <<FT[2] << "*" << FTReal[2] <<"*"<<dX[0]<< "*"<<dX[1]<<"*"<<PqEnd[2]<<endl;
-
+        cout << FT_KAI[2] << "*" <<FT_KAI[3] << "*" << FT_KAI[4] <<"*"<<TangentArc[0]<< "*"<<TangentArc[1]<<"*"<<TangentArc[2]<<endl;
+        //cout << FT_KAI[2] << "*" << NormalAng << "*" << TransVector[4] << "*" << TransVector[5] << "*" << TransVector[6] << "*" << FT0[2] << endl;
+        //cout << FT_KAI[2] << "*" << NormalAng << "*" << TransVector[8] << "*" << TransVector[9] << "*" << TransVector[10] << "*" << FT0[2] << endl;
 
                 //cout <<  FT_KAI[0]<<"***"<<FmInWorld[2]<<endl;
 
@@ -2296,7 +2174,6 @@ MovePressureToolYZ::MovePressureToolYZ(const std::string &name) :Plan(name)
         "<Command name=\"mvPreTYZ\">"
 		"	<GroupParam>"
 		"       <Param name=\"PressF\" default=\"0\"/>"
-        "		<Param name=\"SensorType\"default=\"20.0\"/>"
 		"   </GroupParam>"
 		"</Command>");
 
@@ -2307,7 +2184,6 @@ MovePressureToolYZ::MovePressureToolYZ(const std::string &name) :Plan(name)
 struct MovePressureToolXYParam
 {
 	double PressF;
-    double SensorType;
 
 
 };
@@ -2318,10 +2194,9 @@ auto MovePressureToolXY::prepairNrt(const std::map<std::string, std::string> &pa
 	MovePressureToolXYParam param;
 	for (auto &p : params)
 	{
-        if (p.first == "PressF")
-            param.PressF = std::stod(p.second);
-        if (p.first == "SensorType")
-            param.SensorType = std::stod(p.second);
+		if (p.first == "PressF")
+			param.PressF = std::stod(p.second);
+
 	}
 
 	target.param = param;
@@ -2400,11 +2275,16 @@ auto MovePressureToolXY::executeRT(PlanTarget &target)->int
 	double dX[6] = { 0.00000, -0.0000, -0.0000, -0.0000, -0.0000, -0.0000 };
 	double dTheta[6] = { 0 };
 
-    double FT[6];
-    if(param.SensorType>0)
-        GetATI(target,FT);
-    else
-        GetYuLi(target,FT);
+    int16_t FTint[6],FTnum;
+    float FTReal[6],FT[6];
+    auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.controller);
+    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x00, &FTnum ,16);
+    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x01, &FT[0] ,32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x02, &FT[1], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x03, &FT[2], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x04, &FT[3], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x05, &FT[4], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x06, &FT[5], 32);
 
 
 
@@ -2819,7 +2699,7 @@ auto MovePressureToolXY::executeRT(PlanTarget &target)->int
 	 //lout << target.model->motionPool()[4].mp() << ",";
 	 //lout << target.model->motionPool()[5].mp() << ",";
     //lout << vArc << endl;
-    //lout << FTnum << ",";
+    lout << FTnum << ",";
 	//lout << FT[2] << ",";lout << dX[2] << ",";
 	//lout << FmInWorld[2] << ",";lout << FT0[2] << ",";
 
@@ -2938,8 +2818,7 @@ MovePressureToolXY::MovePressureToolXY(const std::string &name) :Plan(name)
 	command().loadXmlStr(
 		"<Command name=\"mvPreTXY\">"
 		"	<GroupParam>"
-        "       <Param name=\"PressF\" default=\"0\"/>"
-        "		<Param name=\"SensorType\"default=\"20.0\"/>"
+		"       <Param name=\"PressF\" default=\"0\"/>"
 		"   </GroupParam>"
 		"</Command>");
 
@@ -2985,7 +2864,6 @@ GetForce::GetForce(const std::string &name) : Plan(name)
 struct MoveFeedParam
 {
 	double PressF;
-    double SensorType;
 
 
 };
@@ -2996,7 +2874,7 @@ auto MoveFeed::prepairNrt(const std::map<std::string, std::string> &params, Plan
 	for (auto &p : params)
 	{
 		if (p.first == "PressF")
-            param.PressF = std::stod(p.second);
+			param.PressF = std::stod(p.second);
 
 	}
 
@@ -3375,13 +3253,145 @@ MoveFeed::MoveFeed(const std::string &name) :Plan(name)
 
 
 
-int signV(double x)
-{
-    double margin=0.01;
-    if (x > margin) return 1;
-    if (abs(x) < margin||abs(x) == margin) return 0;
-    if (x < -margin) return -1;
-}
+
+
+
+void robotJacobianEnd(const double* q, double* JacoEnd)
+       {
+    double t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16, t17;
+    double t18, t19, t20, t21, t22, t23, t24, t25, t26, t27, t28, t29, t30, t31, t32;
+    double t33, t34, t35, t36, t37, t38, t39, t40, t41, t42, t43, t44, t45, t46, t47;
+    double t48, t49, t50, t51, t52, t53, t54, t55, t56, t57, t58, t59, t60, t61, t62;
+    double t63, t64, t65, t66, t67, t68, t69, t70, t71, t72, t73, t74, t75, t76, t77;
+    double q1, q2, q3, q4, q5, q6;
+
+           q1 = q[0]  * DirectionFlag[0] + JointOffset[0] + ZeroOffset[0];
+           q2 = q[1]  * DirectionFlag[1] + JointOffset[1] + ZeroOffset[1];
+           q3 = q[2]  * DirectionFlag[2] + JointOffset[2] + ZeroOffset[2];
+           q4 = q[3]  * DirectionFlag[3] + JointOffset[3] + ZeroOffset[3];
+           q5 = q[4]  * DirectionFlag[4] + JointOffset[4] + ZeroOffset[4];
+           q6 = q[5]  * DirectionFlag[5] + JointOffset[5] + ZeroOffset[5];
+
+           double MC1, MC2, MC3;
+           MC1 = EndPoint[0]; MC2 = EndPoint[1]; MC3 = EndPoint[2];
+
+           double A0[6][6];
+           for (int i = 0;i < 6;i++)
+               for (int j = 0;j < 6;j++)
+                   A0[i][j]=0;
+
+           t2 = cos(q6);
+           t3 = sin(q6);
+           t4 = cos(q5);
+           t5 = sin(q5);
+           t6 = MC1 * t2;
+           t14 = MC2 * t3;
+           t7 = t6 - t14;
+           t8 = sin(q4);
+           t9 = MC2 * t2;
+           t10 = MC1 * t3;
+           t11 = t9 + t10;
+           t12 = cos(q4);
+           t13 = MC3 * t5;
+           t22 = t4 * t7;
+           t15 = t13 - t22;
+           t16 = cos(q3);
+           t17 = MC3 * t4;
+           t18 = t5 * t7;
+           t19 = d4 + t17 + t18;
+           t20 = sin(q3);
+           t21 = t8 * t11;
+           t23 = t12 * t15;
+           t24 = -a4 + t21 + t23;
+           t25 = cos(q1);
+           t26 = sin(q2);
+           t27 = t19 * t20;
+           t28 = t16 * t24;
+           t29 = -a3 + t27 + t28;
+           t30 = cos(q2);
+           t31 = t16 * t19;
+           t33 = t20 * t24;
+           t32 = t31 - t33;
+           t34 = sin(q1);
+           t35 = t8 * t15;
+           t36 = t17 + t18;
+           t37 = t7 * t8;
+           t38 = t4 * t11*t12;
+           t39 = t37 + t38;
+           t51 = t11 * t12;
+           t40 = t35 - t51;
+           t41 = t29 * t30;
+           t42 = t26 * t32;
+           t43 = -a2 + t41 + t42;
+           t44 = t26 * t29;
+           t46 = t30 * t32;
+           t45 = t44 - t46;
+           t47 = t27 + t28;
+           t48 = t21 + t23;
+           t49 = q2 + q3;
+           t50 = cos(t49);
+           t52 = t15 * t20;
+           t68 = t12 * t16*t36;
+           t53 = t52 - t68;
+           t54 = t30 * t53;
+           t55 = t15 * t16;
+           t56 = t12 * t20*t36;
+           t57 = t55 + t56;
+           t58 = t26 * t57;
+           t59 = t54 + t58;
+           t60 = t16 * t39;
+           t69 = t5 * t11*t20;
+           t61 = t60 - t69;
+           t62 = t20 * t39;
+           t63 = t5 * t11*t16;
+           t64 = t62 + t63;
+           t65 = t26 * t64;
+           t66 = t7 * t12;
+           t67 = t66 - t4 * t8*t11;
+           t70 = sin(t49);
+           A0[0][0] = -t25 * t40 + t34 * t43;
+           A0[0][1] = t25 * t45;
+           A0[0][2] = -t25 * (t30*t32 - t26 * t47);
+           A0[0][3] = -t34 * t48 + t25 * t40*t50;
+           A0[0][4] = t25 * t59 - t8 * t34*t36;
+           A0[0][5] = t34 * t67 + t25 * (t65 - t30 * t61);
+           A0[1][0] = -t25 * t43 - t34 * t40;
+           A0[1][1] = t34 * t45;
+           A0[1][2] = -t34 * (t46 - t26 * t47);
+           A0[1][3] = t25 * t48 + t34 * t50*(t35 - t51);
+           A0[1][4] = t34 * t59 + t8 * t25*t36;
+           A0[1][5] = -t25 * t67 + t34 * (t65 - t30 * t61);
+           A0[2][1] = t41 + t42;
+           A0[2][2] = t42 + t30 * t47;
+           A0[2][3] = -t40 * t70;
+           A0[2][4] = -t26 * t53 + t30 * t57;
+           A0[2][5] = t26 * t61 + t30 * t64;
+           A0[3][1] = -t34;
+           A0[3][2] = -t34;
+           A0[3][3] = -t25 * t70;
+           A0[3][4] = -t12 * t34 + t8 * t25*t50;
+           A0[3][5] = -t5 * (t8*t34 + t12 * t25*t50) - t4 * t25*t70;
+           A0[4][1] = t25;
+           A0[4][2] = t25;
+           A0[4][3] = -t34 * t70;
+           A0[4][4] = t12 * t25 + t8 * t34*t50;
+           A0[4][5] = t5 * (t8*t25 - t12 * t34*t50) - t4 * t34*t70;
+           A0[5][0] = 1.0;
+           A0[5][3] = -t50;
+           A0[5][4] = -t8 * t70;
+           A0[5][5] = -t4 * t50 + t5 * t12*t70;
+
+
+           for (int i = 0;i < 6;i++)
+               for (int j = 0;j < 6;j++)
+                   JacoEnd[i * 6 + j] = A0[i][j];
+
+
+       }
+
+
+
+
 
 
 
@@ -3389,8 +3399,6 @@ int signV(double x)
 struct MoveJointParam
 {
 	double PressF;
-    double SensorType;
-
 
 };
 
@@ -3399,10 +3407,8 @@ auto MoveJoint::prepairNrt(const std::map<std::string, std::string> &params, Pla
 	MoveJointParam param;
 	for (auto &p : params)
 	{
-        if (p.first == "PressF")
-            param.PressF = std::stod(p.second);
-        if (p.first == "SensorType")
-            param.SensorType = std::stod(p.second);
+		if (p.first == "PressF")
+			param.PressF = std::stod(p.second);
 
 	}
 
@@ -3423,21 +3429,22 @@ auto MoveJoint::prepairNrt(const std::map<std::string, std::string> &params, Pla
 		Plan::NOT_CHECK_VEL_MAX |
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
 		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-        Plan::NOT_CHECK_VEL_FOLLOWING_ERROR|
-        Plan::NOT_CHECK_ENABLE;
+		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 
 
-    //读取动力学参数
-    auto mat0 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("estParasFT"));
-    for (int i = 0;i < GroupDim;i++)
-        sixDistalMatrix.estParasFT[i] = mat0->data().data()[i];
+
 
 }
 auto MoveJoint::executeRT(PlanTarget &target)->int
 {
 	auto &param = std::any_cast<MoveJointParam&>(target.param);
 
-    static double step_pjs[6],begin_pjs[6];
+	double RobotPosition[6];
+	double RobotPositionJ[6];
+	double RobotVelocity[6];
+	double RobotAcceleration[6];
+	double TorqueSensor[6];
+	static double step_pjs[6];
     static double stateTor0[6][2], stateTor1[6][2];
     static double FT0[6];
 
@@ -3450,16 +3457,9 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 		for (int i = 0; i < 6; ++i)
 		{
 			step_pjs[i] = target.model->motionPool()[i].mp();
-            begin_pjs[i] = target.model->motionPool()[i].mp();
-            controller->motionPool().at(i).setModeOfOperation(10);	//切换到电流控制
+			// controller->motionPool().at(i).setModeOfOperation(10);	//切换到电流控制
 		}
-
 	}
-
-
-
-
-
 
 
 	if (target.model->solverPool().at(1).kinPos())return -1;
@@ -3475,27 +3475,26 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 	double dTheta[6] = { 0 };
     double dThetaFil[6] = { 0 };
 
+    int16_t FTnum;
+    float FT[6];
+    auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.controller);
+    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x00, &FTnum ,16);
+    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x01, &FT[0] ,32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x02, &FT[1], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x03, &FT[2], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x04, &FT[3], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x05, &FT[4], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x06, &FT[5], 32);
 
 
-    double FT[6];
-    if(param.SensorType>0)
-        GetATI(target,FT);
-    else
-        GetYuLi(target,FT);
-
-    double q[6],dq[6],ddq[6],CollisionFT[6];
-    for (int i = 0; i < 6; i++)
-    {
-        q[i]= controller->motionPool()[i].actualPos();
-        dq[i] =0;
-        ddq[i] =0;
-    }
-
-    sixDistalMatrix.sixDistalCollision(q, dq, ddq, FT, sixDistalMatrix.estParasFT, CollisionFT);
-    for (int j = 0; j < 6; j++)
-        FT[j]=FT[j]-CollisionFT[j];
-
-
+	for (int i = 0;i < 6;i++)
+	{
+		RobotPositionJ[i] = target.model->motionPool()[i].mp();
+		RobotPosition[i] = target.model->motionPool()[i].mp();
+		RobotVelocity[i] = 0;
+		RobotAcceleration[i] = 0;
+		TorqueSensor[i] = FT[i];
+	}
 
 
     if (target.count == 1)
@@ -3522,7 +3521,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
     // /*Second-Order Filter
     for (int j = 0; j < 6; j++)
     {
-        double A[2][2], B[2], CutFreq = 600;//SHANGHAI DIANQI EXP
+        double A[2][2], B[2], CutFreq = 20;//SHANGHAI DIANQI EXP
         //CutFreq = 85;
         A[0][0] = 0; A[0][1] = 1;
         A[1][0] = -CutFreq*CutFreq; A[1][1] = -sqrt(2)*CutFreq;
@@ -3545,7 +3544,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
     {
         for (int j = 0; j < 6; j++)
         {
-            FT0[j] = FT[j];
+            FT0[j] = stateTor1[j][0];
         }
     }
 
@@ -3554,7 +3553,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
     {
         for (int j = 0; j < 6; j++)
         {
-            FT0[j] = FT[j];
+            FT0[j] = stateTor1[j][0];
         }
     }
 
@@ -3562,7 +3561,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 	double FT_KAI[6];
 	for (int i = 0; i < 6; i++)
 	{
-        FT_KAI[i] = FT[i] - FT0[i];//In KAI Coordinate
+        FT_KAI[i] = stateTor1[i][0] - FT0[i];//In KAI Coordinate
 	}
 
 
@@ -3624,11 +3623,43 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 	// log 电流 //
 	auto &lout = controller->lout();
 
+	//lout << FT[2] << ",";lout << dX[2] << ",";
+	//lout << FmInWorld[2] << ",";lout << FT0[2] << ",";
+
+
+    lout << FT[0] << ",";lout << FT[1] << ",";
+    lout << FT[2] << ",";lout << FT[3] << ",";
+    lout << FT[4] << ",";lout << FT[5] << ",";
+
+
+
+
+
+    //lout << stateTor1[0][0] << ",";lout << stateTor1[1][0]<< ",";
+    //lout << stateTor1[2][0] << ",";lout << stateTor1[3][0]<< ",";
+    //lout << stateTor1[4][0] << ",";lout << stateTor1[5][0] << ",";
+    // lout << FT_KAI[0] << ",";lout << FT_KAI[1] << ",";
+    // lout << FT_KAI[2] << ",";lout << FT_KAI[3] << ",";
+    // lout << FT_KAI[4] << ",";lout << FT_KAI[5] << ",";
+
+	// lout << dX[0] << ",";
+    // lout << FT[0] << ",";lout << FT[1] << ",";
+    // lout << FT[2] << ",";lout << FT[3] << ",";
+     //lout << FT[4] << ",";lout << FT[5] << ",";
+    //lout << std::endl;
+
+
 
 	///* Using Jacobian, TransMatrix from ARIS
 	auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(target.model->solverPool()[1]);
 
+    double q[6];
 
+    for (int i = 0; i < 6; ++i)
+    {
+        q[i] = target.model->motionPool()[i].mp();
+
+    }
     /*
     robotJacobianEnd(q,JacobEnd);
 	double JacobEndTrans[36] = { 0 };
@@ -3654,7 +3685,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 	//for (int i = 0;i < 6;i++)
 	   // dTheta[i] = JoinTau[i] / 10000;
 
-    double rate=4.0;
+    double rate=2.0;
     dTheta[0] = JoinTau[0] / 3000/rate;
     dTheta[1] = JoinTau[1] / 4000/rate;
     dTheta[2] = JoinTau[2] / 4000/rate;
@@ -3685,7 +3716,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
      // /*Second-Order Filter
      for (int j = 0; j < 6; j++)
      {
-         double A[2][2], B[2], CutFreq = 20;//SHANGHAI DIANQI EXP
+         double A[2][2], B[2], CutFreq = 10;//SHANGHAI DIANQI EXP
          //CutFreq = 85;
          A[0][0] = 0; A[0][1] = 1;
          A[1][0] = -CutFreq*CutFreq; A[1][1] = -sqrt(2)*CutFreq;
@@ -3702,7 +3733,16 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 
 
 
+    if (target.count % 300 == 0)
+    {
 
+        cout << FT_KAI[0] << "***" << FT_KAI[1] << "***" << FmInWorld[1] << endl;
+
+        //cout <<  FT_KAI[0]<<"***"<<FmInWorld[2]<<endl;
+
+        cout << std::endl;
+
+    }
 
 	for (int i = 0; i < 6; i++)
 	{
@@ -3710,71 +3750,20 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 
 	}
 
-
-
-	for (int i = 0; i < 6; i++)
-	{
-        step_pjs[i] = step_pjs[i] + dTheta[i];
-       // target.model->motionPool().at(i).setMp(step_pjs[i]);
-	}
-
-
-
-    double pa[6]={0},va[6]={0};
-    double ft_offset[6] = {0};
-    double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
-    double f_static[6] = { 0,0,0,0,0,0 };
-    double f_vel_JRC[6] = { 0,0,0,0,0,0};
-
-
-    double KP[6]={180,180,100,30,30,30};
-
-    //动力学
-    for (int i = 0; i < 6; ++i)
-    {
-        target.model->motionPool()[i].setMp(controller->motionPool()[i].actualPos());
-        target.model->motionPool().at(i).setMv(controller->motionAtAbs(i).actualVel());
-        target.model->motionPool().at(i).setMa(0.0);
-    }
-
-    target.model->solverPool()[1].kinPos();
-    target.model->solverPool()[1].kinVel();
-    target.model->solverPool()[2].dynAccAndFce();
-
-
-
-    for (int i = 0; i < 6; i++)
-    {
-    pa[i] = controller->motionAtAbs(i).actualPos();
-    va[i] = controller->motionAtAbs(i).actualVel();
-    ft_offset[i]=(10*KP[i]*(step_pjs[i]-pa[i])+target.model->motionPool()[i].mfDyn()+f_vel_JRC[i]*va[i] + f_static[i]*signV(va[i]))*f2c_index[i];
-    ft_offset[i] = std::max(-500.0, ft_offset[i]);
-    ft_offset[i] = std::min(500.0, ft_offset[i]);
-    //if(abs(pa[i])<1)
-        controller->motionAtAbs(i).setTargetCur(ft_offset[i]);
-    }
-
-
     lout << dTheta[0] << ",";lout << dTheta[1] << ",";
     lout << dTheta[2] << ",";lout << dTheta[3] << ",";
     lout << dTheta[4] << ",";lout << dTheta[5] << ",";
 
-    //lout << va[0] << ",";lout << va[1] << ",";
-    //lout << va[2] << ",";lout << va[3] << ",";
-    //lout << va[4] << ",";lout << va[5] << ",";
+    lout << dThetaFil[0] << ",";lout << dThetaFil[1] << ",";
+    lout << dThetaFil[2] << ",";lout << dThetaFil[3] << ",";
+    lout << dThetaFil[4] << ",";lout << dThetaFil[5] << ",";
     lout << std::endl;
 
-
-    if (target.count % 300 == 0)
-    {
-
-        //cout << step_pjs[2] << "***" << ft_offset[2] << "***" << step_pjs[2] << endl;
-
-        cout <<FT_KAI[0]<<"***"<<FT_KAI[1]<<"***"<<FT_KAI[2]<<endl;
-        cout <<FT[0]<<"***"<<FT[1]<<"***"<<FT[2]<<endl;
-    }
-
-
+	for (int i = 0; i < 6; i++)
+	{
+        step_pjs[i] = step_pjs[i] + dThetaFil[i];
+        target.model->motionPool().at(i).setMp(step_pjs[i]);
+	}
 
 	for (int i = 0; i < 6; i++)
 	{
@@ -3799,7 +3788,6 @@ MoveJoint::MoveJoint(const std::string &name) :Plan(name)
 		"<Command name=\"mvJoint\">"
 		"	<GroupParam>"
 		"       <Param name=\"PressF\" default=\"0\"/>"
-        "		<Param name=\"SensorType\"default=\"20.0\"/>"
 		"   </GroupParam>"
 		"</Command>");
 
