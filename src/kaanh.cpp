@@ -4,7 +4,7 @@
 #include "jointfc.h"
 #include "sevenjointfc.h"
 #include <array>
-
+#include"move_series.h"
 
 using namespace aris::dynamic;
 using namespace aris::plan;
@@ -37,13 +37,24 @@ namespace kaanh
 		std::unique_ptr<aris::control::Controller> controller(aris::robot::createControllerRokaeXB4());/*创建std::unique_ptr实例*/
 
 #ifdef UNIX
-        dynamic_cast<aris::control::Motion&>(controller->slavePool()[0]).setPosOffset(0.00293480352126769);
-        dynamic_cast<aris::control::Motion&>(controller->slavePool()[1]).setPosOffset(-2.50023777179214);
-        dynamic_cast<aris::control::Motion&>(controller->slavePool()[2]).setPosOffset(-0.292382537944081);
-        dynamic_cast<aris::control::Motion&>(controller->slavePool()[3]).setPosOffset(0.0582675097338009);
-        dynamic_cast<aris::control::Motion&>(controller->slavePool()[4]).setPosOffset(1.53363576057128);
-        dynamic_cast<aris::control::Motion&>(controller->slavePool()[5]).setPosOffset(26.3545454214145);
+       // dynamic_cast<aris::control::Motion&>(controller->slavePool()[0]).setPosOffset(0.00293480352126769);
+       // dynamic_cast<aris::control::Motion&>(controller->slavePool()[1]).setPosOffset(-2.50023777179214);
+       // dynamic_cast<aris::control::Motion&>(controller->slavePool()[2]).setPosOffset(-0.292382537944081);
+       // dynamic_cast<aris::control::Motion&>(controller->slavePool()[3]).setPosOffset(0.0582675097338009);
+       // dynamic_cast<aris::control::Motion&>(controller->slavePool()[4]).setPosOffset(1.53363576057128);
+       // dynamic_cast<aris::control::Motion&>(controller->slavePool()[5]).setPosOffset(26.3545454214145);
 		
+       // controller->slavePool().add<aris::control::EthercatSlave>();
+       // controller->slavePool().back().setPhyId(6);
+       // dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanInfoForCurrentSlave();
+       // dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanPdoForCurrentSlave();
+       // dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).setDcAssignActivate(0x300);
+
+       // controller->slavePool().add<aris::control::EthercatSlave>();
+       // controller->slavePool().back().setPhyId(7);
+        //dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanInfoForCurrentSlave();
+        //dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanPdoForCurrentSlave();
+#endif
         controller->slavePool().add<aris::control::EthercatSlave>();
         controller->slavePool().back().setPhyId(6);
         dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanInfoForCurrentSlave();
@@ -61,7 +72,6 @@ namespace kaanh
         dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanPdoForCurrentSlave();
         //dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).setDcAssignActivate(0x300);
 */
-#endif		
 
 		return controller;
 	};
@@ -292,11 +302,11 @@ namespace kaanh
             controller->slavePool().add<aris::control::EthercatMotion>().loadXmlStr(xml_str);
         }
 
-#ifdef UNIX
+
         //ATI force sensor//
         std::string xml_str =
             "<EthercatSlave phy_id=\"6\" product_code=\"0x26483053\""
-            " vendor_id=\"0x00000732\" revision_num=\"0x00000001\" dc_assign_activate=\"0x300\">"
+            " vendor_id=\"0x00000732\" revision_num=\"0x00000001\" dc_assign_activate=\"0x00\">"
             "	<SyncManagerPoolObject>"
             "		<SyncManager is_tx=\"false\"/>"
             "		<SyncManager is_tx=\"true\"/>"
@@ -322,7 +332,6 @@ namespace kaanh
             "</EthercatSlave>";
 
         controller->slavePool().add<aris::control::EthercatSlave>().loadXmlStr(xml_str);
-#endif
 
         return controller;
     };
@@ -336,7 +345,7 @@ namespace kaanh
 		param.a3 = 0.04;
 		param.d4 = 0.43;
 
-		param.tool0_pe[2] = 0.106;
+        param.tool0_pe[2] = 0.106+0.07;
 
 		auto model = aris::dynamic::createModelPuma(param);
 		/*
@@ -3163,194 +3172,263 @@ namespace kaanh
 	}
 
 
-	// 力传感器信号测试 //
-	struct FSParam
-	{
-        int time;
-        std::int16_t Fx,Fy,Fz,Mx,My,Mz;
-	};
-	auto FSSignal::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
-		{
-			FSParam param;
-			for (auto &p : params)
-			{
-				if (p.first == "time")
-				{
-					param.time = std::stoi(p.second);
-				}
-			}
-            param.Fx = 0;
-            param.Fy = 0;
-            param.Fz = 0;
-            param.Mx = 0;
-            param.My = 0;
-            param.Mz = 0;
-			target.param = param;
+    // 力传感器信号测试 //
+        struct FSParam
+        {
+            bool real_data;
+            int time;
+            uint16_t datanum;
+            float Fx,Fy,Fz,Mx,My,Mz;
+        };
+        auto FSSignal::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+            {
+                FSParam param;
+                for (auto &p : params)
+                {
+                    if (p.first == "real_data")
+                    {
+                        param.real_data = std::stod(p.second);
+                    }
+                    else if (p.first == "time")
+                    {
+                        param.time = std::stoi(p.second);
+                    }
+                }
 
-		}
-	auto FSSignal::executeRT(PlanTarget &target)->int
-		{
-			auto &param = std::any_cast<FSParam&>(target.param);
-			// 访问主站 //
-			auto controller = dynamic_cast<aris::control::EthercatController*>(target.controller);
+                param.Fx = 0.0;
+                param.Fy = 0.0;
+                param.Fz = 0.0;
+                param.Mx = 0.0;
+                param.My = 0.0;
+                param.Mz = 0.0;
+                target.param = param;
 
-            controller->ecSlavePool().at(7).readPdo(0x6000, 0x11, &param.Fx ,16);
-            controller->ecSlavePool().at(7).readPdo(0x6010, 0x11, &param.Fy, 16);
-            controller->ecSlavePool().at(7).readPdo(0x6020, 0x11, &param.Fz, 16);
-            controller->ecSlavePool().at(7).readPdo(0x6030, 0x11, &param.Mx, 16);
-            controller->ecSlavePool().at(8).readPdo(0x6000, 0x11, &param.My, 16);
-            controller->ecSlavePool().at(8).readPdo(0x6010, 0x11, &param.Mz, 16);
-			
-            double Fx = param.Fx*20.0 / 65536;
-            double Fy = param.Fy*20.0 / 65536;
-            double Fz = param.Fz*20.0 / 65536;
-            double Mx = param.Mx*20.0 / 65536;
-            double My = param.My*20.0 / 65536;
-            double Mz = param.Mz*20.0 / 65536;
+    #ifdef WIN32
+                target.option |=
 
-			//print//
-			auto &cout = controller->mout();
-			if (target.count % 100 == 0)
-			{
-                cout << std::setw(6) << Fx << "  ";
-                cout << std::setw(6) << Fy << "  ";
-                cout << std::setw(6) << Fz << "  ";
-                cout << std::setw(6) << Mx << "  ";
-                cout << std::setw(6) << My << "  ";
-                cout << std::setw(6) << Mz << "  ";
-				cout << std::endl;
-				cout << "----------------------------------------------------" << std::endl;
-			}
-			
-			//log//
-			auto &lout = controller->lout();
-			{
-                lout << Fx << " ";
-                lout << Fy << " ";
-                lout << Fz << " ";
-                lout << Mx << " ";
-                lout << My << " ";
-                lout << Mz << " ";
-				lout << std::endl;
-			}
-			param.time--;
-			return param.time;
-		}
-	auto FSSignal::collectNrt(PlanTarget &target)->void {}
-	FSSignal::FSSignal(const std::string &name) :Plan(name)
-	{
-		command().loadXmlStr(
-			"<Command name=\"fssignal\">"
-			"	<GroupParam>"
-			"		<Param name=\"time\" default=\"100000\"/>"
-			"	</GroupParam>"
-			"</Command>");
-	}
+                    Plan::NOT_CHECK_POS_MIN |
+                    Plan::NOT_CHECK_POS_MAX |
+                    Plan::NOT_CHECK_POS_CONTINUOUS |
+                    Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
+                    Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
+                    Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
+                    Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
+                    Plan::NOT_CHECK_VEL_MIN |
+                    Plan::NOT_CHECK_VEL_MAX |
+                    Plan::NOT_CHECK_VEL_CONTINUOUS |
+                    Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
+                    Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+    #endif
+            }
+        auto FSSignal::executeRT(PlanTarget &target)->int
+            {
+                auto &param = std::any_cast<FSParam&>(target.param);
+                // 访问主站 //
+                auto controller = dynamic_cast<aris::control::EthercatController*>(target.controller);
+                if (param.real_data)
+                {
+                    controller->ecSlavePool().at(6).readPdo(0x6030, 0x00, &param.datanum ,16);
+                    controller->ecSlavePool().at(6).readPdo(0x6030, 0x01, &param.Fx ,32);
+                    controller->ecSlavePool().at(6).readPdo(0x6030, 0x02, &param.Fy, 32);
+                    controller->ecSlavePool().at(6).readPdo(0x6030, 0x03, &param.Fz, 32);
+                    controller->ecSlavePool().at(6).readPdo(0x6030, 0x04, &param.Mx, 32);
+                    controller->ecSlavePool().at(6).readPdo(0x6030, 0x05, &param.My, 32);
+                    controller->ecSlavePool().at(6).readPdo(0x6030, 0x06, &param.Mz, 32);
+                }
+                else
+                {
+                    controller->ecSlavePool().at(6).readPdo(0x6030, 0x00, &param.datanum ,16);
+                    controller->ecSlavePool().at(6).readPdo(0x6020, 0x01, &param.Fx, 32);
+                    controller->ecSlavePool().at(6).readPdo(0x6020, 0x02, &param.Fy, 32);
+                    controller->ecSlavePool().at(6).readPdo(0x6020, 0x03, &param.Fz, 32);
+                    controller->ecSlavePool().at(6).readPdo(0x6020, 0x04, &param.Mx, 32);
+                    controller->ecSlavePool().at(6).readPdo(0x6020, 0x05, &param.My, 32);
+                    controller->ecSlavePool().at(6).readPdo(0x6020, 0x06, &param.Mz, 32);
+                }
+
+                //print//
+                auto &cout = controller->mout();
+                if (target.count % 100 == 0)
+                {
+                    cout << std::setw(6) << param.datanum << "  ";
+                    cout << std::setw(6) << param.Fx << "  ";
+                    cout << std::setw(6) << param.Fy << "  ";
+                    cout << std::setw(6) << param.Fz << "  ";
+                    cout << std::setw(6) << param.Mx << "  ";
+                    cout << std::setw(6) << param.My << "  ";
+                    cout << std::setw(6) << param.Mz << "  ";
+                    cout << std::endl;
+                    cout << "----------------------------------------------------" << std::endl;
+                }
+
+                //log//
+                auto &lout = controller->lout();
+                {
+                    lout << param.Fx << " ";
+                    lout << param.Fy << " ";
+                    lout << param.Fz << " ";
+                    lout << param.Mx << " ";
+                    lout << param.My << " ";
+                    lout << param.Mz << " ";
+                    lout << std::endl;
+                }
+                param.time--;
+                return param.time;
+            }
+        auto FSSignal::collectNrt(PlanTarget &target)->void {}
+        FSSignal::FSSignal(const std::string &name) :Plan(name)
+        {
+            command().loadXmlStr(
+                "<Command name=\"fssignal\">"
+                "	<GroupParam>"
+                "		<Param name=\"real_data\" default=\"1\"/>"
+                "		<Param name=\"time\" default=\"100000\"/>"
+                "	</GroupParam>"
+                "</Command>");
+        }
 
 
     // ATI Force Sensor //
-    struct ATIFSParam
-    {
-        int time;
-        std::int32_t Fx,Fy,Fz,Mx,My,Mz,status_code,sample_counter,controlcodes;
-    };
-    auto ATIFS::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
-        {
-            ATIFSParam param;
-			param.Fx = 0;
-			param.Fy = 0;
-			param.Fz = 0;
-			param.Mx = 0;
-			param.My = 0;
-			param.Mz = 0;
-			param.status_code = 0;
-			param.sample_counter = 0;
-			param.controlcodes = 4096;
+       struct ATIFSParam
+       {
+           int time;
+           std::int32_t Fx,Fy,Fz,Mx,My,Mz,status_code,sample_counter,controlcodes;
+           std::int32_t forceindex, torqueindex;
+           std::uint8_t forceunit, torqueunit;
+       };
+       auto ATIFS::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+           {
+               auto controller = dynamic_cast<aris::control::EthercatController*>(target.controller);
+               ATIFSParam param;
+               param.Fx = 0;
+               param.Fy = 0;
+               param.Fz = 0;
+               param.Mx = 0;
+               param.My = 0;
+               param.Mz = 0;
+               param.status_code = 0;
+               param.sample_counter = 0;
+               param.controlcodes = 4096;
+               //param.controlcodes = 4352;//little range
 
-            for (auto &p : params)
-            {
-                if (p.first == "time")
-                {
-                    param.time = std::stoi(p.second);
-                }
-				else if (p.first == "controlcodes")
-				{
-					param.controlcodes = std::stoi(p.second);
-				}
-            }
+               for (auto &p : params)
+               {
+                   if (p.first == "time")
+                   {
+                       param.time = std::stoi(p.second);
+                   }
+                   else if (p.first == "controlcodes")
+                   {
+                       param.controlcodes = std::stoi(p.second);
+                   }
+               }
 
-            target.param = param;
+               /*
+               controller->ecSlavePool().at(6).readSdo(0x2021, 0x2f, &param.forceunit, 8);
+               controller->ecSlavePool().at(6).readSdo(0x2021, 0x30, &param.torqueunit, 8);
+               controller->ecSlavePool().at(6).readSdo(0x2021, 0x37, &param.forceindex, 32);
+               controller->ecSlavePool().at(6).readSdo(0x2021, 0x38, &param.torqueindex, 32);
+               */
 
-        }
-    auto ATIFS::executeRT(PlanTarget &target)->int
-    {
-        auto &param = std::any_cast<ATIFSParam&>(target.param);
-        // 访问主站 //
-        auto controller = dynamic_cast<aris::control::EthercatController*>(target.controller);
-		if (target.count == 1)
-		{
-			controller->ecSlavePool().at(6).writePdo(0x7010, 0x01, &param.controlcodes, 32);
-		}
-        controller->ecSlavePool().at(6).readPdo(0x6000, 0x01, &param.Fx ,32);
-        controller->ecSlavePool().at(6).readPdo(0x6000, 0x02, &param.Fy, 32);
-        controller->ecSlavePool().at(6).readPdo(0x6000, 0x03, &param.Fz, 32);
-        controller->ecSlavePool().at(6).readPdo(0x6000, 0x04, &param.Mx, 32);
-        controller->ecSlavePool().at(6).readPdo(0x6000, 0x05, &param.My, 32);
-        controller->ecSlavePool().at(6).readPdo(0x6000, 0x06, &param.Mz, 32);
-        controller->ecSlavePool().at(6).readPdo(0x6010, 0x00, &param.status_code, 32);
-        controller->ecSlavePool().at(6).readPdo(0x6020, 0x00, &param.sample_counter, 32);
+               target.param = param;
+               std::fill(target.mot_options.begin(), target.mot_options.end(),
+                   Plan::NOT_CHECK_ENABLE);
 
-        
-        double Fx = param.Fx*1000.0 / std::pow(2, 32);
-        double Fy = param.Fy*1000.0 / std::pow(2, 32);
-        double Fz = param.Fz*1800.0 / std::pow(2, 32);
-        double Mx = param.Mx*40.0 / std::pow(2, 32);
-        double My = param.My*40.0 / std::pow(2, 32);
-        double Mz = param.Mz*40.0 / std::pow(2, 32);
-        
-        //print//
-        auto &cout = controller->mout();
-        if (target.count % 100 == 0)
-        {
-            cout << std::setw(6) << Fx << "  ";
-            cout << std::setw(6) << Fy << "  ";
-            cout << std::setw(6) << Fz << "  ";
-            cout << std::setw(6) << Mx << "  ";
-            cout << std::setw(6) << My << "  ";
-            cout << std::setw(6) << Mz << "  ";
-            cout << std::setw(6) << param.status_code << "  ";
-            cout << std::setw(6) << param.sample_counter << "  ";
-            cout << std::endl;
-            cout << "----------------------------------------------------" << std::endl;
-        }
+           }
+       auto ATIFS::executeRT(PlanTarget &target)->int
+       {
+           auto &param = std::any_cast<ATIFSParam&>(target.param);
+           // 访问主站 //
 
-        //log//
-        auto &lout = controller->lout();
-        {
-            lout << Fx << " ";
-            lout << Fy << " ";
-            lout << Fz << " ";
-            lout << Mx << " ";
-            lout << My << " ";
-            lout << Mz << " ";
-            lout << param.status_code << " ";
-            lout << param.sample_counter << " ";
-            lout << std::endl;
-        }
-        param.time--;
-        return param.time;
-    }
-    auto ATIFS::collectNrt(PlanTarget &target)->void {}
-    ATIFS::ATIFS(const std::string &name) :Plan(name)
-    {
-        command().loadXmlStr(
-            "<Command name=\"atifs\">"
-            "	<GroupParam>"
-            "		<Param name=\"time\" default=\"100000\"/>"
-			"		<Param name=\"controlcodes\" default=\"4096\"/>"
-            "	</GroupParam>"
-            "</Command>");
-    }
+           auto controller = dynamic_cast<aris::control::EthercatController*>(target.controller);
+           if (target.count == 1)
+           {
+               controller->ecSlavePool().at(6).writePdo(0x7010, 0x01, &param.controlcodes, 32);
+           }
+           controller->ecSlavePool().at(6).readPdo(0x6000, 0x01, &param.Fx ,32);
+           controller->ecSlavePool().at(6).readPdo(0x6000, 0x02, &param.Fy, 32);
+           controller->ecSlavePool().at(6).readPdo(0x6000, 0x03, &param.Fz, 32);
+           controller->ecSlavePool().at(6).readPdo(0x6000, 0x04, &param.Mx, 32);
+           controller->ecSlavePool().at(6).readPdo(0x6000, 0x05, &param.My, 32);
+           controller->ecSlavePool().at(6).readPdo(0x6000, 0x06, &param.Mz, 32);
+           controller->ecSlavePool().at(6).readPdo(0x6010, 0x00, &param.status_code, 32);
+           controller->ecSlavePool().at(6).readPdo(0x6020, 0x00, &param.sample_counter, 32);
+
+           /*
+           //print//
+           auto &cout = controller->mout();
+           if (target.count % 100 == 0)
+           {
+               cout << std::setw(6) << param.Fx << "  ";
+               cout << std::setw(6) << param.Fy << "  ";
+               cout << std::setw(6) << param.Fz << "  ";
+               cout << std::setw(6) << param.Mx << "  ";
+               cout << std::setw(6) << param.My << "  ";
+               cout << std::setw(6) << param.Mz << "  ";
+               cout << std::setw(6) << param.status_code << "  ";
+               cout << std::setw(6) << param.sample_counter << "  ";
+               cout << std::setw(6) << param.forceunit << "  ";
+               cout << std::setw(6) << param.torqueunit<< "  ";
+               cout << std::setw(6) << param.forceindex << "  ";
+               cout << std::setw(6) << param.forceindex << "  ";
+               cout << std::endl;
+               cout << "----------------------------------------------------" << std::endl;
+           }
+           */
+
+
+           double Fx = param.Fx/1000000.0;
+           double Fy = param.Fy/1000000.0;
+           double Fz = param.Fz/1000000.0;
+           double Mx = param.Mx/1000000.0;
+           double My = param.My/1000000.0;
+           double Mz = param.Mz/1000000.0;
+
+
+           //print//
+           auto &cout = controller->mout();
+           if (target.count % 100 == 0)
+           {
+               cout << std::setw(6) << Fx << "  ";
+               cout << std::setw(6) << Fy << "  ";
+               cout << std::setw(6) << Fz << "  ";
+               cout << std::setw(6) << Mx << "  ";
+               cout << std::setw(6) << My << "  ";
+               cout << std::setw(6) << Mz << "  ";
+               cout << std::setw(6) << param.status_code << "  ";
+               cout << std::setw(6) << param.sample_counter << "  ";
+               cout << std::endl;
+               cout << "----------------------------------------------------" << std::endl;
+           }
+
+           //log//
+           auto &lout = controller->lout();
+           {
+               lout << Fx << " ";
+               lout << Fy << " ";
+               lout << Fz << " ";
+               lout << Mx << " ";
+               lout << My << " ";
+               lout << Mz << " ";
+               lout << param.status_code << " ";
+               lout << param.sample_counter << " ";
+               lout << std::endl;
+           }
+
+           param.time--;
+           return param.time;
+       }
+       auto ATIFS::collectNrt(PlanTarget &target)->void {}
+       ATIFS::ATIFS(const std::string &name) :Plan(name)
+       {
+           command().loadXmlStr(
+               "<Command name=\"atifs\">"
+               "	<GroupParam>"
+               "		<Param name=\"time\" default=\"100000\"/>"
+               "		<Param name=\"controlcodes\" default=\"4096\"/>"
+               "	</GroupParam>"
+               "</Command>");
+       }
 
 
 	// 清理slavepool //
@@ -3910,7 +3988,7 @@ namespace kaanh
         plan_root->planPool().add<aris::plan::Sleep>();
         plan_root->planPool().add<aris::plan::Recover>();
         auto &rs = plan_root->planPool().add<aris::plan::Reset>();
-        rs.command().findParam("pos")->setDefaultValue("{0.5,0.39252,0.7899,0.5,0.5,0.5}");
+        rs.command().findParam("pos")->setDefaultValue("{0.5,0.5,0.5,0.5,0.5,0.5}");
 
         plan_root->planPool().add<aris::plan::MoveAbsJ>();
 
@@ -3973,6 +4051,8 @@ namespace kaanh
 		plan_root->planPool().add<MovePressureToolYZ>();
 		plan_root->planPool().add<MovePressureToolXY>();
 		plan_root->planPool().add<GetForce>();
+        plan_root->planPool().add<MoveSeriesGK>();
+
 		//plan_root->planPool().add<GetError>();
 		plan_root->planPool().add<JointDyna>();
 		plan_root->planPool().add<JointTest>();
