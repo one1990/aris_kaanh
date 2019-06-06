@@ -19,13 +19,13 @@ void crossVector1(const double* a, const double* b, double* c)
 }
 
 
-struct MoveSeriesParam
+struct MoveSeriesGKParam
 {
 	std::vector<double> t, x, xp1, xp2, xp3, y, yp1, yp2, yp3;
 };
-auto MoveSeries::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+auto MoveSeriesGK::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 {
-	MoveSeriesParam param;
+    MoveSeriesGKParam param;
 
 	auto x_mat = target.model->calculator().calculateExpression(params.at("x"));
 	auto y_mat = target.model->calculator().calculateExpression(params.at("y"));
@@ -105,11 +105,11 @@ auto MoveSeries::prepairNrt(const std::map<std::string, std::string> &params, Pl
 
 
 }
-auto MoveSeries::executeRT(PlanTarget &target)->int
+auto MoveSeriesGK::executeRT(PlanTarget &target)->int
 {
 	static double stateTor0[6][3], stateTor1[6][3];
 	static float FT0[6];
-	auto &param = std::any_cast<MoveSeriesParam&>(target.param);
+    auto &param = std::any_cast<MoveSeriesGKParam&>(target.param);
 	auto controller = target.controller;
 	auto &cout = controller->mout();
 
@@ -419,8 +419,8 @@ auto MoveSeries::executeRT(PlanTarget &target)->int
 	return 10000000 - target.count;
 
 }
-MoveSeries::~MoveSeries() = default;
-MoveSeries::MoveSeries(const std::string &name) :Plan(name)
+MoveSeriesGK::~MoveSeriesGK() = default;
+MoveSeriesGK::MoveSeriesGK(const std::string &name) :Plan(name)
 {
 	command().loadXmlStr(
 		"<Command name=\"mvs\">"

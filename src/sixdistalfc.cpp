@@ -3427,18 +3427,16 @@ auto MoveJoint::prepairNrt(const std::map<std::string, std::string> &params, Pla
         Plan::NOT_CHECK_ENABLE;
 
 
-
+    //读取动力学参数
+    auto mat0 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("estParasFT"));
+    for (int i = 0;i < GroupDim;i++)
+        sixDistalMatrix.estParasFT[i] = mat0->data().data()[i];
 
 }
 auto MoveJoint::executeRT(PlanTarget &target)->int
 {
 	auto &param = std::any_cast<MoveJointParam&>(target.param);
 
-	double RobotPosition[6];
-	double RobotPositionJ[6];
-	double RobotVelocity[6];
-	double RobotAcceleration[6];
-	double TorqueSensor[6];
     static double step_pjs[6],begin_pjs[6];
     static double stateTor0[6][2], stateTor1[6][2];
     static double FT0[6];
@@ -3477,21 +3475,27 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 	double dTheta[6] = { 0 };
     double dThetaFil[6] = { 0 };
 
+
+
     double FT[6];
     if(param.SensorType>0)
         GetATI(target,FT);
     else
         GetYuLi(target,FT);
 
+    double q[6],dq[6],ddq[6],CollisionFT[6];
+    for (int i = 0; i < 6; i++)
+    {
+        q[i]= controller->motionPool()[i].actualPos();
+        dq[i] =0;
+        ddq[i] =0;
+    }
 
-	for (int i = 0;i < 6;i++)
-	{
-		RobotPositionJ[i] = target.model->motionPool()[i].mp();
-		RobotPosition[i] = target.model->motionPool()[i].mp();
-		RobotVelocity[i] = 0;
-		RobotAcceleration[i] = 0;
-		TorqueSensor[i] = FT[i];
-	}
+    sixDistalMatrix.sixDistalCollision(q, dq, ddq, FT, sixDistalMatrix.estParasFT, CollisionFT);
+    for (int j = 0; j < 6; j++)
+        FT[j]=FT[j]-CollisionFT[j];
+
+
 
 
     if (target.count == 1)
@@ -3620,43 +3624,11 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 	// log 电流 //
 	auto &lout = controller->lout();
 
-	//lout << FT[2] << ",";lout << dX[2] << ",";
-	//lout << FmInWorld[2] << ",";lout << FT0[2] << ",";
-
-
-    //lout << FT[0] << ",";lout << FT[1] << ",";
-    //lout << FT[2] << ",";lout << FT[3] << ",";
-    //lout << FT[4] << ",";lout << FT[5] << ",";
-
-
-
-
-
-    //lout << stateTor1[0][0] << ",";lout << stateTor1[1][0]<< ",";
-    //lout << stateTor1[2][0] << ",";lout << stateTor1[3][0]<< ",";
-    //lout << stateTor1[4][0] << ",";lout << stateTor1[5][0] << ",";
-    // lout << FT_KAI[0] << ",";lout << FT_KAI[1] << ",";
-    // lout << FT_KAI[2] << ",";lout << FT_KAI[3] << ",";
-    // lout << FT_KAI[4] << ",";lout << FT_KAI[5] << ",";
-
-	// lout << dX[0] << ",";
-    // lout << FT[0] << ",";lout << FT[1] << ",";
-    // lout << FT[2] << ",";lout << FT[3] << ",";
-     //lout << FT[4] << ",";lout << FT[5] << ",";
-    //lout << std::endl;
-
-
 
 	///* Using Jacobian, TransMatrix from ARIS
 	auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(target.model->solverPool()[1]);
 
-    double q[6];
 
-    for (int i = 0; i < 6; ++i)
-    {
-        q[i] = target.model->motionPool()[i].mp();
-
-    }
     /*
     robotJacobianEnd(q,JacobEnd);
 	double JacobEndTrans[36] = { 0 };
@@ -3682,7 +3654,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 	//for (int i = 0;i < 6;i++)
 	   // dTheta[i] = JoinTau[i] / 10000;
 
-    double rate=2.0;
+    double rate=4.0;
     dTheta[0] = JoinTau[0] / 3000/rate;
     dTheta[1] = JoinTau[1] / 4000/rate;
     dTheta[2] = JoinTau[2] / 4000/rate;
@@ -3796,10 +3768,10 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
     if (target.count % 300 == 0)
     {
 
-        cout << step_pjs[2] << "***" << ft_offset[2] << "***" << step_pjs[2] << endl;
+        //cout << step_pjs[2] << "***" << ft_offset[2] << "***" << step_pjs[2] << endl;
 
-        //cout <<  FT_KAI[0]<<"***"<<FmInWorld[2]<<endl;
-
+        cout <<FT_KAI[0]<<"***"<<FT_KAI[1]<<"***"<<FT_KAI[2]<<endl;
+        cout <<FT[0]<<"***"<<FT[1]<<"***"<<FT[2]<<endl;
     }
 
 
