@@ -60,8 +60,16 @@ int main(int argc, char *argv[])
     //-------for daye robot end//
     */
 
+#ifdef UNIX
+	cs.resetController(new aris::control::EthercatController);
+	dynamic_cast<aris::control::EthercatController&>(cs.controller()).scan();
+	cs.saveXmlFile(xmlpath.string().c_str());
+#endif
 
-    cs.loadXmlFile(xmlpath.string().c_str());
+#ifdef WIN32
+	cs.loadXmlFile(xmlpath.string().c_str());
+#endif
+
 	cs.interfaceRoot().loadXmlFile(uixmlpath.string().c_str());
     //cs.start();
 
