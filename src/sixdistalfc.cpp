@@ -32,6 +32,82 @@ double Vol2FTCoef[36]={0.000133, 	-0.029834, 	0.000031, 	0.029925, 	-0.000006, 	
                        -0.000004, 	0.001104, 	-0.000001, 	0.001079, 	0.000007, 	0.001099};
 
 
+void GetATI(PlanTarget &target,double* FT)
+{
+    int32_t FTint[6],status_code,sample_counter;
+
+    #ifdef UNIX
+    auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.controller);
+
+    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x01, &FTint[0] ,32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x02, &FTint[1], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x03, &FTint[2], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x04, &FTint[3], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x05, &FTint[4], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x06, &FTint[5], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6010, 0x00, &status_code, 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6020, 0x00, &sample_counter, 32);
+    #endif
+
+    double ATIscale=1000000.0;
+    FT[0] = FTint[0]/ ATIscale;
+    FT[1] = FTint[1] / ATIscale;
+    FT[2] = FTint[2]/ ATIscale;
+    FT[3] = FTint[3]/ ATIscale;
+    FT[4] = FTint[4]/ ATIscale;
+    FT[5] = FTint[5] / ATIscale;
+
+}
+
+void GetYuLi(PlanTarget &target,double* FT)
+{
+
+    int16_t FTnum;
+    float FTtemp[6];
+
+    #ifdef UNIX
+    auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.controller);
+    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x00, &FTnum ,16);
+    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x01, &FTtemp[0] ,32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x02, &FTtemp[1], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x03, &FTtemp[2], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x04, &FTtemp[3], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x05, &FTtemp[4], 32);
+    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x06, &FTtemp[5], 32);
+    #endif
+
+    for(int i=0;i<6;i++)
+        FT[i]=FTtemp[i];
+
+}
+
+void BeiFu(PlanTarget &target,double* FT)
+{
+
+    int16_t FTint[6];
+    double FTReal[6];
+
+    #ifdef UNIX
+    auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.controller);
+    conSensor->ecSlavePool().at(7).readPdo(0x6000, 0x11, &FTint[0] ,16);
+    conSensor->ecSlavePool().at(7).readPdo(0x6010, 0x11, &FTint[1], 16);
+    conSensor->ecSlavePool().at(7).readPdo(0x6020, 0x11, &FTint[2], 16);
+    conSensor->ecSlavePool().at(7).readPdo(0x6030, 0x11, &FTint[3], 16);
+    conSensor->ecSlavePool().at(8).readPdo(0x6000, 0x11, &FTint[4], 16);
+    conSensor->ecSlavePool().at(8).readPdo(0x6010, 0x11, &FTint[5], 16);
+    #endif
+
+    for (int i=0;i<6;i++)
+    {
+         FTReal[i] = FTint[i]*20.0 / 65536.0*1000.0;
+    }
+
+    s_mm(6, 1, 6, Vol2FTCoef, FTReal, FT);
+
+
+}
+
+
 
 struct MoveXYZParam
 {
@@ -430,7 +506,7 @@ MoveXYZ::MoveXYZ(const std::string &name) :Plan(name)
 
 struct MoveDistalParam
 {
-	double period;
+    double SensorType;
 	double amplitude;
 
 };
@@ -440,8 +516,8 @@ auto MoveDistal::prepairNrt(const std::map<std::string, std::string> &params, Pl
 
 	for (auto &p : params)
 	{
-		if (p.first == "period")
-			param.period = std::stod(p.second);
+        if (p.first == "SensorType")
+            param.SensorType = std::stod(p.second);
 		if (p.first == "amplitude")
 			param.amplitude = std::stod(p.second);
 
@@ -464,7 +540,8 @@ auto MoveDistal::prepairNrt(const std::map<std::string, std::string> &params, Pl
 		Plan::NOT_CHECK_VEL_MAX |
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
 		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+        Plan::NOT_CHECK_VEL_FOLLOWING_ERROR|
+        Plan::NOT_CHECK_ENABLE;
 
 
 }
@@ -490,7 +567,7 @@ auto MoveDistal::executeRT(PlanTarget &target)->int
 			step_pjs[i] = target.model->motionPool()[i].mp();
 		}
 	}
-	param.period = 60;
+
 
     static bool flag[6] = {true,true,true,true,true,true};
     double PosLimit[6] = { 1,0.5,0.5,1,1,2 };
@@ -548,31 +625,16 @@ auto MoveDistal::executeRT(PlanTarget &target)->int
 
 	if (target.model->solverPool().at(1).kinPos())return -1;
 
-	// 访问主站 //
-	auto controller = target.controller;
 
-    int32_t FTint[6],status_code,sample_counter;
-    double FTReal[6],FT[6];
-    auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.controller);
-
-    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x01, &FTint[0] ,32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x02, &FTint[1], 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x03, &FTint[2], 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x04, &FTint[3], 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x05, &FTint[4], 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x06, &FTint[5], 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6010, 0x00, &status_code, 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6020, 0x00, &sample_counter, 32);
-
-    double ATIscale=1000000.0;
-    FT[0] = FTint[0]/ ATIscale;
-    FT[1] = FTint[1] / ATIscale;
-    FT[2] = FTint[2]/ ATIscale;
-    FT[3] = FTint[3]/ ATIscale;
-    FT[4] = FTint[4]/ ATIscale;
-    FT[5] = FTint[5] / ATIscale;
+    double FT[6];
+    if(param.SensorType>0)
+        GetATI(target,FT);
+    else
+        GetYuLi(target,FT);
 
 
+    // 访问主站 //
+    auto controller = target.controller;
 
 	// 打印电流 //
 	auto &cout = controller->mout();
@@ -666,7 +728,7 @@ MoveDistal::MoveDistal(const std::string &name) :Plan(name)
 	command().loadXmlStr(
 		"<Command name=\"mvDistal\">"
 		"	<GroupParam>"
-		"		<Param name=\"period\"default=\"20.0\"/>"
+        "		<Param name=\"SensorType\"default=\"1.0\"/>"
 		"		<Param name=\"amplitude\" default=\"0.2\"/>"
 		"	</GroupParam>"
 		"</Command>");
@@ -678,7 +740,7 @@ MoveDistal::MoveDistal(const std::string &name) :Plan(name)
 
 struct DistalTestParam
 {
-    double period;
+    double SensorType;
     double amplitude;
 
 };
@@ -688,8 +750,8 @@ auto DistalTest::prepairNrt(const std::map<std::string, std::string> &params, Pl
 
     for (auto &p : params)
     {
-        if (p.first == "period")
-            param.period = std::stod(p.second);
+        if (p.first == "SensorType")
+            param.SensorType = std::stod(p.second);
         if (p.first == "amplitude")
             param.amplitude = std::stod(p.second);
 
@@ -745,12 +807,11 @@ auto DistalTest::executeRT(PlanTarget &target)->int
             begin_pjs[i] = target.model->motionPool()[i].mp();
             step_pjs[i] = target.model->motionPool()[i].mp();
         }
-    }
-    param.period = 60;
+    } 
 
     static bool flag[6] = {true,true,true,true,true,true};
-    double PosLimit[6] = { 0.5,0.1,0.1,1,1,1 };
-    double NegLimit[6] = { -0.5,-0.1,-0.1,-1,-1,-1 };
+    double PosLimit[6] = { 0.5,0.6,0.4,1,1,1 };
+    double NegLimit[6] = { -0.5,-0.6,-0.4,-1,-1,-1 };
     double dTheta = 0.00001;
     static double pArc[6], vArc[6], aArc[6], vArcMax[6] = { 0.05,0.05,0.05,0.05,0.05,0.15 };
     static aris::Size t_count[6] = { 0 };
@@ -797,39 +858,22 @@ auto DistalTest::executeRT(PlanTarget &target)->int
 
         }
         //if(i==4||i==5)
-            //target.model->motionPool().at(i).setMp(step_pjs[i]);
+            target.model->motionPool().at(i).setMp(step_pjs[i]);
     }
 
 
 
     if (target.model->solverPool().at(1).kinPos())return -1;
 
+    double FT[6];
+    if(param.SensorType>0)
+        GetATI(target,FT);
+    else
+        GetYuLi(target,FT);
+
+
     // 访问主站 //
     auto controller = target.controller;
-
-    int32_t FTint[6],status_code,sample_counter;
-    double FTReal[6],FT[6];
-    auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.controller);
-
-    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x01, &FTint[0] ,32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x02, &FTint[1], 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x03, &FTint[2], 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x04, &FTint[3], 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x05, &FTint[4], 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x06, &FTint[5], 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6010, 0x00, &status_code, 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6020, 0x00, &sample_counter, 32);
-
-    double ATIscale=1000000;
-    FT[0] = FTint[0]/ ATIscale;
-    FT[1] = FTint[1] / ATIscale;
-    FT[2] = FTint[2]/ ATIscale;
-    FT[3] = FTint[3]/ ATIscale;
-    FT[4] = FTint[4]/ ATIscale;
-    FT[5] = FTint[5] / ATIscale;
-
-
-
 
     double CollisionFT[6],q[6],dq[6],ddq[6],ts[6];
     double omega = 0;
@@ -844,15 +888,15 @@ auto DistalTest::executeRT(PlanTarget &target)->int
 
     for (int j = 0; j < 6; j++)
     {
-        FT[j]=CollisionFT[j];
+        FT[j]=FT[j]-CollisionFT[j];
 
 
     }
 
-    double FT0[6]={0};
+    static double FT0[6]={0};
     if (target.count == 1)
         for (int j = 0; j < 6; j++)
-            FT0[j]=CollisionFT[j];
+            FT0[j]=FT[j];
 
     for (int j = 0; j < 6; j++)
         FT[j]=FT[j]-FT0[j];
@@ -864,7 +908,9 @@ auto DistalTest::executeRT(PlanTarget &target)->int
     {
         //for (int i = 0; i < 6; i++)
         {
-            cout << CollisionFT[0]<< "  "<<CollisionFT[1]<<"  "<<CollisionFT[2];
+            //cout << CollisionFT[0]<< "  "<<CollisionFT[1]<<"  "<<CollisionFT[2];
+            cout << FT[0]<< "  "<<FT[1]<<"  "<<FT[2];
+            cout << FT0[0]<< "  "<<FT0[1]<<"  "<<FT0[2];
             //cout << "vel" << i + 1 << ":" << target.model->motionPool()[i].mv() << "  ";
             //cout << "cur" << i + 1 << ":" << target.model->motionPool()[i].ma() << "  ";
         }
@@ -896,7 +942,7 @@ DistalTest::DistalTest(const std::string &name) :Plan(name)
     command().loadXmlStr(
         "<Command name=\"DistalTest\">"
         "	<GroupParam>"
-        "		<Param name=\"period\"default=\"20.0\"/>"
+        "		<Param name=\"SensorType\"default=\"20.0\"/>"
         "		<Param name=\"amplitude\" default=\"0.2\"/>"
         "	</GroupParam>"
         "</Command>");
@@ -1477,6 +1523,7 @@ MovePressure::MovePressure(const std::string &name) :Plan(name)
 struct MovePressureToolYZParam
 {
 	double PressF;
+    double SensorType;
 
 
 };
@@ -1489,6 +1536,8 @@ auto MovePressureToolYZ::prepairNrt(const std::map<std::string, std::string> &pa
 	{
 		if (p.first == "PressF")
 			param.PressF = std::stod(p.second);
+        if (p.first == "SensorType")
+            param.SensorType = std::stod(p.second);
 
 	}
 
@@ -1562,26 +1611,11 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
 	double dX[6] = { 0.00000, -0.0000, -0.0000, -0.0000, -0.0000, -0.0000 };
 	double dTheta[6] = { 0 };
 
-    int32_t FTint[6],status_code,sample_counter;
     double FTReal[6],FT[6];
-    auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.controller);
-
-    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x01, &FTint[0] ,32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x02, &FTint[1], 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x03, &FTint[2], 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x04, &FTint[3], 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x05, &FTint[4], 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x06, &FTint[5], 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6010, 0x00, &status_code, 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6020, 0x00, &sample_counter, 32);
-
-    double ATIscale=1000000.0;
-    FTReal[0] = FTint[0]/ ATIscale;
-    FTReal[1] = FTint[1] / ATIscale;
-    FTReal[2] = FTint[2]/ ATIscale;
-    FTReal[3] = FTint[3]/ ATIscale;
-    FTReal[4] = FTint[4]/ ATIscale;
-    FTReal[5] = FTint[5] / ATIscale;
+    if(param.SensorType>0)
+        GetATI(target,FTReal);
+    else
+        GetYuLi(target,FTReal);
 
 
 	for (int i = 0;i < 6;i++)
@@ -2262,6 +2296,7 @@ MovePressureToolYZ::MovePressureToolYZ(const std::string &name) :Plan(name)
         "<Command name=\"mvPreTYZ\">"
 		"	<GroupParam>"
 		"       <Param name=\"PressF\" default=\"0\"/>"
+        "		<Param name=\"SensorType\"default=\"20.0\"/>"
 		"   </GroupParam>"
 		"</Command>");
 
@@ -2272,6 +2307,7 @@ MovePressureToolYZ::MovePressureToolYZ(const std::string &name) :Plan(name)
 struct MovePressureToolXYParam
 {
 	double PressF;
+    double SensorType;
 
 
 };
@@ -2282,9 +2318,10 @@ auto MovePressureToolXY::prepairNrt(const std::map<std::string, std::string> &pa
 	MovePressureToolXYParam param;
 	for (auto &p : params)
 	{
-		if (p.first == "PressF")
-			param.PressF = std::stod(p.second);
-
+        if (p.first == "PressF")
+            param.PressF = std::stod(p.second);
+        if (p.first == "SensorType")
+            param.SensorType = std::stod(p.second);
 	}
 
 	target.param = param;
@@ -2363,16 +2400,11 @@ auto MovePressureToolXY::executeRT(PlanTarget &target)->int
 	double dX[6] = { 0.00000, -0.0000, -0.0000, -0.0000, -0.0000, -0.0000 };
 	double dTheta[6] = { 0 };
 
-    int16_t FTint[6],FTnum;
-    float FTReal[6],FT[6];
-    auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.controller);
-    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x00, &FTnum ,16);
-    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x01, &FT[0] ,32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x02, &FT[1], 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x03, &FT[2], 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x04, &FT[3], 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x05, &FT[4], 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x06, &FT[5], 32);
+    double FT[6];
+    if(param.SensorType>0)
+        GetATI(target,FT);
+    else
+        GetYuLi(target,FT);
 
 
 
@@ -2787,7 +2819,7 @@ auto MovePressureToolXY::executeRT(PlanTarget &target)->int
 	 //lout << target.model->motionPool()[4].mp() << ",";
 	 //lout << target.model->motionPool()[5].mp() << ",";
     //lout << vArc << endl;
-    lout << FTnum << ",";
+    //lout << FTnum << ",";
 	//lout << FT[2] << ",";lout << dX[2] << ",";
 	//lout << FmInWorld[2] << ",";lout << FT0[2] << ",";
 
@@ -2906,7 +2938,8 @@ MovePressureToolXY::MovePressureToolXY(const std::string &name) :Plan(name)
 	command().loadXmlStr(
 		"<Command name=\"mvPreTXY\">"
 		"	<GroupParam>"
-		"       <Param name=\"PressF\" default=\"0\"/>"
+        "       <Param name=\"PressF\" default=\"0\"/>"
+        "		<Param name=\"SensorType\"default=\"20.0\"/>"
 		"   </GroupParam>"
 		"</Command>");
 
@@ -2952,6 +2985,7 @@ GetForce::GetForce(const std::string &name) : Plan(name)
 struct MoveFeedParam
 {
 	double PressF;
+    double SensorType;
 
 
 };
@@ -2962,7 +2996,7 @@ auto MoveFeed::prepairNrt(const std::map<std::string, std::string> &params, Plan
 	for (auto &p : params)
 	{
 		if (p.first == "PressF")
-			param.PressF = std::stod(p.second);
+            param.PressF = std::stod(p.second);
 
 	}
 
@@ -3355,6 +3389,8 @@ int signV(double x)
 struct MoveJointParam
 {
 	double PressF;
+    double SensorType;
+
 
 };
 
@@ -3363,8 +3399,10 @@ auto MoveJoint::prepairNrt(const std::map<std::string, std::string> &params, Pla
 	MoveJointParam param;
 	for (auto &p : params)
 	{
-		if (p.first == "PressF")
-			param.PressF = std::stod(p.second);
+        if (p.first == "PressF")
+            param.PressF = std::stod(p.second);
+        if (p.first == "SensorType")
+            param.SensorType = std::stod(p.second);
 
 	}
 
@@ -3385,7 +3423,8 @@ auto MoveJoint::prepairNrt(const std::map<std::string, std::string> &params, Pla
 		Plan::NOT_CHECK_VEL_MAX |
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
 		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+        Plan::NOT_CHECK_VEL_FOLLOWING_ERROR|
+        Plan::NOT_CHECK_ENABLE;
 
 
 
@@ -3438,16 +3477,11 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 	double dTheta[6] = { 0 };
     double dThetaFil[6] = { 0 };
 
-    int16_t FTnum;
-    float FT[6];
-    auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.controller);
-    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x00, &FTnum ,16);
-    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x01, &FT[0] ,32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x02, &FT[1], 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x03, &FT[2], 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x04, &FT[3], 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x05, &FT[4], 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x06, &FT[5], 32);
+    double FT[6];
+    if(param.SensorType>0)
+        GetATI(target,FT);
+    else
+        GetYuLi(target,FT);
 
 
 	for (int i = 0;i < 6;i++)
@@ -3793,6 +3827,7 @@ MoveJoint::MoveJoint(const std::string &name) :Plan(name)
 		"<Command name=\"mvJoint\">"
 		"	<GroupParam>"
 		"       <Param name=\"PressF\" default=\"0\"/>"
+        "		<Param name=\"SensorType\"default=\"20.0\"/>"
 		"   </GroupParam>"
 		"</Command>");
 

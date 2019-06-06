@@ -1,6 +1,6 @@
 #ifndef ROBOTCONFIG_H_
 #define ROBOTCONFIG_H_
-//#include <aris.h>
+#include <aris.hpp>
 #include <array>
 
 # define FORE_VEL_LENGTH 20	//�ٶ�ƽ��ֵ�˲�buffer����
@@ -18,6 +18,7 @@ namespace CONFIG
 		robotconfig();
 		void jointIncrement(const double* q, const double* dX, double* dTheta);
 		void forceTransform(const double* q, const float* FmInEnd, double* FmInWorld);
+
 	};
 
         const int SampleNum = 6000;
@@ -30,13 +31,14 @@ namespace CONFIG
         const double EndSensor[3] = { 0, 0, 0.1955};//The Position of Torque Sensor
 
 
+
 		//六轴工业
         const int RobotAxis = 6;
         const double ZeroOffset[6] = { 0, 0, 0, 0, 0, 0 };
         const double JointOffset[6] = { 0, -PII / 2, 0, 0, 0, 0 };
         const double DirectionFlag[6] = { 1, 1, 1, 1, 1, 1 };
-        const double a2 = 0.04,a3=0.275,a4=0.025,d3=0,d4=0.28,d5 = 0;//Rokae DH
-        //const double a2 = 0.088,a3=0.46,a4=0.04,d3=0,d4=0.43,d5 = 0;//MJ08 DH
+        //const double a2 = 0.04,a3=0.275,a4=0.025,d3=0,d4=0.28,d5 = 0;//Rokae DH
+        const double a2 = 0.088,a3=0.46,a4=0.04,d3=0,d4=0.43,d5 = 0;//MJ08 DH
         /*
 		//七轴
 		const int RobotAxis = 7;

@@ -3,8 +3,8 @@ rs --vel=0.02
 <<<<<<< HEAD
 moveJR -m=2 --pos=-0.01
 =======
-moveJR -m=1 --pos=-0.1
-moveJR -m=2 --pos=0.1
+moveJR -m=3 --pos=0.1
+moveJR -m=2 --pos=-0.1
 >>>>>>> 9edb4b8e33e5bde96ae6993dffc45116a820f2ec
 moveJR --pos=-0.1
 
