@@ -29,6 +29,7 @@ namespace kaanh
 	//其他参数和函数声明 
 	using Size = std::size_t;
 	constexpr double PI = 3.141592653589793;
+	auto createInterface()->std::unique_ptr<aris::server::InterfaceRoot>;
 	auto createModelRokaeXB4(const double *robot_pm = nullptr)->std::unique_ptr<aris::dynamic::Model>;
 	auto createControllerRokaeXB4()->std::unique_ptr<aris::control::Controller>;
 	auto createPlanRootRokaeXB4()->std::unique_ptr<aris::plan::PlanRoot>;
@@ -64,14 +65,24 @@ namespace kaanh
 		ARIS_REGISTER_TYPE(Get_ee_pq);
 	};
 
-	class Get_cur : public aris::plan::Plan
+	class Get_ee_pe : public aris::plan::Plan
 	{
 	public:
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
 		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
 
-		explicit Get_cur(const std::string &name = "Get_cur_plan");
-		ARIS_REGISTER_TYPE(Get_cur);
+		explicit Get_ee_pe(const std::string &name = "Get_ee_pe_plan");
+		ARIS_REGISTER_TYPE(Get_ee_pe);
+	};
+
+	class Get_joint_pos : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+
+		explicit Get_joint_pos(const std::string &name = "Get_joint_pos_plan");
+		ARIS_REGISTER_TYPE(Get_joint_pos);
 
 	};
 
@@ -288,6 +299,14 @@ namespace kaanh
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
 		explicit SetPG(const std::string &name = "SetPG_plan");
 		ARIS_REGISTER_TYPE(SetPG);
+	};
+
+	class SetUI : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		explicit SetUI(const std::string &name = "SetUI_plan");
+		ARIS_REGISTER_TYPE(SetUI);
 	};
 	
 	class SetDriver : public aris::plan::Plan
