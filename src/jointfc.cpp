@@ -327,6 +327,7 @@ auto JointTest::prepairNrt(const std::map<std::string, std::string> &params, Pla
     for (int i = 0;i < 10;i++)
          JointMatrix.LoadParas[i] = mat3->data().data()[i];
 
+
 	double LoadAll[JointGroupDim] = { 0 };
 	for (int i = JointGroupDim-10;i < JointGroupDim;i++)
 		LoadAll[i] = JointMatrix.LoadParas[i-(JointGroupDim - 10)];
@@ -392,8 +393,8 @@ auto JointTest::executeRT(PlanTarget &target)->int
 	JointMatrix.JointCollision(q, dq, ddq, ts, JointMatrix.estParasJoint, JointMatrix.CoefParasJointInv, JointMatrix.CoefParasJoint, JointMatrix.LoadParas,CollisionFT,Acv);
 
     if (target.model->solverPool().at(1).kinPos())return -1;
-	for (int i = 0;i < 6;i++)
-		CollisionFT[i] = CollisionFT[i] - ts[i];
+    //for (int i = 0;i < 6;i++)
+        //CollisionFT[i] = CollisionFT[i] - ts[i];
     auto &lout = controller->lout();
     lout << target.count << ",";
     lout << ts[0] << ",";lout << ts[1] << ",";
@@ -422,7 +423,7 @@ auto JointTest::executeRT(PlanTarget &target)->int
 	{
 		//for (int i = 0; i < 6; i++)
 		{
-            cout << CollisionFT[0] << "***"<< CollisionFT[1] << "***"<< CollisionFT[2] << "***"<< CollisionFT[3] << "***"<< CollisionFT[4] << "***"<< CollisionFT[5] << "***";
+            cout << CollisionFT[0] << "***"<< CollisionFT[1] << "***"<< CollisionFT[2] << "***"<< ts[0] << "***"<< ts[1] << "***"<< ts[2] << "***";
 			//cout << "vel" << i + 1 << ":" << target.model->motionPool()[i].mv() << "  ";
 			//cout << "cur" << i + 1 << ":" << target.model->motionPool()[i].ma() << "  ";
 		}
@@ -523,6 +524,11 @@ auto DragTeach::prepairNrt(const std::map<std::string, std::string> &params, Pla
 	auto mat2 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("CoefParasJointInv"));
 	for (int i = 0;i < JointReduceDim*JointGroupDim;i++)
 		JointMatrix.CoefParasJointInv[i] = mat2->data().data()[i];
+
+    auto mat3 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("LoadParas"));
+    for (int i = 0;i < 10;i++)
+         JointMatrix.LoadParas[i] = mat3->data().data()[i];
+
 
     double LoadAll[JointGroupDim] = { 0 };
         for (int i = JointGroupDim-10;i < JointGroupDim;i++)

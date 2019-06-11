@@ -3654,7 +3654,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 	//for (int i = 0;i < 6;i++)
 	   // dTheta[i] = JoinTau[i] / 10000;
 
-    double rate=4.0;
+    double rate=2.0;
     dTheta[0] = JoinTau[0] / 3000/rate;
     dTheta[1] = JoinTau[1] / 4000/rate;
     dTheta[2] = JoinTau[2] / 4000/rate;
