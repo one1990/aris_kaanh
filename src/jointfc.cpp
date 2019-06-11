@@ -39,7 +39,7 @@ auto JointDyna::prepairNrt(const std::map<std::string, std::string> &params, Pla
 			param.amplitude = std::stod(p.second);
 
 	}
-
+	
 	target.param = param;
 
  for(auto &option:target.mot_options) option|=
@@ -58,7 +58,7 @@ auto JointDyna::prepairNrt(const std::map<std::string, std::string> &params, Pla
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
 		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
-
+		
 }
 auto JointDyna::executeRT(PlanTarget &target)->int
 {
@@ -137,8 +137,8 @@ auto JointDyna::executeRT(PlanTarget &target)->int
 	}
 
 
+    if (target.model->solverPool().at(1).kinPos()) return -1;
 
-    //if (target.model->solverPool().at(1).kinPos())return -1;
 
 	// 访问主站 //
 	auto controller = target.controller;
@@ -173,7 +173,7 @@ auto JointDyna::executeRT(PlanTarget &target)->int
             //TorqueList[6 * (target.count - 1) + i] = POSRLS[i + 6][target.count - 1] / f2c_index[i];
 
             AngleList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualPos();
-            TorqueList[6 * (CollectNum - 1) + i] = 0;//controller->motionAtAbs(i).actualCur() / f2c_index[i];
+            TorqueList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
 		}
 
 		lout << target.count << ",";
@@ -388,9 +388,10 @@ auto JointTest::executeRT(PlanTarget &target)->int
 		ts[i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
 	}
 
-	JointMatrix.JointCollision(q, dq, ddq, ts, JointMatrix.estParasJoint, JointMatrix.CoefParasJointInv, JointMatrix.CoefParasJoint, JointMatrix.LoadParas,CollisionFT);
+	double Acv[12] = { 1,1,1,1,1,1,1,1,1,1,1,1 };
+	JointMatrix.JointCollision(q, dq, ddq, ts, JointMatrix.estParasJoint, JointMatrix.CoefParasJointInv, JointMatrix.CoefParasJoint, JointMatrix.LoadParas,CollisionFT,Acv);
 
-    //if (target.model->solverPool().at(1).kinPos())return -1;
+    if (target.model->solverPool().at(1).kinPos())return -1;
 	for (int i = 0;i < 6;i++)
 		CollisionFT[i] = CollisionFT[i] - ts[i];
     auto &lout = controller->lout();
@@ -449,20 +450,45 @@ JointTest::JointTest(const std::string &name) :Plan(name)
 
 struct DragTeachParam
 {
-	double period;
-	double amplitude;
+	double A1c, A2c, A3c, A4c, A5c, A6c;
+	double A1v, A2v, A3v, A4v, A5v, A6v;
 
 };
 auto DragTeach::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 {
 	DragTeachParam param;
-
+	
 	for (auto &p : params)
 	{
-		if (p.first == "period")
-			param.period = std::stod(p.second);
-		if (p.first == "amplitude")
-			param.amplitude = std::stod(p.second);
+		if (p.first == "A1c")
+			param.A1c = std::stod(p.second);
+		if (p.first == "A1v")
+			param.A1v = std::stod(p.second);
+
+		if (p.first == "A2c")
+			param.A2c = std::stod(p.second);
+		if (p.first == "A2v")
+			param.A2v = std::stod(p.second);
+
+		if (p.first == "A3c")
+			param.A3c = std::stod(p.second);
+		if (p.first == "A3v")
+			param.A3v = std::stod(p.second);
+
+		if (p.first == "A4c")
+			param.A4c = std::stod(p.second);
+		if (p.first == "A4v")
+			param.A4v = std::stod(p.second);
+
+		if (p.first == "A5c")
+			param.A5c = std::stod(p.second);
+		if (p.first == "A5v")
+			param.A5v = std::stod(p.second);
+
+		if (p.first == "A6c")
+			param.A6c = std::stod(p.second);
+		if (p.first == "A6v")
+			param.A6v = std::stod(p.second);
 
 	}
 
@@ -505,6 +531,7 @@ auto DragTeach::prepairNrt(const std::map<std::string, std::string> &params, Pla
 
     double LoadParasAdd[JointReduceDim] = { 0 };
     s_mm(JointReduceDim, 1, JointGroupDim, JointMatrix.CoefParasJoint, LoadAll, LoadParasAdd);
+
     for (int i = 0;i < JointReduceDim;i++)
           JointMatrix.estParasJoint[i] = JointMatrix.estParasJoint[i]+ 1*LoadParasAdd[i];
 
@@ -537,13 +564,19 @@ auto DragTeach::executeRT(PlanTarget &target)->int
 
 
 	double ModelTor[6], q[6], dq[6], ddq[6], ts[6];
-	
+	double Acv[12];
+	Acv[0] = param.A1c;Acv[1] = param.A1v;
+	Acv[2] = param.A2c;Acv[3] = param.A2v;
+	Acv[4] = param.A3c;Acv[5] = param.A3v;
+	Acv[6] = param.A4c;Acv[7] = param.A4v;
+	Acv[8] = param.A5c;Acv[9] = param.A5v;
+	Acv[10] = param.A6c;Acv[11] = param.A6v;
 	
 	for (int i = 0; i < 6; ++i)
 	{
 		{
 			q[i] = controller->motionAtAbs(i).actualPos();
-			dq[i] = 0;
+			dq[i] = controller->motionAtAbs(i).actualVel();
 			ddq[i] = 0;
 		}
 	}
@@ -554,7 +587,7 @@ auto DragTeach::executeRT(PlanTarget &target)->int
 		ts[i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
 	}
 
-	JointMatrix.JointCollision(q, dq, ddq, ts, JointMatrix.estParasJoint, JointMatrix.CoefParasJointInv, JointMatrix.CoefParasJoint, JointMatrix.LoadParas, ModelTor);
+	JointMatrix.JointCollision(q, dq, ddq, ts, JointMatrix.estParasJoint, JointMatrix.CoefParasJointInv, JointMatrix.CoefParasJoint, JointMatrix.LoadParas, ModelTor,Acv);
 
     for (int i = 0;i < 6;i++)
 	{
@@ -594,7 +627,7 @@ auto DragTeach::executeRT(PlanTarget &target)->int
 
 
 
-	return 300000 - target.count;
+	return 30000 - target.count;
 }
 
 DragTeach::DragTeach(const std::string &name) :Plan(name)
@@ -603,8 +636,18 @@ DragTeach::DragTeach(const std::string &name) :Plan(name)
 	command().loadXmlStr(
 		"<Command name=\"DragTeach\">"
 		"	<GroupParam>"
-		"		<Param name=\"period\"default=\"20.0\"/>"
-		"		<Param name=\"amplitude\" default=\"0.2\"/>"
+		"		<Param name=\"A1c\"default=\"0.5\"/>"
+		"		<Param name=\"A1v\"default=\"0.2\"/>"
+		"		<Param name=\"A2c\"default=\"0.5\"/>"
+		"		<Param name=\"A2v\"default=\"0.2\"/>"
+		"		<Param name=\"A3c\"default=\"0.5\"/>"
+		"		<Param name=\"A3v\"default=\"0.2\"/>"
+		"		<Param name=\"A4c\"default=\"0.5\"/>"
+		"		<Param name=\"A4v\"default=\"0.2\"/>"
+		"		<Param name=\"A5c\"default=\"0.5\"/>"
+		"		<Param name=\"A5v\"default=\"0.2\"/>"
+		"		<Param name=\"A6c\"default=\"0.5\"/>"
+		"		<Param name=\"A6v\"default=\"0.2\"/>"
 		"	</GroupParam>"
 		"</Command>");
 
@@ -798,7 +841,7 @@ auto LoadDyna::executeRT(PlanTarget &target)->int
 
 
 
-    //if (target.model->solverPool().at(1).kinPos())return -1;
+    if (target.model->solverPool().at(1).kinPos())return -1;
 
 	// 访问主站 //
 	auto controller = target.controller;
@@ -836,7 +879,7 @@ auto LoadDyna::executeRT(PlanTarget &target)->int
             //TorqueList[6 * (target.count - 1) + i] = POSRLS[i + 6][target.count - 1];
 
             AngleList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualPos();
-            TorqueList[6 * (CollectNum - 1) + i] = 0;//controller->motionAtAbs(i).actualCur() / f2c_index[i];
+            TorqueList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
         }
 	
         lout << target.count << ",";
@@ -961,7 +1004,7 @@ struct SaveFileParam
 auto SaveFile::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 {
     auto xmlpath = std::filesystem::absolute(".");//获取当前工程所在的路径
-    const std::string xmlfile = "rokae.xml";
+    const std::string xmlfile = "kaanh.xml";
     xmlpath = xmlpath / xmlfile;
 	auto&cs = aris::server::ControlServer::instance();
 	SaveFileParam p;
@@ -980,7 +1023,7 @@ SaveFile::SaveFile(const std::string &name) :Plan(name)
 	command().loadXmlStr(
 		"<Command name=\"svFi\">"
 		"	<GroupParam>"
-		"	    <Param name=\"gk_path\" default=\"C:/Users/gk/Desktop/build_kaanh_gk/rokae.xml\"/>"
+		"	    <Param name=\"gk_path\" default=\"C:/Users/gk/Desktop/build_kaanh_gk/kaanh.xml\"/>"
 		"	</GroupParam>"
 		"</Command>");
 }

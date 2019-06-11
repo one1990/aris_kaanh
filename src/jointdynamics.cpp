@@ -1417,7 +1417,7 @@ void jointdynamics::RLS(const double *positionL, const double *sensorL, double *
 
 
 
-void jointdynamics::JointCollision(const double * q, const double *dq,const double *ddq,const double *ts, const double *estParas, const double * CoefInv, const double * Coef, const double * LoadParas, double * CollisionFT)
+void jointdynamics::JointCollision(const double * q, const double *dq,const double *ddq,const double *ts, const double *estParas, const double * CoefInv, const double * Coef, const double * LoadParas, double * CollisionFT,const double* Acv)
         {
    
 			double q0[6], dq0[6], ddq0[6];
@@ -1484,7 +1484,8 @@ void jointdynamics::JointCollision(const double * q, const double *dq,const doub
 				estParasTol[m] = estParas[m];
 			for (int m = 0; m < JointReduceDim; m++)
 				estParasTol[m] = estParas[m] + dParas[m];
-
+			for (int m = JointReduceDim; m < JointReduceDim + 2 * RobotAxis; m++)
+				estParasTol[m] = estParas[m]*Acv[m];
 
 			double estTor[RobotAxis] = { 0, 0, 0, 0, 0, 0 };
             for (int i = 0; i < RobotAxis; i++)
