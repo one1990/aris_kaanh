@@ -185,9 +185,10 @@ jointdynamics::jointdynamics()
 
 int sign(double x)
 {
-	if (x > 0) return 1;
-	if (x == 0) return 0;
-	if (x < 0) return -1;
+    double margin=0.013;
+    if (x > margin) return 1;
+    if (abs(x) < margin||abs(x)==margin) return 0;
+    if (x < -margin) return -1;
 }
 
 void JointMatrix(const double* q, const double* dq, const double* ddq, const double* ts, double* distalVec)
@@ -1416,6 +1417,14 @@ void jointdynamics::RLS(const double *positionL, const double *sensorL, double *
     }
 
 
+int signDrag(double x,double margin)
+{
+
+    if (x > margin) return 1;
+    if (abs(x) < margin||abs(x)==margin) return 0;
+    if (x < -margin) return -1;
+}
+
 
 void jointdynamics::JointCollision(const double * q, const double *dq,const double *ddq,const double *ts, const double *estParas, const double * CoefInv, const double * Coef, const double * LoadParas, double * CollisionFT,const double* Acv)
         {
@@ -1424,7 +1433,7 @@ void jointdynamics::JointCollision(const double * q, const double *dq,const doub
 			for (int k = 0; k < RobotAxis; k++)
 			{
 				q0[k] = q[k] * DirectionFlag[k] + JointOffset[k] + ZeroOffset[k];
-				dq0[k] = dq[k] * DirectionFlag[k];
+                dq0[k] = 0*dq[k] * DirectionFlag[k];
 				ddq0[k] = ddq[k] * DirectionFlag[k];
 
 			}
@@ -1448,9 +1457,9 @@ void jointdynamics::JointCollision(const double * q, const double *dq,const doub
 				{
 					Y1[m][n] = 0;
 					if (n == 2 * m)
-                        Y1[m][n] = 1 * sign(dq0[m]);
+                        Y1[m][n] = 1 * sign(dq[m]);
 					if (n == 2 * m + 1)
-                        Y1[m][n] = dq0[m];
+                        Y1[m][n] = dq[m];
 				}
 			}
 
@@ -1465,7 +1474,7 @@ void jointdynamics::JointCollision(const double * q, const double *dq,const doub
 
 				for (int n = JointReduceDim; n < JointReduceDim + 2 * RobotAxis; n++)
 				{
-					YtolMat[m][n] = Y1[m][n- JointReduceDim];
+                    YtolMat[m][n] = Y1[m][n-JointReduceDim];
 				}
 			}
 			
@@ -1485,7 +1494,7 @@ void jointdynamics::JointCollision(const double * q, const double *dq,const doub
 			for (int m = 0; m < JointReduceDim; m++)
 				estParasTol[m] = estParas[m] + dParas[m];
 			for (int m = JointReduceDim; m < JointReduceDim + 2 * RobotAxis; m++)
-				estParasTol[m] = estParas[m]*Acv[m];
+                estParasTol[m] = estParas[m]*Acv[m-JointReduceDim];
 
 			double estTor[RobotAxis] = { 0, 0, 0, 0, 0, 0 };
             for (int i = 0; i < RobotAxis; i++)

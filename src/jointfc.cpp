@@ -393,8 +393,8 @@ auto JointTest::executeRT(PlanTarget &target)->int
 	JointMatrix.JointCollision(q, dq, ddq, ts, JointMatrix.estParasJoint, JointMatrix.CoefParasJointInv, JointMatrix.CoefParasJoint, JointMatrix.LoadParas,CollisionFT,Acv);
 
     if (target.model->solverPool().at(1).kinPos())return -1;
-    //for (int i = 0;i < 6;i++)
-        //CollisionFT[i] = CollisionFT[i] - ts[i];
+    for (int i = 0;i < 6;i++)
+        CollisionFT[i] = CollisionFT[i] - ts[i];
     auto &lout = controller->lout();
     lout << target.count << ",";
     lout << ts[0] << ",";lout << ts[1] << ",";
@@ -449,6 +449,8 @@ JointTest::JointTest(const std::string &name) :Plan(name)
 
 }
 
+
+double Acv[12]={0};
 struct DragTeachParam
 {
 	double A1c, A2c, A3c, A4c, A5c, A6c;
@@ -510,7 +512,8 @@ auto DragTeach::prepairNrt(const std::map<std::string, std::string> &params, Pla
 		Plan::NOT_CHECK_VEL_MAX |
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
 		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+        Plan::NOT_CHECK_VEL_FOLLOWING_ERROR|
+        Plan::NOT_CHECK_ENABLE;
 
 	//读取动力学参数
 	auto mat0 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("estParasJoint"));
@@ -559,7 +562,7 @@ auto DragTeach::executeRT(PlanTarget &target)->int
 
 	if (target.count == 1)
 	{
-        for (int i = 0; i < 6; ++i)
+        for (int i = 0; i < 5; ++i)
 		{
 			{
 				begin_pjs[i] = target.model->motionPool()[i].mp();
@@ -570,7 +573,7 @@ auto DragTeach::executeRT(PlanTarget &target)->int
 
 
 	double ModelTor[6], q[6], dq[6], ddq[6], ts[6];
-	double Acv[12];
+
 	Acv[0] = param.A1c;Acv[1] = param.A1v;
 	Acv[2] = param.A2c;Acv[3] = param.A2v;
 	Acv[4] = param.A3c;Acv[5] = param.A3v;
@@ -578,6 +581,9 @@ auto DragTeach::executeRT(PlanTarget &target)->int
 	Acv[8] = param.A5c;Acv[9] = param.A5v;
 	Acv[10] = param.A6c;Acv[11] = param.A6v;
 	
+    //for (int i = 0; i < 12; ++i)
+        //Acv[i]=0;
+
 	for (int i = 0; i < 6; ++i)
 	{
 		{
@@ -595,17 +601,19 @@ auto DragTeach::executeRT(PlanTarget &target)->int
 
 	JointMatrix.JointCollision(q, dq, ddq, ts, JointMatrix.estParasJoint, JointMatrix.CoefParasJointInv, JointMatrix.CoefParasJoint, JointMatrix.LoadParas, ModelTor,Acv);
 
-    for (int i = 0;i < 6;i++)
+    for (int i = 0;i < 5;i++)
 	{
 		double ft_offset = 0;
 		ft_offset = ModelTor[i]*f2c_index[i];
-		ft_offset = std::max(-500.0, ft_offset);
-		ft_offset = std::min(500.0, ft_offset);
+        if(ft_offset>500)
+           ft_offset = 500;
+        if(ft_offset<-500)
+           ft_offset = -500.0;
 
         controller->motionAtAbs(i).setTargetCur(ft_offset);
 	}
 
-	//if (target.model->solverPool().at(1).kinPos())return -1;
+    if (target.model->solverPool().at(1).kinPos())return -1;
 
 	auto &lout = controller->lout();
 	lout << target.count << ",";
@@ -623,8 +631,8 @@ auto DragTeach::executeRT(PlanTarget &target)->int
 	{
 		//for (int i = 0; i < 6; i++)
 		{
-			cout << ModelTor[0] << "***" << ModelTor[1] << "***" << ModelTor[2] << "***" << ModelTor[3] << "***" << ModelTor[4] << "***" << ModelTor[5] << "***";
-			//cout << "vel" << i + 1 << ":" << target.model->motionPool()[i].mv() << "  ";
+            cout << ModelTor[0] << "***" << ModelTor[1] << "***" << ModelTor[2] << "***" << ModelTor[3] << "***" << ModelTor[4] << "***" << ModelTor[5] << "***";
+            //cout << "vel" << i + 1 << ":" << target.model->motionPool()[i].mv() << "  ";
 			//cout << "cur" << i + 1 << ":" << target.model->motionPool()[i].ma() << "  ";
 		}
 		//   cout << target.count << "  ";
@@ -633,8 +641,10 @@ auto DragTeach::executeRT(PlanTarget &target)->int
 
 
 
-	return 30000 - target.count;
+    return 300000 - target.count;
 }
+
+
 
 DragTeach::DragTeach(const std::string &name) :Plan(name)
 {
