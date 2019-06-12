@@ -599,7 +599,7 @@ auto DragTeach::executeRT(PlanTarget &target)->int
 		ts[i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
 	}
 
-	JointMatrix.JointCollision(q, dq, ddq, ts, JointMatrix.estParasJoint, JointMatrix.CoefParasJointInv, JointMatrix.CoefParasJoint, JointMatrix.LoadParas, ModelTor,Acv);
+	JointMatrix.JointDrag(q, dq, ddq, ts, JointMatrix.estParasJoint, JointMatrix.CoefParasJointInv, JointMatrix.CoefParasJoint, JointMatrix.LoadParas, ModelTor,Acv);
 
     for (int i = 0;i < 5;i++)
 	{
@@ -668,6 +668,8 @@ DragTeach::DragTeach(const std::string &name) :Plan(name)
 		"</Command>");
 
 }
+
+
 
 
 
@@ -925,6 +927,14 @@ auto LoadDyna::collectNrt(aris::plan::PlanTarget &target)->void
 	 // auto &lout = controller->lout();
     std::cout << "param.InitEst" << std::endl;
 	
+	//读取YYbase 参数
+	auto mat0 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("CoefParasLoad"));
+	for (int i = 0;i < 13 * 40;i++)
+		JointMatrix.CoefParasLoad[i] = mat0->data().data()[i];
+
+	auto mat1 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("CoefParasLoadInv"));
+	for (int i = 0;i < 13 * 40;i++)
+		JointMatrix.CoefParasLoadInv[i] = mat1->data().data()[i];
 	//double data[10]{ 0.0 };
 	//aris::core::Matrix mat(10,1,data);
 	//aris::core::Matrix mat2 = { { 1.0,2.0,3.0 }, { 1.0,2.0,3.0 } };
@@ -935,7 +945,7 @@ auto LoadDyna::collectNrt(aris::plan::PlanTarget &target)->void
 
 	if (param.amplitude > 0)
 	{
-        JointMatrix.LoadRLS(AngleList, TorqueList, JointMatrix.estParasL0, StatisError);
+        JointMatrix.LoadRLS(AngleList, TorqueList, JointMatrix.CoefParasLoad,JointMatrix.CoefParasLoadInv,JointMatrix.estParasL0, StatisError);
 		for (int i = 0;i < LoadReduceParas + 6;i++)
 			cout << JointMatrix.estParasL0[i] << ",";
 
@@ -963,7 +973,7 @@ auto LoadDyna::collectNrt(aris::plan::PlanTarget &target)->void
 		for (int i = 0;i < LoadReduceParas + 6;i++)
 			JointMatrix.estParasL0[i] = mat0->data().data()[i];
 
-        JointMatrix.LoadRLS(AngleList, TorqueList, JointMatrix.estParasL, StatisError);
+        JointMatrix.LoadRLS(AngleList, TorqueList, JointMatrix.CoefParasLoad, JointMatrix.CoefParasLoadInv,JointMatrix.estParasL, StatisError);
 
 
 		for (int i = 0;i < LoadReduceParas;i++)
@@ -971,7 +981,7 @@ auto LoadDyna::collectNrt(aris::plan::PlanTarget &target)->void
 
 
 
-        JointMatrix.LoadParasExt(dEst,JointMatrix.LoadParas);
+        JointMatrix.LoadParasExt(dEst,JointMatrix.CoefParasLoad, JointMatrix.CoefParasLoadInv,JointMatrix.LoadParas);
 		for (int i = 0;i < 10;i++)
 			cout << JointMatrix.LoadParas[i] << ",";
 
@@ -1011,6 +1021,85 @@ LoadDyna::LoadDyna(const std::string &name) :Plan(name)
 		"</Command>");
 
 }
+
+std::vector<double> AngList_vec(6 * 6000);
+auto AngList = AngList_vec.data();
+std::vector<double> VelList_vec(6 * 6000);
+auto VelList = VelList_vec.data();
+std::vector<double> AccList_vec(6 * 6000);
+auto AccList = AccList_vec.data();
+
+auto SaveYYbase::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+{
+	double dt = 0.008,time=0;
+	//double A[6]={}
+	for (int i = 0;i < 6000;i++)
+	{
+		time = i * dt;
+		for (int j = 0; j < 6; j++)
+		{
+			if (j == 2 || j == 4 || j == 5)
+			{
+				AngList[6 * (i - 1) + j] = 2 * sin(time) + sin(2 * time);
+				VelList[6 * (i - 1) + j] = 2 * sin(time + aris::PI / 2) + 2 * sin(2 * time + aris::PI / 2);
+				AccList[6 * (i - 1) + j] = 2 * sin(time + aris::PI) + 4 * sin(2 * time + aris::PI);
+			}
+			else
+			{
+				AngList[6 * (i - 1) + j] = 0;
+				VelList[6 * (i - 1) + j] = 0;
+				AccList[6 * (i - 1) + j] = 0;
+
+			}
+
+		}
+
+	}
+
+	JointMatrix.YYbase(AngList, VelList, AccList,JointMatrix.Load2Joint, JointMatrix.CoefParasLoad, JointMatrix.CoefParasLoadInv);
+
+	aris::core::Matrix mat0(1, 13*40, JointMatrix.CoefParasLoad);
+	if (target.model->variablePool().findByName("CoefParasLoad") !=
+		target.model->variablePool().end())
+	{
+		dynamic_cast<aris::dynamic::MatrixVariable*>(
+			&*target.model->variablePool().findByName("CoefParasLoad"))->data() = mat0;
+	}
+	else
+	{
+		target.model->variablePool().add<aris::dynamic::MatrixVariable>("CoefParasLoad", mat0);
+	}
+
+	aris::core::Matrix mat1(1, 13*40, JointMatrix.CoefParasLoadInv);
+	if (target.model->variablePool().findByName("CoefParasLoadInv") !=
+		target.model->variablePool().end())
+	{
+		dynamic_cast<aris::dynamic::MatrixVariable*>(
+			&*target.model->variablePool().findByName("CoefParasLoadInv"))->data() = mat1;
+	}
+	else
+	{
+		target.model->variablePool().add<aris::dynamic::MatrixVariable>("CoefParasLoadInv", mat1);
+	}
+
+
+
+
+	target.option |= NOT_RUN_COLLECT_FUNCTION;
+	target.option |= NOT_RUN_EXECUTE_FUNCTION;
+}
+
+SaveYYbase::SaveYYbase(const std::string &name) :Plan(name)
+{
+	command().loadXmlStr(
+		"<Command name=\"svYYbase\">"
+		"</Command>");
+}
+
+
+
+
+
 
 struct SaveFileParam
 {

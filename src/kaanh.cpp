@@ -55,11 +55,11 @@ namespace kaanh
         //dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanInfoForCurrentSlave();
         //dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanPdoForCurrentSlave();
 #endif
-        controller->slavePool().add<aris::control::EthercatSlave>();
-        controller->slavePool().back().setPhyId(6);
-        dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanInfoForCurrentSlave();
-        dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanPdoForCurrentSlave();
-        dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).setDcAssignActivate(0x00);
+        //controller->slavePool().add<aris::control::EthercatSlave>();
+        //controller->slavePool().back().setPhyId(6);
+        //dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanInfoForCurrentSlave();
+        //dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanPdoForCurrentSlave();
+        //dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).setDcAssignActivate(0x00);
 /*
         controller->slavePool().add<aris::control::EthercatSlave>();
         controller->slavePool().back().setPhyId(7);
@@ -4058,6 +4058,7 @@ namespace kaanh
 		plan_root->planPool().add<JointTest>();
 		plan_root->planPool().add<DragTeach>();
 		plan_root->planPool().add<LoadDyna>();
+		plan_root->planPool().add<SaveYYbase>();
 		plan_root->planPool().add<SaveFile>();
 
 		plan_root->planPool().add<SevenJointDyna>();
