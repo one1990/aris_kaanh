@@ -2788,7 +2788,7 @@ void LoadReducedMatrix(const double* q, const double* dq, const double* ddq, con
 	t144 = d4 * t35*t100;
 	t145 = cos(q6);
 	t146 = sin(q6);
-	t147 = ddq5 - t53 - t54 + t89;
+    t147 = ddq5 - t53 -A0[3][40]; t54 + t89;
 	t148 = t107 * t146;
 	t149 = t109 * t145;
 	t150 = t148 + t149;
@@ -3432,7 +3432,7 @@ void jointdynamics::LoadParasExt(const double *dEst,const double *Coef, const do
 
 	for (int i = 0;i < 13;i++)
 		for (int j = 0;j < 10;j++)
-			A0[i][j] = Coef[i * 40 + 30 + j];
+            A0[i][j] = Coef[i * 40 + 30 + j];
 
     double Avec[13*10]={0};
     for (int i=0;i<13;i++)
