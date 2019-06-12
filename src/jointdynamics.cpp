@@ -3167,23 +3167,23 @@ void jointdynamics::LoadRLS(const double *positionL, const double *sensorL, cons
 
 }
 
-void jointdynamics::YYbase(const double *AngList, const double *VelList, const double *AccList, double *Load2Joint,double *Coef,double*CoefInv)
+void jointdynamics::YYbase(const double *AngList, const double *VelList, const double *AccList, double *Load2Joint,double *Coef,double*CoefInv,const int TestNum)
 {
 	double q[RobotAxis];
 	double dq[RobotAxis];
 	double ddq[RobotAxis];
 	double ts[RobotAxis] = { 0 };
 
-	std::vector<double> regressorMatrix_vec(3 * 6000 * 40);
+	std::vector<double> regressorMatrix_vec(3 * TestNum * 40);
 	double* regressorVector = regressorMatrix_vec.data();
 
-	for (int i = 0; i < 6000; i++)
+	for (int i = 0; i < TestNum; i++)
 	{
 		for (int j = 0; j < RobotAxis; j++)
 		{
-			q[j] = AngList[6*(i-1)+j];
-			dq[j] = VelList[6 * (i - 1) + j];
-			ddq[j] = AccList[6 * (i - 1) + j];
+			q[j] = AngList[6*i+j];
+			dq[j] = VelList[6 * i + j];
+			ddq[j] = AccList[6 *i + j];
 		}
 
 		double LoadVec[3 * 40];
@@ -3201,30 +3201,30 @@ void jointdynamics::YYbase(const double *AngList, const double *VelList, const d
 
 
 	// 所需的中间变量，请对U的对角线元素做处理
-	std::vector<double> U_vec(3 * 6000 * 40);
+	std::vector<double> U_vec(3 * TestNum * 40);
 	auto U = U_vec.data();
 
-	std::vector<double> tau_vec(3 * 6000);
+	std::vector<double> tau_vec(3 * TestNum);
 	auto tau = tau_vec.data();
 
-	std::vector<aris::Size> p_vec(3 * 6000);
+	std::vector<aris::Size> p_vec(3 * TestNum);
 	auto p = p_vec.data();
 
 	aris::Size rank;
 
 	// 根据 A 求出中间变量，相当于做 QR 分解 //
    // 请对 U 的对角线元素做处理
-	s_householder_utp(3 * 6000, 40, regressorVector, U, tau, p, rank, 1e-10);
+	s_householder_utp(3 * TestNum, 40, regressorVector, U, tau, p, rank, 1e-10);
 
-	std::vector<double> TestQ_vec(3 * 6000 * 40);
+	std::vector<double> TestQ_vec(3 * TestNum * 40);
 	auto TestQ = TestQ_vec.data();
 
-	std::vector<double> TestR_vec(3 * 6000 * 40);
+	std::vector<double> TestR_vec(3 * TestNum * 40);
 	auto TestR = TestR_vec.data();
 
-	s_householder_ut2qmn(3 * 6000, 40, U, tau, TestQ);
-	s_householder_ut2r(3 * 6000, 40, U, tau, TestR);
-	s_permutate_inv(40, 3 * 6000, p, TestR, T(40));
+	s_householder_ut2qmn(3 * TestNum, 40, U, tau, TestQ);
+	s_householder_ut2r(3 * TestNum, 40, U, tau, TestR);
+	s_permutate_inv(40, 3 * TestNum, p, TestR, T(40));
 
 	//Test QR
 	//s_permutate(TotalParas, 3 * SampleNum, p, TestR, T(TotalParas));
@@ -3235,11 +3235,11 @@ void jointdynamics::YYbase(const double *AngList, const double *VelList, const d
 		//dU[i]= regressorVector[i]-UU[i];
 
 
-	std::vector<double> Q_vec(3 * 6000 * 13);
+	std::vector<double> Q_vec(3 * TestNum * 13);
 	auto Q = Q_vec.data();
 	std::vector<double> R_vec(13 * 40);
 	auto R = R_vec.data();
-	for (int i = 0;i < 3 * 6000;i++)
+	for (int i = 0;i < 3 * TestNum;i++)
 		for (int j = 0;j < 13;j++)
 			Q[i*13 + j] = TestQ[i * 40 + j];
 
@@ -3252,12 +3252,12 @@ void jointdynamics::YYbase(const double *AngList, const double *VelList, const d
 	
 
 
-	std::vector<double> UU_vec(3 * 6000 * 40);
+	std::vector<double> UU_vec(3 * TestNum * 40);
 	auto UU = UU_vec.data();
-	std::vector<double> dU_vec(3 * 6000 * 40);
+	std::vector<double> dU_vec(3 * TestNum * 40);
 	auto dU = dU_vec.data();
-	s_mm(3 * 6000, 40, 13, Q, R, UU);
-	for (int i = 0;i < 3 * 6000*40;i++)
+	s_mm(3 * TestNum, 40, 13, Q, R, UU);
+	for (int i = 0;i < 3 * TestNum *40;i++)
 		dU[i]= regressorVector[i]-UU[i];
 
 

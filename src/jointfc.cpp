@@ -897,7 +897,7 @@ auto LoadDyna::executeRT(PlanTarget &target)->int
             //TorqueList[6 * (target.count - 1) + i] = POSRLS[i + 6][target.count - 1];
 
             AngleList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualPos();
-            TorqueList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
+			TorqueList[6 * (CollectNum - 1) + i] = 0;//controller->motionAtAbs(i).actualCur() / f2c_index[i];
         }
 	
         lout << target.count << ",";
@@ -1022,41 +1022,75 @@ LoadDyna::LoadDyna(const std::string &name) :Plan(name)
 
 }
 
-std::vector<double> AngList_vec(6 * 6000);
+std::vector<double> AngList_vec(6 * 1250);
 auto AngList = AngList_vec.data();
-std::vector<double> VelList_vec(6 * 6000);
+std::vector<double> VelList_vec(6 * 1250);
 auto VelList = VelList_vec.data();
-std::vector<double> AccList_vec(6 * 6000);
+std::vector<double> AccList_vec(6 * 1250);
 auto AccList = AccList_vec.data();
 
 auto SaveYYbase::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 {
-	double dt = 0.008,time=0;
-	//double A[6]={}
-	for (int i = 0;i < 6000;i++)
+	double x[67] = {0,0.27675977, -0.00008492, 0.45121602, -0.05622749, 0.05870555, 0.32202060, 0.13967663, 0.06755620, 0.41973365, 0.12796641, -0.45479368, 0.06346175, -0.03418769, -1.43096503, 0.19009482, 0.10024365, 0.02245434, -1.11449636, -0.30552461, 0.17608308, -0.20557476, -0.18852254, -0.04907027, -0.05084139, -0.34651352, 0.60754337, 0.45868045, 0.32841629, 0.18534060, -0.16925049, 0.17826802, 0.32594942, -0.47694434, 0.44657118, 0.05735728, 1.23755867, 0.14668329, 0.79646119, 0.24766397, 0.12742196, -0.02780189, -0.29925711, 0.07980669, -0.32086920, 0.66890123, -0.23126394, 0.02150397, 0.01039145, 0.04520572, 0.08193191, 0.19993891, 0.14874881, 0.77013426, 0.10203477, -0.12763027, 0.58259397, 0.80006153, -0.10343947, -0.26281997, 0.06988126, -0.20153010, 0.19942194, 0.05188115, -0.24163165, 0.00498271, 0.00960368 };
+	int fourierNum = 5;
+	int	nParas = 2 * fourierNum + 1;
+	int	linkNum = 3;
+	double	Tf = 10;
+	double omega = 2 * aris::PI / Tf;
+	double dt = 0.008, timeSin = 0;
+	int TestNum = Tf / dt;
+	double q[4][6] = { 0 }, dq[4][6] = { 0 }, ddq[4][6] = { 0 };
+	double qF[4] = { 0 }, dqF[4] = { 0 }, ddqF[4] = { 0 };
+    int l = 0;
+	double a, b;
+	for (int i = 0;i < TestNum;i++)
 	{
-		time = i * dt;
-		for (int j = 0; j < 6; j++)
+		timeSin = dt * i;
+		for (int j = 1;j < linkNum + 1;j++)
 		{
-			if (j == 2 || j == 4 || j == 5)
-			{
-				AngList[6 * (i - 1) + j] = 2 * sin(time) + sin(2 * time);
-				VelList[6 * (i - 1) + j] = 2 * sin(time + aris::PI / 2) + 2 * sin(2 * time + aris::PI / 2);
-				AccList[6 * (i - 1) + j] = 2 * sin(time + aris::PI) + 4 * sin(2 * time + aris::PI);
-			}
-			else
-			{
-				AngList[6 * (i - 1) + j] = 0;
-				VelList[6 * (i - 1) + j] = 0;
-				AccList[6 * (i - 1) + j] = 0;
-
-			}
-
+			l = 1;
+			q[j][1] = x[1 + (j - 1)*nParas] / (omega*l)*sin(omega*l*timeSin) - x[2 + (j - 1)*nParas] / (omega*l)*cos(omega*l*timeSin) + x[3 + (j - 1)*nParas];
+            dq[j][1] = x[1 + (j - 1)*nParas]*cos(omega*l*timeSin) + x[2 + (j - 1)*nParas]*sin(omega*l*timeSin);
+			ddq[j][1] = -x[1 + (j - 1)*nParas]*omega*l*sin(omega*l*timeSin) + x[2 + (j - 1)*nParas]*omega*l*cos(omega*l*timeSin);
 		}
 
+		for (int j = 1;j < linkNum + 1;j++)
+			for (int ii = 2;ii < fourierNum + 1;ii++)
+			{
+				l = ii;
+				q[j][ii] = x[2 + (ii - 2) * 2 + 2 + (j - 1)*nParas] / (omega*l)*sin(omega*l*timeSin) - x[2 + (ii - 2) * 2 + 3 + (j - 1)*nParas] / (omega*l)*cos(omega*l*timeSin);
+			    dq[j][ii] = x[2 + (ii - 2) * 2 + 2 + (j - 1)*nParas]*cos(omega*l*timeSin) + x[2 + (ii - 2) * 2 + 3 + (j - 1)*nParas]*sin(omega*l*timeSin);
+				ddq[j][ii] = -x[2 + (ii - 2) * 2 + 2 + (j - 1)*nParas]*omega*l*sin(omega*l*timeSin) + x[2 + (ii - 2) * 2 + 3 + (j - 1)*nParas]*omega*l*cos(omega*l*timeSin);
+
+			}
+
+		for (int j = 1;j < linkNum + 1;j++)
+		{
+			qF[j] = q[j][1];
+			dqF[j] = dq[j][1];
+			ddqF[j] = ddq[j][1];
+		}
+
+
+		for (int j = 1;j < linkNum + 1;j++)
+			for (int ii = 2;ii < fourierNum + 1;ii++)
+			{
+				qF[j] = qF[j] + q[j][ii];
+				dqF[j] = dqF[j] + dq[j][ii];
+				ddqF[j] = ddqF[j] + ddq[j][ii];
+			}
+	
+		AngList[6 * i + 0] = 0; VelList[6 * i + 0] = 0; AccList[6 * i + 0] = 0;
+		AngList[6 * i + 1] = 0; VelList[6 * i + 1] = 0; AccList[6 * i + 1] = 0;
+		AngList[6 * i + 2] = qF[1]; VelList[6 * i + 2] = dqF[1]; AccList[6 * i + 2] = ddqF[1];
+		AngList[6 * i + 3] = 0; VelList[6 * i + 3] = 0; AccList[6 * i + 3] = 0;
+		AngList[6 * i + 4] = qF[2]; VelList[6 * i + 4] = dqF[2]; AccList[6 * i + 4] = ddqF[2];
+		AngList[6 * i + 5] = qF[3]; VelList[6 * i + 5] = dqF[3]; AccList[6 * i + 5] = ddqF[3];
 	}
 
-	JointMatrix.YYbase(AngList, VelList, AccList,JointMatrix.Load2Joint, JointMatrix.CoefParasLoad, JointMatrix.CoefParasLoadInv);
+
+
+	JointMatrix.YYbase(AngList, VelList, AccList,JointMatrix.Load2Joint, JointMatrix.CoefParasLoad, JointMatrix.CoefParasLoadInv, TestNum);
 
 	aris::core::Matrix mat0(1, 13*40, JointMatrix.CoefParasLoad);
 	if (target.model->variablePool().findByName("CoefParasLoad") !=
