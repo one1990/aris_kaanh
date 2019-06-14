@@ -91,7 +91,10 @@ namespace forcecontrol
 
 		std::fill(target.mot_options.begin(), target.mot_options.end(),
 			Plan::USE_TARGET_POS |
-			Plan::USE_VEL_OFFSET);
+            Plan::USE_VEL_OFFSET |
+            Plan::NOT_CHECK_ENABLE|
+            Plan::NOT_CHECK_VEL_CONTINUOUS|
+            Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START);
 
 	}
 	auto MoveJRC::executeRT(PlanTarget &target)->int
@@ -208,7 +211,7 @@ namespace forcecontrol
 					//constexpr double f_static_index[6] = { 0.5, 0.5, 0.5, 0.85, 0.95, 0.8 };
 
                     auto real_vel = std::max(std::min(max_static_vel[i], controller->motionAtAbs(i).actualVel()), -max_static_vel[i]);
-                    ft_offset = (f_vel_JRC[i] * controller->motionAtAbs(i).actualVel() + f_static_index_JRC[i] * f_static[i] * real_vel / max_static_vel[i])*f2c_index[i];
+                    ft_offset = 0.0*(f_vel_JRC[i] * controller->motionAtAbs(i).actualVel() + f_static_index_JRC[i] * f_static[i] * real_vel / max_static_vel[i])*f2c_index[i];
 					
                     /*
                     double f_col = 8.5;
@@ -248,22 +251,21 @@ namespace forcecontrol
 					ft_offset = std::max(-500.0, ft_offset);
 					ft_offset = std::min(500.0, ft_offset);
 
-                    controller->motionAtAbs(i).setTargetCur(ft_offset + target.model->motionPool()[i].mfDyn()*f2c_index[i]);
+                    double weight[6] = {1,1,1.1,1,1,1};
+                    controller->motionAtAbs(i).setTargetCur(ft_offset + weight[i]*target.model->motionPool()[i].mfDyn()*f2c_index[i]);
 
 
 					//打印PID控制结果
-					/*
+                    /*
 					auto &cout = controller->mout();
-					if (target.count % 100 == 0)
+                    if (target.count % 1 == 0)
 					{
-						//cout << "ft:" << ft << "  " << "vt:" << vt << "  " << "va:" << va << "  " << "param.kp_v*(vt - va):" << param.kp_v*(vt - va) << "  " << "param.ki_v*vinteg[i]:" << param.ki_v*vinteg[i] << "    ";
-						cout << "feedbackf:" << std::setw(10) << controller->motionAtAbs(i).actualCur()
-							 << "f:" << std::setw(10) << ft_offset
-							 << "p:" << std::setw(10) << p
-							 << "pa:" << std::setw(10) << pa
-							 << "va:" << std::setw(10) << va << std::endl;
+                            cout << "targetCur" << i << ":" <<std::setw(10) << controller->motionAtAbs(i).targetCur()
+                                 << "acturaCur" << i << ":" << std::setw(10) << controller->motionAtAbs(i).actualCur()
+                                 << std::endl;
 					}
-					*/
+                    */
+
 				}
 			}
 		}
@@ -280,18 +282,19 @@ namespace forcecontrol
 			{
 				if (param.joint_active_vec[i])
 				{
-                    cout << "pos" << i + 1 << ":" << std::setw(6) << controller->motionAtAbs(i).actualPos() << ",";
-                    cout << "vel" << i + 1 << ":" << std::setw(6) << controller->motionAtAbs(i).actualVel() << ",";
+                    //cout << "pos" << i + 1 << ":" << std::setw(6) << controller->motionAtAbs(i).actualPos() << ",";
+                    //cout << "vel" << i + 1 << ":" << std::setw(6) << controller->motionAtAbs(i).actualVel() << ",";
+                    cout << "cur" << i + 1 << ":" << std::setw(6) << controller->motionAtAbs(i).targetCur() << ",";
                     cout << "cur" << i + 1 << ":" << std::setw(6) << controller->motionAtAbs(i).actualCur() << ",";
 				}
 			}
-
+            /*
 			cout << "pq: ";
 			for (Size i = 0; i < 7; i++)
 			{
 				cout << std::setw(6) << pqa[i] << " ";
 			}
-
+            */
             cout << std::endl;
 		}
 
