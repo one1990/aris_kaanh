@@ -403,11 +403,12 @@ void sixdistaldynamics::RLS(const double *positionL, const double *sensorL, doub
 
     s_mm(6 * SampleNum, 1, GroupDim, regressorVector,estParas, Error);
     for(int i=0;i<6*SampleNum;i++)
-        Error[i]= Error[i]-regressorVector[i];
+        Error[i]= Error[i]- regressorForces[i];
 
     double SumError[6]={0};
-    for(int i=0;i<SampleNum;i++)
-        for(int j=0;j<6;j++)
+   
+    for(int j=0;j<6;j++) 
+		for(int i=0;i<SampleNum;i++)
             SumError[j]= SumError[j]+Error[i*6+j]*Error[i*6+j];
 
     for(int j=0;j<6;j++)

@@ -1370,12 +1370,13 @@ void jointdynamics::RLS(const double *positionL, const double *sensorL, double *
 	
     s_mm(RobotAxis * SampleNum, 1, JointReduceDim+12, QwithFric,estParas, Error);
     for(int i=0;i< RobotAxis*SampleNum;i++)
-        Error[i]= Error[i]-regressorVector[i];
+        Error[i]= Error[i]- regressorForces[i];
 
     double SumError[RobotAxis]={0};
-    for(int i=0;i<SampleNum;i++)
-        for(int j=0;j< RobotAxis;j++)
-            SumError[j]= SumError[j]+Error[i*RobotAxis +j]*Error[i*RobotAxis +j];
+	for (int j = 0;j < 6;j++)
+		for (int i = 0;i < SampleNum;i++)
+			SumError[j] = SumError[j] + Error[i * 6 + j] * Error[i * 6 + j];
+   
 
     for(int j=0;j< RobotAxis;j++)
         StatisError[j]= sqrt(SumError[j])/SampleNum;
@@ -3154,11 +3155,11 @@ void jointdynamics::LoadRLS(const double *positionL, const double *sensorL, cons
 
 	s_mm(3 * SampleNum, 1, LoadReduceParas+6, QwithFric, estParas, Error);
 	for (int i = 0;i < 3*SampleNum;i++)
-		Error[i] = Error[i] - regressorVector[i];
+		Error[i] = Error[i] - regressorForces[i];
 
 	double SumError[3] = { 0 };
-	for (int i = 0;i < SampleNum;i++)
-		for (int j = 0;j < 3;j++)
+	for (int j = 0;j < 3;j++)
+		for (int i = 0;i < SampleNum;i++)
 			SumError[j] = SumError[j] + Error[i*3 + j] * Error[i*3 + j];
 
 	for (int j = 0;j < 3;j++)

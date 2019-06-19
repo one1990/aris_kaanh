@@ -1585,11 +1585,11 @@ void sevenjointdynamics::SevenRLS(const double *positionL, const double *sensorL
 
 	s_mm(7 * SampleNum, 1, JointReduceDim + 2 * 7, QwithFric, estParas, Error);
 	for (int i = 0;i < 7 * SampleNum;i++)
-		Error[i] = Error[i] - regressorVector[i];
+		Error[i] = Error[i] - regressorForces[i];
 
 	double SumError[7] = { 0 };
-	for (int i = 0;i < SampleNum;i++)
-		for (int j = 0;j < 7;j++)
+	for (int j = 0;j < 7;j++)
+		for (int i = 0;i < SampleNum;i++)
 			SumError[j] = SumError[j] + Error[i * 7 + j] * Error[i * 7 + j];
 
 	for (int j = 0;j < 7;j++)
