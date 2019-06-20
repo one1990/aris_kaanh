@@ -39,14 +39,14 @@ void GetATI(PlanTarget &target,double* FT)
     #ifdef UNIX
     auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.controller);
 
-    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x01, &FTint[0] ,32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x02, &FTint[1], 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x03, &FTint[2], 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x04, &FTint[3], 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x05, &FTint[4], 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6000, 0x06, &FTint[5], 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6010, 0x00, &status_code, 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6020, 0x00, &sample_counter, 32);
+    conSensor->slavePool().at(6).readPdo(0x6000, 0x01, &FTint[0] ,32);
+    conSensor->slavePool().at(6).readPdo(0x6000, 0x02, &FTint[1], 32);
+    conSensor->slavePool().at(6).readPdo(0x6000, 0x03, &FTint[2], 32);
+    conSensor->slavePool().at(6).readPdo(0x6000, 0x04, &FTint[3], 32);
+    conSensor->slavePool().at(6).readPdo(0x6000, 0x05, &FTint[4], 32);
+    conSensor->slavePool().at(6).readPdo(0x6000, 0x06, &FTint[5], 32);
+    conSensor->slavePool().at(6).readPdo(0x6010, 0x00, &status_code, 32);
+    conSensor->slavePool().at(6).readPdo(0x6020, 0x00, &sample_counter, 32);
     #endif
 
     double ATIscale=1000000.0;
@@ -67,13 +67,13 @@ void GetYuLi(PlanTarget &target,double* FT)
 
     #ifdef UNIX
     auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.controller);
-    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x00, &FTnum ,16);
-    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x01, &FTtemp[0] ,32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x02, &FTtemp[1], 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x03, &FTtemp[2], 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x04, &FTtemp[3], 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x05, &FTtemp[4], 32);
-    conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x06, &FTtemp[5], 32);
+    conSensor->slavePool().at(6).readPdo(0x6030, 0x00, &FTnum ,16);
+    conSensor->slavePool().at(6).readPdo(0x6030, 0x01, &FTtemp[0] ,32);
+    conSensor->slavePool().at(6).readPdo(0x6030, 0x02, &FTtemp[1], 32);
+    conSensor->slavePool().at(6).readPdo(0x6030, 0x03, &FTtemp[2], 32);
+    conSensor->slavePool().at(6).readPdo(0x6030, 0x04, &FTtemp[3], 32);
+    conSensor->slavePool().at(6).readPdo(0x6030, 0x05, &FTtemp[4], 32);
+    conSensor->slavePool().at(6).readPdo(0x6030, 0x06, &FTtemp[5], 32);
     #endif
 
     for(int i=0;i<6;i++)
@@ -89,12 +89,12 @@ void BeiFu(PlanTarget &target,double* FT)
 
     #ifdef UNIX
     auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.controller);
-    conSensor->ecSlavePool().at(7).readPdo(0x6000, 0x11, &FTint[0] ,16);
-    conSensor->ecSlavePool().at(7).readPdo(0x6010, 0x11, &FTint[1], 16);
-    conSensor->ecSlavePool().at(7).readPdo(0x6020, 0x11, &FTint[2], 16);
-    conSensor->ecSlavePool().at(7).readPdo(0x6030, 0x11, &FTint[3], 16);
-    conSensor->ecSlavePool().at(8).readPdo(0x6000, 0x11, &FTint[4], 16);
-    conSensor->ecSlavePool().at(8).readPdo(0x6010, 0x11, &FTint[5], 16);
+    conSensor->slavePool().at(7).readPdo(0x6000, 0x11, &FTint[0] ,16);
+    conSensor->slavePool().at(7).readPdo(0x6010, 0x11, &FTint[1], 16);
+    conSensor->slavePool().at(7).readPdo(0x6020, 0x11, &FTint[2], 16);
+    conSensor->slavePool().at(7).readPdo(0x6030, 0x11, &FTint[3], 16);
+    conSensor->slavePool().at(8).readPdo(0x6000, 0x11, &FTint[4], 16);
+    conSensor->slavePool().at(8).readPdo(0x6010, 0x11, &FTint[5], 16);
     #endif
 
     for (int i=0;i<6;i++)
@@ -209,12 +209,12 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
     double FTReal[6],FT[6];
     auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.controller);
 	
-    conSensor->ecSlavePool().at(7).readPdo(0x6000, 0x11, &FTint[0] ,16);
-    conSensor->ecSlavePool().at(7).readPdo(0x6010, 0x11, &FTint[1], 16);
-    conSensor->ecSlavePool().at(7).readPdo(0x6020, 0x11, &FTint[2], 16);
-    conSensor->ecSlavePool().at(7).readPdo(0x6030, 0x11, &FTint[3], 16);
-    conSensor->ecSlavePool().at(8).readPdo(0x6000, 0x11, &FTint[4], 16);
-    conSensor->ecSlavePool().at(8).readPdo(0x6010, 0x11, &FTint[5], 16);
+    conSensor->slavePool().at(7).readPdo(0x6000, 0x11, &FTint[0] ,16);
+    conSensor->slavePool().at(7).readPdo(0x6010, 0x11, &FTint[1], 16);
+    conSensor->slavePool().at(7).readPdo(0x6020, 0x11, &FTint[2], 16);
+    conSensor->slavePool().at(7).readPdo(0x6030, 0x11, &FTint[3], 16);
+    conSensor->slavePool().at(8).readPdo(0x6000, 0x11, &FTint[4], 16);
+    conSensor->slavePool().at(8).readPdo(0x6010, 0x11, &FTint[5], 16);
 
     for (int i=0;i<6;i++)
     {
@@ -1228,13 +1228,13 @@ auto MovePressure::executeRT(PlanTarget &target)->int
 	float FT[6];
 	uint16_t FTnum;
 	auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.controller);
-	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x00, &FTnum, 16);
-	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x01, &FT[0], 32);  //Fx
-	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x02, &FT[1], 32);  //Fy
-	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x03, &FT[2], 32);  //Fz
-	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x04, &FT[3], 32);
-	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x05, &FT[4], 32);
-	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x06, &FT[5], 32);
+	conSensor->slavePool().at(6).readPdo(0x6030, 0x00, &FTnum, 16);
+	conSensor->slavePool().at(6).readPdo(0x6030, 0x01, &FT[0], 32);  //Fx
+	conSensor->slavePool().at(6).readPdo(0x6030, 0x02, &FT[1], 32);  //Fy
+	conSensor->slavePool().at(6).readPdo(0x6030, 0x03, &FT[2], 32);  //Fz
+	conSensor->slavePool().at(6).readPdo(0x6030, 0x04, &FT[3], 32);
+	conSensor->slavePool().at(6).readPdo(0x6030, 0x05, &FT[4], 32);
+	conSensor->slavePool().at(6).readPdo(0x6030, 0x06, &FT[5], 32);
 	FT[0] = -FT[0];FT[3] = -FT[3];
 
 	for (int i = 0;i < 6;i++)
@@ -3069,13 +3069,13 @@ auto MoveFeed::executeRT(PlanTarget &target)->int
 	float FT[6];
 	uint16_t FTnum;
 	auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.controller);
-	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x00, &FTnum, 16);
-	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x01, &FT[0], 32);  //Fx
-	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x02, &FT[1], 32);  //Fy
-	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x03, &FT[2], 32);  //Fz
-	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x04, &FT[3], 32);
-	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x05, &FT[4], 32);
-	conSensor->ecSlavePool().at(6).readPdo(0x6030, 0x06, &FT[5], 32);
+	conSensor->slavePool().at(6).readPdo(0x6030, 0x00, &FTnum, 16);
+	conSensor->slavePool().at(6).readPdo(0x6030, 0x01, &FT[0], 32);  //Fx
+	conSensor->slavePool().at(6).readPdo(0x6030, 0x02, &FT[1], 32);  //Fy
+	conSensor->slavePool().at(6).readPdo(0x6030, 0x03, &FT[2], 32);  //Fz
+	conSensor->slavePool().at(6).readPdo(0x6030, 0x04, &FT[3], 32);
+	conSensor->slavePool().at(6).readPdo(0x6030, 0x05, &FT[4], 32);
+	conSensor->slavePool().at(6).readPdo(0x6030, 0x06, &FT[5], 32);
 	FT[0] = -FT[0];FT[3] = -FT[3];
 
 	for (int i = 0;i < 6;i++)

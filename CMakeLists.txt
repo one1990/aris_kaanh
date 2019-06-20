@@ -26,7 +26,6 @@ add_executable(kaanh src/main.cpp)
 target_link_libraries(kaanh kaanh_lib)
 
 
-
 if(UNIX)
 	target_link_libraries(kaanh ${aris_LIBRARIES} atomic)
 endif(UNIX)

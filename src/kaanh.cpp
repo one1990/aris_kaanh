@@ -2571,12 +2571,12 @@ namespace kaanh
 			if (param.status)
 			{
 				dq = 0x01;
-				controller->ecSlavePool().at(7).writePdo(0x7001, 0x01, dq);
+				controller->slavePool().at(7).writePdo(0x7001, 0x01, dq);
 			}
 			else
 			{
 				dq = 0x00;
-				controller->ecSlavePool().at(7).writePdo(0x7001, 0x01, dq);
+				controller->slavePool().at(7).writePdo(0x7001, 0x01, dq);
 			}	
 			//std::cout << int(a) << std::endl;
 			return 0;
@@ -2603,7 +2603,7 @@ namespace kaanh
 				auto controller = dynamic_cast<aris::control::EthercatController*>(target.controller);
 				static std::uint8_t di = 0x00;
 				static std::int16_t di_delay[6] = { 0,0,0,0,0,0 };
-				controller->ecSlavePool().at(7).readPdo(0x6001, 0x01, di);
+				controller->slavePool().at(7).readPdo(0x6001, 0x01, di);
 				//模拟DI信号为1//
 				//di = 0x01;
 
@@ -3221,23 +3221,23 @@ namespace kaanh
                 auto controller = dynamic_cast<aris::control::EthercatController*>(target.controller);
                 if (param.real_data)
                 {
-                    controller->ecSlavePool().at(6).readPdo(0x6030, 0x00, &param.datanum ,16);
-                    controller->ecSlavePool().at(6).readPdo(0x6030, 0x01, &param.Fx ,32);
-                    controller->ecSlavePool().at(6).readPdo(0x6030, 0x02, &param.Fy, 32);
-                    controller->ecSlavePool().at(6).readPdo(0x6030, 0x03, &param.Fz, 32);
-                    controller->ecSlavePool().at(6).readPdo(0x6030, 0x04, &param.Mx, 32);
-                    controller->ecSlavePool().at(6).readPdo(0x6030, 0x05, &param.My, 32);
-                    controller->ecSlavePool().at(6).readPdo(0x6030, 0x06, &param.Mz, 32);
+                    controller->slavePool().at(6).readPdo(0x6030, 0x00, &param.datanum ,16);
+                    controller->slavePool().at(6).readPdo(0x6030, 0x01, &param.Fx ,32);
+                    controller->slavePool().at(6).readPdo(0x6030, 0x02, &param.Fy, 32);
+                    controller->slavePool().at(6).readPdo(0x6030, 0x03, &param.Fz, 32);
+                    controller->slavePool().at(6).readPdo(0x6030, 0x04, &param.Mx, 32);
+                    controller->slavePool().at(6).readPdo(0x6030, 0x05, &param.My, 32);
+                    controller->slavePool().at(6).readPdo(0x6030, 0x06, &param.Mz, 32);
                 }
                 else
                 {
-                    controller->ecSlavePool().at(6).readPdo(0x6030, 0x00, &param.datanum ,16);
-                    controller->ecSlavePool().at(6).readPdo(0x6020, 0x01, &param.Fx, 32);
-                    controller->ecSlavePool().at(6).readPdo(0x6020, 0x02, &param.Fy, 32);
-                    controller->ecSlavePool().at(6).readPdo(0x6020, 0x03, &param.Fz, 32);
-                    controller->ecSlavePool().at(6).readPdo(0x6020, 0x04, &param.Mx, 32);
-                    controller->ecSlavePool().at(6).readPdo(0x6020, 0x05, &param.My, 32);
-                    controller->ecSlavePool().at(6).readPdo(0x6020, 0x06, &param.Mz, 32);
+                    controller->slavePool().at(6).readPdo(0x6030, 0x00, &param.datanum ,16);
+                    controller->slavePool().at(6).readPdo(0x6020, 0x01, &param.Fx, 32);
+                    controller->slavePool().at(6).readPdo(0x6020, 0x02, &param.Fy, 32);
+                    controller->slavePool().at(6).readPdo(0x6020, 0x03, &param.Fz, 32);
+                    controller->slavePool().at(6).readPdo(0x6020, 0x04, &param.Mx, 32);
+                    controller->slavePool().at(6).readPdo(0x6020, 0x05, &param.My, 32);
+                    controller->slavePool().at(6).readPdo(0x6020, 0x06, &param.Mz, 32);
                 }
 
                 //print//
@@ -3318,10 +3318,10 @@ namespace kaanh
                }
 
                /*
-               controller->ecSlavePool().at(6).readSdo(0x2021, 0x2f, &param.forceunit, 8);
-               controller->ecSlavePool().at(6).readSdo(0x2021, 0x30, &param.torqueunit, 8);
-               controller->ecSlavePool().at(6).readSdo(0x2021, 0x37, &param.forceindex, 32);
-               controller->ecSlavePool().at(6).readSdo(0x2021, 0x38, &param.torqueindex, 32);
+               controller->slavePool().at(6).readSdo(0x2021, 0x2f, &param.forceunit, 8);
+               controller->slavePool().at(6).readSdo(0x2021, 0x30, &param.torqueunit, 8);
+               controller->slavePool().at(6).readSdo(0x2021, 0x37, &param.forceindex, 32);
+               controller->slavePool().at(6).readSdo(0x2021, 0x38, &param.torqueindex, 32);
                */
 
                target.param = param;
@@ -3337,16 +3337,16 @@ namespace kaanh
            auto controller = dynamic_cast<aris::control::EthercatController*>(target.controller);
            if (target.count == 1)
            {
-               controller->ecSlavePool().at(6).writePdo(0x7010, 0x01, &param.controlcodes, 32);
+               controller->slavePool().at(6).writePdo(0x7010, 0x01, &param.controlcodes, 32);
            }
-           controller->ecSlavePool().at(6).readPdo(0x6000, 0x01, &param.Fx ,32);
-           controller->ecSlavePool().at(6).readPdo(0x6000, 0x02, &param.Fy, 32);
-           controller->ecSlavePool().at(6).readPdo(0x6000, 0x03, &param.Fz, 32);
-           controller->ecSlavePool().at(6).readPdo(0x6000, 0x04, &param.Mx, 32);
-           controller->ecSlavePool().at(6).readPdo(0x6000, 0x05, &param.My, 32);
-           controller->ecSlavePool().at(6).readPdo(0x6000, 0x06, &param.Mz, 32);
-           controller->ecSlavePool().at(6).readPdo(0x6010, 0x00, &param.status_code, 32);
-           controller->ecSlavePool().at(6).readPdo(0x6020, 0x00, &param.sample_counter, 32);
+           controller->slavePool().at(6).readPdo(0x6000, 0x01, &param.Fx ,32);
+           controller->slavePool().at(6).readPdo(0x6000, 0x02, &param.Fy, 32);
+           controller->slavePool().at(6).readPdo(0x6000, 0x03, &param.Fz, 32);
+           controller->slavePool().at(6).readPdo(0x6000, 0x04, &param.Mx, 32);
+           controller->slavePool().at(6).readPdo(0x6000, 0x05, &param.My, 32);
+           controller->slavePool().at(6).readPdo(0x6000, 0x06, &param.Mz, 32);
+           controller->slavePool().at(6).readPdo(0x6010, 0x00, &param.status_code, 32);
+           controller->slavePool().at(6).readPdo(0x6020, 0x00, &param.sample_counter, 32);
 
            /*
            //print//

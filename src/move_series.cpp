@@ -1,4 +1,4 @@
-
+ï»¿
 #include <math.h>
 #include <algorithm>
 
@@ -129,7 +129,7 @@ auto MoveSeriesGK::executeRT(PlanTarget &target)->int
 
 	static double X0[6] = { 0 }, X1[6] = { 0 };
 	static double step_pjs[6], sumDx[6] = { 0 };
-	// »ñÈ¡µ±Ç°ÆğÊ¼µãÎ»ÖÃ //
+	// è·å–å½“å‰èµ·å§‹ç‚¹ä½ç½® //
 	if (target.count == 1)
 	{
 		for (int i = 0; i < 6; ++i)
@@ -169,12 +169,12 @@ auto MoveSeriesGK::executeRT(PlanTarget &target)->int
 	double FTReal[6], FT[6];
 	auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.controller);
 
-	conSensor->ecSlavePool().at(7).readPdo(0x6000, 0x11, &FTint[0], 16);
-	conSensor->ecSlavePool().at(7).readPdo(0x6010, 0x11, &FTint[1], 16);
-	conSensor->ecSlavePool().at(7).readPdo(0x6020, 0x11, &FTint[2], 16);
-	conSensor->ecSlavePool().at(7).readPdo(0x6030, 0x11, &FTint[3], 16);
-	conSensor->ecSlavePool().at(8).readPdo(0x6000, 0x11, &FTint[4], 16);
-	conSensor->ecSlavePool().at(8).readPdo(0x6010, 0x11, &FTint[5], 16);
+	conSensor->slavePool().at(7).readPdo(0x6000, 0x11, &FTint[0], 16);
+	conSensor->slavePool().at(7).readPdo(0x6010, 0x11, &FTint[1], 16);
+	conSensor->slavePool().at(7).readPdo(0x6020, 0x11, &FTint[2], 16);
+	conSensor->slavePool().at(7).readPdo(0x6030, 0x11, &FTint[3], 16);
+	conSensor->slavePool().at(8).readPdo(0x6000, 0x11, &FTint[4], 16);
+	conSensor->slavePool().at(8).readPdo(0x6010, 0x11, &FTint[5], 16);
 
 	for (int i = 0;i < 6;i++)
 	{
@@ -191,7 +191,7 @@ auto MoveSeriesGK::executeRT(PlanTarget &target)->int
 
 
 
-	// »ñÈ¡µ±Ç°ÆğÊ¼µãÎ»ÖÃ //
+	// è·å–å½“å‰èµ·å§‹ç‚¹ä½ç½® //
 	if (target.count == 1)
 	{
 		for (int j = 0; j < 6; j++)
@@ -317,7 +317,7 @@ auto MoveSeriesGK::executeRT(PlanTarget &target)->int
 
 	if (target.count % 300 == 0)
 		cout << FmInWorld[2] << "***" << Ftotal << endl;
-	// log µçÁ÷ //
+	// log ç”µæµ //
 	auto &lout = controller->lout();
 
 
@@ -353,27 +353,27 @@ auto MoveSeriesGK::executeRT(PlanTarget &target)->int
 	fwd.cptJacobi();
 	double pinv[36];
 
-	// ËùĞèµÄÖĞ¼ä±äÁ¿£¬Çë¶ÔUµÄ¶Ô½ÇÏßÔªËØ×ö´¦Àí
+	// æ‰€éœ€çš„ä¸­é—´å˜é‡ï¼Œè¯·å¯¹Uçš„å¯¹è§’çº¿å…ƒç´ åšå¤„ç†
 	double U[36], tau[6];
 	aris::Size p[6];
 	aris::Size rank;
 
-	// ¸ù¾İ A Çó³öÖĞ¼ä±äÁ¿£¬Ïàµ±ÓÚ×ö QR ·Ö½â //
-	// Çë¶Ô U µÄ¶Ô½ÇÏßÔªËØ×ö´¦Àí
+	// æ ¹æ® A æ±‚å‡ºä¸­é—´å˜é‡ï¼Œç›¸å½“äºåš QR åˆ†è§£ //
+	// è¯·å¯¹ U çš„å¯¹è§’çº¿å…ƒç´ åšå¤„ç†
 	s_householder_utp(6, 6, fwd.Jf(), U, tau, p, rank, 1e-10);
 	for (int i = 0;i < 6;i++)
 		if (U[7 * i] >= 0)
 			U[7 * i] = U[7 * i] + 0.1;
 		else
 			U[7 * i] = U[7 * i] - 0.1;
-	// ¸ù¾İQR·Ö½âµÄ½á¹ûÇóx£¬Ïàµ±ÓÚMatlabÖĞµÄ x = A\b //
+	// æ ¹æ®QRåˆ†è§£çš„ç»“æœæ±‚xï¼Œç›¸å½“äºMatlabä¸­çš„ x = A\b //
 	s_householder_utp_sov(6, 6, 1, rank, U, tau, p, dX, dTheta, 1e-10);
 
-	// ¸ù¾İQR·Ö½âµÄ½á¹ûÇó¹ãÒåÄæ£¬Ïàµ±ÓÚMatlabÖĞµÄ pinv(A) //
+	// æ ¹æ®QRåˆ†è§£çš„ç»“æœæ±‚å¹¿ä¹‰é€†ï¼Œç›¸å½“äºMatlabä¸­çš„ pinv(A) //
 	double tau2[6];
 	s_householder_utp2pinv(6, 6, rank, U, tau, p, pinv, tau2, 1e-10);
 
-	// ¸ù¾İQR·Ö½âµÄ½á¹ûÇó¹ãÒåÄæ£¬Ïàµ±ÓÚMatlabÖĞµÄ pinv(A)*b //
+	// æ ¹æ®QRåˆ†è§£çš„ç»“æœæ±‚å¹¿ä¹‰é€†ï¼Œç›¸å½“äºMatlabä¸­çš„ pinv(A)*b //
 	s_mm(6, 1, 6, pinv, dX, dTheta);
 
 
