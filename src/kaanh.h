@@ -348,6 +348,14 @@ namespace kaanh
 		explicit StopCS(const std::string &name = "StopCS_plan");
 		ARIS_REGISTER_TYPE(StopCS);
 	};
+
+	class SetCT : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		explicit SetCT(const std::string &name = "SetCT_plan");
+		ARIS_REGISTER_TYPE(SetCT);
+	};
 }
 
 #endif
