@@ -1593,7 +1593,7 @@ void sevenjointdynamics::SevenRLS(const double *positionL, const double *sensorL
 			SumError[j] = SumError[j] + Error[i * 7 + j] * Error[i * 7 + j];
 
 	for (int j = 0;j < 7;j++)
-		StatisError[j] = sqrt(SumError[j]) / SampleNum;
+        StatisError[j] = sqrt(SumError[j]/ SampleNum);
 
 
 	//计算CoefInv, Coef*CoefInv=EYE(30)

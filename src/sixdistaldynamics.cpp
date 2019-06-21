@@ -412,7 +412,7 @@ void sixdistaldynamics::RLS(const double *positionL, const double *sensorL, doub
             SumError[j]= SumError[j]+Error[i*6+j]*Error[i*6+j];
 
     for(int j=0;j<6;j++)
-        StatisError[j]= sqrt(SumError[j])/SampleNum;
+        StatisError[j]= sqrt(SumError[j]/SampleNum);
 
 
 

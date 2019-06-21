@@ -1379,7 +1379,7 @@ void jointdynamics::RLS(const double *positionL, const double *sensorL, double *
    
 
     for(int j=0;j< RobotAxis;j++)
-        StatisError[j]= sqrt(SumError[j])/SampleNum;
+        StatisError[j]= sqrt(SumError[j]/SampleNum);
 
 
 	//计算CoefInv, Coef*CoefInv=EYE(30)
@@ -3163,7 +3163,7 @@ void jointdynamics::LoadRLS(const double *positionL, const double *sensorL, cons
 			SumError[j] = SumError[j] + Error[i*3 + j] * Error[i*3 + j];
 
 	for (int j = 0;j < 3;j++)
-		StatisError[j] = sqrt(SumError[j]) / SampleNum;
+        StatisError[j] = sqrt(SumError[j]/ SampleNum);
 
 
 }
