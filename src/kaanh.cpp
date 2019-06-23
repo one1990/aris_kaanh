@@ -59,13 +59,13 @@ namespace kaanh
        // controller->slavePool().back().setPhyId(7);
         //dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanInfoForCurrentSlave();
         //dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanPdoForCurrentSlave();
-#endif
 
         controller->slavePool().add<aris::control::EthercatSlave>();
         controller->slavePool().back().setPhyId(6);
         dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanInfoForCurrentSlave();
         dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanPdoForCurrentSlave();
         dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).setDcAssignActivate(0x00);
+#endif
 
 		return controller;
 	};

@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
   
 	//生成kaanh.xml文档
 
-/*
+	/*
     //-------for rokae robot begin//
     cs.resetController(kaanh::createControllerRokaeXB4().release());
     //cs.resetModel(aris::robot::createModelRokaeXB4().release());
@@ -40,8 +40,7 @@ int main(int argc, char *argv[])
     cs.resetSensorRoot(new aris::sensor::SensorRoot);
     cs.saveXmlFile(xmlpath.string().c_str());
     //-------for rokae robot end// 
-
-*/
+	*/
 
     /*
     //-------for sanxiang robot begin//
