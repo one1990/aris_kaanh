@@ -39,7 +39,7 @@ auto JointDyna::prepairNrt(const std::map<std::string, std::string> &params, Pla
 			param.amplitude = std::stod(p.second);
 
 	}
-
+	
 	target.param = param;
 
  for(auto &option:target.mot_options) option|=
@@ -58,7 +58,7 @@ auto JointDyna::prepairNrt(const std::map<std::string, std::string> &params, Pla
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
 		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
-
+		
 }
 auto JointDyna::executeRT(PlanTarget &target)->int
 {
@@ -137,8 +137,8 @@ auto JointDyna::executeRT(PlanTarget &target)->int
 	}
 
 
+    if (target.model->solverPool().at(1).kinPos()) return -1;
 
-    //if (target.model->solverPool().at(1).kinPos())return -1;
 
 	// 访问主站 //
 	auto controller = target.controller;
@@ -173,7 +173,7 @@ auto JointDyna::executeRT(PlanTarget &target)->int
             //TorqueList[6 * (target.count - 1) + i] = POSRLS[i + 6][target.count - 1] / f2c_index[i];
 
             AngleList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualPos();
-            TorqueList[6 * (CollectNum - 1) + i] = 0;//controller->motionAtAbs(i).actualCur() / f2c_index[i];
+            TorqueList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
 		}
 
 		lout << target.count << ",";
@@ -327,6 +327,7 @@ auto JointTest::prepairNrt(const std::map<std::string, std::string> &params, Pla
     for (int i = 0;i < 10;i++)
          JointMatrix.LoadParas[i] = mat3->data().data()[i];
 
+
 	double LoadAll[JointGroupDim] = { 0 };
 	for (int i = JointGroupDim-10;i < JointGroupDim;i++)
 		LoadAll[i] = JointMatrix.LoadParas[i-(JointGroupDim - 10)];
@@ -388,11 +389,12 @@ auto JointTest::executeRT(PlanTarget &target)->int
 		ts[i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
 	}
 
-	JointMatrix.JointCollision(q, dq, ddq, ts, JointMatrix.estParasJoint, JointMatrix.CoefParasJointInv, JointMatrix.CoefParasJoint, JointMatrix.LoadParas,CollisionFT);
+	double Acv[12] = { 1,1,1,1,1,1,1,1,1,1,1,1 };
+	JointMatrix.JointCollision(q, dq, ddq, ts, JointMatrix.estParasJoint, JointMatrix.CoefParasJointInv, JointMatrix.CoefParasJoint, JointMatrix.LoadParas,CollisionFT,Acv);
 
-    //if (target.model->solverPool().at(1).kinPos())return -1;
-	for (int i = 0;i < 6;i++)
-		CollisionFT[i] = CollisionFT[i] - ts[i];
+    if (target.model->solverPool().at(1).kinPos())return -1;
+    for (int i = 0;i < 6;i++)
+        CollisionFT[i] = CollisionFT[i] - ts[i];
     auto &lout = controller->lout();
     lout << target.count << ",";
     lout << ts[0] << ",";lout << ts[1] << ",";
@@ -421,7 +423,7 @@ auto JointTest::executeRT(PlanTarget &target)->int
 	{
 		//for (int i = 0; i < 6; i++)
 		{
-            cout << CollisionFT[0] << "***"<< CollisionFT[1] << "***"<< CollisionFT[2] << "***"<< CollisionFT[3] << "***"<< CollisionFT[4] << "***"<< CollisionFT[5] << "***";
+            cout << CollisionFT[0] << "***"<< CollisionFT[1] << "***"<< CollisionFT[2] << "***"<< ts[0] << "***"<< ts[1] << "***"<< ts[2] << "***";
 			//cout << "vel" << i + 1 << ":" << target.model->motionPool()[i].mv() << "  ";
 			//cout << "cur" << i + 1 << ":" << target.model->motionPool()[i].ma() << "  ";
 		}
@@ -447,22 +449,49 @@ JointTest::JointTest(const std::string &name) :Plan(name)
 
 }
 
+
+double Acv[12]={0};
 struct DragTeachParam
 {
-	double period;
-	double amplitude;
+	double A1c, A2c, A3c, A4c, A5c, A6c;
+	double A1v, A2v, A3v, A4v, A5v, A6v;
 
 };
 auto DragTeach::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 {
 	DragTeachParam param;
-
+	
 	for (auto &p : params)
 	{
-		if (p.first == "period")
-			param.period = std::stod(p.second);
-		if (p.first == "amplitude")
-			param.amplitude = std::stod(p.second);
+		if (p.first == "A1c")
+			param.A1c = std::stod(p.second);
+		if (p.first == "A1v")
+			param.A1v = std::stod(p.second);
+
+		if (p.first == "A2c")
+			param.A2c = std::stod(p.second);
+		if (p.first == "A2v")
+			param.A2v = std::stod(p.second);
+
+		if (p.first == "A3c")
+			param.A3c = std::stod(p.second);
+		if (p.first == "A3v")
+			param.A3v = std::stod(p.second);
+
+		if (p.first == "A4c")
+			param.A4c = std::stod(p.second);
+		if (p.first == "A4v")
+			param.A4v = std::stod(p.second);
+
+		if (p.first == "A5c")
+			param.A5c = std::stod(p.second);
+		if (p.first == "A5v")
+			param.A5v = std::stod(p.second);
+
+		if (p.first == "A6c")
+			param.A6c = std::stod(p.second);
+		if (p.first == "A6v")
+			param.A6v = std::stod(p.second);
 
 	}
 
@@ -483,7 +512,8 @@ auto DragTeach::prepairNrt(const std::map<std::string, std::string> &params, Pla
 		Plan::NOT_CHECK_VEL_MAX |
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
 		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+        Plan::NOT_CHECK_VEL_FOLLOWING_ERROR|
+        Plan::NOT_CHECK_ENABLE;
 
 	//读取动力学参数
 	auto mat0 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("estParasJoint"));
@@ -498,6 +528,11 @@ auto DragTeach::prepairNrt(const std::map<std::string, std::string> &params, Pla
 	for (int i = 0;i < JointReduceDim*JointGroupDim;i++)
 		JointMatrix.CoefParasJointInv[i] = mat2->data().data()[i];
 
+    auto mat3 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("LoadParas"));
+    for (int i = 0;i < 10;i++)
+         JointMatrix.LoadParas[i] = mat3->data().data()[i];
+
+
     double LoadAll[JointGroupDim] = { 0 };
         for (int i = JointGroupDim-10;i < JointGroupDim;i++)
             LoadAll[i] = JointMatrix.LoadParas[i-(JointGroupDim - 10)];
@@ -505,6 +540,7 @@ auto DragTeach::prepairNrt(const std::map<std::string, std::string> &params, Pla
 
     double LoadParasAdd[JointReduceDim] = { 0 };
     s_mm(JointReduceDim, 1, JointGroupDim, JointMatrix.CoefParasJoint, LoadAll, LoadParasAdd);
+
     for (int i = 0;i < JointReduceDim;i++)
           JointMatrix.estParasJoint[i] = JointMatrix.estParasJoint[i]+ 1*LoadParasAdd[i];
 
@@ -526,7 +562,7 @@ auto DragTeach::executeRT(PlanTarget &target)->int
 
 	if (target.count == 1)
 	{
-        for (int i = 0; i < 6; ++i)
+        for (int i = 0; i < 5; ++i)
 		{
 			{
 				begin_pjs[i] = target.model->motionPool()[i].mp();
@@ -537,13 +573,22 @@ auto DragTeach::executeRT(PlanTarget &target)->int
 
 
 	double ModelTor[6], q[6], dq[6], ddq[6], ts[6];
+
+	Acv[0] = param.A1c;Acv[1] = param.A1v;
+	Acv[2] = param.A2c;Acv[3] = param.A2v;
+	Acv[4] = param.A3c;Acv[5] = param.A3v;
+	Acv[6] = param.A4c;Acv[7] = param.A4v;
+	Acv[8] = param.A5c;Acv[9] = param.A5v;
+	Acv[10] = param.A6c;Acv[11] = param.A6v;
 	
-	
+    //for (int i = 0; i < 12; ++i)
+        //Acv[i]=0;
+
 	for (int i = 0; i < 6; ++i)
 	{
 		{
 			q[i] = controller->motionAtAbs(i).actualPos();
-			dq[i] = 0;
+			dq[i] = controller->motionAtAbs(i).actualVel();
 			ddq[i] = 0;
 		}
 	}
@@ -554,19 +599,21 @@ auto DragTeach::executeRT(PlanTarget &target)->int
 		ts[i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
 	}
 
-	JointMatrix.JointCollision(q, dq, ddq, ts, JointMatrix.estParasJoint, JointMatrix.CoefParasJointInv, JointMatrix.CoefParasJoint, JointMatrix.LoadParas, ModelTor);
+	JointMatrix.JointDrag(q, dq, ddq, ts, JointMatrix.estParasJoint, JointMatrix.CoefParasJointInv, JointMatrix.CoefParasJoint, JointMatrix.LoadParas, ModelTor,Acv);
 
-    for (int i = 0;i < 6;i++)
+    for (int i = 0;i < 5;i++)
 	{
 		double ft_offset = 0;
 		ft_offset = ModelTor[i]*f2c_index[i];
-		ft_offset = std::max(-500.0, ft_offset);
-		ft_offset = std::min(500.0, ft_offset);
+        if(ft_offset>500)
+           ft_offset = 500;
+        if(ft_offset<-500)
+           ft_offset = -500.0;
 
         controller->motionAtAbs(i).setTargetCur(ft_offset);
 	}
 
-	//if (target.model->solverPool().at(1).kinPos())return -1;
+    if (target.model->solverPool().at(1).kinPos())return -1;
 
 	auto &lout = controller->lout();
 	lout << target.count << ",";
@@ -584,8 +631,8 @@ auto DragTeach::executeRT(PlanTarget &target)->int
 	{
 		//for (int i = 0; i < 6; i++)
 		{
-			cout << ModelTor[0] << "***" << ModelTor[1] << "***" << ModelTor[2] << "***" << ModelTor[3] << "***" << ModelTor[4] << "***" << ModelTor[5] << "***";
-			//cout << "vel" << i + 1 << ":" << target.model->motionPool()[i].mv() << "  ";
+            cout << ModelTor[0] << "***" << ModelTor[1] << "***" << ModelTor[2] << "***" << ModelTor[3] << "***" << ModelTor[4] << "***" << ModelTor[5] << "***";
+            //cout << "vel" << i + 1 << ":" << target.model->motionPool()[i].mv() << "  ";
 			//cout << "cur" << i + 1 << ":" << target.model->motionPool()[i].ma() << "  ";
 		}
 		//   cout << target.count << "  ";
@@ -594,8 +641,10 @@ auto DragTeach::executeRT(PlanTarget &target)->int
 
 
 
-	return 300000 - target.count;
+    return 300000 - target.count;
 }
+
+
 
 DragTeach::DragTeach(const std::string &name) :Plan(name)
 {
@@ -603,12 +652,24 @@ DragTeach::DragTeach(const std::string &name) :Plan(name)
 	command().loadXmlStr(
 		"<Command name=\"DragTeach\">"
 		"	<GroupParam>"
-		"		<Param name=\"period\"default=\"20.0\"/>"
-		"		<Param name=\"amplitude\" default=\"0.2\"/>"
+		"		<Param name=\"A1c\"default=\"0.5\"/>"
+		"		<Param name=\"A1v\"default=\"0.2\"/>"
+		"		<Param name=\"A2c\"default=\"0.5\"/>"
+		"		<Param name=\"A2v\"default=\"0.2\"/>"
+		"		<Param name=\"A3c\"default=\"0.5\"/>"
+		"		<Param name=\"A3v\"default=\"0.2\"/>"
+		"		<Param name=\"A4c\"default=\"0.5\"/>"
+		"		<Param name=\"A4v\"default=\"0.2\"/>"
+		"		<Param name=\"A5c\"default=\"0.5\"/>"
+		"		<Param name=\"A5v\"default=\"0.2\"/>"
+		"		<Param name=\"A6c\"default=\"0.5\"/>"
+		"		<Param name=\"A6v\"default=\"0.2\"/>"
 		"	</GroupParam>"
 		"</Command>");
 
 }
+
+
 
 
 
@@ -798,7 +859,7 @@ auto LoadDyna::executeRT(PlanTarget &target)->int
 
 
 
-    //if (target.model->solverPool().at(1).kinPos())return -1;
+    if (target.model->solverPool().at(1).kinPos())return -1;
 
 	// 访问主站 //
 	auto controller = target.controller;
@@ -836,7 +897,7 @@ auto LoadDyna::executeRT(PlanTarget &target)->int
             //TorqueList[6 * (target.count - 1) + i] = POSRLS[i + 6][target.count - 1];
 
             AngleList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualPos();
-            TorqueList[6 * (CollectNum - 1) + i] = 0;//controller->motionAtAbs(i).actualCur() / f2c_index[i];
+			TorqueList[6 * (CollectNum - 1) + i] = 0;//controller->motionAtAbs(i).actualCur() / f2c_index[i];
         }
 	
         lout << target.count << ",";
@@ -866,6 +927,14 @@ auto LoadDyna::collectNrt(aris::plan::PlanTarget &target)->void
 	 // auto &lout = controller->lout();
     std::cout << "param.InitEst" << std::endl;
 	
+	//读取YYbase 参数
+	auto mat0 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("CoefParasLoad"));
+	for (int i = 0;i < 13 * 40;i++)
+		JointMatrix.CoefParasLoad[i] = mat0->data().data()[i];
+
+	auto mat1 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("CoefParasLoadInv"));
+	for (int i = 0;i < 13 * 40;i++)
+		JointMatrix.CoefParasLoadInv[i] = mat1->data().data()[i];
 	//double data[10]{ 0.0 };
 	//aris::core::Matrix mat(10,1,data);
 	//aris::core::Matrix mat2 = { { 1.0,2.0,3.0 }, { 1.0,2.0,3.0 } };
@@ -876,7 +945,7 @@ auto LoadDyna::collectNrt(aris::plan::PlanTarget &target)->void
 
 	if (param.amplitude > 0)
 	{
-        JointMatrix.LoadRLS(AngleList, TorqueList, JointMatrix.estParasL0, StatisError);
+        JointMatrix.LoadRLS(AngleList, TorqueList, JointMatrix.CoefParasLoad,JointMatrix.CoefParasLoadInv,JointMatrix.estParasL0, StatisError);
 		for (int i = 0;i < LoadReduceParas + 6;i++)
 			cout << JointMatrix.estParasL0[i] << ",";
 
@@ -904,7 +973,7 @@ auto LoadDyna::collectNrt(aris::plan::PlanTarget &target)->void
 		for (int i = 0;i < LoadReduceParas + 6;i++)
 			JointMatrix.estParasL0[i] = mat0->data().data()[i];
 
-        JointMatrix.LoadRLS(AngleList, TorqueList, JointMatrix.estParasL, StatisError);
+        JointMatrix.LoadRLS(AngleList, TorqueList, JointMatrix.CoefParasLoad, JointMatrix.CoefParasLoadInv,JointMatrix.estParasL, StatisError);
 
 
 		for (int i = 0;i < LoadReduceParas;i++)
@@ -912,7 +981,7 @@ auto LoadDyna::collectNrt(aris::plan::PlanTarget &target)->void
 
 
 
-        JointMatrix.LoadParasExt(dEst,JointMatrix.LoadParas);
+        JointMatrix.LoadParasExt(dEst,JointMatrix.CoefParasLoad, JointMatrix.CoefParasLoadInv,JointMatrix.LoadParas);
 		for (int i = 0;i < 10;i++)
 			cout << JointMatrix.LoadParas[i] << ",";
 
@@ -953,6 +1022,119 @@ LoadDyna::LoadDyna(const std::string &name) :Plan(name)
 
 }
 
+std::vector<double> AngList_vec(6 * 1250);
+auto AngList = AngList_vec.data();
+std::vector<double> VelList_vec(6 * 1250);
+auto VelList = VelList_vec.data();
+std::vector<double> AccList_vec(6 * 1250);
+auto AccList = AccList_vec.data();
+
+auto SaveYYbase::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+{
+	double x[67] = {0,0.27675977, -0.00008492, 0.45121602, -0.05622749, 0.05870555, 0.32202060, 0.13967663, 0.06755620, 0.41973365, 0.12796641, -0.45479368, 0.06346175, -0.03418769, -1.43096503, 0.19009482, 0.10024365, 0.02245434, -1.11449636, -0.30552461, 0.17608308, -0.20557476, -0.18852254, -0.04907027, -0.05084139, -0.34651352, 0.60754337, 0.45868045, 0.32841629, 0.18534060, -0.16925049, 0.17826802, 0.32594942, -0.47694434, 0.44657118, 0.05735728, 1.23755867, 0.14668329, 0.79646119, 0.24766397, 0.12742196, -0.02780189, -0.29925711, 0.07980669, -0.32086920, 0.66890123, -0.23126394, 0.02150397, 0.01039145, 0.04520572, 0.08193191, 0.19993891, 0.14874881, 0.77013426, 0.10203477, -0.12763027, 0.58259397, 0.80006153, -0.10343947, -0.26281997, 0.06988126, -0.20153010, 0.19942194, 0.05188115, -0.24163165, 0.00498271, 0.00960368 };
+	int fourierNum = 5;
+	int	nParas = 2 * fourierNum + 1;
+	int	linkNum = 3;
+	double	Tf = 10;
+	double omega = 2 * aris::PI / Tf;
+	double dt = 0.008, timeSin = 0;
+	int TestNum = Tf / dt;
+	double q[4][6] = { 0 }, dq[4][6] = { 0 }, ddq[4][6] = { 0 };
+	double qF[4] = { 0 }, dqF[4] = { 0 }, ddqF[4] = { 0 };
+    int l = 0;
+	double a, b;
+	for (int i = 0;i < TestNum;i++)
+	{
+		timeSin = dt * i;
+		for (int j = 1;j < linkNum + 1;j++)
+		{
+			l = 1;
+			q[j][1] = x[1 + (j - 1)*nParas] / (omega*l)*sin(omega*l*timeSin) - x[2 + (j - 1)*nParas] / (omega*l)*cos(omega*l*timeSin) + x[3 + (j - 1)*nParas];
+            dq[j][1] = x[1 + (j - 1)*nParas]*cos(omega*l*timeSin) + x[2 + (j - 1)*nParas]*sin(omega*l*timeSin);
+			ddq[j][1] = -x[1 + (j - 1)*nParas]*omega*l*sin(omega*l*timeSin) + x[2 + (j - 1)*nParas]*omega*l*cos(omega*l*timeSin);
+		}
+
+		for (int j = 1;j < linkNum + 1;j++)
+			for (int ii = 2;ii < fourierNum + 1;ii++)
+			{
+				l = ii;
+				q[j][ii] = x[2 + (ii - 2) * 2 + 2 + (j - 1)*nParas] / (omega*l)*sin(omega*l*timeSin) - x[2 + (ii - 2) * 2 + 3 + (j - 1)*nParas] / (omega*l)*cos(omega*l*timeSin);
+			    dq[j][ii] = x[2 + (ii - 2) * 2 + 2 + (j - 1)*nParas]*cos(omega*l*timeSin) + x[2 + (ii - 2) * 2 + 3 + (j - 1)*nParas]*sin(omega*l*timeSin);
+				ddq[j][ii] = -x[2 + (ii - 2) * 2 + 2 + (j - 1)*nParas]*omega*l*sin(omega*l*timeSin) + x[2 + (ii - 2) * 2 + 3 + (j - 1)*nParas]*omega*l*cos(omega*l*timeSin);
+
+			}
+
+		for (int j = 1;j < linkNum + 1;j++)
+		{
+			qF[j] = q[j][1];
+			dqF[j] = dq[j][1];
+			ddqF[j] = ddq[j][1];
+		}
+
+
+		for (int j = 1;j < linkNum + 1;j++)
+			for (int ii = 2;ii < fourierNum + 1;ii++)
+			{
+				qF[j] = qF[j] + q[j][ii];
+				dqF[j] = dqF[j] + dq[j][ii];
+				ddqF[j] = ddqF[j] + ddq[j][ii];
+			}
+	
+		AngList[6 * i + 0] = 0; VelList[6 * i + 0] = 0; AccList[6 * i + 0] = 0;
+		AngList[6 * i + 1] = 0; VelList[6 * i + 1] = 0; AccList[6 * i + 1] = 0;
+		AngList[6 * i + 2] = qF[1]; VelList[6 * i + 2] = dqF[1]; AccList[6 * i + 2] = ddqF[1];
+		AngList[6 * i + 3] = 0; VelList[6 * i + 3] = 0; AccList[6 * i + 3] = 0;
+		AngList[6 * i + 4] = qF[2]; VelList[6 * i + 4] = dqF[2]; AccList[6 * i + 4] = ddqF[2];
+		AngList[6 * i + 5] = qF[3]; VelList[6 * i + 5] = dqF[3]; AccList[6 * i + 5] = ddqF[3];
+	}
+
+
+
+	JointMatrix.YYbase(AngList, VelList, AccList,JointMatrix.Load2Joint, JointMatrix.CoefParasLoad, JointMatrix.CoefParasLoadInv, TestNum);
+
+	aris::core::Matrix mat0(1, 13*40, JointMatrix.CoefParasLoad);
+	if (target.model->variablePool().findByName("CoefParasLoad") !=
+		target.model->variablePool().end())
+	{
+		dynamic_cast<aris::dynamic::MatrixVariable*>(
+			&*target.model->variablePool().findByName("CoefParasLoad"))->data() = mat0;
+	}
+	else
+	{
+		target.model->variablePool().add<aris::dynamic::MatrixVariable>("CoefParasLoad", mat0);
+	}
+
+	aris::core::Matrix mat1(1, 13*40, JointMatrix.CoefParasLoadInv);
+	if (target.model->variablePool().findByName("CoefParasLoadInv") !=
+		target.model->variablePool().end())
+	{
+		dynamic_cast<aris::dynamic::MatrixVariable*>(
+			&*target.model->variablePool().findByName("CoefParasLoadInv"))->data() = mat1;
+	}
+	else
+	{
+		target.model->variablePool().add<aris::dynamic::MatrixVariable>("CoefParasLoadInv", mat1);
+	}
+
+
+
+
+	target.option |= NOT_RUN_COLLECT_FUNCTION;
+	target.option |= NOT_RUN_EXECUTE_FUNCTION;
+}
+
+SaveYYbase::SaveYYbase(const std::string &name) :Plan(name)
+{
+	command().loadXmlStr(
+		"<Command name=\"svYYbase\">"
+		"</Command>");
+}
+
+
+
+
+
+
 struct SaveFileParam
 {
 	string gk_path;
@@ -961,7 +1143,7 @@ struct SaveFileParam
 auto SaveFile::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 {
     auto xmlpath = std::filesystem::absolute(".");//获取当前工程所在的路径
-    const std::string xmlfile = "rokae.xml";
+    const std::string xmlfile = "kaanh.xml";
     xmlpath = xmlpath / xmlfile;
 	auto&cs = aris::server::ControlServer::instance();
 	SaveFileParam p;
@@ -980,7 +1162,7 @@ SaveFile::SaveFile(const std::string &name) :Plan(name)
 	command().loadXmlStr(
 		"<Command name=\"svFi\">"
 		"	<GroupParam>"
-		"	    <Param name=\"gk_path\" default=\"C:/Users/gk/Desktop/build_kaanh_gk/rokae.xml\"/>"
+		"	    <Param name=\"gk_path\" default=\"C:/Users/gk/Desktop/build_kaanh_gk/kaanh.xml\"/>"
 		"	</GroupParam>"
 		"</Command>");
 }

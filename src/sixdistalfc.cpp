@@ -3447,7 +3447,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 	// 获取当前起始点位置 //
 	if (target.count == 1)
 	{
-		for (int i = 0; i < 6; ++i)
+        for (int i = 0; i < 6; ++i)
 		{
 			step_pjs[i] = target.model->motionPool()[i].mp();
             begin_pjs[i] = target.model->motionPool()[i].mp();
@@ -3654,13 +3654,13 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 	//for (int i = 0;i < 6;i++)
 	   // dTheta[i] = JoinTau[i] / 10000;
 
-    double rate=4.0;
-    dTheta[0] = JoinTau[0] / 3000/rate;
-    dTheta[1] = JoinTau[1] / 4000/rate;
-    dTheta[2] = JoinTau[2] / 4000/rate;
-    dTheta[3] = JoinTau[3] / 2000/rate;
-    dTheta[4] = JoinTau[4] / 1600/rate;
-    dTheta[5] = JoinTau[5] / 1600/rate;
+    double rate=6.0;
+    dTheta[0] = JoinTau[0] / 500/rate;
+    dTheta[1] = JoinTau[1] / 500/rate;
+    dTheta[2] = JoinTau[2] / 500/rate;
+    dTheta[3] = JoinTau[3] / 500/rate;
+    dTheta[4] = JoinTau[4] / 500/rate;
+    dTheta[5] = JoinTau[5] / 500/rate;
 
 	for (int i = 0; i < 6; i++)
 	{
@@ -3727,7 +3727,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
     double f_vel_JRC[6] = { 0,0,0,0,0,0};
 
 
-    double KP[6]={180,180,100,30,30,30};
+    double KP[6]={10,10,10,10,10,10};
 
     //动力学
     for (int i = 0; i < 6; ++i)
@@ -3747,7 +3747,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
     {
     pa[i] = controller->motionAtAbs(i).actualPos();
     va[i] = controller->motionAtAbs(i).actualVel();
-    ft_offset[i]=(10*KP[i]*(step_pjs[i]-pa[i])+target.model->motionPool()[i].mfDyn()+f_vel_JRC[i]*va[i] + f_static[i]*signV(va[i]))*f2c_index[i];
+    ft_offset[i]=(15*KP[i]*(step_pjs[i]-pa[i])+target.model->motionPool()[i].mfDyn()+f_vel_JRC[i]*va[i] + f_static[i]*signV(va[i]))*f2c_index[i];
     ft_offset[i] = std::max(-500.0, ft_offset[i]);
     ft_offset[i] = std::min(500.0, ft_offset[i]);
     //if(abs(pa[i])<1)
@@ -3759,9 +3759,9 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
     lout << dTheta[2] << ",";lout << dTheta[3] << ",";
     lout << dTheta[4] << ",";lout << dTheta[5] << ",";
 
-    //lout << va[0] << ",";lout << va[1] << ",";
-    //lout << va[2] << ",";lout << va[3] << ",";
-    //lout << va[4] << ",";lout << va[5] << ",";
+    lout << va[0] << ",";lout << va[1] << ",";
+    lout << va[2] << ",";lout << va[3] << ",";
+    lout << va[4] << ",";lout << va[5] << ",";
     lout << std::endl;
 
 
@@ -3771,7 +3771,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
         //cout << step_pjs[2] << "***" << ft_offset[2] << "***" << step_pjs[2] << endl;
 
         cout <<FT_KAI[0]<<"***"<<FT_KAI[1]<<"***"<<FT_KAI[2]<<endl;
-        cout <<FT[0]<<"***"<<FT[1]<<"***"<<FT[2]<<endl;
+       // cout <<FT[0]<<"***"<<FT[1]<<"***"<<FT[2]<<endl;
     }
 
 
