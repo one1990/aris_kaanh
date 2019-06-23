@@ -37,18 +37,18 @@ namespace kaanh
 		std::unique_ptr<aris::control::Controller> controller(aris::robot::createControllerRokaeXB4());/*创建std::unique_ptr实例*/
 
 #ifdef UNIX
-       dynamic_cast<aris::control::Motion&>(controller->slavePool()[0]).setPosOffset(0.00293480352126769);
-       dynamic_cast<aris::control::Motion&>(controller->slavePool()[1]).setPosOffset(-2.50023777179214);
-       dynamic_cast<aris::control::Motion&>(controller->slavePool()[2]).setPosOffset(-0.292382537944081);
-       dynamic_cast<aris::control::Motion&>(controller->slavePool()[3]).setPosOffset(0.0582675097338009);
-       dynamic_cast<aris::control::Motion&>(controller->slavePool()[4]).setPosOffset(1.53363576057128);
-       dynamic_cast<aris::control::Motion&>(controller->slavePool()[5]).setPosOffset(26.3545454214145);
-		
-       for(int i=0; i<6; i++)
-       {
-           dynamic_cast<aris::control::EthercatMotion&>(controller->slavePool()[i]).setDcAssignActivate(0x300);
-       }
 
+        dynamic_cast<aris::control::Motion&>(controller->slavePool()[0]).setPosOffset(0.00293480352126769);
+        dynamic_cast<aris::control::Motion&>(controller->slavePool()[1]).setPosOffset(-2.50023777179214);
+        dynamic_cast<aris::control::Motion&>(controller->slavePool()[2]).setPosOffset(-0.292382537944081);
+        dynamic_cast<aris::control::Motion&>(controller->slavePool()[3]).setPosOffset(0.0582675097338009);
+        dynamic_cast<aris::control::Motion&>(controller->slavePool()[4]).setPosOffset(1.53363576057128);
+        dynamic_cast<aris::control::Motion&>(controller->slavePool()[5]).setPosOffset(25.924544999999998);
+		
+        for(int i=0; i<6; i++)
+        {
+             dynamic_cast<aris::control::EthercatMotion&>(controller->slavePool()[i]).setDcAssignActivate(0x300);
+        }
        // controller->slavePool().add<aris::control::EthercatSlave>();
        // controller->slavePool().back().setPhyId(6);
        // dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanInfoForCurrentSlave();
@@ -60,13 +60,13 @@ namespace kaanh
         //dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanInfoForCurrentSlave();
         //dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanPdoForCurrentSlave();
 #endif
-        /*
+
         controller->slavePool().add<aris::control::EthercatSlave>();
         controller->slavePool().back().setPhyId(6);
         dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanInfoForCurrentSlave();
         dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanPdoForCurrentSlave();
         dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).setDcAssignActivate(0x00);
-        */
+
 		return controller;
 	};
 	auto createModelRokaeXB4(const double *robot_pm)->std::unique_ptr<aris::dynamic::Model>
@@ -4093,6 +4093,7 @@ namespace kaanh
 		plan_root->planPool().add<JointTest>();
 		plan_root->planPool().add<DragTeach>();
 		plan_root->planPool().add<LoadDyna>();
+		plan_root->planPool().add<SaveYYbase>();
 		plan_root->planPool().add<SaveFile>();
 
 		plan_root->planPool().add<SevenJointDyna>();
