@@ -3522,7 +3522,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
     // /*Second-Order Filter
     for (int j = 0; j < 6; j++)
     {
-        double A[2][2], B[2], CutFreq = 600;//SHANGHAI DIANQI EXP
+        double A[2][2], B[2], CutFreq = 100;//SHANGHAI DIANQI EXP
         //CutFreq = 85;
         A[0][0] = 0; A[0][1] = 1;
         A[1][0] = -CutFreq*CutFreq; A[1][1] = -sqrt(2)*CutFreq;
@@ -3550,17 +3550,9 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
     }
 
 
-    if (target.count == 500)
-    {
-        for (int j = 0; j < 6; j++)
-        {
-            FT0[j] = FT[j];
-        }
-    }
-
 
 	double FT_KAI[6];
-	for (int i = 0; i < 6; i++)
+    for (int i = 0; i < 6; i++)
 	{
         FT_KAI[i] = FT[i] - FT0[i];//In KAI Coordinate
 	}
@@ -3647,7 +3639,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 
 
    fwd.cptJacobiWrtEE();
-    //FmInWorld[0] = 0; FmInWorld[1] = 0; FmInWorld[2] = 1; FmInWorld[3] = 0; FmInWorld[4] = 0; FmInWorld[5] = 0;
+    //FmInWorld[2] = 0; FmInWorld[3] = 0; FmInWorld[4] = 0; FmInWorld[5] = 0;
 	double JoinTau[6] = { 0 };
     s_mm(6, 1, 6,fwd.Jf() , T(6), FmInWorld, 1, JoinTau, 1);
 
@@ -3658,9 +3650,9 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
     dTheta[0] = JoinTau[0] / 500/rate;
     dTheta[1] = JoinTau[1] / 500/rate;
     dTheta[2] = JoinTau[2] / 500/rate;
-    dTheta[3] = JoinTau[3] / 500/rate;
+    dTheta[3] = JoinTau[3] / 100/rate;
     dTheta[4] = JoinTau[4] / 500/rate;
-    dTheta[5] = JoinTau[5] / 500/rate;
+    dTheta[5] = JoinTau[5] / 100/rate;
 
 	for (int i = 0; i < 6; i++)
 	{
@@ -3720,14 +3712,14 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 
 
 
-    double pa[6]={0},va[6]={0};
+    double pa[6]={0},va[6]={0},ta[6]={0};
     double ft_offset[6] = {0};
     double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
-    double f_static[6] = { 0,0,0,0,0,0 };
+    double f_static[6] = { 9,7,4,3,2,2};
     double f_vel_JRC[6] = { 0,0,0,0,0,0};
 
 
-    double KP[6]={10,10,10,10,10,10};
+    double KP[6]={8,8,8,1,8,1};
 
     //动力学
     for (int i = 0; i < 6; ++i)
@@ -3747,7 +3739,8 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
     {
     pa[i] = controller->motionAtAbs(i).actualPos();
     va[i] = controller->motionAtAbs(i).actualVel();
-    ft_offset[i]=(15*KP[i]*(step_pjs[i]-pa[i])+target.model->motionPool()[i].mfDyn()+f_vel_JRC[i]*va[i] + f_static[i]*signV(va[i]))*f2c_index[i];
+    //ta[i] = controller->motionAtAbs(i).actualTor();
+    ft_offset[i]=(10*KP[i]*(step_pjs[i]-pa[i])+target.model->motionPool()[i].mfDyn()+f_vel_JRC[i]*va[i] + 0*f_static[i]*signV(va[i]))*f2c_index[i];
     ft_offset[i] = std::max(-500.0, ft_offset[i]);
     ft_offset[i] = std::min(500.0, ft_offset[i]);
     //if(abs(pa[i])<1)
@@ -3755,9 +3748,17 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
     }
 
 
+    lout << FT_YANG[0] << ",";lout << FT_YANG[1] << ",";
+    lout << FT_YANG[2] << ",";lout << FT_YANG[3] << ",";
+    lout << FT_YANG[4] << ",";lout << FT_YANG[5] << ",";
+
     lout << dTheta[0] << ",";lout << dTheta[1] << ",";
     lout << dTheta[2] << ",";lout << dTheta[3] << ",";
     lout << dTheta[4] << ",";lout << dTheta[5] << ",";
+
+    lout << step_pjs[0] << ",";lout << step_pjs[1] << ",";
+    lout << step_pjs[2] << ",";lout << step_pjs[3] << ",";
+    lout << step_pjs[4] << ",";lout << step_pjs[5] << ",";
 
     lout << va[0] << ",";lout << va[1] << ",";
     lout << va[2] << ",";lout << va[3] << ",";
@@ -3770,8 +3771,8 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 
         //cout << step_pjs[2] << "***" << ft_offset[2] << "***" << step_pjs[2] << endl;
 
-        cout <<FT_KAI[0]<<"***"<<FT_KAI[1]<<"***"<<FT_KAI[2]<<endl;
-       // cout <<FT[0]<<"***"<<FT[1]<<"***"<<FT[2]<<endl;
+        //cout <<FT_KAI[0]<<"***"<<FT_KAI[1]<<"***"<<FT_KAI[2]<<endl;
+        cout <<ta[0]<<"***"<<ta[1]<<"***"<<ta[2]<<endl;
     }
 
 
