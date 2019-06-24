@@ -3971,7 +3971,7 @@ namespace kaanh
 	}
 
 	
-	// set cycle_time for driver //
+	// set cycle_time for driver with SDO //
 	struct SetCTParam
 	{
 		int16_t cycle_time;
