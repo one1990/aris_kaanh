@@ -62,6 +62,7 @@ int main(int argc, char *argv[])
     //-------for daye robot end//
 	*/
 
+
 	cs.loadXmlFile(xmlpath.string().c_str());
 	cs.interfaceRoot().loadXmlFile(uixmlpath.string().c_str());
     cs.start();

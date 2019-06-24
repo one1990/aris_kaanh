@@ -32,6 +32,44 @@ namespace kaanh
 		return interfaceroot;
 	};
 
+	auto createControllerEA()->std::unique_ptr<aris::control::Controller>
+	{
+		std::unique_ptr<aris::control::Controller> controller(new aris::control::EthercatController);
+		std::string xml_str =
+			"<EthercatMotion phy_id=\"0\" product_code=\"0x60380007\""
+			" vendor_id=\"0x0000066F\" revision_num=\"0x00010000\" dc_assign_activate=\"0x0300\""
+			" min_pos=\"0.01\" max_pos=\"0.23\" max_vel=\"0.125\" min_vel=\"-0.125\""
+			" max_acc=\"2.0\" min_acc=\"-2.0\" max_pos_following_error=\"0.005\" max_vel_following_error=\"0.005\""
+			" home_pos=\"0\" pos_factor=\"-3355443200\" pos_offset=\"0.0\">"
+			"	<SyncManagerPoolObject>"
+			"		<SyncManager is_tx=\"false\"/>"
+			"		<SyncManager is_tx=\"true\"/>"
+			"		<SyncManager is_tx=\"false\">"
+			"			<Pdo index=\"0x1600\" is_tx=\"false\">"
+			"				<PdoEntry name=\"control_word\" index=\"0x6040\" subindex=\"0x00\" size=\"16\"/>"
+			"				<PdoEntry name=\"mode_of_operation\" index=\"0x6060\" subindex=\"0x00\" size=\"8\"/>"
+			"				<PdoEntry name=\"target_pos\" index=\"0x607A\" subindex=\"0x00\" size=\"32\"/>"
+			"				<PdoEntry name=\"target_vel\" index=\"0x60FF\" subindex=\"0x00\" size=\"32\"/>"
+			"				<PdoEntry name=\"offset_vel\" index=\"0x60B1\" subindex=\"0x00\" size=\"32\"/>"
+			"				<PdoEntry name=\"targer_tor\" index=\"0x6071\" subindex=\"0x00\" size=\"16\"/>"
+			"				<PdoEntry name=\"offset_tor\" index=\"0x60B2\" subindex=\"0x00\" size=\"16\"/>"
+			"			</Pdo>"
+			"		</SyncManager>"
+			"		<SyncManager is_tx=\"true\">"
+			"			<Pdo index=\"0x1A00\" is_tx=\"true\">"
+			"				<PdoEntry name=\"status_word\" index=\"0x6041\" subindex=\"0x00\" size=\"16\"/>"
+			"				<PdoEntry name=\"mode_of_display\" index=\"0x6061\" subindex=\"0x00\" size=\"8\"/>"
+			"				<PdoEntry name=\"pos_actual_value\" index=\"0x6064\" subindex=\"0x00\" size=\"32\"/>"
+			"				<PdoEntry name=\"vel_actual_value\" index=\"0x606c\" subindex=\"0x00\" size=\"32\"/>"
+			"				<PdoEntry name=\"cur_actual_value\" index=\"0x6078\" subindex=\"0x00\" size=\"16\"/>"
+			"			</Pdo>"
+			"		</SyncManager>"
+			"	</SyncManagerPoolObject>"
+			"</EthercatMotion>";
+		controller->slavePool().add<aris::control::EthercatMotion>().loadXmlStr(xml_str);
+		return controller;
+	};
+
 	auto createControllerRokaeXB4()->std::unique_ptr<aris::control::Controller>	/*函数返回的是一个类指针，指针指向Controller,controller的类型是智能指针std::unique_ptr*/
 	{
 		std::unique_ptr<aris::control::Controller> controller(aris::robot::createControllerRokaeXB4());/*创建std::unique_ptr实例*/
@@ -4053,6 +4091,7 @@ namespace kaanh
 		plan_root->planPool().add<forcecontrol::MoveJF>();
 		plan_root->planPool().add<forcecontrol::MoveJFB>();
 		plan_root->planPool().add<forcecontrol::MoveJPID>();
+		plan_root->planPool().add<forcecontrol::MoveEAC>();
 		plan_root->planPool().add<forcecontrol::MoveStop>();
 		plan_root->planPool().add<forcecontrol::MoveSPQ>();
 		plan_root->planPool().add<kaanh::MoveJM>();
