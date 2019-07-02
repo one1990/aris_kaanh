@@ -86,7 +86,7 @@ auto JointDyna::executeRT(PlanTarget &target)->int
 
 
     static bool flag[6] = {true,true,true,true,true,true};
-    double PosLimit[6] = { 1,0.5,0.5,1,1,1 };
+    double PosLimit[6] = { 1,0.51,0.5,1,1,1 };
     double NegLimit[6] = { -1,-0.5,-0.5,-1,-1,-1 };
     double dTheta = 0.00001;
 	static double pArc[6], vArc[6], aArc[6], vArcMax[6] = { 0.15,0.15,0.15,0.15,0.15,0.15 };
@@ -133,7 +133,7 @@ auto JointDyna::executeRT(PlanTarget &target)->int
 			}
 
 		}
-			target.model->motionPool().at(i).setMp(step_pjs[i]);
+            //target.model->motionPool().at(i).setMp(step_pjs[i]);
 	}
 
 
@@ -149,9 +149,9 @@ auto JointDyna::executeRT(PlanTarget &target)->int
 	auto &cout = controller->mout();
 	if (target.count % 100 == 0)
 	{
-		//for (int i = 0; i < 6; i++)
+        for (int i = 0; i < 6; i++)
 		{
-			cout << step_pjs[4] << "***"<< "  ";
+            cout << controller->motionAtAbs(i).actualTor() << "***"<< "  ";
 			//cout << "vel" << i + 1 << ":" << target.model->motionPool()[i].mv() << "  ";
 			//cout << "cur" << i + 1 << ":" << target.model->motionPool()[i].ma() << "  ";
 		}
@@ -162,6 +162,8 @@ auto JointDyna::executeRT(PlanTarget &target)->int
 	auto &lout = controller->lout();
 
 	double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
+    double f2f_index[6]={129.6*1.27/1000, -100*2.39/1000, 101*1.27/1000, 81.6*0.318/1000, 81*0.318/1000, 51*0.318/1000};
+
     if (target.count % 8 == 0)
 	{
 		for (int i = 0; i < 6; i++)
@@ -173,7 +175,8 @@ auto JointDyna::executeRT(PlanTarget &target)->int
             //TorqueList[6 * (target.count - 1) + i] = POSRLS[i + 6][target.count - 1] / f2c_index[i];
 
             AngleList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualPos();
-            TorqueList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
+            //TorqueList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
+            TorqueList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualTor() * f2f_index[i];
 		}
 
 		lout << target.count << ",";

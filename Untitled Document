@@ -4,7 +4,7 @@ rs --pos={0.5,0.39252,0.7899,0.5,0.5,0.5} --vel=0.02
 moveJR -m=2 --pos=-0.01
 =======
 moveJR -m=3 --pos=0.1
-moveJR -m=2 --pos=-0.1
+moveJR -m=1 --pos=0.01
 >>>>>>> 9edb4b8e33e5bde96ae6993dffc45116a820f2ec
 moveJR --pos=-0.1
 

@@ -185,7 +185,7 @@ jointdynamics::jointdynamics()
 
 int sign(double x)
 {
-    double margin=0.013;
+    double margin=0;
     if (x > margin) return 1;
     if (abs(x) < margin||abs(x)==margin) return 0;
     if (x < -margin) return -1;

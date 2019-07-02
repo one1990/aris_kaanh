@@ -53,7 +53,7 @@ int main(int argc, char *argv[])
     //-------for sanxiang robot end//
     */
 
-	/*
+/*
     //-------for daye robot begin//
     cs.resetController(kaanh::createControllerDaye().release());
     cs.resetModel(kaanh::createModelDaye().release());
@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
     cs.resetSensorRoot(new aris::sensor::SensorRoot);
     cs.saveXmlFile(xmlpath.string().c_str());
     //-------for daye robot end//
-	*/
+*/
 
 	cs.loadXmlFile(xmlpath.string().c_str());
 	cs.interfaceRoot().loadXmlFile(uixmlpath.string().c_str());
