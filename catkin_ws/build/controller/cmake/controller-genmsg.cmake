@@ -1,6 +1,6 @@
 # generated from genmsg/cmake/pkg-genmsg.cmake.em
 
-message(STATUS "controller: 1 messages, 1 services")
+message(STATUS "controller: 2 messages, 2 services")
 
 set(MSG_I_FLAGS "-Icontroller:/root/catkin_ws/src/controller/msg;-Istd_msgs:/opt/ros/kinetic/share/std_msgs/cmake/../msg")
 
@@ -27,12 +27,28 @@ add_custom_target(_controller_generate_messages_check_deps_${_filename}
   COMMAND ${CATKIN_ENV} ${PYTHON_EXECUTABLE} ${GENMSG_CHECK_DEPS_SCRIPT} "controller" "/root/catkin_ws/src/controller/msg/pose.msg" ""
 )
 
+get_filename_component(_filename "/root/catkin_ws/src/controller/srv/setpos.srv" NAME_WE)
+add_custom_target(_controller_generate_messages_check_deps_${_filename}
+  COMMAND ${CATKIN_ENV} ${PYTHON_EXECUTABLE} ${GENMSG_CHECK_DEPS_SCRIPT} "controller" "/root/catkin_ws/src/controller/srv/setpos.srv" ""
+)
+
+get_filename_component(_filename "/root/catkin_ws/src/controller/msg/motorpos.msg" NAME_WE)
+add_custom_target(_controller_generate_messages_check_deps_${_filename}
+  COMMAND ${CATKIN_ENV} ${PYTHON_EXECUTABLE} ${GENMSG_CHECK_DEPS_SCRIPT} "controller" "/root/catkin_ws/src/controller/msg/motorpos.msg" ""
+)
+
 #
 #  langs = gencpp;geneus;genlisp;gennodejs;genpy
 #
 
 ### Section generating for lang: gencpp
 ### Generating Messages
+_generate_msg_cpp(controller
+  "/root/catkin_ws/src/controller/msg/motorpos.msg"
+  "${MSG_I_FLAGS}"
+  ""
+  ${CATKIN_DEVEL_PREFIX}/${gencpp_INSTALL_DIR}/controller
+)
 _generate_msg_cpp(controller
   "/root/catkin_ws/src/controller/msg/pose.msg"
   "${MSG_I_FLAGS}"
@@ -43,6 +59,12 @@ _generate_msg_cpp(controller
 ### Generating Services
 _generate_srv_cpp(controller
   "/root/catkin_ws/src/controller/srv/interface.srv"
+  "${MSG_I_FLAGS}"
+  ""
+  ${CATKIN_DEVEL_PREFIX}/${gencpp_INSTALL_DIR}/controller
+)
+_generate_srv_cpp(controller
+  "/root/catkin_ws/src/controller/srv/setpos.srv"
   "${MSG_I_FLAGS}"
   ""
   ${CATKIN_DEVEL_PREFIX}/${gencpp_INSTALL_DIR}/controller
@@ -64,6 +86,10 @@ get_filename_component(_filename "/root/catkin_ws/src/controller/srv/interface.s
 add_dependencies(controller_generate_messages_cpp _controller_generate_messages_check_deps_${_filename})
 get_filename_component(_filename "/root/catkin_ws/src/controller/msg/pose.msg" NAME_WE)
 add_dependencies(controller_generate_messages_cpp _controller_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/root/catkin_ws/src/controller/srv/setpos.srv" NAME_WE)
+add_dependencies(controller_generate_messages_cpp _controller_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/root/catkin_ws/src/controller/msg/motorpos.msg" NAME_WE)
+add_dependencies(controller_generate_messages_cpp _controller_generate_messages_check_deps_${_filename})
 
 # target for backward compatibility
 add_custom_target(controller_gencpp)
@@ -75,6 +101,12 @@ list(APPEND ${PROJECT_NAME}_EXPORTED_TARGETS controller_generate_messages_cpp)
 ### Section generating for lang: geneus
 ### Generating Messages
 _generate_msg_eus(controller
+  "/root/catkin_ws/src/controller/msg/motorpos.msg"
+  "${MSG_I_FLAGS}"
+  ""
+  ${CATKIN_DEVEL_PREFIX}/${geneus_INSTALL_DIR}/controller
+)
+_generate_msg_eus(controller
   "/root/catkin_ws/src/controller/msg/pose.msg"
   "${MSG_I_FLAGS}"
   ""
@@ -84,6 +116,12 @@ _generate_msg_eus(controller
 ### Generating Services
 _generate_srv_eus(controller
   "/root/catkin_ws/src/controller/srv/interface.srv"
+  "${MSG_I_FLAGS}"
+  ""
+  ${CATKIN_DEVEL_PREFIX}/${geneus_INSTALL_DIR}/controller
+)
+_generate_srv_eus(controller
+  "/root/catkin_ws/src/controller/srv/setpos.srv"
   "${MSG_I_FLAGS}"
   ""
   ${CATKIN_DEVEL_PREFIX}/${geneus_INSTALL_DIR}/controller
@@ -105,6 +143,10 @@ get_filename_component(_filename "/root/catkin_ws/src/controller/srv/interface.s
 add_dependencies(controller_generate_messages_eus _controller_generate_messages_check_deps_${_filename})
 get_filename_component(_filename "/root/catkin_ws/src/controller/msg/pose.msg" NAME_WE)
 add_dependencies(controller_generate_messages_eus _controller_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/root/catkin_ws/src/controller/srv/setpos.srv" NAME_WE)
+add_dependencies(controller_generate_messages_eus _controller_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/root/catkin_ws/src/controller/msg/motorpos.msg" NAME_WE)
+add_dependencies(controller_generate_messages_eus _controller_generate_messages_check_deps_${_filename})
 
 # target for backward compatibility
 add_custom_target(controller_geneus)
@@ -116,6 +158,12 @@ list(APPEND ${PROJECT_NAME}_EXPORTED_TARGETS controller_generate_messages_eus)
 ### Section generating for lang: genlisp
 ### Generating Messages
 _generate_msg_lisp(controller
+  "/root/catkin_ws/src/controller/msg/motorpos.msg"
+  "${MSG_I_FLAGS}"
+  ""
+  ${CATKIN_DEVEL_PREFIX}/${genlisp_INSTALL_DIR}/controller
+)
+_generate_msg_lisp(controller
   "/root/catkin_ws/src/controller/msg/pose.msg"
   "${MSG_I_FLAGS}"
   ""
@@ -125,6 +173,12 @@ _generate_msg_lisp(controller
 ### Generating Services
 _generate_srv_lisp(controller
   "/root/catkin_ws/src/controller/srv/interface.srv"
+  "${MSG_I_FLAGS}"
+  ""
+  ${CATKIN_DEVEL_PREFIX}/${genlisp_INSTALL_DIR}/controller
+)
+_generate_srv_lisp(controller
+  "/root/catkin_ws/src/controller/srv/setpos.srv"
   "${MSG_I_FLAGS}"
   ""
   ${CATKIN_DEVEL_PREFIX}/${genlisp_INSTALL_DIR}/controller
@@ -146,6 +200,10 @@ get_filename_component(_filename "/root/catkin_ws/src/controller/srv/interface.s
 add_dependencies(controller_generate_messages_lisp _controller_generate_messages_check_deps_${_filename})
 get_filename_component(_filename "/root/catkin_ws/src/controller/msg/pose.msg" NAME_WE)
 add_dependencies(controller_generate_messages_lisp _controller_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/root/catkin_ws/src/controller/srv/setpos.srv" NAME_WE)
+add_dependencies(controller_generate_messages_lisp _controller_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/root/catkin_ws/src/controller/msg/motorpos.msg" NAME_WE)
+add_dependencies(controller_generate_messages_lisp _controller_generate_messages_check_deps_${_filename})
 
 # target for backward compatibility
 add_custom_target(controller_genlisp)
@@ -157,6 +215,12 @@ list(APPEND ${PROJECT_NAME}_EXPORTED_TARGETS controller_generate_messages_lisp)
 ### Section generating for lang: gennodejs
 ### Generating Messages
 _generate_msg_nodejs(controller
+  "/root/catkin_ws/src/controller/msg/motorpos.msg"
+  "${MSG_I_FLAGS}"
+  ""
+  ${CATKIN_DEVEL_PREFIX}/${gennodejs_INSTALL_DIR}/controller
+)
+_generate_msg_nodejs(controller
   "/root/catkin_ws/src/controller/msg/pose.msg"
   "${MSG_I_FLAGS}"
   ""
@@ -166,6 +230,12 @@ _generate_msg_nodejs(controller
 ### Generating Services
 _generate_srv_nodejs(controller
   "/root/catkin_ws/src/controller/srv/interface.srv"
+  "${MSG_I_FLAGS}"
+  ""
+  ${CATKIN_DEVEL_PREFIX}/${gennodejs_INSTALL_DIR}/controller
+)
+_generate_srv_nodejs(controller
+  "/root/catkin_ws/src/controller/srv/setpos.srv"
   "${MSG_I_FLAGS}"
   ""
   ${CATKIN_DEVEL_PREFIX}/${gennodejs_INSTALL_DIR}/controller
@@ -187,6 +257,10 @@ get_filename_component(_filename "/root/catkin_ws/src/controller/srv/interface.s
 add_dependencies(controller_generate_messages_nodejs _controller_generate_messages_check_deps_${_filename})
 get_filename_component(_filename "/root/catkin_ws/src/controller/msg/pose.msg" NAME_WE)
 add_dependencies(controller_generate_messages_nodejs _controller_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/root/catkin_ws/src/controller/srv/setpos.srv" NAME_WE)
+add_dependencies(controller_generate_messages_nodejs _controller_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/root/catkin_ws/src/controller/msg/motorpos.msg" NAME_WE)
+add_dependencies(controller_generate_messages_nodejs _controller_generate_messages_check_deps_${_filename})
 
 # target for backward compatibility
 add_custom_target(controller_gennodejs)
@@ -198,6 +272,12 @@ list(APPEND ${PROJECT_NAME}_EXPORTED_TARGETS controller_generate_messages_nodejs
 ### Section generating for lang: genpy
 ### Generating Messages
 _generate_msg_py(controller
+  "/root/catkin_ws/src/controller/msg/motorpos.msg"
+  "${MSG_I_FLAGS}"
+  ""
+  ${CATKIN_DEVEL_PREFIX}/${genpy_INSTALL_DIR}/controller
+)
+_generate_msg_py(controller
   "/root/catkin_ws/src/controller/msg/pose.msg"
   "${MSG_I_FLAGS}"
   ""
@@ -207,6 +287,12 @@ _generate_msg_py(controller
 ### Generating Services
 _generate_srv_py(controller
   "/root/catkin_ws/src/controller/srv/interface.srv"
+  "${MSG_I_FLAGS}"
+  ""
+  ${CATKIN_DEVEL_PREFIX}/${genpy_INSTALL_DIR}/controller
+)
+_generate_srv_py(controller
+  "/root/catkin_ws/src/controller/srv/setpos.srv"
   "${MSG_I_FLAGS}"
   ""
   ${CATKIN_DEVEL_PREFIX}/${genpy_INSTALL_DIR}/controller
@@ -227,6 +313,10 @@ add_dependencies(controller_generate_messages controller_generate_messages_py)
 get_filename_component(_filename "/root/catkin_ws/src/controller/srv/interface.srv" NAME_WE)
 add_dependencies(controller_generate_messages_py _controller_generate_messages_check_deps_${_filename})
 get_filename_component(_filename "/root/catkin_ws/src/controller/msg/pose.msg" NAME_WE)
+add_dependencies(controller_generate_messages_py _controller_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/root/catkin_ws/src/controller/srv/setpos.srv" NAME_WE)
+add_dependencies(controller_generate_messages_py _controller_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/root/catkin_ws/src/controller/msg/motorpos.msg" NAME_WE)
 add_dependencies(controller_generate_messages_py _controller_generate_messages_check_deps_${_filename})
 
 # target for backward compatibility

@@ -1,7 +1,7 @@
 # generated from genmsg/cmake/pkg-genmsg.context.in
 
-messages_str = "/root/catkin_ws/src/controller/msg/pose.msg"
-services_str = "/root/catkin_ws/src/controller/srv/interface.srv"
+messages_str = "/root/catkin_ws/src/controller/msg/pose.msg;/root/catkin_ws/src/controller/msg/motorpos.msg"
+services_str = "/root/catkin_ws/src/controller/srv/interface.srv;/root/catkin_ws/src/controller/srv/setpos.srv"
 pkg_name = "controller"
 dependencies_str = "std_msgs"
 langs = "gencpp;geneus;genlisp;gennodejs;genpy"

@@ -168,6 +168,21 @@ depend:
 .PHONY : depend
 
 # Convenience name for target.
+controller/CMakeFiles/fake_Client2.dir/rule:
+	cd /root/catkin_ws/build && $(MAKE) -f CMakeFiles/Makefile2 controller/CMakeFiles/fake_Client2.dir/rule
+.PHONY : controller/CMakeFiles/fake_Client2.dir/rule
+
+# Convenience name for target.
+fake_Client2: controller/CMakeFiles/fake_Client2.dir/rule
+
+.PHONY : fake_Client2
+
+# fast build rule for target.
+fake_Client2/fast:
+	cd /root/catkin_ws/build && $(MAKE) -f controller/CMakeFiles/fake_Client2.dir/build.make controller/CMakeFiles/fake_Client2.dir/build
+.PHONY : fake_Client2/fast
+
+# Convenience name for target.
 controller/CMakeFiles/fake_Client.dir/rule:
 	cd /root/catkin_ws/build && $(MAKE) -f CMakeFiles/Makefile2 controller/CMakeFiles/fake_Client.dir/rule
 .PHONY : controller/CMakeFiles/fake_Client.dir/rule
@@ -286,6 +301,36 @@ controller_gencpp: controller/CMakeFiles/controller_gencpp.dir/rule
 controller_gencpp/fast:
 	cd /root/catkin_ws/build && $(MAKE) -f controller/CMakeFiles/controller_gencpp.dir/build.make controller/CMakeFiles/controller_gencpp.dir/build
 .PHONY : controller_gencpp/fast
+
+# Convenience name for target.
+controller/CMakeFiles/_controller_generate_messages_check_deps_motorpos.dir/rule:
+	cd /root/catkin_ws/build && $(MAKE) -f CMakeFiles/Makefile2 controller/CMakeFiles/_controller_generate_messages_check_deps_motorpos.dir/rule
+.PHONY : controller/CMakeFiles/_controller_generate_messages_check_deps_motorpos.dir/rule
+
+# Convenience name for target.
+_controller_generate_messages_check_deps_motorpos: controller/CMakeFiles/_controller_generate_messages_check_deps_motorpos.dir/rule
+
+.PHONY : _controller_generate_messages_check_deps_motorpos
+
+# fast build rule for target.
+_controller_generate_messages_check_deps_motorpos/fast:
+	cd /root/catkin_ws/build && $(MAKE) -f controller/CMakeFiles/_controller_generate_messages_check_deps_motorpos.dir/build.make controller/CMakeFiles/_controller_generate_messages_check_deps_motorpos.dir/build
+.PHONY : _controller_generate_messages_check_deps_motorpos/fast
+
+# Convenience name for target.
+controller/CMakeFiles/_controller_generate_messages_check_deps_setpos.dir/rule:
+	cd /root/catkin_ws/build && $(MAKE) -f CMakeFiles/Makefile2 controller/CMakeFiles/_controller_generate_messages_check_deps_setpos.dir/rule
+.PHONY : controller/CMakeFiles/_controller_generate_messages_check_deps_setpos.dir/rule
+
+# Convenience name for target.
+_controller_generate_messages_check_deps_setpos: controller/CMakeFiles/_controller_generate_messages_check_deps_setpos.dir/rule
+
+.PHONY : _controller_generate_messages_check_deps_setpos
+
+# fast build rule for target.
+_controller_generate_messages_check_deps_setpos/fast:
+	cd /root/catkin_ws/build && $(MAKE) -f controller/CMakeFiles/_controller_generate_messages_check_deps_setpos.dir/build.make controller/CMakeFiles/_controller_generate_messages_check_deps_setpos.dir/build
+.PHONY : _controller_generate_messages_check_deps_setpos/fast
 
 # Convenience name for target.
 controller/CMakeFiles/move_Node.dir/rule:
@@ -466,6 +511,21 @@ tf_generate_messages_eus: controller/CMakeFiles/tf_generate_messages_eus.dir/rul
 tf_generate_messages_eus/fast:
 	cd /root/catkin_ws/build && $(MAKE) -f controller/CMakeFiles/tf_generate_messages_eus.dir/build.make controller/CMakeFiles/tf_generate_messages_eus.dir/build
 .PHONY : tf_generate_messages_eus/fast
+
+# Convenience name for target.
+controller/CMakeFiles/dynamixel_Controller.dir/rule:
+	cd /root/catkin_ws/build && $(MAKE) -f CMakeFiles/Makefile2 controller/CMakeFiles/dynamixel_Controller.dir/rule
+.PHONY : controller/CMakeFiles/dynamixel_Controller.dir/rule
+
+# Convenience name for target.
+dynamixel_Controller: controller/CMakeFiles/dynamixel_Controller.dir/rule
+
+.PHONY : dynamixel_Controller
+
+# fast build rule for target.
+dynamixel_Controller/fast:
+	cd /root/catkin_ws/build && $(MAKE) -f controller/CMakeFiles/dynamixel_Controller.dir/build.make controller/CMakeFiles/dynamixel_Controller.dir/build
+.PHONY : dynamixel_Controller/fast
 
 # Convenience name for target.
 controller/CMakeFiles/roscpp_generate_messages_nodejs.dir/rule:
@@ -1124,6 +1184,33 @@ src/controller.cpp.s:
 	cd /root/catkin_ws/build && $(MAKE) -f controller/CMakeFiles/controller.dir/build.make controller/CMakeFiles/controller.dir/src/controller.cpp.s
 .PHONY : src/controller.cpp.s
 
+src/dynamixel_controller.o: src/dynamixel_controller.cpp.o
+
+.PHONY : src/dynamixel_controller.o
+
+# target to build an object file
+src/dynamixel_controller.cpp.o:
+	cd /root/catkin_ws/build && $(MAKE) -f controller/CMakeFiles/dynamixel_Controller.dir/build.make controller/CMakeFiles/dynamixel_Controller.dir/src/dynamixel_controller.cpp.o
+.PHONY : src/dynamixel_controller.cpp.o
+
+src/dynamixel_controller.i: src/dynamixel_controller.cpp.i
+
+.PHONY : src/dynamixel_controller.i
+
+# target to preprocess a source file
+src/dynamixel_controller.cpp.i:
+	cd /root/catkin_ws/build && $(MAKE) -f controller/CMakeFiles/dynamixel_Controller.dir/build.make controller/CMakeFiles/dynamixel_Controller.dir/src/dynamixel_controller.cpp.i
+.PHONY : src/dynamixel_controller.cpp.i
+
+src/dynamixel_controller.s: src/dynamixel_controller.cpp.s
+
+.PHONY : src/dynamixel_controller.s
+
+# target to generate assembly for a file
+src/dynamixel_controller.cpp.s:
+	cd /root/catkin_ws/build && $(MAKE) -f controller/CMakeFiles/dynamixel_Controller.dir/build.make controller/CMakeFiles/dynamixel_Controller.dir/src/dynamixel_controller.cpp.s
+.PHONY : src/dynamixel_controller.cpp.s
+
 src/fake_client.o: src/fake_client.cpp.o
 
 .PHONY : src/fake_client.o
@@ -1150,6 +1237,33 @@ src/fake_client.s: src/fake_client.cpp.s
 src/fake_client.cpp.s:
 	cd /root/catkin_ws/build && $(MAKE) -f controller/CMakeFiles/fake_Client.dir/build.make controller/CMakeFiles/fake_Client.dir/src/fake_client.cpp.s
 .PHONY : src/fake_client.cpp.s
+
+src/fake_client2.o: src/fake_client2.cpp.o
+
+.PHONY : src/fake_client2.o
+
+# target to build an object file
+src/fake_client2.cpp.o:
+	cd /root/catkin_ws/build && $(MAKE) -f controller/CMakeFiles/fake_Client2.dir/build.make controller/CMakeFiles/fake_Client2.dir/src/fake_client2.cpp.o
+.PHONY : src/fake_client2.cpp.o
+
+src/fake_client2.i: src/fake_client2.cpp.i
+
+.PHONY : src/fake_client2.i
+
+# target to preprocess a source file
+src/fake_client2.cpp.i:
+	cd /root/catkin_ws/build && $(MAKE) -f controller/CMakeFiles/fake_Client2.dir/build.make controller/CMakeFiles/fake_Client2.dir/src/fake_client2.cpp.i
+.PHONY : src/fake_client2.cpp.i
+
+src/fake_client2.s: src/fake_client2.cpp.s
+
+.PHONY : src/fake_client2.s
+
+# target to generate assembly for a file
+src/fake_client2.cpp.s:
+	cd /root/catkin_ws/build && $(MAKE) -f controller/CMakeFiles/fake_Client2.dir/build.make controller/CMakeFiles/fake_Client2.dir/src/fake_client2.cpp.s
+.PHONY : src/fake_client2.cpp.s
 
 src/listener.o: src/listener.cpp.o
 
@@ -1214,6 +1328,7 @@ help:
 	@echo "... install/strip"
 	@echo "... install/local"
 	@echo "... edit_cache"
+	@echo "... fake_Client2"
 	@echo "... fake_Client"
 	@echo "... listener"
 	@echo "... controller_generate_messages_py"
@@ -1222,6 +1337,8 @@ help:
 	@echo "... controller_geneus"
 	@echo "... controller_generate_messages_eus"
 	@echo "... controller_gencpp"
+	@echo "... _controller_generate_messages_check_deps_motorpos"
+	@echo "... _controller_generate_messages_check_deps_setpos"
 	@echo "... move_Node"
 	@echo "... _controller_generate_messages_check_deps_pose"
 	@echo "... tf2_msgs_generate_messages_nodejs"
@@ -1236,6 +1353,7 @@ help:
 	@echo "... roscpp_generate_messages_lisp"
 	@echo "... rebuild_cache"
 	@echo "... tf_generate_messages_eus"
+	@echo "... dynamixel_Controller"
 	@echo "... roscpp_generate_messages_nodejs"
 	@echo "... rosgraph_msgs_generate_messages_lisp"
 	@echo "... tf_generate_messages_lisp"
@@ -1283,9 +1401,15 @@ help:
 	@echo "... src/controller.o"
 	@echo "... src/controller.i"
 	@echo "... src/controller.s"
+	@echo "... src/dynamixel_controller.o"
+	@echo "... src/dynamixel_controller.i"
+	@echo "... src/dynamixel_controller.s"
 	@echo "... src/fake_client.o"
 	@echo "... src/fake_client.i"
 	@echo "... src/fake_client.s"
+	@echo "... src/fake_client2.o"
+	@echo "... src/fake_client2.i"
+	@echo "... src/fake_client2.s"
 	@echo "... src/listener.o"
 	@echo "... src/listener.i"
 	@echo "... src/listener.s"

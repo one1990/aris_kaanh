@@ -285,6 +285,19 @@ gtest_main/fast:
 .PHONY : gtest_main/fast
 
 #=============================================================================
+# Target rules for targets named fake_Client2
+
+# Build rule for target.
+fake_Client2: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 fake_Client2
+.PHONY : fake_Client2
+
+# fast build rule for target.
+fake_Client2/fast:
+	$(MAKE) -f controller/CMakeFiles/fake_Client2.dir/build.make controller/CMakeFiles/fake_Client2.dir/build
+.PHONY : fake_Client2/fast
+
+#=============================================================================
 # Target rules for targets named fake_Client
 
 # Build rule for target.
@@ -387,6 +400,32 @@ controller_gencpp: cmake_check_build_system
 controller_gencpp/fast:
 	$(MAKE) -f controller/CMakeFiles/controller_gencpp.dir/build.make controller/CMakeFiles/controller_gencpp.dir/build
 .PHONY : controller_gencpp/fast
+
+#=============================================================================
+# Target rules for targets named _controller_generate_messages_check_deps_motorpos
+
+# Build rule for target.
+_controller_generate_messages_check_deps_motorpos: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 _controller_generate_messages_check_deps_motorpos
+.PHONY : _controller_generate_messages_check_deps_motorpos
+
+# fast build rule for target.
+_controller_generate_messages_check_deps_motorpos/fast:
+	$(MAKE) -f controller/CMakeFiles/_controller_generate_messages_check_deps_motorpos.dir/build.make controller/CMakeFiles/_controller_generate_messages_check_deps_motorpos.dir/build
+.PHONY : _controller_generate_messages_check_deps_motorpos/fast
+
+#=============================================================================
+# Target rules for targets named _controller_generate_messages_check_deps_setpos
+
+# Build rule for target.
+_controller_generate_messages_check_deps_setpos: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 _controller_generate_messages_check_deps_setpos
+.PHONY : _controller_generate_messages_check_deps_setpos
+
+# fast build rule for target.
+_controller_generate_messages_check_deps_setpos/fast:
+	$(MAKE) -f controller/CMakeFiles/_controller_generate_messages_check_deps_setpos.dir/build.make controller/CMakeFiles/_controller_generate_messages_check_deps_setpos.dir/build
+.PHONY : _controller_generate_messages_check_deps_setpos/fast
 
 #=============================================================================
 # Target rules for targets named move_Node
@@ -543,6 +582,19 @@ tf_generate_messages_eus: cmake_check_build_system
 tf_generate_messages_eus/fast:
 	$(MAKE) -f controller/CMakeFiles/tf_generate_messages_eus.dir/build.make controller/CMakeFiles/tf_generate_messages_eus.dir/build
 .PHONY : tf_generate_messages_eus/fast
+
+#=============================================================================
+# Target rules for targets named dynamixel_Controller
+
+# Build rule for target.
+dynamixel_Controller: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 dynamixel_Controller
+.PHONY : dynamixel_Controller
+
+# fast build rule for target.
+dynamixel_Controller/fast:
+	$(MAKE) -f controller/CMakeFiles/dynamixel_Controller.dir/build.make controller/CMakeFiles/dynamixel_Controller.dir/build
+.PHONY : dynamixel_Controller/fast
 
 #=============================================================================
 # Target rules for targets named roscpp_generate_messages_nodejs
@@ -1112,6 +1164,7 @@ help:
 	@echo "... gmock"
 	@echo "... gtest"
 	@echo "... gtest_main"
+	@echo "... fake_Client2"
 	@echo "... fake_Client"
 	@echo "... listener"
 	@echo "... controller_generate_messages_py"
@@ -1120,6 +1173,8 @@ help:
 	@echo "... controller_geneus"
 	@echo "... controller_generate_messages_eus"
 	@echo "... controller_gencpp"
+	@echo "... _controller_generate_messages_check_deps_motorpos"
+	@echo "... _controller_generate_messages_check_deps_setpos"
 	@echo "... move_Node"
 	@echo "... _controller_generate_messages_check_deps_pose"
 	@echo "... tf2_msgs_generate_messages_nodejs"
@@ -1132,6 +1187,7 @@ help:
 	@echo "... std_msgs_generate_messages_eus"
 	@echo "... roscpp_generate_messages_lisp"
 	@echo "... tf_generate_messages_eus"
+	@echo "... dynamixel_Controller"
 	@echo "... roscpp_generate_messages_nodejs"
 	@echo "... rosgraph_msgs_generate_messages_lisp"
 	@echo "... tf_generate_messages_lisp"
