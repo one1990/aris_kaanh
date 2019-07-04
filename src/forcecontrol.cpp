@@ -3,11 +3,10 @@
 #include <array>
 
 
-
 using namespace aris::dynamic;
 using namespace aris::plan;
 
-//extern std::vector<std::vector<double>> pq;
+
 namespace forcecontrol
 {
 	// 力控拖动——单关节或者6个轨迹相对运动轨迹--输入单个关节，角度位置；关节按照梯形速度轨迹执行；速度前馈；电流控制 //
@@ -617,11 +616,13 @@ namespace forcecontrol
 				auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(target.model->solverPool()[1]);
 
 				fwd.cptJacobi();
-				/*		double U[36], tau[6], tau2[6], J_fce[36];
-						Size p[6], rank;
+				/*		
+					double U[36], tau[6], tau2[6], J_fce[36];
+					Size p[6], rank;
 
-						s_householder_utp(6, 6, inv.Jf(), U, tau, p, rank);
-						s_householder_utp2pinv(6, 6, rank, U, tau, p, J_fce, tau2);*/
+					s_householder_utp(6, 6, inv.Jf(), U, tau, p, rank);
+					s_householder_utp2pinv(6, 6, rank, U, tau, p, J_fce, tau2);
+				*/
 	
 				s_mm(6, 1, 6, fwd.Jf(), aris::dynamic::ColMajor{ 6 }, param.ft.data(), 1, param.ft_pid.data(), 1);
 
@@ -662,7 +663,6 @@ namespace forcecontrol
 
 					ft_offset[i] = (ft_friction[i] + ft_dynamic[i] + ft_pid[i])*f2c_index[i];
 					controller->motionAtAbs(i).setTargetCur(ft_offset[i]);
-
 				}
 			}
 
