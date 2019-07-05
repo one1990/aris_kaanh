@@ -42,7 +42,9 @@ namespace JointDynamicsInt
 		void JointDrag(const double * q, const double *dq, const double *ddq, const double *ts, const double *estParas, const double * CoefInv, const double * Coef, const double * LoadParas, double * CollisionFT, const double* Acv);
 
 		void RLS(const double *positionList, const double *sensorList, double *estParas, double *Coef, double *CoefInv, double *StatisError);
-        void LoadRLS(const double *positionList, const double *sensorList, const double *Coef, const double *CoefInv,double *estParas, double *StatisError);
+		void RLSaris(const double *positionList, const double *sensorList, double *estParas, double *Coef, double *CoefInv, double *StatisError);
+
+		void LoadRLS(const double *positionList, const double *sensorList, const double *Coef, const double *CoefInv,double *estParas, double *StatisError);
 		void YYbase(const double *AngList, const double *VelList, const double *AccList, double *Load2Joint, double *Coef, double*CoefInv,const int TestNum);
 		void LoadParasExt(const double *dEst, const double *Coef, const double*CoefInv, double *Load);
 

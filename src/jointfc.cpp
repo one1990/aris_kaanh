@@ -133,7 +133,7 @@ auto JointDyna::executeRT(PlanTarget &target)->int
 			}
 
 		}
-            //target.model->motionPool().at(i).setMp(step_pjs[i]);
+            target.model->motionPool().at(i).setMp(step_pjs[i]);
 	}
 
 
@@ -151,7 +151,7 @@ auto JointDyna::executeRT(PlanTarget &target)->int
 	{
         for (int i = 0; i < 6; i++)
 		{
-            cout << controller->motionAtAbs(i).actualTor() << "***"<< "  ";
+            //cout << controller->motionAtAbs(i).actualTor() << "***"<< "  ";
 			//cout << "vel" << i + 1 << ":" << target.model->motionPool()[i].mv() << "  ";
 			//cout << "cur" << i + 1 << ":" << target.model->motionPool()[i].ma() << "  ";
 		}
@@ -176,7 +176,7 @@ auto JointDyna::executeRT(PlanTarget &target)->int
 
             AngleList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualPos();
             //TorqueList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
-            TorqueList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualTor() * f2f_index[i];
+			TorqueList[6 * (CollectNum - 1) + i] = 2;//controller->motionAtAbs(i).actualTor() * f2f_index[i];
 		}
 
 		lout << target.count << ",";
@@ -205,7 +205,7 @@ auto JointDyna::collectNrt(aris::plan::PlanTarget &target)->void
 	std::cout << "collect" << std::endl;
 
 
-	JointMatrix.RLS(AngleList, TorqueList, JointMatrix.estParasJoint, JointMatrix.CoefParasJoint, JointMatrix.CoefParasJointInv, StatisError);
+	JointMatrix.RLSaris(AngleList, TorqueList, JointMatrix.estParasJoint, JointMatrix.CoefParasJoint, JointMatrix.CoefParasJointInv, StatisError);
 
 	
 	//std::cout<<"collect"<<std::endl;

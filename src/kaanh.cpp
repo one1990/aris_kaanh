@@ -5,6 +5,7 @@
 #include "sevenjointfc.h"
 #include <array>
 #include"move_series.h"
+#include"kinematics.h"
 
 using namespace aris::dynamic;
 using namespace aris::plan;
@@ -4080,7 +4081,6 @@ namespace kaanh
 		plan_root->planPool().add<MoveJoint>();
 		plan_root->planPool().add<MoveDistal>();
         plan_root->planPool().add<DistalTest>();
-		plan_root->planPool().add<SetTool>();
 		plan_root->planPool().add<MovePressure>();
 		plan_root->planPool().add<MoveFeed>();
 		plan_root->planPool().add<MovePressureToolYZ>();
@@ -4095,6 +4095,10 @@ namespace kaanh
 		plan_root->planPool().add<LoadDyna>();
 		plan_root->planPool().add<SaveYYbase>();
 		plan_root->planPool().add<SaveFile>();
+
+		plan_root->planPool().add<FourPoints>();
+		plan_root->planPool().add<SetTool>();
+
 
 		plan_root->planPool().add<SevenJointDyna>();
 		plan_root->planPool().add<SevenJointTest>();
