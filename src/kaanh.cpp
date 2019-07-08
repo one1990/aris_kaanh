@@ -4,6 +4,7 @@
 #include "jointfc.h"
 #include "sevenjointfc.h"
 #include <array>
+#include <stdlib.h>
 #include"move_series.h"
 
 using namespace aris::dynamic;
@@ -3987,6 +3988,22 @@ namespace kaanh
 	{
 		command().loadXmlStr(
 			"<Command name=\"startCS\">"
+			"</Command>");
+	}
+
+
+	// update controller //
+	auto Update::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		system("bash /home/kaanh/Document/kaanh/update_arislib.sh");
+		std::string ret = "ok";
+		target.ret = ret;
+		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
+	}
+	Update::Update(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"update_controller\">"
 			"</Command>");
 	}
 
