@@ -46,6 +46,7 @@ find_package(catkin REQUIRED COMPONENTS roscpp rospy std_msgs message_generation
 add_message_files(
    FILES
    pose.msg
+   motorpos.msg
 #   Message1.msg
 #   Message2.msg
 )
@@ -54,6 +55,7 @@ add_message_files(
 add_service_files(
    FILES
    interface.srv
+   setpos.srv
 #   Service1.srv
 #   Service2.srv
 )
@@ -114,7 +116,7 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
+ include
  ${catkin_INCLUDE_DIRS}
 )
 
@@ -201,6 +203,10 @@ if(UNIX)
 endif(UNIX)
 include_directories(${aris_INCLUDE_DIRS})
 
+
+include_directories(/usr/local/include)
+link_directories(/usr/local/lib)
+
 add_executable(controller src/controller.cpp)
 target_link_libraries(controller ${catkin_LIBRARIES} ${aris_LIBRARIES} atomic pthread stdc++fs)
 #add_dependencies(talker beginner_tutorials_generate_messages_cpp)
@@ -213,3 +219,9 @@ target_link_libraries(move_Node ${catkin_LIBRARIES} ${aris_LIBRARIES} atomic pth
 
 add_executable(fake_Client src/fake_client.cpp)
 target_link_libraries(fake_Client ${catkin_LIBRARIES} ${aris_LIBRARIES} atomic pthread stdc++fs)
+
+add_executable(dynamixel_Controller src/dynamixel_controller.cpp)
+target_link_libraries(dynamixel_Controller ${catkin_LIBRARIES} ${aris_LIBRARIES} atomic pthread stdc++fs dxl_x64_cpp)
+
+add_executable(fake_Client2 src/fake_client2.cpp)
+target_link_libraries(fake_Client2 ${catkin_LIBRARIES} ${aris_LIBRARIES} atomic pthread stdc++fs)
