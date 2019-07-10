@@ -1231,6 +1231,10 @@ void jointdynamics::RLSaris(const double *positionL, const double *sensorL, doub
 
 		}
 
+        m->solverPool().at(1).kinPos();
+        m->solverPool().at(1).kinVel();
+        m->solverPool().at(1).dynAccAndFce();
+
 		// 设置当前电机的力
 		for (int i = 0; i < m->motionPool().size(); ++i)
 		{
@@ -1245,7 +1249,7 @@ void jointdynamics::RLSaris(const double *positionL, const double *sensorL, doub
         for (int m = 0; m < RobotAxis; m++)
             for (int n = 0; n < JointGroupDim; n++)
                 Y[m][n]= clb.A()[JointGroupDim * m + n];
-		dsp(clb.m(), clb.n(), clb.A());
+        //dsp(clb.m(), clb.n(), clb.A());
 		double Y1[RobotAxis][2*RobotAxis];
 		for (int m = 0; m < RobotAxis; m++)
 		{
@@ -1291,7 +1295,7 @@ void jointdynamics::RLSaris(const double *positionL, const double *sensorL, doub
             stateTor0[j][1] = stateTor1[j][1];
             stateTor0[j][2] = stateTor1[j][2];
         }
-        std::cout<<i<<std::endl;
+        std::cout<<dq[1]<<std::endl;
     }
 	
 	// 所需的中间变量，请对U的对角线元素做处理
@@ -1835,6 +1839,136 @@ void jointdynamics::JointCollision(const double * q, const double *dq, const dou
 
 	for (int i = 0; i < 6; i++)
 		CollisionFT[i] = estTor[i];
+
+
+}
+
+
+
+void jointdynamics::JointCollisionAris(const double * q, const double *dq, const double *ddq, const double *ts, const double *estParas, const double * CoefInv, const double * Coef, const double * LoadParas, double * CollisionFT, const double* Acv)
+{
+    // 创建机器人 //
+    aris::dynamic::PumaParam param;
+    param.d1 = 0.3295;
+    param.a1 = 0.04;
+    param.a2 = 0.275;
+    param.d3 = 0.0;
+    param.a3 = 0.025;
+    param.d4 = 0.28;
+
+    auto m = aris::dynamic::createModelPuma(param);
+
+    // 为已有机器人添加 辨识器，也可以在xml里定义
+    auto &clb = m->calibratorPool().add<aris::dynamic::Calibrator>();
+    //auto &clb = m->calibratorPool()[0];
+
+    // 以下代码为辨识器分配内存
+    for (auto &ee : m->generalMotionPool())ee.activate(false);
+    clb.allocateMemory();
+
+
+    double q0[6], dq0[6], ddq0[6];
+    for (int k = 0; k < RobotAxis; k++)
+    {
+        q0[k] = q[k] * DirectionFlag[k] + JointOffset[k] + ZeroOffset[k];
+        dq0[k] = dq[k] * DirectionFlag[k];
+        ddq0[k] = ddq[k] * DirectionFlag[k];
+
+    }
+
+    // 设置当前电机的位置、速度、加速度
+    for (int i = 0; i < m->motionPool().size(); ++i)
+    {
+        m->motionPool()[i].setMp(q0[i]);
+        m->motionPool()[i].setMv(dq0[i]);
+        m->motionPool()[i].setMa(ddq0[i]);
+
+    }
+
+    m->solverPool().at(1).kinPos();
+    m->solverPool().at(1).kinVel();
+    m->solverPool().at(1).dynAccAndFce();
+
+    // 设置当前电机的力
+    for (int i = 0; i < m->motionPool().size(); ++i)
+    {
+        m->motionPool()[i].setMf(ts[i]);
+    }
+
+    // 开始辨识 //
+    clb.clb();
+
+    double distalVec[RobotAxis * JointGroupDim];
+    double Y[RobotAxis][JointGroupDim];
+    for (int m = 0; m < RobotAxis; m++)
+        for (int n = 0; n < JointGroupDim; n++)
+            Y[m][n]= clb.A()[JointGroupDim * m + n];
+    //dsp(clb.m(), clb.n(), clb.A());
+
+
+    JointMatrix(q0, dq0, ddq0, ts, distalVec);
+    std::vector<double> Ybase_vec(RobotAxis * JointReduceDim);
+    auto Ybase = Ybase_vec.data();
+    s_mm(RobotAxis, JointReduceDim, JointGroupDim, distalVec, CoefInv, Ybase);
+
+
+    double YbaseMat[RobotAxis][JointReduceDim];
+    for (int m = 0; m < RobotAxis; m++)
+        for (int n = 0; n < JointReduceDim; n++)
+            YbaseMat[m][n] = Ybase[JointReduceDim * m + n];
+
+    double Y1[RobotAxis][2 * RobotAxis];
+    for (int m = 0; m < RobotAxis; m++)
+    {
+        for (int n = 0; n < 2 * RobotAxis; n++)
+        {
+            Y1[m][n] = 0;
+            if (n == 2 * m)
+                Y1[m][n] = 1 * sign(dq0[m]);
+            if (n == 2 * m + 1)
+                Y1[m][n] = dq0[m];
+        }
+    }
+
+    double YtolMat[RobotAxis][JointReduceDim + 2 * RobotAxis];
+
+    for (int m = 0; m < RobotAxis; m++)
+    {
+        for (int n = 0; n < JointReduceDim; n++)
+        {
+            YtolMat[m][n] = YbaseMat[m][n];
+        }
+
+        for (int n = JointReduceDim; n < JointReduceDim + 2 * RobotAxis; n++)
+        {
+            YtolMat[m][n] = Y1[m][n - JointReduceDim];
+        }
+    }
+
+    //根据负载更新全臂动力学参数
+    double CoefMat[JointReduceDim][JointGroupDim];
+    for (int m = 0; m < JointReduceDim; m++)
+        for (int n = 0; n < JointGroupDim; n++)
+            CoefMat[m][n] = Coef[m*JointGroupDim + n];
+    double dParas[JointReduceDim] = { 0 };
+    for (int m = 0; m < JointReduceDim; m++)
+        for (int n = 0; n < 10; n++)
+            dParas[m] = dParas[m] + CoefMat[m][50 + n] * LoadParas[n];
+    double estParasTol[JointReduceDim + 2 * RobotAxis];
+
+    for (int m = 0; m < JointReduceDim + 2 * RobotAxis; m++)
+        estParasTol[m] = estParas[m];
+    for (int m = 0; m < JointReduceDim; m++)
+        estParasTol[m] = estParas[m] + dParas[m];
+
+
+    double estTor[RobotAxis] = { 0, 0, 0, 0, 0, 0 };
+    for (int i = 0; i < RobotAxis; i++)
+        for (int j = 0; j < JointReduceDim + 2 * RobotAxis; j++)
+            estTor[i] = estTor[i] + YtolMat[i][j] * estParasTol[j];
+
+    for (int i = 0; i < 6; i++)
+        CollisionFT[i] = estTor[i];
 
 
 }

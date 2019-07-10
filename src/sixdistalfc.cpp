@@ -3733,7 +3733,7 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 		dX[i] = dX[i] + BaseV[i];
 
 
-	auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(target.model->solverPool()[1]);
+    //auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(target.model->solverPool()[1]);
 	fwd.cptJacobi();
 	double pinv[36];
 
@@ -3832,7 +3832,7 @@ ForceDirect::ForceDirect(const std::string &name) :Plan(name)
 
 int signV(double x)
 {
-    double margin=0.01;
+    double margin=0.001;
     if (x > margin) return 1;
     if (abs(x) < margin||abs(x) == margin) return 0;
     if (x < -margin) return -1;
@@ -4104,8 +4104,8 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 	double pa[6] = { 0 }, va[6] = { 0 }, ta[6] = { 0 };
 	double ft_offset[6] = { 0 };
 	double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
-	double f_static[6] = { 9,7,4,3,2,2 };
-	double f_vel_JRC[6] = { 0,0,0,0,0,0 };
+    double f_static[6] = { 9,9,5,3,2,2 };
+    double f_vel_JRC[6] = { 10,10,10,10,10,10 };
 	double ExternTau[6] = { 0 };
 
 	for (int i = 0; i < 6; i++)
@@ -4126,18 +4126,21 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 	target.model->solverPool()[1].kinVel();
 	target.model->solverPool()[2].dynAccAndFce();
 
+
 	for (int i = 0; i < 6; i++)
 	{
-		ExternTau[i] = ta[i] - target.model->motionPool()[i].mfDyn() - f_vel_JRC[i] * va[i] - 0 * f_static[i] * signV(va[i]);
-	}
+        ExternTau[i] = ta[i] -JoinTau[i]- target.model->motionPool()[i].mfDyn() - f_vel_JRC[i] * va[i] - 1 * f_static[i] * signV(va[i]);
+        ExternTau[i] = -ExternTau[i];
+    }
+
 
     double rate=6.0;
-    dTheta[0] = JoinTau[0] / 500/rate;
-    dTheta[1] = JoinTau[1] / 500/rate;
-    dTheta[2] = JoinTau[2] / 500/rate;
-    dTheta[3] = JoinTau[3] / 100/rate;
-    dTheta[4] = JoinTau[4] / 500/rate;
-    dTheta[5] = JoinTau[5] / 100/rate;
+    dTheta[0] = JoinTau[0] / 500/rate+ ExternTau[0] / 1000/rate;
+    dTheta[1] = JoinTau[1] / 500/rate+ ExternTau[1] / 1000/rate;
+    dTheta[2] = JoinTau[2] / 500/rate+ ExternTau[2] / 1000/rate;
+    dTheta[3] = JoinTau[3] / 100/rate+ ExternTau[3] / 1000/rate;
+    dTheta[4] = JoinTau[4] / 500/rate+ ExternTau[4] / 1000/rate;
+    dTheta[5] = JoinTau[5] / 100/rate+ ExternTau[5] / 1000/rate;
 
 	for (int i = 0; i < 6; i++)
 	{
@@ -4209,7 +4212,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
     pa[i] = controller->motionAtAbs(i).actualPos();
     va[i] = controller->motionAtAbs(i).actualVel();
     //ta[i] = controller->motionAtAbs(i).actualTor();
-    ft_offset[i]=(10*KP[i]*(step_pjs[i]-pa[i])+target.model->motionPool()[i].mfDyn()+f_vel_JRC[i]*va[i] + 0*f_static[i]*signV(va[i]))*f2c_index[i];
+    ft_offset[i]=(10*KP[i]*(step_pjs[i]-pa[i])+target.model->motionPool()[i].mfDyn()+0*f_vel_JRC[i]*va[i] + 0*f_static[i]*signV(va[i]))*f2c_index[i];
     ft_offset[i] = std::max(-500.0, ft_offset[i]);
     ft_offset[i] = std::min(500.0, ft_offset[i]);
     //if(abs(pa[i])<1)
@@ -4241,7 +4244,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
         //cout << step_pjs[2] << "***" << ft_offset[2] << "***" << step_pjs[2] << endl;
 
         //cout <<FT_KAI[0]<<"***"<<FT_KAI[1]<<"***"<<FT_KAI[2]<<endl;
-        cout <<ta[0]<<"***"<<ta[1]<<"***"<<ta[2]<<endl;
+        cout <<ta[0]<<"***"<<ExternTau[0]<<"***"<<JoinTau[0]<<"***"<<FmInWorld[1]<<"***"<<va[0]<<endl;
     }
 
 

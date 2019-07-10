@@ -39,7 +39,9 @@ namespace JointDynamicsInt
 	
         jointdynamics();
         void JointCollision(const double * q, const double *dq,const double *ddq,const double *ts, const double *estParas, const double * CoefInv, const double * Coef, const double * LoadParas, double * CollisionFT, const double* Acv);
-		void JointDrag(const double * q, const double *dq, const double *ddq, const double *ts, const double *estParas, const double * CoefInv, const double * Coef, const double * LoadParas, double * CollisionFT, const double* Acv);
+        void JointCollisionAris(const double * q, const double *dq,const double *ddq,const double *ts, const double *estParas, const double * CoefInv, const double * Coef, const double * LoadParas, double * CollisionFT, const double* Acv);
+
+        void JointDrag(const double * q, const double *dq, const double *ddq, const double *ts, const double *estParas, const double * CoefInv, const double * Coef, const double * LoadParas, double * CollisionFT, const double* Acv);
 
 		void RLS(const double *positionList, const double *sensorList, double *estParas, double *Coef, double *CoefInv, double *StatisError);
 		void RLSaris(const double *positionList, const double *sensorList, double *estParas, double *Coef, double *CoefInv, double *StatisError);

@@ -175,8 +175,8 @@ auto JointDyna::executeRT(PlanTarget &target)->int
             //TorqueList[6 * (target.count - 1) + i] = POSRLS[i + 6][target.count - 1] / f2c_index[i];
 
             AngleList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualPos();
-            //TorqueList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
-			TorqueList[6 * (CollectNum - 1) + i] = 2;//controller->motionAtAbs(i).actualTor() * f2f_index[i];
+            TorqueList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
+            //TorqueList[6 * (CollectNum - 1) + i] = 2;//controller->motionAtAbs(i).actualTor() * f2f_index[i];
 		}
 
 		lout << target.count << ",";
@@ -205,7 +205,7 @@ auto JointDyna::collectNrt(aris::plan::PlanTarget &target)->void
 	std::cout << "collect" << std::endl;
 
 
-	JointMatrix.RLSaris(AngleList, TorqueList, JointMatrix.estParasJoint, JointMatrix.CoefParasJoint, JointMatrix.CoefParasJointInv, StatisError);
+    JointMatrix.RLSaris(AngleList, TorqueList, JointMatrix.estParasJoint, JointMatrix.CoefParasJoint, JointMatrix.CoefParasJointInv, StatisError);
 
 	
 	//std::cout<<"collect"<<std::endl;
@@ -326,9 +326,9 @@ auto JointTest::prepairNrt(const std::map<std::string, std::string> &params, Pla
 	for (int i = 0;i < JointReduceDim*JointGroupDim;i++)
 		JointMatrix.CoefParasJointInv[i] = mat2->data().data()[i];
 
-    auto mat3 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("LoadParas"));
+    //auto mat3 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("LoadParas"));
     for (int i = 0;i < 10;i++)
-         JointMatrix.LoadParas[i] = mat3->data().data()[i];
+         JointMatrix.LoadParas[i] = 0;//mat3->data().data()[i];
 
 
 	double LoadAll[JointGroupDim] = { 0 };
@@ -393,7 +393,7 @@ auto JointTest::executeRT(PlanTarget &target)->int
 	}
 
 	double Acv[12] = { 1,1,1,1,1,1,1,1,1,1,1,1 };
-	JointMatrix.JointCollision(q, dq, ddq, ts, JointMatrix.estParasJoint, JointMatrix.CoefParasJointInv, JointMatrix.CoefParasJoint, JointMatrix.LoadParas,CollisionFT,Acv);
+    JointMatrix.JointCollision(q, dq, ddq, ts, JointMatrix.estParasJoint, JointMatrix.CoefParasJointInv, JointMatrix.CoefParasJoint, JointMatrix.LoadParas,CollisionFT,Acv);
 
     if (target.model->solverPool().at(1).kinPos())return -1;
     for (int i = 0;i < 6;i++)
