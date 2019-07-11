@@ -1299,6 +1299,7 @@ namespace kaanh
 				aris::Size t_count;
 				aris::plan::moveAbsolute(target.count, param.begin_joint_pos_vec[i], param.begin_joint_pos_vec[i]+param.joint_pos_vec[i], param.vel / 1000, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
 				controller->motionAtAbs(i).setTargetPos(p);
+				controller->motionAtAbs(i).setTargetVel(v);
 				target.model->motionPool().at(i).setMp(p);
 				total_count = std::max(total_count, t_count);
 			}
@@ -1325,7 +1326,6 @@ namespace kaanh
 		{
 			lout << controller->motionAtAbs(i).targetPos() << ",";
 			lout << controller->motionAtAbs(i).actualPos() << ",";
-			lout << controller->motionAtAbs(i).actualVel() << ",";
 		}
 		lout << std::endl;
 
