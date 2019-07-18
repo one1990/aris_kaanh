@@ -1,0 +1,52 @@
+#include "ros/ros.h"
+#include "controller/interface.h"
+#include <cstdlib>
+#include "std_msgs/String.h"
+#include "controller/pose.h"
+// #include "dynamixel_sdk/dynamixel_sdk.h"
+// #include "stdio.h"
+// #include "unistd.h"
+// Baud rate 57142
+
+void call_service(ros::ServiceClient & client,std::string cmd_in)
+{
+  controller::interface srv;
+  srv.request.cmd = cmd_in;
+  if (client.call(srv))
+  {
+    ROS_INFO("Sum: %ld", (long int)srv.response.return_code);
+  }
+  else
+  {
+    ROS_ERROR("Failed to call service add_two_ints");
+    return;
+  }
+  return;
+}
+
+//void chatterCallback(const controller::pose::ConstPtr& msg)
+void chatterCallback(const controller::pose& msg)
+{
+  //ROS_INFO("I heard: [%s]", msg->data.c_str());
+  //ROS_INFO("I heard: [%s]", msg->data.c_str());
+}
+
+int main(int argc, char **argv)
+{
+  ros::init(argc, argv, "fake_client");
+
+  ros::NodeHandle n;
+  ros::ServiceClient client = n.serviceClient<controller::interface>("getcmd");
+
+  ros::Rate loop_rate(1);
+  ros::Subscriber sub = n.subscribe("kannh_topic", 1000, chatterCallback);
+  while (ros::ok())
+  {
+    std::string cmd="moveJ";
+    call_service(client,cmd);
+    ros::spinOnce();
+    loop_rate.sleep();
+
+  }
+  return 0;
+}
