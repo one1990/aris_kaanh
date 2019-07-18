@@ -1,0 +1,15 @@
+(cl:defpackage controller-srv
+  (:use )
+  (:export
+   "INTERFACE"
+   "<INTERFACE-REQUEST>"
+   "INTERFACE-REQUEST"
+   "<INTERFACE-RESPONSE>"
+   "INTERFACE-RESPONSE"
+   "SETPOS"
+   "<SETPOS-REQUEST>"
+   "SETPOS-REQUEST"
+   "<SETPOS-RESPONSE>"
+   "SETPOS-RESPONSE"
+  ))
+

@@ -1,0 +1,2 @@
+controller:graph_msgs-jade-devel:learning_joy:mm16:moveit_visual_tools-kinetic-devel:rokae2:rviz_visual_tools-kinetic-devel
+-DCATKIN_DEVEL_PREFIX=/root/catkin_ws/devel -DCMAKE_INSTALL_PREFIX=/root/catkin_ws/install -G Unix Makefiles
