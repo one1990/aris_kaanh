@@ -2041,7 +2041,7 @@ void JointReducedMatrix(const double* q, const double* dq, const double* ddq, co
 
 
 
-	A0[0][60] = ddq1;
+    A0[0][60] = ddq1;
 	A0[1][61] = ddq2;
 	A0[2][62] = ddq3;
 	A0[3][63] = ddq4;
@@ -2695,7 +2695,7 @@ void jointdynamics::RLS(const double *positionL, const double *sensorL, double *
 void jointdynamics::RLStemp(const double *positionL, const double *sensorL, double *estParas, const double *Coef, const double *CoefInv, double *StatisError)
 	{
 
-		double CutFreq = 5;
+        double CutFreq = 20;
 		A[0][0] = 0; A[0][1] = 1; A[0][2] = 0;
 		A[1][0] = 0; A[1][1] = 0; A[1][2] = 1;
 		A[2][0] = -CutFreq * CutFreq * CutFreq;
