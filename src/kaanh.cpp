@@ -4087,6 +4087,7 @@ namespace kaanh
 		plan_root->planPool().add<MovePressureToolXY>();
 		plan_root->planPool().add<GetForce>();
         plan_root->planPool().add<MoveSeriesGK>();
+        plan_root->planPool().add<ForceDirect>();
 
 		//plan_root->planPool().add<GetError>();
 		plan_root->planPool().add<JointDyna>();

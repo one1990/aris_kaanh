@@ -5,7 +5,7 @@
 #include"robotconfig.h"
 #include"sixdistaldynamics.h"
 #include <vector>
-using namespace std;
+//using namespace std;
 using namespace aris::plan;
 using namespace aris::dynamic;
 using namespace CONFIG;
@@ -689,7 +689,8 @@ auto MoveDistal::collectNrt(aris::plan::PlanTarget &target)->void
 
     double estParas[GroupDim] = { 0 };
     double StatisError[6] = { 0,0,0,0,0,0 };
-	//  auto controller = target.controller;
+    auto controller = target.controller;
+    auto &cout = controller->mout();
 	 // auto &lout = controller->lout();
 	std::cout << "collect" << std::endl;
 
@@ -717,7 +718,7 @@ auto MoveDistal::collectNrt(aris::plan::PlanTarget &target)->void
 
 	std::cout << "*****************************Statictic Model Error*****************************************" << std::endl;
 	for (int i = 0;i < 6;i++)
-		cout << StatisError[i] << endl;
+        cout << StatisError[i] << std::endl;
     //double a = 3;
 }
 
@@ -1009,7 +1010,7 @@ auto MovePressure::executeRT(PlanTarget &target)->int
 	static double SumFtErr[6];
 	// 访问主站 //
 	auto controller = target.controller;
-
+    auto &cout = controller->mout();
 	// 获取当前起始点位置 //
 	if (target.count == 1)
 	{
@@ -1176,7 +1177,7 @@ auto MovePressure::executeRT(PlanTarget &target)->int
 	if (target.count % 100 == 0)
 	{
 
-		cout << FmInWorld[2] << "***" << SumFtErr[2] << "***" << dX[4] << "***" << dX[5] << "***" << FT0[2] << endl;
+        cout << FmInWorld[2] << "***" << SumFtErr[2] << "***" << dX[4] << "***" << dX[5] << "***" << FT0[2] << std::endl;
 
 		//cout <<  FT_KAI[0]<<"***"<<FmInWorld[2]<<endl;
 
@@ -1193,9 +1194,6 @@ auto MovePressure::executeRT(PlanTarget &target)->int
 			dX[j] = -0.00025;
 	}
 
-
-	// 打印电流 //
-	auto &cout = controller->mout();
 
 	// log 电流 //
 	auto &lout = controller->lout();
@@ -1387,7 +1385,7 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
 
 	// 访问主站 //
 	auto controller = target.controller;
-
+    auto &cout = controller->mout();
 	// 获取当前起始点位置 //
 	if (target.count == 1)
 	{
@@ -1949,10 +1947,6 @@ CountFmax=4;
 
 
 
-
-	// 打印电流 //
-	auto &cout = controller->mout();
-
 	// log 电流 //
 	auto &lout = controller->lout();
 
@@ -2067,7 +2061,7 @@ CountFmax=4;
 
         //cout <<FT_KAI[2] << "****"<<TangentArc[0] << "****" << TangentArc[1] << "****" <<TangentArc[2]<< endl;
 
-        cout << FT_KAI[2] << "*" <<FT[2] << "*" << FTReal[2] <<"*"<<dX[0]<< "*"<<dX[1]<<"*"<<PqEnd[2]<<endl;
+        cout << FT_KAI[2] << "*" <<FT[2] << "*" << FTReal[2] <<"*"<<dX[0]<< "*"<<dX[1]<<"*"<<PqEnd[2]<<std::endl;
 
 
                 //cout <<  FT_KAI[0]<<"***"<<FmInWorld[2]<<endl;
@@ -2176,7 +2170,7 @@ auto MovePressureToolXY::executeRT(PlanTarget &target)->int
 
 	// 访问主站 //
 	auto controller = target.controller;
-
+    auto &cout = controller->mout();
 	// 获取当前起始点位置 //
 	if (target.count == 1)
 	{
@@ -2593,7 +2587,7 @@ auto MovePressureToolXY::executeRT(PlanTarget &target)->int
 	if (target.count % 300 == 0)
 	{
 
-        cout << FT_KAI[2] << "*" << TangentArc[0] <<"*"<<TangentArc[1] << "*" << TangentArc[2] << "*" << FT0[2] << endl;
+        cout << FT_KAI[2] << "*" << TangentArc[0] <<"*"<<TangentArc[1] << "*" << TangentArc[2] << "*" << FT0[2] << std::endl;
 
 		//cout << FT_KAI[2] << "*" << NormalAng << "*" << TransVector[0] << "*" << TransVector[1] << "*" << TransVector[2] << "*" << FT0[2] << endl;
 		//cout << FT_KAI[2] << "*" << NormalAng << "*" << TransVector[4] << "*" << TransVector[5] << "*" << TransVector[6] << "*" << FT0[2] << endl;
@@ -2614,9 +2608,6 @@ auto MovePressureToolXY::executeRT(PlanTarget &target)->int
             dX[j] = -0.00025;
 	}
 
-
-	// 打印电流 //
-	auto &cout = controller->mout();
 
 	// log 电流 //
 	auto &lout = controller->lout();
@@ -2850,7 +2841,7 @@ auto MoveFeed::executeRT(PlanTarget &target)->int
 	static double SumFtErr[6];
 	// 访问主站 //
 	auto controller = target.controller;
-
+    auto &cout = controller->mout();
 	// 获取当前起始点位置 //
 	if (target.count == 1)
 	{
@@ -3028,8 +3019,8 @@ auto MoveFeed::executeRT(PlanTarget &target)->int
 	*/
 	if (target.count % 100 == 0)
 	{
-		cout << "******" << endl;
-		cout << FmInWorld[1] << "***" << ThetaXY << "***" << dX[0] << "***" << dX[1] << "***" << FT0[2] << endl;
+        cout << "******" << std::endl;
+        cout << FmInWorld[1] << "***" << ThetaXY << "***" << dX[0] << "***" << dX[1] << "***" << FT0[2] << std::endl;
 
 		//cout <<  FT_KAI[0]<<"***"<<FmInWorld[2]<<endl;
 
@@ -3045,10 +3036,6 @@ auto MoveFeed::executeRT(PlanTarget &target)->int
 		if (dX[j] < -0.00025)
 			dX[j] = -0.00025;
 	}
-
-
-	// 打印电流 //
-	auto &cout = controller->mout();
 
 	// log 电流 //
 	auto &lout = controller->lout();
@@ -3185,7 +3172,7 @@ MoveFeed::MoveFeed(const std::string &name) :Plan(name)
 
 int signV(double x)
 {
-	double margin = 0.001;
+    double margin = 0.01;
 	if (x > margin) return 1;
 	if (abs(x) < margin || abs(x) == margin) return 0;
 	if (x < -margin) return -1;
@@ -3225,8 +3212,6 @@ auto ForceDirect::prepairNrt(const std::map<std::string, std::string> &params, P
 		Plan::NOT_CHECK_ENABLE;
 
 
-
-
 }
 auto ForceDirect::executeRT(PlanTarget &target)->int
 {
@@ -3247,113 +3232,38 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 
 	// 访问主站 //
 	auto controller = target.controller;
+    auto &cout = controller->mout();
 
+    static double PqEnd0[7], PqEnd[7];
+    target.model->generalMotionPool().at(0).getMpq(PqEnd);
 	// 获取当前起始点位置 //
 	if (target.count == 1)
 	{
 		for (int i = 0; i < 6; ++i)
 		{
 			step_pjs[i] = target.model->motionPool()[i].mp();
-			// controller->motionPool().at(i).setModeOfOperation(10);	//切换到电流控制
+            controller->motionPool().at(i).setModeOfOperation(10);	//切换到电流控制
 		}
+        for (int i = 0; i < 7; ++i)
+            PqEnd0[i] = PqEnd[i];
 	}
 
 
 	if (target.model->solverPool().at(1).kinPos())return -1;
 
 
-	///* Using Jacobian, TransMatrix from ARIS
-	double EndW[3], EndP[3], BaseV[3];
-	static double PqEnd0[7], PqEnd[7];
-
-
-	target.model->generalMotionPool().at(0).getMpq(PqEnd);
-	if (target.count == 1)
-	{
-		for (int i = 0; i < 7; ++i)
-		{
-			PqEnd0[i] = PqEnd[i];
-			// controller->motionPool().at(i).setModeOfOperation(10);	//切换到电流控制
-		}
-	}
-
-
-
-	double FT[6];
-	if (param.SensorType > 0)
-		GetATI(target, FT);
-	else
-		GetYuLi(target, FT);
-
-
-
-	for (int i = 0;i < 6;i++)
-	{
-		RobotPositionJ[i] = target.model->motionPool()[i].mp();
-		RobotPosition[i] = target.model->motionPool()[i].mp();
-		RobotVelocity[i] = 0;
-		RobotAcceleration[i] = 0;
-		TorqueSensor[i] = FT[i];
-	}
-
-
-
-	// 获取当前起始点位置 //
-	if (target.count == 1)
-	{
-		for (int j = 0; j < 6; j++)
-		{
-			stateTor0[j][0] = FT[j];
-			FT0[j] = FT[j];
-			FT_be[j] = FT[j];
-		}
-		for (int i = 0;i < 3;i++)
-			EndP0[i] = PqEnd[i];
-	}
-
-
-	
-   for (int j = 0; j < 6; j++)
-   {
-	   double CutFreq = 5;//SHANGHAI DIANQI EXP
-       double intDT = 0.001;
-	   stateTor1[j][0] = stateTor0[j][0] + intDT * (FT[j]-stateTor0[j][0])*CutFreq;
-
-   }
-
-
-	double FT_KAI[6];
-	for (int i = 0; i < 6; i++)
-	{
-		FT_KAI[i] = stateTor1[i][0] - FT0[i];//In KAI Coordinate
-	}
-
-
-	for (int i = 0; i < 3; i++)
-	{
-		if (FT_KAI[i] < 1.0&&FT_KAI[i]>0)
-			FT_KAI[i] = FT_KAI[i] * FT_KAI[i];//In KAI Coordinate
-		else if (FT_KAI[i]<0 && FT_KAI[i]>-1.0)
-			FT_KAI[i] = -FT_KAI[i] * FT_KAI[i];//In KAI Coordinate
-	}
-
-	for (int i = 3; i < 6; i++)
-	{
-		if (FT_KAI[i] < 0.05&&FT_KAI[i]>0)
-			FT_KAI[i] = 20 * FT_KAI[i] * FT_KAI[i];//In KAI Coordinate
-		else if (FT_KAI[i]<0 && FT_KAI[i]>-0.05)
-			FT_KAI[i] = -20 * FT_KAI[i] * FT_KAI[i];//In KAI Coordinate
-	}
-
-
 	double ft[6];
-	double KP[7] = { 0 };
-
+    double KP[7] = {650,650,0,0,0,0,0};
+    double KI[7] = {350,350,0,0,0,0,0};
+    static double ErrSum[7]={0};
 	for (int i = 0; i < 6; ++i)
 	{
-		ft[i] = KP[i] * (PqEnd0[i] - PqEnd[i]);
+        ErrSum[i]=ErrSum[i]+(PqEnd0[i] - PqEnd[i])*0.001;
+        ft[i] = KP[i] * (PqEnd0[i] - PqEnd[i])+KI[i]*ErrSum[i];
 		//ft[i] = std::max(std::min(ft[i], 300, -300);
 	}
+
+
 
 	double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
 	double f_static[6] = { 9,9,5,3,2,2 };
@@ -3362,6 +3272,18 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 	fwd.cptJacobiWrtEE();
 	double JoinTau[6] = { 0 };
 	s_mm(6, 1, 6, fwd.Jf(), T(6), ft, 1, JoinTau, 1);
+
+
+    auto &lout = controller->lout();
+    lout << PqEnd[0] << ",";lout << PqEnd[1] << ",";
+    lout << PqEnd[2] << ",";lout << PqEnd[3] << ",";
+    lout << PqEnd[4] << ",";lout << PqEnd[5] << ",";lout << PqEnd[6] << ",";
+
+    lout << JoinTau[0] << ",";lout << JoinTau[1] << ",";
+    lout << JoinTau[2] << ",";lout << JoinTau[3] << ",";
+    lout << JoinTau[4] << ",";lout << JoinTau[5] << ",";lout << std::endl;
+
+
 
 
 	double pa[6] = { 0 }, va[6] = { 0 }, ta[6] = { 0 };
@@ -3386,18 +3308,26 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 
 	for (int i = 0; i < 6; i++)
 	{
-		JoinTau[i] = JoinTau[i] + target.model->motionPool()[i].mfDyn() + f_vel_JRC[i] * va[i] + 0 * f_static[i] * signV(va[i]);
+        JoinTau[i] = JoinTau[i] + target.model->motionPool()[i].mfDyn() + f_vel_JRC[i] * va[i] + 1 * f_static[i] * signV(va[i]);
 		JoinTau[i] = JoinTau[i] * f2c_index[i];
 	}
 
 
 	for (int i = 0; i < 6; i++)
 	{
-		JoinTau[i] = std::max(-500.0, JoinTau[i]);
-		JoinTau[i] = std::min(500.0, JoinTau[i]);
+        JoinTau[i] = std::max(-400.0, JoinTau[i]);
+        JoinTau[i] = std::min(400.0, JoinTau[i]);
 
 		controller->motionAtAbs(i).setTargetCur(JoinTau[i]);
 	}
+
+
+    if (target.count % 300 == 0)
+    {
+        cout<<ft[0]<<"****"<<ft[1]<<"****"<<JoinTau[0]<<"****"<<JoinTau[1]<<"****"<<JoinTau[2]<<std::endl;
+    }
+
+
 
 
 
@@ -3408,9 +3338,6 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 		stateTor0[i][1] = stateTor1[i][1];
 		stateTor0[i][2] = stateTor1[i][2];
 
-		sT0[i][0] = sT1[i][0];
-		sT0[i][1] = sT1[i][1];
-		sT0[i][2] = sT1[i][2];
 
 	}
 
@@ -3423,7 +3350,7 @@ ForceDirect::ForceDirect(const std::string &name) :Plan(name)
 {
 
 	command().loadXmlStr(
-		"<Command name=\"mvPreTXY\">"
+        "<Command name=\"ForceDir\">"
 		"	<GroupParam>"
 		"       <Param name=\"PressF\" default=\"0\"/>"
 		"		<Param name=\"SensorType\"default=\"20.0\"/>"
@@ -3501,7 +3428,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 		{
 			step_pjs[i] = target.model->motionPool()[i].mp();
             begin_pjs[i] = target.model->motionPool()[i].mp();
-            controller->motionPool().at(i).setModeOfOperation(10);	//切换到电流控制
+            //controller->motionPool().at(i).setModeOfOperation(10);	//切换到电流控制
 		}
 
 	}
@@ -3527,11 +3454,13 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 
 
 
-    double FT[6];
+    double FT[6],FTemp[6];
     if(param.SensorType>0)
         GetATI(target,FT);
     else
         GetYuLi(target,FT);
+
+
 
     double q[6],dq[6],ddq[6],CollisionFT[6];
     for (int i = 0; i < 6; i++)
@@ -3539,6 +3468,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
         q[i]= controller->motionPool()[i].actualPos();
         dq[i] =0;
         ddq[i] =0;
+        FTemp[i]=FT[i];
     }
 
     sixDistalMatrix.sixDistalCollision(q, dq, ddq, FT, sixDistalMatrix.estParasFT, CollisionFT);
@@ -3793,10 +3723,13 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
     ft_offset[i] = std::max(-500.0, ft_offset[i]);
     ft_offset[i] = std::min(500.0, ft_offset[i]);
     //if(abs(pa[i])<1)
-        controller->motionAtAbs(i).setTargetCur(ft_offset[i]);
+        //controller->motionAtAbs(i).setTargetCur(ft_offset[i]);
     }
 
-
+    lout << FTemp[0] << ",";lout << FTemp[1] << ",";
+    lout << FTemp[2] << ",";lout << FTemp[3] << ",";
+    lout << FTemp[4] << ",";lout << FTemp[5] << ",";
+/*
     lout << FT_YANG[0] << ",";lout << FT_YANG[1] << ",";
     lout << FT_YANG[2] << ",";lout << FT_YANG[3] << ",";
     lout << FT_YANG[4] << ",";lout << FT_YANG[5] << ",";
@@ -3811,7 +3744,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 
     lout << va[0] << ",";lout << va[1] << ",";
     lout << va[2] << ",";lout << va[3] << ",";
-    lout << va[4] << ",";lout << va[5] << ",";
+    lout << va[4] << ",";lout << va[5] << ",";*/
     lout << std::endl;
 
 
@@ -3821,7 +3754,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
         //cout << step_pjs[2] << "***" << ft_offset[2] << "***" << step_pjs[2] << endl;
 
         //cout <<FT_KAI[0]<<"***"<<FT_KAI[1]<<"***"<<FT_KAI[2]<<endl;
-        cout <<ta[0]<<"***"<<ExternTau[0]<<"***"<<JoinTau[0]<<"***"<<FmInWorld[1]<<"***"<<va[0]<<endl;
+        cout <<ta[0]<<"***"<<ExternTau[0]<<"***"<<JoinTau[0]<<"***"<<FmInWorld[1]<<"***"<<va[0]<<std::endl;
     }
 
 

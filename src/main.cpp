@@ -40,8 +40,8 @@ int main(int argc, char *argv[])
     cs.resetSensorRoot(new aris::sensor::SensorRoot);
     cs.saveXmlFile(xmlpath.string().c_str());
     //-------for rokae robot end// 
-
 */
+
 
     /*
     //-------for sanxiang robot begin//
