@@ -2722,7 +2722,7 @@ void jointdynamics::RLStemp(const double *positionL, const double *sensorL, doub
 
 		double intDT = 8 * DT;
 		int length = 6;
-		std::vector<double> regressorMatrix_vec(RobotAxis * SampleNum * JointGroupDim);
+		std::vector<double> regressorMatrix_vec(RobotAxis * SampleNum * JointReduceDim);
 		double* regressorVector = regressorMatrix_vec.data();
 
 		std::vector<double> regressorMatrixFric_vec(6 * SampleNum * 12);
@@ -2798,7 +2798,7 @@ void jointdynamics::RLStemp(const double *positionL, const double *sensorL, doub
 			{
 				for (int n = 0; n < JointReduceDim; n++)
 				{
-					regressorVector[(i * RobotAxis + m)*JointGroupDim + n] = Y[m][n];
+					regressorVector[(i * RobotAxis + m)*JointReduceDim + n] = Y[m][n];
 
 				}
 
@@ -4600,7 +4600,7 @@ void jointdynamics::LoadRLS(const double *positionL, const double *sensorL, cons
 
     double intDT = 8*DT;
 	int length = 6;
-	std::vector<double> regressorMatrix_vec(3 * SampleNum * LoadTotalParas);
+	std::vector<double> regressorMatrix_vec(3 * SampleNum * LoadReduceParas);
 	double* regressorVector = regressorMatrix_vec.data();
 
 	std::vector<double> regressorMatrixFric_vec(3 * SampleNum * 6);
@@ -4813,7 +4813,7 @@ void jointdynamics::LoadRLStemp(const double *positionL, const double *sensorL, 
 
 	double intDT = 8 * DT;
 	int length = 6;
-	std::vector<double> regressorMatrix_vec(3 * SampleNum * LoadTotalParas);
+	std::vector<double> regressorMatrix_vec(3 * SampleNum * LoadReduceParas);
 	double* regressorVector = regressorMatrix_vec.data();
 
 	std::vector<double> regressorMatrixFric_vec(3 * SampleNum * 6);
