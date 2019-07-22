@@ -1117,7 +1117,946 @@ void JointMatrix(const double* q, const double* dq, const double* ddq, const dou
 
 }
 
+
 //inline int id(int m, int n, int cols) { return m * cols + n;}
+void JointReducedMatrix(const double* q, const double* dq, const double* ddq, const double* ts, const double* CoefInv, double* distalVec)
+{
+
+	//double[] qTemp=new double[common.RobotAxis];
+  //  , dqTemp, ddqTemp;
+	double q1, q2, q3, q4, q5, q6;
+	double dq1, dq2, dq3, dq4, dq5, dq6;
+	double ddq1, ddq2, ddq3, ddq4, ddq5, ddq6;
+	double ts1, ts2, ts3, ts4, ts5, ts6;
+	double g = 9.81;
+
+	q1 = q[0];
+	q2 = q[1];
+	q3 = q[2];
+	q4 = q[3];
+	q5 = q[4];
+	q6 = q[5];
+
+	dq1 = dq[0]; dq2 = dq[1]; dq3 = dq[2]; dq4 = dq[3]; dq5 = dq[4]; dq6 = dq[5];
+	ddq1 = ddq[0]; ddq2 = ddq[1]; ddq3 = ddq[2]; ddq4 = ddq[3]; ddq5 = ddq[4]; ddq6 = ddq[5];
+
+	ts1 = ts[0]; ts2 = ts[1]; ts3 = ts[2]; ts4 = ts[3]; ts5 = ts[4]; ts6 = ts[5];
+
+	double A0[6][JointGroupDim];
+	for (int i = 0; i < 6; i++)
+		for (int j = 0; j < JointGroupDim; j++)
+			A0[i][j] = 0;
+
+	double DF = 0;//The Sixth Coordinate in Wrist
+
+
+	t2 = sin(q2);
+	t3 = cos(q2);
+	t4 = ddq1 * t2;
+	t5 = dq1 * dq1;
+	t6 = ddq1 * t3;
+	t7 = dq1 * dq2*t2*t3;
+	t8 = dq2 * dq2;
+	t9 = t2 * t3*t5;
+	t10 = t6 - dq1 * dq2*t2*2.0;
+	t11 = dq1 * dq2*t3*2.0;
+	t12 = t4 + t11;
+	t13 = t3 * t3;
+	t14 = t2 * t2;
+	t15 = sin(q3);
+	t16 = cos(q3);
+	t17 = dq1 * dq2*t3;
+	t18 = t4 + t17;
+	t23 = dq1 * dq2*t2;
+	t19 = t6 - t23;
+	t20 = dq1 * t2*t15;
+	t30 = dq1 * t3*t16;
+	t21 = t20 - t30;
+	t22 = t16 * t18;
+	t24 = t15 * t19;
+	t31 = dq3 * t21;
+	t25 = t22 + t24 - t31;
+	t26 = dq2 + dq3;
+	t27 = dq1 * t3*t15;
+	t28 = dq1 * t2*t16;
+	t29 = t27 + t28;
+	t32 = dq3 * t29;
+	t33 = t15 * t18;
+	t34 = t26 * t29;
+	t41 = t16 * t19;
+	t35 = t32 + t33 + t34 - t41;
+	t60 = t21 * t26;
+	t36 = t22 + t24 - t31 - t60;
+	t37 = t26 * t26;
+	t38 = t29 * t29;
+	t39 = t37 - t38;
+	t44 = t21 * t29;
+	t40 = ddq2 + ddq3 - t44;
+	t42 = t32 + t33 - t41;
+	t43 = t20 - t30;
+	t45 = t20 - t30;
+	t46 = t16 * t26*t29;
+	t47 = t20 - t30;
+	t48 = a2 * ddq1;
+	t49 = a3 * t19;
+	t50 = a3 * dq2;
+	t51 = d3 * dq1*t2;
+	t52 = t50 + t51;
+	t55 = dq1 * t2*t52;
+	t56 = d3 * t5*t13;
+	t53 = t48 + t49 - t55 - t56;
+	t54 = t20 - t30;
+	t57 = t16 * t53;
+	t58 = t29 * (t20 - t30);
+	t59 = ddq2 + ddq3 + t58;
+	t61 = t15 * t53;
+	t62 = t37 + t38;
+	t63 = g * t3;
+	t64 = g * t2;
+	t65 = a2 * t3*t5;
+	t66 = a3 * ddq2;
+	t67 = d3 * t18;
+	t68 = a2 * t2*t5;
+	t69 = a3 * t2*t3*t5;
+	t75 = d3 * dq1*dq2*t3;
+	t70 = -t63 + t66 + t67 + t68 + t69 - t75;
+	t71 = dq2 * t52;
+	t72 = d3 * t19;
+	t73 = a3 * t5*t13;
+	t74 = t64 + t65 + t71 + t72 + t73;
+	t76 = t15 * t70;
+	t86 = t16 * t74;
+	t77 = t76 - t86;
+	t78 = t16 * t70;
+	t79 = t15 * t74;
+	t80 = t78 + t79;
+	t81 = t20 - t30;
+	t82 = t32 + t33 - t34 - t41;
+	t83 = t26 * (t20 - t30);
+	t84 = t22 + t24 - t31 + t83;
+	t85 = t20 - t30;
+	t87 = cos(q4);
+	t88 = sin(q4);
+	t89 = t26 * t88;
+	t90 = t29 * t87;
+	t91 = t89 + t90;
+	t92 = t26 * t87;
+	t94 = t29 * t88;
+	t93 = t92 - t94;
+	t95 = dq4 * t93;
+	t96 = t25 * t87;
+	t97 = ddq2 + ddq3;
+	t98 = t88 * t97;
+	t99 = t95 + t96 + t98;
+	t100 = t87 * t99;
+	t101 = dq4 + t20 - t30;
+	t133 = t88 * t91*t101;
+	t102 = t100 - t133;
+	t103 = dq4 * t91;
+	t104 = t25 * t88;
+	t105 = t91 * t101;
+	t122 = t87 * t97;
+	t106 = t103 + t104 + t105 - t122;
+	t107 = t87 * t106;
+	t108 = t93 * t101;
+	t109 = t95 + t96 + t98 + t108;
+	t110 = t88 * t109;
+	t111 = t107 + t110;
+	t112 = t91 * t91;
+	t113 = t93 * t93;
+	t114 = t112 - t113;
+	t115 = t91 * t93;
+	t116 = ddq4 + t32 + t33 - t41 + t115;
+	t117 = t87 * t116;
+	t118 = t101 * t101;
+	t119 = t88 * (t112 - t118);
+	t120 = t117 + t119;
+	t121 = t95 + t96 + t98 - t108;
+	t123 = t16 * t91*t93;
+	t124 = t103 + t104 - t122;
+	t125 = t88 * t124;
+	t132 = t87 * t93*t101;
+	t126 = t125 - t132;
+	t127 = ddq4 + t32 + t33 - t41 - t115;
+	t128 = t88 * t127;
+	t129 = t113 - t118;
+	t130 = t128 - t87 * t129;
+	t131 = t103 + t104 - t105 - t122;
+	t134 = t132 + t133;
+	t135 = ddq4 + t32 + t33 - t41;
+	t136 = t113 + t118;
+	t137 = -t20 + t30;
+	t138 = d4 * t29;
+	t139 = t117 - t88 * t136;
+	t148 = a4 * t137;
+	t140 = t138 - t148;
+	t141 = a4 * t97;
+	t142 = d4 * t88*t136;
+	t143 = a4 * t42;
+	t144 = dq3 * t137;
+	t145 = t22 + t24 + t144;
+	t146 = a4 * t26*t29;
+	t147 = a4 * t37;
+	t149 = d4 * t97;
+	t163 = t137 * t140;
+	t150 = -t76 + t86 + t147 + t149 - t163;
+	t151 = t88 * t150;
+	t152 = a4 * t87*t116;
+	t153 = t87 * t136;
+	t154 = t88 * t116;
+	t155 = t153 + t154;
+	t156 = t88 * t145;
+	t157 = t103 + t105 - t122 + t156;
+	t164 = d4 * t37;
+	t165 = t29 * t140;
+	t158 = t78 + t79 + t141 - t164 - t165;
+	t159 = t112 + t118;
+	t160 = d4 * t145;
+	t161 = d4 * t26*t137;
+	t162 = -t48 - t49 + t55 + t56 + t143 + t146 + t160 + t161;
+	t166 = t87 * t158;
+	t167 = d4 * t88*t127;
+	t168 = d4 * t87*t159;
+	t169 = t166 + t167 + t168;
+	t170 = t87 * t159;
+	t171 = t128 + t170;
+	t172 = t88 * t162;
+	t173 = a4 * t88*t127;
+	t174 = a4 * t87*t159;
+	t181 = t87 * t150;
+	t175 = t172 + t173 + t174 - t181;
+	t176 = t87 * t127;
+	t590 = t88 * t159;
+	t177 = t176 - t590;
+	t178 = t87 * t145;
+	t179 = t95 + t98 + t108 + t178;
+	t180 = t87 * t162;
+	t182 = t95 + t98 - t108 + t178;
+	t183 = t103 - t105 - t122 + t156;
+	t184 = t151 + t180;
+	t185 = t87 * t184;
+	t186 = t172 - t181;
+	t187 = t88 * t186;
+	t188 = d4 * t87*t182;
+	t189 = d4 * t88*t183;
+	t190 = t185 + t187 + t188 + t189;
+	t191 = t87 * t182;
+	t192 = t88 * t183;
+	t193 = t191 + t192;
+	t194 = a4 * t87*t182;
+	t195 = a4 * t88*t183;
+	t196 = t194 + t195;
+	t197 = t112 + t113;
+	t198 = t87 * t183;
+	t592 = t88 * t182;
+	t199 = t198 - t592;
+	t200 = a4 * t87*t184;
+	t201 = a4 * t88*t186;
+	t202 = t200 + t201;
+	t203 = d4 * t87*t184;
+	t204 = d4 * t88*t186;
+	t205 = t203 + t204;
+	t206 = t88 * t184;
+	t591 = t87 * t186;
+	t207 = t206 - t591;
+	t208 = t185 + t187;
+	t209 = cos(q5);
+	t210 = sin(q5);
+	t211 = t91 * t210;
+	t212 = t101 * t209;
+	t213 = t211 + t212;
+	t214 = t91 * t209;
+	t215 = t95 + t98 + t178;
+	t216 = t135 * t210;
+	t217 = dq5 * t213;
+	t221 = t209 * t215;
+	t218 = t216 + t217 - t221;
+	t219 = dq5 + t92 - t94;
+	t223 = t101 * t210;
+	t220 = t214 - t223;
+	t222 = t209 * t218;
+	t224 = t210 * t218;
+	t274 = t209 * t219*t220;
+	t225 = t224 - t274;
+	t226 = t219 * t220;
+	t227 = t210 * t215;
+	t228 = t135 * t209;
+	t229 = dq5 * t220;
+	t230 = t226 + t227 + t228 + t229;
+	t231 = t213 * t219;
+	t232 = t216 + t217 - t221 + t231;
+	t233 = t214 - t223;
+	t234 = t209 * t232;
+	t235 = t209 * t230;
+	t595 = t210 * t232;
+	t236 = t235 - t595;
+	t237 = t213 * t213;
+	t238 = t214 - t223;
+	t239 = t87 * t236;
+	t240 = t210 * t230;
+	t241 = t234 + t240;
+	t242 = t214 - t223;
+	t243 = t219 * t219;
+	t244 = t214 - t223;
+	t245 = t213 * t220;
+	t246 = -ddq5 + t103 - t122 + t156 + t245;
+	t247 = t216 + t217 - t221 - t231;
+	t248 = t88 * t247;
+	t249 = t214 - t223;
+	t250 = t209 * t246;
+	t251 = t214 - t223;
+	t252 = t210 * t246;
+	t253 = t88 * t213*(t214 - t223);
+	t254 = dq5 * (t214 - t223);
+	t255 = t227 + t228 + t254;
+	t256 = t210 * t255;
+	t257 = t209 * t213*t219;
+	t258 = t256 + t257;
+	t259 = t87 * t258;
+	t260 = t253 + t259;
+	t261 = t209 * t255;
+	t275 = t210 * t213*t219;
+	t262 = t261 - t275;
+	t263 = ddq5 - t103 + t122 - t156 + t245;
+	t264 = t237 - t243;
+	t265 = t209 * t264;
+	t305 = t210 * t263;
+	t266 = t265 - t305;
+	t267 = t87 * t266;
+	t268 = -t226 + t227 + t228 + t254;
+	t269 = t88 * t268;
+	t270 = t267 + t269;
+	t271 = t209 * t263;
+	t272 = t210 * t264;
+	t273 = t271 + t272;
+	t276 = t210 * t219*t220;
+	t277 = t274 + t275;
+	t278 = t257 - t276;
+	t279 = t87 * t278;
+	t280 = ddq5 - t103 + t122 - t156;
+	t281 = t88 * t280;
+	t282 = t279 + t281;
+	t283 = t237 + t243;
+	t285 = t209 * t283;
+	t284 = t252 - t285;
+	t286 = t184 * t209;
+	t287 = a4 * t87*t230;
+	t288 = a4 * t88*t284;
+	t289 = t286 + t287 + t288;
+	t290 = t158 * t209;
+	t320 = t186 * t210;
+	t291 = t290 - t320;
+	t292 = d4 * t87*t230;
+	t293 = t87 * t184*t210;
+	t294 = d4 * t88*t284;
+	t295 = t292 + t293 + t294 - t88 * t291;
+	t296 = t88 * t230;
+	t297 = t210 * t283;
+	t298 = t87 * t230;
+	t299 = t88 * t284;
+	t300 = t298 + t299;
+	t301 = t214 - t223;
+	t302 = t214 - t223;
+	t303 = t214 - t223;
+	t304 = t214 - t223;
+	t306 = t214 - t223;
+	t307 = t87 * t232;
+	t308 = t214 - t223;
+	t309 = t158 * t210;
+	t310 = t186 * t209;
+	t311 = t309 + t310;
+	t312 = t88 * t311;
+	t313 = t214 - t223;
+	t314 = t87 * t184*t209;
+	t315 = t184 * t210;
+	t316 = t214 - t223;
+	t317 = a4 * t87*t232;
+	t318 = t214 - t223;
+	t319 = t214 - t223;
+	t321 = t214 - t223;
+	t322 = t214 - t223;
+	t323 = t209 * t268;
+	t324 = t210 * (t216 + t217 - t221 - t231);
+	t325 = t323 + t324;
+	t326 = t214 - t223;
+	t327 = t214 - t223;
+	t328 = t214 - t223;
+	t329 = t88 * t325;
+	t330 = t209 * t291;
+	t331 = t210 * t311;
+	t332 = t330 + t331;
+	t333 = t87 * t332;
+	t334 = t214 - t223;
+	t335 = d4 * t88*t325;
+	t336 = t209 * t311;
+	t337 = t214 - t223;
+	t338 = a4 * t88*t325;
+	t339 = t87 * t325;
+	t340 = t214 - t223;
+	t341 = t209 * t247;
+	t605 = t210 * t268;
+	t342 = t341 - t605;
+	t344 = t210 * t291;
+	t343 = t336 - t344;
+	t345 = d4 * t88*t343;
+	t346 = t203 + t345;
+	t347 = a4 * t88*t343;
+	t348 = t200 + t347;
+	t609 = t87 * t343;
+	t349 = t206 - t609;
+	t350 = t88 * t343;
+	t351 = t185 + t350;
+	t352 = cos(q6);
+	t353 = sin(q6);
+	t354 = t219 * t352;
+	t357 = t220 * t353;
+	t355 = t354 - t357;
+	t356 = t219 * t353;
+	t358 = dq6 * t355;
+	t359 = t280 * t353;
+	t365 = t218 * t352;
+	t360 = t358 + t359 - t365;
+	t361 = t352 * t360;
+	t362 = t352 * (t214 - t223);
+	t363 = t356 + t362;
+	t364 = dq6 + t211 + t212;
+	t368 = t353 * t363*t364;
+	t366 = t361 - t368;
+	t367 = t209 * t355*t363;
+	t369 = t209 * t366;
+	t418 = t210 * t355*t363;
+	t370 = t369 - t418;
+	t371 = t353 * t360;
+	t372 = t352 * t363*t364;
+	t373 = t371 + t372;
+	t374 = t87 * t370 - t88 * t373;
+	t375 = t355 * t364;
+	t376 = t358 + t359 - t365 + t375;
+	t377 = t363 * t364;
+	t378 = dq6 * t363;
+	t381 = t218 * t353;
+	t382 = t280 * t352;
+	t379 = t377 + t378 - t381 - t382;
+	t380 = t353 * t376;
+	t383 = t352 * t379;
+	t384 = t380 + t383;
+	t385 = t355 * t355;
+	t386 = t363 * t363;
+	t387 = t385 - t386;
+	t388 = t210 * t384;
+	t692 = t209 * t387;
+	t389 = t388 - t692;
+	t390 = t352 * t376;
+	t610 = t353 * t379;
+	t391 = t390 - t610;
+	t392 = t88 * t391;
+	t393 = t209 * t384;
+	t394 = t210 * t387;
+	t395 = t393 + t394;
+	t396 = t87 * t395;
+	t397 = t392 + t396;
+	t398 = t364 * t364;
+	t399 = t386 - t398;
+	t400 = t355 * t363;
+	t401 = ddq6 + t227 + t228 + t254 + t400;
+	t402 = t353 * t399;
+	t403 = t352 * t401;
+	t404 = t402 + t403;
+	t405 = t358 + t359 - t365 - t375;
+	t406 = t352 * t399;
+	t456 = t353 * t401;
+	t407 = t406 - t456;
+	t408 = t88 * t407;
+	t409 = t210 * t405;
+	t410 = t209 * t404;
+	t411 = t409 + t410;
+	t412 = t87 * t411;
+	t413 = t408 + t412;
+	t414 = -t378 + t381 + t382;
+	t415 = t353 * t414;
+	t416 = t352 * t355*t364;
+	t417 = t415 + t416;
+	t419 = t210 * t417;
+	t420 = t367 + t419;
+	t611 = t209 * t417;
+	t421 = t418 - t611;
+	t422 = t352 * t414;
+	t440 = t353 * t355*t364;
+	t423 = t422 - t440;
+	t424 = ddq6 + t227 + t228 + t254 - t400;
+	t425 = t385 - t398;
+	t426 = t352 * t425;
+	t434 = t353 * t424;
+	t427 = t426 - t434;
+	t428 = t377 - t378 + t381 + t382;
+	t429 = t353 * t425;
+	t430 = t352 * t424;
+	t431 = t429 + t430;
+	t432 = t88 * t431;
+	t433 = t210 * t428;
+	t435 = t209 * t427;
+	t436 = t433 + t435;
+	t437 = t432 - t87 * t436;
+	t438 = t209 * t428;
+	t439 = t438 - t210 * t427;
+	t441 = ddq6 + t227 + t228 + t254;
+	t442 = t368 + t416;
+	t443 = t372 - t440;
+	t444 = t88 * t443;
+	t445 = t210 * t441;
+	t446 = t209 * t442;
+	t447 = t445 + t446;
+	t448 = t87 * t447;
+	t449 = t444 + t448;
+	t450 = t209 * t441;
+	t694 = t210 * t442;
+	t451 = t450 - t694;
+	t452 = t214 - t223;
+	t453 = DF * t243;
+	t454 = t214 - t223;
+	t455 = t385 + t398;
+	t475 = DF * t218;
+	t476 = DF * t213*t219;
+	t457 = t151 + t180 - t475 - t476;
+	t458 = t352 * t457;
+	t477 = DF * t280;
+	t478 = DF * t213*t220;
+	t459 = t309 + t310 - t477 - t478;
+	t479 = t353 * t459;
+	t460 = t458 - t479;
+	t461 = t214 - t223;
+	t462 = DF * t352*t401;
+	t463 = t210 * t379;
+	t464 = t352 * t455;
+	t465 = t456 + t464;
+	t468 = t209 * t465;
+	t466 = t463 - t468;
+	t469 = t353 * t455;
+	t467 = t403 - t469;
+	t470 = t88 * t466;
+	t471 = t214 - t223;
+	t472 = DF * t353*t401;
+	t473 = DF * t352*t455;
+	t474 = t214 - t223;
+	t480 = t210 * t460;
+	t481 = d4 * t87*t467;
+	t482 = d4 * t88*t466;
+	t483 = t209 * t460;
+	t484 = t214 - t223;
+	t485 = a4 * t88*t466;
+	t486 = t87 * t466;
+	t614 = t88 * t467;
+	t487 = t486 - t614;
+	t488 = t210 * t465;
+	t489 = t209 * t379;
+	t490 = t488 + t489;
+	t491 = t87 * t467;
+	t492 = t470 + t491;
+	t493 = a4 * t87*t467;
+	t494 = t214 - t223;
+	t495 = t214 - t223;
+	t496 = t386 + t398;
+	t497 = t352 * t459;
+	t498 = t353 * t457;
+	t499 = t497 + t498;
+	t500 = t214 - t223;
+	t501 = DF * t353*t424;
+	t502 = DF * t352*t496;
+	t503 = t352 * t496;
+	t504 = t434 + t503;
+	t505 = t210 * t376;
+	t508 = t353 * t496;
+	t506 = t430 - t508;
+	t509 = t209 * t506;
+	t507 = t505 - t509;
+	t510 = t87 * t504;
+	t511 = t510 - t88 * t507;
+	t512 = t214 - t223;
+	t513 = DF * t352*t424;
+	t514 = t214 - t223;
+	t515 = t210 * t499;
+	t516 = d4 * t87*t504;
+	t517 = t209 * t499;
+	t518 = t214 - t223;
+	t519 = a4 * t87*t504;
+	t520 = t87 * t507;
+	t521 = t88 * t504;
+	t522 = t520 + t521;
+	t523 = t210 * t506;
+	t524 = t209 * t376;
+	t525 = t523 + t524;
+	t526 = t352 * t405;
+	t534 = t353 * t428;
+	t527 = t526 - t534;
+	t528 = t385 + t386;
+	t529 = t210 * t528;
+	t530 = t353 * t405;
+	t531 = t352 * t428;
+	t532 = t530 + t531;
+	t535 = t209 * t532;
+	t533 = t529 - t535;
+	t536 = t352 * t460;
+	t537 = t353 * t499;
+	t538 = DF * t352*t405;
+	t540 = DF * t353*t428;
+	t539 = t536 + t537 + t538 - t540;
+	t541 = a4 * t87*t527;
+	t542 = a4 * t88*t533;
+	t543 = t541 + t542 - t210 * t539;
+	t544 = t87 * t527;
+	t545 = t88 * t533;
+	t546 = t544 + t545;
+	t547 = t353 * t460;
+	t548 = DF * t352*t428;
+	t549 = DF * t353*t405;
+	t560 = t352 * t499;
+	t550 = t547 + t548 + t549 - t560;
+	t551 = d4 * t88*t533;
+	t552 = t209 * t528;
+	t553 = t210 * (t530 + t531);
+	t554 = t552 + t553;
+	t555 = t88 * t527;
+	t556 = t87 * t209*t539;
+	t557 = d4 * t87*t527;
+	t558 = t551 + t556 + t557 - t88 * t550;
+	t617 = t87 * t533;
+	t559 = t555 - t617;
+	t561 = t214 - t223;
+	t562 = t536 + t537;
+	t563 = t547 - t560;
+	t564 = t209 * t563;
+	t565 = t214 - t223;
+	t566 = DF * t352*t460;
+	t567 = DF * t353*t499;
+	t568 = t566 + t567;
+	t569 = t214 - t223;
+	t570 = t214 - t223;
+	t571 = t214 - t223;
+	t572 = DF * t353*t460;
+	t618 = DF * t352*t499;
+	t573 = t572 - t618;
+	t574 = t88 * t573;
+	t575 = t214 - t223;
+	t576 = t214 - t223;
+	t577 = t210 * t568;
+	t578 = t214 - t223;
+	t579 = t214 - t223;
+	t580 = t88 * t562;
+	t581 = t214 - t223;
+	t582 = t5 * t13;
+	t583 = t5 * t14;
+	t584 = t64 + t65;
+	t585 = t137 * t137;
+	t586 = t29 * t137;
+	t587 = t26 * t137;
+	t588 = t87 * t91*t101;
+	t589 = t88 * t158;
+	t593 = t210 * t219*(t214 - t223);
+	t594 = t222 + t593;
+	t596 = t214 - t223;
+	t597 = t214 - t223;
+	t598 = t209 * (-ddq5 + t103 - t122 + t156 + t245);
+	t599 = t297 + t598;
+	t600 = t296 - t87 * t284;
+	t601 = t214 - t223;
+	t602 = t214 - t223;
+	t603 = t214 - t223;
+	t604 = t214 - t223;
+	t606 = t214 - t223;
+	t607 = t214 - t223;
+	t608 = d4 * t88*t184;
+	t612 = t214 - t223;
+	t613 = t214 - t223;
+	t615 = t214 - t223;
+	t616 = t214 - t223;
+	t619 = t214 - t223;
+	t620 = t210 * (t547 - t560);
+	t621 = t214 - t223;
+	t622 = t214 - t223;
+	t623 = t214 - t223;
+	t624 = t38 - t585;
+	t625 = -t22 - t24 - t144 + t587;
+	t626 = t88 * t215;
+	t627 = t588 + t626;
+	t628 = t87 * t179;
+	t629 = t628 - t88 * t157;
+	t630 = t87 * (t112 - t118);
+	t631 = -t154 + t630;
+	t632 = t103 - t122 + t156;
+	t633 = t88 * t93*t101;
+	t634 = -t176 - t88 * t129;
+	t635 = -t588 + t633;
+	t636 = d4 * t88*t116;
+	t637 = d4 * t87*t136;
+	t638 = d4 * t87*t127;
+	t639 = d4 * t88*t182;
+	t640 = a4 * t158;
+	t641 = t87 * t213*(t214 - t223);
+	t642 = t641 - t88 * t594;
+	t643 = t214 - t223;
+	t644 = t87 * (t216 + t217 - t221 - t231);
+	t645 = t214 - t223;
+	t646 = t88 * t258;
+	t647 = t646 - t87 * t213*t220;
+	t648 = t87 * t268;
+	t649 = t88 * (t305 - t209 * (t237 - t243));
+	t650 = t648 + t649;
+	t651 = t87 * t280;
+	t652 = t651 - t88 * t278;
+	t653 = t87 * t291;
+	t654 = d4 * t88*(t226 + t227 + t228 + t229);
+	t655 = t88 * t184*t210;
+	t656 = t214 - t223;
+	t657 = t214 - t223;
+	t658 = t88 * t184*t209;
+	t659 = t88 * t332;
+	t660 = t214 - t223;
+	t661 = a4 * t332;
+	t662 = t88 * t370;
+	t663 = t87 * t373;
+	t664 = t662 + t663;
+	t665 = t87 * (t390 - t610);
+	t666 = t665 - t88 * t395;
+	t667 = t87 * (t406 - t456);
+	t668 = t667 - t88 * t411;
+	t669 = t88 * (t418 - t611);
+	t670 = t87 * t423;
+	t671 = t669 + t670;
+	t672 = -t87 * t431 - t88 * t436;
+	t673 = t88 * t447;
+	t674 = t673 - t87 * t443;
+	t675 = t214 - t223;
+	t676 = t214 - t223;
+	t677 = d4 * t88*(t403 - t469);
+	t678 = t214 - t223;
+	t679 = t214 - t223;
+	t680 = t87 * (t547 + t548 + t549 - t560);
+	t681 = d4 * t88*(t526 - t534);
+	t682 = DF * t352*(t358 + t359 - t365 - t375);
+	t683 = t536 + t537 - t540 + t682;
+	t684 = t88 * t209*t683;
+	t685 = t87 * (t572 - t618);
+	t686 = t214 - t223;
+	t687 = t88 * t209*t568;
+	t688 = d4 * t88*t562;
+	t689 = t214 - t223;
+	t690 = t214 - t223;
+	t691 = t210 * t366;
+	t693 = t209 * t405;
+	t695 = t214 - t223;
+	t696 = t214 - t223;
+	t697 = t214 - t223;
+	t698 = t214 - t223;
+	t699 = t214 - t223;
+	A0[0][5] = ddq1;
+	A0[0][10] = t7 + t2 * t18;
+	A0[0][11] = t2 * t10 + t3 * t12;
+	A0[0][12] = -t2 * (ddq2 + t9) - t3 * (t8 - t5 * t14);
+	A0[0][13] = -t7 + t3 * t19;
+	A0[0][14] = -t3 * (ddq2 - t9) + t2 * (t8 - t5 * t13);
+	A0[0][16] = a2 * t10 + a2 * ddq1*t3;
+	A0[0][17] = -a2 * t12 - a2 * ddq1*t2;
+	A0[0][18] = -a2 * (t582 + t583) + t3 * t584 - t2 * (t63 - a2 * t2*t5);
+	A0[0][19] = (a2*a2)*ddq1;
+	A0[0][20] = t2 * (t16*t25 - t15 * t26*t29) + t3 * (t46 + t15 * t25);
+	A0[0][21] = -t2 * (t15*t36 + t16 * t35) - t3 * (t15*t35 - t16 * t36);
+	A0[0][22] = t2 * (t15*t39 - t16 * t40) - t3 * (t15*t40 + t16 * t39);
+	A0[0][23] = -t3 * (t16*t42 - t15 * t21*t26) + t2 * (t15*t42 + t16 * t26*(t20 - t30));
+	A0[0][24] = t2 * (t15*t59 + t16 * (t37 - t45 * t45)) - t3 * (t16*(ddq2 + ddq3 + t44) - t15 * (t37 - t43 * t43));
+	A0[0][25] = -t3 * (t46 + t15 * t21*t26) - t2 * (t16*t21*t26 - t15 * t26*t29);
+	A0[0][26] = -t2 * (t61 - d3 * t16*t40 + d3 * t15*(t37 + t47 * t47)) - a2 * t35 + t3 * (t57 - a3 * t35 + d3 * t15*t40 + d3 * t16*(t37 + t54 * t54));
+	A0[0][27] = -t3 * (t61 + a3 * t36 - d3 * t16*t59 + d3 * t15*t62) - a2 * t36 - t2 * (t57 + d3 * t15*t59 + d3 * t16*t62);
+	A0[0][28] = t2 * (t15*t77 + t16 * t80 + d3 * t15*t82 + d3 * t16*t84) - a2 * (t38 + t85 * t85) - t3 * (t16*t77 - t15 * t80 + a3 * (t38 + t81 * t81) + d3 * t16*t82 - d3 * t15*t84);
+	A0[0][29] = a2 * t53 + t2 * (d3*t15*t77 + d3 * t16*t80) + t3 * (a3*t53 - d3 * t16*t77 + d3 * t15*t80);
+	A0[0][30] = t2 * (t16*t102 - t15 * t91*t93) + t3 * (t123 + t15 * t102);
+	A0[0][31] = -t2 * (t16*t111 - t15 * t114) - t3 * (t15*t111 + t16 * t114);
+	A0[0][32] = -t2 * (t15*t121 + t16 * t120) - t3 * (t15*t120 - t16 * t121);
+	A0[0][33] = t2 * (t16*t126 + t15 * t91*t93) - t3 * (t123 - t15 * t126);
+	A0[0][34] = t2 * (t15*t131 + t16 * t130) + t3 * (t15*t130 - t16 * t131);
+	A0[0][35] = t2 * (t15*t135 + t16 * t134) + t3 * (t15*t134 - t16 * t135);
+	A0[0][36] = -t3 * (a3*t139 + t16 * (t151 + t152 + t87 * (-t48 - t49 + t55 + t56 + t143 + t146 + d4 * t25 - d4 * t21*t26) - a4 * t88*t136) + t15 * (t142 + t88 * (t78 + t79 + t141 - d4 * t37 - t29 * (t138 + a4 * t21)) - d4 * t87*t116) - d3 * t16*t155 + d3 * t15*t157) - a2 * t139 - t2 * (-t15 * (t151 + t152 + t180 - a4 * t88*t136) + t16 * (t142 + t589 - d4 * t87*t116) + d3 * t15*t155 + d3 * t16*t157);
+	A0[0][37] = -t2 * (t16*t169 + t15 * t175 + d3 * t15*t177 + d3 * t16*t179) + a2 * t171 + t3 * (a3*t171 - t15 * t169 + t16 * t175 + d3 * t16*t177 - d3 * t15*t179);
+	A0[0][38] = t2 * (t16*t190 + t15 * t196 - d3 * t16*t197 + d3 * t15*t199) - a2 * t193 - t3 * (a3*t193 - t15 * t190 + t16 * t196 + d3 * t15*t197 + d3 * t16*t199);
+	A0[0][39] = t2 * (t15*t202 + t16 * t205 + d3 * t16*t158 - d3 * t15*t207) - a2 * t208 + t3 * (-a3 * t208 - t16 * t202 + t15 * t205 + d3 * t15*t158 + d3 * t16*t207);
+	A0[0][40] = t2 * (t15*t225 - t16 * (t253 + t87 * t594)) - t3 * (t15*(t87*(t222 + t276) + t88 * t213*t220) + t16 * t225);
+	A0[0][41] = -t3 * (t16*t241 + t15 * (t239 - t88 * (t237 - t233 * t233))) + t2 * (t15*t241 - t16 * (t239 - t88 * (t237 - t238 * t238)));
+	A0[0][42] = -t3 * (t15*(t248 - t87 * (t250 + t210 * (t243 - t242 * t242))) - t16 * (t252 - t209 * (t243 - t244 * t244))) - t2 * (t16*(t248 - t87 * (t250 + t210 * (t243 - t249 * t249))) + t15 * (t252 - t209 * (t243 - t251 * t251)));
+	A0[0][43] = t2 * (t16*t260 + t15 * t262) + t3 * (t15*t260 - t16 * t262);
+	A0[0][44] = -t2 * (t16*t270 - t15 * t273) - t3 * (t15*t270 + t16 * t273);
+	A0[0][45] = t2 * (t15*t277 - t16 * t282) - t3 * (t16*t277 + t15 * t282);
+	A0[0][46] = -t3 * (a3*t300 + t16 * t289 - t15 * t295 + d3 * t15*(t250 + t297) - d3 * t16*t600) - a2 * t300 + t2 * (t15*t289 + t16 * t295 - d3 * t15*(t296 - t87 * (t252 - t285)) - d3 * t16*t599);
+	A0[0][47] = t3 * (t15*(t312 + t314 - d4 * t88*(t271 - t210 * (t243 + t303 * t303)) - d4 * t87*t232) + t16 * (t315 + t317 + a4 * t88*(t271 - t210 * (t243 + t302 * t302))) + a3 * (t307 + t88 * (t271 - t210 * (t243 + t301 * t301))) - d3 * t15*(t305 + t209 * (t243 + t306 * t306)) + d3 * t16*(t87*(t271 - t210 * (t243 + t304 * t304)) - t88 * t232)) - t2 * (-t16 * (t312 + t314 - d4 * t88*(t271 - t210 * (t243 + t313 * t313)) - d4 * t87*t232) + t15 * (t315 + t317 + a4 * t88*(t271 - t210 * (t243 + t316 * t316))) + d3 * t16*(t305 + t209 * (t243 + t319 * t319)) + d3 * t15*(t87*(t271 - t210 * (t243 + t318 * t318)) - t88 * t232)) + a2 * (t307 + t88 * (t271 - t210 * (t243 + t308 * t308)));
+	A0[0][48] = -a2 * (t329 + t87 * (t237 + t327 * t327)) + t2 * (t15*(t336 + t338 - t210 * t291 + a4 * t87*(t237 + t321 * t321)) + t16 * (t333 + t335 + d4 * t87*(t237 + t322 * t322)) + d3 * t15*(t339 - t88 * (t237 + t326 * t326)) - d3 * t16*t342) - t3 * (a3*(t329 + t87 * (t237 + t328 * t328)) + t16 * (t336 + t338 - t210 * t291 + a4 * t87*(t237 + t337 * t337)) - t15 * (t333 + t335 + d4 * t87*(t237 + t334 * t334)) + d3 * t16*(t339 - t88 * (t237 + t340 * t340)) + d3 * t15*t342);
+	A0[0][49] = t2 * (t16*t346 + t15 * t348 + d3 * t16*t332 - d3 * t15*t349) - a2 * t351 + t3 * (-a3 * t351 + t15 * t346 - t16 * t348 + d3 * t15*t332 + d3 * t16*t349);
+	A0[0][50] = t3 * (t15*t374 + t16 * (t367 + t210 * (t361 - t353 * t364*(t356 + t220 * t352)))) - t2 * (t15*(t367 + t691) - t16 * t374);
+	A0[0][51] = t2 * (t15*t389 - t16 * t397) - t3 * (t16*t389 + t15 * t397);
+	A0[0][52] = -t3 * (t15*t413 - t16 * (t693 - t210 * t404)) + t2 * (t15*(t210*t404 - t209 * (t358 + t359 - t365 - t375)) - t16 * t413);
+	A0[0][53] = t2 * (t15*t420 + t16 * (t87*t421 - t88 * t423)) - t3 * (t16*t420 - t15 * (t87*t421 - t88 * t423));
+	A0[0][54] = t2 * (t16*t437 - t15 * t439) + t3 * (t15*t437 + t16 * t439);
+	A0[0][55] = t2 * (t16*t449 + t15 * t451) + t3 * (t15*t449 - t16 * t451);
+	A0[0][56] = -a2 * t492 + t2 * (t15*(t483 + t485 + t493 - t210 * (t462 + t353 * (-t290 + t320 + t453 + DF * (t461*t461)) - DF * t353*t455)) + t16 * (t481 + t482 + t87 * (t480 + t209 * (t462 + t353 * (-t290 + t320 + t453 + DF * (t454*t454)) - DF * t353*t455)) - t88 * (t472 + t473 - t352 * (-t290 + t320 + t453 + DF * (t452*t452)))) + d3 * t15*t487 - d3 * t16*t490) - t3 * (t16*(t483 + t485 + t493 - t210 * (t462 + t353 * (-t290 + t320 + t453 + DF * (t484*t484)) - DF * t353*t455)) + a3 * t492 - t15 * (t481 + t482 + t87 * (t480 + t209 * (t462 + t353 * (-t290 + t320 + t453 + DF * (t474*t474)) - DF * t353*t455)) - t88 * (t472 + t473 - t352 * (-t290 + t320 + t453 + DF * (t471*t471)))) + d3 * t16*t487 + d3 * t15*t490);
+	A0[0][57] = -t3 * (t15*(t516 + t87 * (t515 + t209 * (t501 + t502 - t352 * (-t290 + t320 + t453 + DF * (t514*t514)))) + t88 * (t513 + t353 * (-t290 + t320 + t453 + DF * (t512*t512)) - DF * t353*t496) - d4 * t88*t507) - a3 * t511 - t16 * (t517 + t519 - t210 * (t501 + t502 - t352 * (-t290 + t320 + t453 + DF * (t518*t518))) - a4 * t88*t507) + d3 * t16*t522 + d3 * t15*t525) + a2 * t511 - t2 * (t16*(t516 + t87 * (t515 + t209 * (t501 + t502 - t352 * (-t290 + t320 + t453 + DF * (t495*t495)))) + t88 * (t513 + t353 * (-t290 + t320 + t453 + DF * (t494*t494)) - DF * t353*t496) - d4 * t88*t507) + t15 * (t517 + t519 - t210 * (t501 + t502 - t352 * (-t290 + t320 + t453 + DF * (t500*t500))) - a4 * t88*t507) - d3 * t15*t522 + d3 * t16*t525);
+	A0[0][58] = t2 * (t15*t543 + t16 * t558 - d3 * t16*t554 - d3 * t15*t559) - a2 * t546 - t3 * (a3*t546 + t16 * t543 - t15 * t558 + d3 * t15*t554 - d3 * t16*t559);
+	A0[0][59] = t3 * (a3*(t88*(t564 - t210 * (-t290 + t320 + t453 + DF * (t576*t576))) - t87 * t562) - t15 * (t574 + d4 * t88*(t564 - t210 * (-t290 + t320 + t453 + DF * (t575*t575))) - d4 * t87*t562 - t87 * t209*t568) + t16 * (t577 + a4 * t88*(t564 - t210 * (-t290 + t320 + t453 + DF * (t578*t578))) - a4 * t87*t562) + d3 * t16*(t580 + t87 * (t564 - t210 * (-t290 + t320 + t453 + DF * (t579*t579)))) - d3 * t15*(t620 + t209 * (-t290 + t320 + t453 + DF * (t581*t581)))) + a2 * (t88*(t564 - t210 * (-t290 + t320 + t453 + DF * (t561*t561))) - t87 * t562) - t2 * (t16*(t574 + d4 * t88*(t564 - t210 * (-t290 + t320 + t453 + DF * (t569*t569))) - d4 * t87*t562 - t87 * t209*t568) + t15 * (t577 + a4 * t88*(t564 - t210 * (-t290 + t320 + t453 + DF * (t565*t565))) - a4 * t87*t562) + d3 * t15*(t580 + t87 * (t564 - t210 * (-t290 + t320 + t453 + DF * (t570*t570)))) + d3 * t16*(t210*t563 + t209 * (-t290 + t320 + t453 + DF * (t571*t571))));
+	A0[1][10] = -t9;
+	A0[1][11] = -t582 + t583;
+	A0[1][12] = -t4;
+	A0[1][13] = t9;
+	A0[1][14] = -t6;
+	A0[1][15] = ddq2;
+	A0[1][16] = -t63 + t68;
+	A0[1][17] = t584;
+	A0[1][20] = -t29 * t137;
+	A0[1][21] = t624;
+	A0[1][22] = t625;
+	A0[1][23] = t586;
+	A0[1][24] = t82;
+	A0[1][25] = t97;
+	A0[1][26] = t78 + t79 - a3 * t15*(t37 + t585) + a3 * t16*(ddq2 + ddq3 + t586);
+	A0[1][27] = -t76 + t86 - a3 * t15*(ddq2 + ddq3 - t586) - a3 * t16*t62;
+	A0[1][28] = a3 * t15*t82 + a3 * t16*(t22 + t24 + t144 - t587);
+	A0[1][29] = a3 * t15*t77 + a3 * t16*t80;
+	A0[1][30] = t627;
+	A0[1][31] = t629;
+	A0[1][32] = t631;
+	A0[1][33] = -t87 * t632 - t88 * t93*t101;
+	A0[1][34] = t634;
+	A0[1][35] = t635;
+	A0[1][36] = t166 + t636 + t637 - a4 * t157 - a3 * t15*t155 - a3 * t16*t157;
+	A0[1][37] = -t589 + t638 - a4 * t179 - a3 * t15*t177 - a3 * t16*t179 - d4 * t88*t159;
+	A0[1][38] = t206 - t591 + t639 - a4 * t197 - a3 * t16*t197 + a3 * t15*t199 - d4 * t87*t183;
+	A0[1][39] = t608 + t640 + a3 * t16*t158 - a3 * t15*t207 - d4 * t87*t186;
+	A0[1][40] = t642;
+	A0[1][41] = -t88 * t236 - t87 * (t237 - t596 * t596);
+	A0[1][42] = t644 + t88 * (t598 + t210 * (t243 - t597 * t597));
+	A0[1][43] = t647;
+	A0[1][44] = t650;
+	A0[1][45] = t652;
+	A0[1][46] = t653 + t654 + t655 - a4 * t599 - a3 * t15*t600 - a3 * t16*t599 - d4 * t87*t284;
+	A0[1][47] = t658 - a4 * (t305 + t209 * (t243 + t601 * t601)) - t87 * t311 - a3 * t16*(t305 + t209 * (t243 + t603 * t603)) + d4 * t87*(t271 - t210 * (t243 + t604 * t604)) - d4 * t88*t232 - a3 * t15*(t87*(t271 - t210 * (t243 + t602 * t602)) - t88 * t232);
+	A0[1][48] = t659 - a4 * t342 + a3 * t15*(t339 - t88 * (t237 + t606 * t606)) - a3 * t16*t342 - d4 * t87*t325 + d4 * t88*(t237 + t607 * t607);
+	A0[1][49] = t608 + t661 + a3 * t16*t332 - a3 * t15*t349 - d4 * t87*t343;
+	A0[1][50] = t664;
+	A0[1][51] = t666;
+	A0[1][52] = t668;
+	A0[1][53] = t671;
+	A0[1][54] = t672;
+	A0[1][55] = t674;
+	A0[1][56] = t677 - a4 * t490 + t88 * (t480 + t209 * (t462 + t353 * (-t290 + t320 + t453 + DF * (t613*t613)) - DF * t353*t455)) + t87 * (t472 + t473 - t352 * (-t290 + t320 + t453 + DF * (t612*t612))) + a3 * t15*t487 - a3 * t16*t490 - d4 * t87*t466;
+	A0[1][57] = -t88 * (t515 + t209 * (t501 + t502 - t352 * (-t290 + t320 + t453 + DF * (t616*t616)))) - a4 * t525 + t87 * (t513 + t353 * (-t290 + t320 + t453 + DF * (t615*t615)) - DF * t353*t496) + a3 * t15*t522 - a3 * t16*t525 - d4 * t88*t504 - d4 * t87*t507;
+	A0[1][58] = t680 + t681 + t684 - a4 * t554 - a3 * t16*t554 - a3 * t15*t559 - d4 * t87*t533;
+	A0[1][59] = t685 + t687 + t688 - a4 * (t620 + t209 * (-t290 + t320 + t453 + DF * (t619*t619))) - a3 * t15*(t580 + t87 * (t564 - t210 * (-t290 + t320 + t453 + DF * (t621*t621)))) - a3 * t16*(t620 + t209 * (-t290 + t320 + t453 + DF * (t622*t622))) + d4 * t87*(t564 - t210 * (-t290 + t320 + t453 + DF * (t623*t623)));
+	A0[2][20] = -t586;
+	A0[2][21] = t624;
+	A0[2][22] = t625;
+	A0[2][23] = t586;
+	A0[2][24] = t82;
+	A0[2][25] = t97;
+	A0[2][26] = t80;
+	A0[2][27] = -t76 + t86;
+	A0[2][30] = t627;
+	A0[2][31] = t629;
+	A0[2][32] = t631;
+	A0[2][33] = -t633 - t87 * t632;
+	A0[2][34] = t634;
+	A0[2][35] = t635;
+	A0[2][36] = t166 + t636 + t637 - a4 * t157;
+	A0[2][37] = -t589 + t638 - a4 * t179 - d4 * t88*t159;
+	A0[2][38] = t206 - t591 + t639 - a4 * t197 - d4 * t87*t183;
+	A0[2][39] = t608 + t640 - d4 * t87*t186;
+	A0[2][40] = t642;
+	A0[2][41] = -t88 * t236 - t87 * (t237 - t643 * t643);
+	A0[2][42] = t644 + t88 * (t598 + t210 * (t243 - t645 * t645));
+	A0[2][43] = t647;
+	A0[2][44] = t650;
+	A0[2][45] = t652;
+	A0[2][46] = t653 + t654 + t655 - a4 * t599 - d4 * t87*t284;
+	A0[2][47] = t658 - a4 * (t305 + t209 * (t243 + t656 * t656)) - t87 * t311 + d4 * t87*(t271 - t210 * (t243 + t657 * t657)) - d4 * t88*t232;
+	A0[2][48] = t659 - a4 * t342 - d4 * t87*t325 + d4 * t88*(t237 + t660 * t660);
+	A0[2][49] = t608 + t661 - d4 * t87*t343;
+	A0[2][50] = t664;
+	A0[2][51] = t666;
+	A0[2][52] = t668;
+	A0[2][53] = t671;
+	A0[2][54] = t672;
+	A0[2][55] = t674;
+	A0[2][56] = t677 - a4 * t490 + t88 * (t480 + t209 * (t462 + t353 * (-t290 + t320 + t453 + DF * (t676*t676)) - DF * t353*t455)) + t87 * (t472 + t473 - t352 * (-t290 + t320 + t453 + DF * (t675*t675))) - d4 * t87*t466;
+	A0[2][57] = -t88 * (t515 + t209 * (t501 + t502 - t352 * (-t290 + t320 + t453 + DF * (t679*t679)))) - a4 * t525 + t87 * (t513 + t353 * (-t290 + t320 + t453 + DF * (t678*t678)) - DF * t353*t496) - d4 * t88*t504 - d4 * t87*t507;
+	A0[2][58] = t680 + t681 + t684 - a4 * t554 - d4 * t87*t533;
+	A0[2][59] = t685 + t687 + t688 - a4 * (t620 + t209 * (-t290 + t320 + t453 + DF * (t686*t686))) + d4 * t87*(t564 - t210 * (-t290 + t320 + t453 + DF * (t689*t689)));
+	A0[3][30] = -t115;
+	A0[3][31] = t114;
+	A0[3][32] = -t95 - t98 + t108 - t178;
+	A0[3][33] = t115;
+	A0[3][34] = t183;
+	A0[3][35] = t135;
+	A0[3][36] = t184;
+	A0[3][37] = -t172 + t181;
+	A0[3][40] = t225;
+	A0[3][41] = t234 + t210 * (t226 + t227 + t228 + t229);
+	A0[3][42] = -t252 + t209 * (t243 - t690 * t690);
+	A0[3][43] = t262;
+	A0[3][44] = t209 * (ddq5 - t103 + t122 - t156 + t245) + t210 * (t237 - t243);
+	A0[3][45] = t275 + t209 * t219*(t214 - t223);
+	A0[3][46] = t286;
+	A0[3][47] = -t315;
+	A0[3][48] = t343;
+	A0[3][50] = -t367 - t691;
+	A0[3][51] = t389;
+	A0[3][52] = -t693 + t210 * (t402 + t403);
+	A0[3][53] = t420;
+	A0[3][54] = -t438 + t210 * (t426 - t434);
+	A0[3][55] = t451;
+	A0[3][56] = t483 - t210 * (t462 + t353 * (-t290 + t320 + t453 + DF * (t695*t695)) - DF * t353*t455);
+	A0[3][57] = -t517 + t210 * (t501 + t502 - t352 * (-t290 + t320 + t453 + DF * (t696*t696)));
+	A0[3][58] = -t210 * t683;
+	A0[3][59] = -t577;
+	A0[4][40] = t213 * (t214 - t223);
+	A0[4][41] = -t237 + t697 * t697;
+	A0[4][42] = t247;
+	A0[4][43] = -t245;
+	A0[4][44] = t268;
+	A0[4][45] = t280;
+	A0[4][46] = t291;
+	A0[4][47] = -t309 - t310;
+	A0[4][50] = t373;
+	A0[4][51] = t391;
+	A0[4][52] = -t456 + t352 * (t386 - t398);
+	A0[4][53] = t423;
+	A0[4][54] = -t429 - t430;
+	A0[4][55] = -t372 + t440;
+	A0[4][56] = t472 + t473 - t352 * (-t290 + t320 + t453 + DF * (t698*t698));
+	A0[4][57] = t513 + t353 * (-t290 + t320 + t453 + DF * (t699*t699)) - DF * t353*t496;
+	A0[4][58] = t547 + t548 - t560 + DF * t353*(t358 + t359 - t365 - t375);
+	A0[4][59] = t573;
+	A0[5][50] = -t400;
+	A0[5][51] = -t385 + t386;
+	A0[5][52] = -t358 - t359 + t365 + t375;
+	A0[5][53] = t400;
+	A0[5][54] = -t377 + t378 - t381 - t382;
+	A0[5][55] = t441;
+	A0[5][56] = t460;
+	A0[5][57] = -t497 - t498;
+
+
+
+
+	A0[0][60] = ddq1;
+	A0[1][61] = ddq2;
+	A0[2][62] = ddq3;
+	A0[3][63] = ddq4;
+	A0[4][64] = ddq5;
+	A0[5][65] = ddq6;
+	double A0vec[6*JointGroupDim];
+	for (int i = 0; i < 6; i++)
+		for (int j = 0; j < JointGroupDim; j++)
+			A0vec[(JointGroupDim)* i + j] = A0[i][j];
+
+
+	s_mm(6, JointReduceDim, JointGroupDim, A0vec, CoefInv, distalVec);
+
+
+}
 
 
 
@@ -1750,6 +2689,215 @@ void jointdynamics::RLS(const double *positionL, const double *sensorL, double *
 		s_householder_utp2pinv(JointReduceDim, JointGroupDim, rankInv, UInv, tauInv, pInv, pinvInv, tau2Inv, 1e-10);
 		// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A)*b //
 		s_mm(JointGroupDim, JointReduceDim, JointGroupDim, EYE, pinvInv, CoefInv);
+
+	}
+
+void jointdynamics::RLStemp(const double *positionL, const double *sensorL, double *estParas, const double *Coef, const double *CoefInv, double *StatisError)
+	{
+
+		double CutFreq = 5;
+		A[0][0] = 0; A[0][1] = 1; A[0][2] = 0;
+		A[1][0] = 0; A[1][1] = 0; A[1][2] = 1;
+		A[2][0] = -CutFreq * CutFreq * CutFreq;
+		A[2][1] = -2 * CutFreq * CutFreq;
+		A[2][2] = -2 * CutFreq;
+		B[0] = 0; B[1] = 0;
+		B[2] = -A[2][0];
+
+
+
+		//positionList[id(2, 2, 6)];
+		double stateMot0[RobotAxis][3] = { 0 };
+		double stateMot1[RobotAxis][3] = { 0 };
+		double stateTor0[RobotAxis][3] = { 0 };
+		double stateTor1[RobotAxis][3] = { 0 };
+
+
+
+		double q[RobotAxis];
+		double dq[RobotAxis];
+		double ddq[RobotAxis];
+		double ts[RobotAxis];
+		//std::array<double, 6> estParas;
+
+		double intDT = 8 * DT;
+		int length = 6;
+		std::vector<double> regressorMatrix_vec(RobotAxis * SampleNum * JointGroupDim);
+		double* regressorVector = regressorMatrix_vec.data();
+
+		std::vector<double> regressorMatrixFric_vec(6 * SampleNum * 12);
+		double* regressorVectorFric = regressorMatrixFric_vec.data();
+
+		std::vector<double> regressorForces_vec(RobotAxis * SampleNum);
+		double* regressorForces = regressorForces_vec.data();
+
+		double posCur[RobotAxis];
+		double torCur[RobotAxis];
+		for (int j = 0; j < RobotAxis; j++)
+		{
+			stateMot0[j][0] = positionL[j];
+			stateTor0[j][0] = sensorL[j];
+		}
+
+		for (int i = 0; i < SampleNum; i++)
+		{
+
+			for (int j = 0; j < RobotAxis; j++)
+			{
+
+				posCur[j] = positionL[RobotAxis*i + j];
+				torCur[j] = sensorL[RobotAxis*i + j];
+
+				stateMot1[j][0] = stateMot0[j][0] + intDT * (A[0][0] * stateMot0[j][0] + A[0][1] * stateMot0[j][1] + A[0][2] * stateMot0[j][2] + B[0] * posCur[j]);
+				stateMot1[j][1] = stateMot0[j][1] + intDT * (A[1][0] * stateMot0[j][0] + A[1][1] * stateMot0[j][1] + A[1][2] * stateMot0[j][2] + B[1] * posCur[j]);
+				stateMot1[j][2] = stateMot0[j][2] + intDT * (A[2][0] * stateMot0[j][0] + A[2][1] * stateMot0[j][1] + A[2][2] * stateMot0[j][2] + B[2] * posCur[j]);
+
+				stateTor1[j][0] = stateTor0[j][0] + intDT * (A[0][0] * stateTor0[j][0] + A[0][1] * stateTor0[j][1] + A[0][2] * stateTor0[j][2] + B[0] * torCur[j]);
+				stateTor1[j][1] = stateTor0[j][1] + intDT * (A[1][0] * stateTor0[j][0] + A[1][1] * stateTor0[j][1] + A[1][2] * stateTor0[j][2] + B[1] * torCur[j]);
+				stateTor1[j][2] = stateTor0[j][2] + intDT * (A[2][0] * stateTor0[j][0] + A[2][1] * stateTor0[j][1] + A[2][2] * stateTor0[j][2] + B[2] * torCur[j]);
+			}
+
+			for (int j = 0; j < RobotAxis; j++)
+			{
+				q[j] = stateMot1[j][0];
+				dq[j] = stateMot1[j][1];
+				ddq[j] = stateMot1[j][2];
+				ts[j] = stateTor1[j][0];
+			}
+
+			for (int k = 0; k < RobotAxis; k++)
+			{
+				q[k] = q[k] * DirectionFlag[k] + JointOffset[k] + ZeroOffset[k];
+				dq[k] = dq[k] * DirectionFlag[k];
+				ddq[k] = ddq[k] * DirectionFlag[k];
+
+			}
+			double distalVec[RobotAxis * JointReduceDim];
+			JointReducedMatrix(q, dq, ddq, ts, CoefInv, distalVec);
+			double Y[RobotAxis][JointReduceDim];
+			for (int m = 0; m < RobotAxis; m++)
+				for (int n = 0; n < JointReduceDim; n++)
+					Y[m][n] = distalVec[JointReduceDim * m + n];
+
+			double Y1[RobotAxis][2 * RobotAxis];
+			for (int m = 0; m < RobotAxis; m++)
+			{
+				for (int n = 0; n < 2 * RobotAxis; n++)
+				{
+					Y1[m][n] = 0;
+					if (n == 2 * m)
+						Y1[m][n] = 1 * sign(dq[m]);
+					if (n == 2 * m + 1)
+						Y1[m][n] = dq[m];
+				}
+			}
+
+
+
+			for (int m = 0; m < RobotAxis; m++)
+			{
+				for (int n = 0; n < JointReduceDim; n++)
+				{
+					regressorVector[(i * RobotAxis + m)*JointGroupDim + n] = Y[m][n];
+
+				}
+
+				for (int n = 0; n < 12; n++)
+				{
+					regressorVectorFric[(i * RobotAxis + m) * 12 + n] = Y1[m][n];
+
+				}
+
+
+				regressorForces[i * RobotAxis + m] = ts[m];
+
+			}
+
+			for (int j = 0; j < RobotAxis; j++)
+			{
+
+				stateMot0[j][0] = stateMot1[j][0];
+				stateMot0[j][1] = stateMot1[j][1];
+				stateMot0[j][2] = stateMot1[j][2];
+
+				stateTor0[j][0] = stateTor1[j][0];
+				stateTor0[j][1] = stateTor1[j][1];
+				stateTor0[j][2] = stateTor1[j][2];
+			}
+			std::cout << i << std::endl;
+		}
+
+		// 所需的中间变量，请对U的对角线元素做处理
+        aris::Size rank;
+
+		std::vector<double> QwithFric_vec(RobotAxis * SampleNum * (JointReduceDim + 2 * RobotAxis));
+		auto QwithFric = QwithFric_vec.data();
+		for (int i = 0;i < RobotAxis * SampleNum;i++)
+		{
+			for (int j = 0;j < JointReduceDim;j++)
+				QwithFric[i*(JointReduceDim + 2 * RobotAxis) + j] = regressorVector[i*JointReduceDim + j];
+			for (int j = JointReduceDim;j < JointReduceDim + 2 * RobotAxis;j++)
+				QwithFric[i*(JointReduceDim + 2 * RobotAxis) + j] = regressorVectorFric[i * 2 * RobotAxis + j - JointReduceDim];
+		}
+
+		// 求解 A的广义逆pinv 和 x
+		std::vector<double> pinv_vec(RobotAxis * SampleNum * (JointReduceDim + 2 * RobotAxis));
+		auto pinv = pinv_vec.data();
+
+		// 所需的中间变量，请对U的对角线元素做处理
+		std::vector<double> UQ_vec(RobotAxis * SampleNum * (JointReduceDim + 2 * RobotAxis));
+		auto UQ = UQ_vec.data();
+
+		std::vector<double> tauQ_vec(RobotAxis * SampleNum);
+		auto tauQ = tauQ_vec.data();
+
+		std::vector<aris::Size> pQ_vec(RobotAxis * SampleNum);
+		auto pQ = pQ_vec.data();
+
+		aris::Size rankQ;
+
+		s_householder_utp(RobotAxis * SampleNum, JointReduceDim + 2 * RobotAxis, QwithFric, UQ, tauQ, pQ, rankQ, 1e-10);
+
+		// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A) //
+		std::vector<double> tauQ2_vec(RobotAxis * SampleNum);
+		auto tauQ2 = tauQ2_vec.data();
+
+		s_householder_utp2pinv(RobotAxis * SampleNum, JointReduceDim + 2 * RobotAxis, rankQ, UQ, tauQ, pQ, pinv, tauQ2, 1e-10);
+		// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A)*b //
+		s_mm(JointReduceDim + 2 * RobotAxis, 1, RobotAxis * SampleNum, pinv, regressorForces, estParas);
+
+
+		/*
+		std::ofstream outfile("C:/Users/gk/Desktop/Kaanh_gk/EstParas.txt");
+		if (!outfile)
+		{
+			std::cout << "Unable to open otfile";
+			exit(1); // terminate with error
+		}
+
+		for (int i = 0;i < 3 * SampleNum*TotalParas;i++)
+			outfile << regressorVector[i] << std::endl;
+
+		outfile.close();
+		*/
+
+		//Calculate Model Error
+		std::vector<double> Error_vec(RobotAxis * SampleNum);
+		auto Error = Error_vec.data();
+
+		s_mm(RobotAxis * SampleNum, 1, JointReduceDim + 12, QwithFric, estParas, Error);
+		for (int i = 0;i < RobotAxis*SampleNum;i++)
+			Error[i] = Error[i] - regressorForces[i];
+
+		double SumError[RobotAxis] = { 0 };
+		for (int j = 0;j < 6;j++)
+			for (int i = 0;i < SampleNum;i++)
+				SumError[j] = SumError[j] + Error[i * 6 + j] * Error[i * 6 + j];
+
+
+		for (int j = 0;j < RobotAxis;j++)
+			StatisError[j] = sqrt(SumError[j] / SampleNum);
+
 
 	}
 
@@ -3102,9 +4250,9 @@ void LoadReducedMatrix(const double* q, const double* dq, const double* ddq, con
 
 	ts1 = ts[0]; ts2 = ts[1]; ts3 = ts[2];
 
-	double A0[3][40];
+	double A0[3][LoadTotalParas];
 	for (int i = 0; i < RobotAxis / 2; i++)
-		for (int j = 0; j < 40; j++)
+		for (int j = 0; j < LoadTotalParas; j++)
 			A0[i][j] = 0;
 
 
@@ -3411,12 +4559,17 @@ void LoadReducedMatrix(const double* q, const double* dq, const double* ddq, con
 	A0[2][36] = t210;
 	A0[2][37] = -t204 - t207;
 
-	double AVec[3 * 40];
+
+
+	A0[0][40] = ddq3;
+	A0[1][41] = ddq5;
+	A0[2][42] = ddq6;
+	double AVec[3 * LoadTotalParas];
 	for (int i = 0; i < 3; i++)
-		for (int j = 0; j < 40; j++)
+		for (int j = 0; j < LoadTotalParas; j++)
 			AVec[40 * i + j] = A0[i][j];
 	
-	s_mm(3, 13, 40, AVec, CoefInv, distalVec);
+	s_mm(3, LoadReduceParas, LoadTotalParas, AVec, CoefInv, distalVec);
 
 }
 
@@ -3633,6 +4786,205 @@ void jointdynamics::LoadRLS(const double *positionL, const double *sensorL, cons
 
 
 }
+
+void jointdynamics::LoadRLStemp(const double *positionL, const double *sensorL, const double *Coef, const double *CoefInv, double *estParas, double *StatisError)
+{
+
+	double CutFreq = 5;
+	A[0][0] = 0; A[0][1] = 1; A[0][2] = 0;
+	A[1][0] = 0; A[1][1] = 0; A[1][2] = 1;
+	A[2][0] = -CutFreq * CutFreq * CutFreq;
+	A[2][1] = -2 * CutFreq * CutFreq;
+	A[2][2] = -2 * CutFreq;
+	B[0] = 0; B[1] = 0;
+	B[2] = -A[2][0];
+	//positionList[id(2, 2, 6)];
+	double stateMot0[RobotAxis][3] = { 0 };
+	double stateMot1[RobotAxis][3] = { 0 };
+	double stateTor0[RobotAxis][3] = { 0 };
+	double stateTor1[RobotAxis][3] = { 0 };
+
+
+
+	double q[RobotAxis];
+	double dq[RobotAxis];
+	double ddq[RobotAxis];
+	double ts[RobotAxis];
+
+	double intDT = 8 * DT;
+	int length = 6;
+	std::vector<double> regressorMatrix_vec(3 * SampleNum * LoadTotalParas);
+	double* regressorVector = regressorMatrix_vec.data();
+
+	std::vector<double> regressorMatrixFric_vec(3 * SampleNum * 6);
+	double* regressorVectorFric = regressorMatrixFric_vec.data();
+
+	std::vector<double> regressorForces_vec(3 * SampleNum);
+	double* regressorForces = regressorForces_vec.data();
+
+	double posCur[RobotAxis];
+	double torCur[RobotAxis];
+
+	for (int j = 0; j < RobotAxis; j++)
+	{
+		stateMot0[j][0] = positionL[j];
+		stateTor0[j][0] = sensorL[j];
+	}
+
+	for (int i = 0; i < SampleNum; i++)
+	{
+
+		for (int j = 0; j < RobotAxis; j++)
+		{
+
+			posCur[j] = positionL[RobotAxis*i + j];
+			torCur[j] = sensorL[RobotAxis*i + j];
+
+			stateMot1[j][0] = stateMot0[j][0] + intDT * (A[0][0] * stateMot0[j][0] + A[0][1] * stateMot0[j][1] + A[0][2] * stateMot0[j][2] + B[0] * posCur[j]);
+			stateMot1[j][1] = stateMot0[j][1] + intDT * (A[1][0] * stateMot0[j][0] + A[1][1] * stateMot0[j][1] + A[1][2] * stateMot0[j][2] + B[1] * posCur[j]);
+			stateMot1[j][2] = stateMot0[j][2] + intDT * (A[2][0] * stateMot0[j][0] + A[2][1] * stateMot0[j][1] + A[2][2] * stateMot0[j][2] + B[2] * posCur[j]);
+
+			stateTor1[j][0] = stateTor0[j][0] + intDT * (A[0][0] * stateTor0[j][0] + A[0][1] * stateTor0[j][1] + A[0][2] * stateTor0[j][2] + B[0] * torCur[j]);
+			stateTor1[j][1] = stateTor0[j][1] + intDT * (A[1][0] * stateTor0[j][0] + A[1][1] * stateTor0[j][1] + A[1][2] * stateTor0[j][2] + B[1] * torCur[j]);
+			stateTor1[j][2] = stateTor0[j][2] + intDT * (A[2][0] * stateTor0[j][0] + A[2][1] * stateTor0[j][1] + A[2][2] * stateTor0[j][2] + B[2] * torCur[j]);
+		}
+
+		for (int j = 0; j < RobotAxis; j++)
+		{
+			q[j] = stateMot1[j][0];
+			dq[j] = stateMot1[j][1];
+			ddq[j] = stateMot1[j][2];
+			ts[j] = stateTor1[j][0];
+		}
+
+		for (int k = 0; k < RobotAxis; k++)
+		{
+			q[k] = q[k] * DirectionFlag[k] + JointOffset[k] + ZeroOffset[k];
+			dq[k] = dq[k] * DirectionFlag[k];
+			ddq[k] = ddq[k] * DirectionFlag[k];
+
+		}
+
+		double LoadVec[3 * LoadReduceParas];
+		LoadReducedMatrix(q, dq, ddq, ts, Coef, CoefInv, LoadVec);
+		double Y[3][LoadReduceParas];
+		for (int m = 0; m < 3; m++)
+			for (int n = 0; n < LoadReduceParas; n++)
+				Y[m][n] = LoadVec[LoadReduceParas * m + n];
+
+		double Y1[3][6] = { 0 };
+		Y1[0][0] = 1 * sign(dq[2]); Y1[0][1] = dq[2];
+		Y1[1][2] = 1 * sign(dq[4]); Y1[1][3] = dq[4];
+		Y1[2][4] = 1 * sign(dq[5]); Y1[2][5] = dq[5];
+
+
+		for (int m = 0; m < 3; m++)
+		{
+			for (int n = 0; n < LoadReduceParas; n++)
+			{
+				regressorVector[(i * 3 + m) * LoadReduceParas + n] = Y[m][n];
+
+			}
+
+			for (int n = 0; n < 6; n++)
+			{
+				regressorVectorFric[(i * 3 + m) * 6 + n] = Y1[m][n];
+
+			}
+
+		}
+
+		regressorForces[i * 3 + 0] = ts[2];
+		regressorForces[i * 3 + 1] = ts[4];
+		regressorForces[i * 3 + 2] = ts[5];
+
+
+		for (int j = 0; j < 6; j++)
+		{
+
+			stateMot0[j][0] = stateMot1[j][0];
+			stateMot0[j][1] = stateMot1[j][1];
+			stateMot0[j][2] = stateMot1[j][2];
+
+			stateTor0[j][0] = stateTor1[j][0];
+			stateTor0[j][1] = stateTor1[j][1];
+			stateTor0[j][2] = stateTor1[j][2];
+		}
+
+	}
+
+	std::vector<double> QwithFric_vec(3 * SampleNum * (LoadReduceParas + 6));
+	auto QwithFric = QwithFric_vec.data();
+	for (int i = 0;i < 3 * SampleNum;i++)
+	{
+		for (int j = 0;j < LoadReduceParas;j++)
+			QwithFric[i*(LoadReduceParas + 6) + j] = regressorVector[i*LoadReduceParas + j];
+		for (int j = LoadReduceParas;j < LoadReduceParas + 6;j++)
+			QwithFric[i*(LoadReduceParas + 6) + j] = regressorVectorFric[i * 6 + j - LoadReduceParas];
+	}
+
+
+
+	// 求解 A的广义逆pinv 和 x
+	std::vector<double> pinv_vec(3 * SampleNum * (LoadReduceParas + 6));
+	auto pinv = pinv_vec.data();
+
+	// 所需的中间变量，请对U的对角线元素做处理
+	std::vector<double> UQ_vec(3 * SampleNum * (LoadReduceParas + 6));
+	auto UQ = UQ_vec.data();
+
+	std::vector<double> tauQ_vec(3 * SampleNum);
+	auto tauQ = tauQ_vec.data();
+
+	std::vector<aris::Size> pQ_vec(3 * SampleNum);
+	auto pQ = pQ_vec.data();
+
+	aris::Size rankQ;
+
+	s_householder_utp(3 * SampleNum, LoadReduceParas + 6, QwithFric, UQ, tauQ, pQ, rankQ, 1e-10);
+
+	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A) //
+	double tauQ2[3 * SampleNum];
+
+	s_householder_utp2pinv(3 * SampleNum, LoadReduceParas + 6, rankQ, UQ, tauQ, pQ, pinv, tauQ2, 1e-10);
+	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A)*b //
+	s_mm(LoadReduceParas + 6, 1, 3 * SampleNum, pinv, regressorForces, estParas);
+
+
+	/*
+	std::ofstream outfile("C:/Users/gk/Desktop/Kaanh_gk/EstParas.txt");
+	if (!outfile)
+	{
+		std::cout << "Unable to open otfile";
+		exit(1); // terminate with error
+	}
+
+	for (int i = 0;i < 3 * SampleNum*TotalParas;i++)
+		outfile << regressorVector[i] << std::endl;
+
+	outfile.close();
+	*/
+
+
+	//Calculate Model Error
+	std::vector<double> Error_vec(3 * SampleNum);
+	auto Error = Error_vec.data();
+
+	s_mm(3 * SampleNum, 1, LoadReduceParas + 6, QwithFric, estParas, Error);
+	for (int i = 0;i < 3 * SampleNum;i++)
+		Error[i] = Error[i] - regressorForces[i];
+
+	double SumError[3] = { 0 };
+	for (int j = 0;j < 3;j++)
+		for (int i = 0;i < SampleNum;i++)
+			SumError[j] = SumError[j] + Error[i * 3 + j] * Error[i * 3 + j];
+
+	for (int j = 0;j < 3;j++)
+		StatisError[j] = sqrt(SumError[j] / SampleNum);
+
+
+}
+
 
 void jointdynamics::YYbase(const double *AngList, const double *VelList, const double *AccList, double *Load2Joint,double *Coef,double*CoefInv,const int TestNum)
 {

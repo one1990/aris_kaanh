@@ -4,7 +4,7 @@
 
 #include"move_series.h"
 
-using namespace std;
+//using namespace std;
 using namespace aris::plan;
 using namespace aris::dynamic;
 
@@ -316,7 +316,7 @@ auto MoveSeriesGK::executeRT(PlanTarget &target)->int
 
 
 	if (target.count % 300 == 0)
-		cout << FmInWorld[2] << "***" << Ftotal << endl;
+		cout << FmInWorld[2] << "***" << Ftotal << std::endl;
 	// log 电流 //
 	auto &lout = controller->lout();
 
@@ -331,7 +331,7 @@ auto MoveSeriesGK::executeRT(PlanTarget &target)->int
 
 
 	lout << dX[0] << "," << dX[1] << ",";
-	lout << endl;
+	lout << std::endl;
 
 
 
