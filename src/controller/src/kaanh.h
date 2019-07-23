@@ -19,15 +19,14 @@ namespace kaanh
 	auto createPlanRootRokaeXB4()->std::unique_ptr<aris::plan::PlanRoot>;
 	
 
-	class ShowAll : public aris::plan::Plan
+	class Get : public aris::plan::Plan
 	{
 	public:
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
 		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
 
-		explicit ShowAll(const std::string &name = "ShowAll_plan");
-		ARIS_REGISTER_TYPE(ShowAll);
+		explicit Get(const std::string &name = "Get_plan");
+		ARIS_REGISTER_TYPE(Get);
 
 
 	};
@@ -43,20 +42,20 @@ namespace kaanh
 		ARIS_REGISTER_TYPE(MoveJR);
 	};
 
-	class MovePoint : public aris::plan::Plan
+	class JogC : public aris::plan::Plan
 	{
 	public:
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
 		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
 		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
 
-		virtual ~MovePoint();
-		explicit MovePoint(const std::string &name = "MovePoint_plan");
-		ARIS_REGISTER_TYPE(MovePoint);
-		MovePoint(const MovePoint &);
-		MovePoint(MovePoint &);
-		MovePoint& operator=(const MovePoint &);
-		MovePoint& operator=(MovePoint &&);
+		virtual ~JogC();
+		explicit JogC(const std::string &name = "JogC_plan");
+		ARIS_REGISTER_TYPE(JogC);
+		JogC(const JogC &);
+		JogC(JogC &);
+		JogC& operator=(const JogC &);
+		JogC& operator=(JogC &&);
 
 
 	private:
@@ -64,20 +63,20 @@ namespace kaanh
 		aris::core::ImpPtr<Imp> imp_;
 	};
 
-	class MoveJP : public aris::plan::Plan
+	class JogJ : public aris::plan::Plan
 	{
 	public:
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
 		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
 		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
 
-		virtual ~MoveJP();
-		explicit MoveJP(const std::string &name = "MoveJP_plan");
-		ARIS_REGISTER_TYPE(MoveJP);
-		MoveJP(const MoveJP &);
-		MoveJP(MoveJP &);
-		MoveJP& operator=(const MoveJP &);
-		MoveJP& operator=(MoveJP &&);
+		virtual ~JogJ();
+		explicit JogJ(const std::string &name = "JogJ_plan");
+		ARIS_REGISTER_TYPE(JogJ);
+		JogJ(const JogJ &);
+		JogJ(JogJ &);
+		JogJ& operator=(const JogJ &);
+		JogJ& operator=(JogJ &&);
 
 
 	private:
