@@ -28,7 +28,7 @@ namespace kaanh
 			double pos_factor[6]
 			{
 				131072.0 * 81 / 2 / PI, 131072.0 * 81 / 2 / PI, 131072.0 * 81 / 2 / PI, 131072.0 * 72.857 / 2 / PI, 131072.0 * 81 / 2 / PI, 131072.0 * 50 / 2 / PI
-		};
+			};
 			double max_pos[6]
 			{
 				170.0 / 360 * 2 * PI, 130.0 / 360 * 2 * PI,	50.0 / 360 * 2 * PI, 170.0 / 360 * 2 * PI, 117.0 / 360 * 2 * PI, 360.0 / 360 * 2 * PI,
@@ -79,12 +79,9 @@ namespace kaanh
 
 			controller->slavePool().add<aris::control::EthercatMotion>().loadXmlStr(xml_str);
 
-#ifndef WIN32
-			dynamic_cast<aris::control::EthercatMotion&>(controller->slavePool().back()).scanInfoForCurrentSlave();
-#endif
-	}
+		}
 		return controller;
-};
+	}
     //set DH parameters
     auto createModelRokae()->std::unique_ptr<aris::dynamic::Model>
 	{
