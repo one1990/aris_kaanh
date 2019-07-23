@@ -2043,7 +2043,7 @@ namespace kaanh
 		double vel[6], acc[6], dec[6];
 		int increase_count;
 	};
-	std::atomic_bool movepoint_is_changing = false;
+	std::atomic_bool jogc_is_changing = false;
 	auto JogC::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
 		auto c = target.controller;
@@ -2095,8 +2095,8 @@ namespace kaanh
                 std::fill_n(imp_->s2_nrt.is_increase.data(), 6, 0);
 
                 target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION;
-				movepoint_is_changing = true;
-				while (movepoint_is_changing.load())std::this_thread::sleep_for(std::chrono::milliseconds(1));
+				jogc_is_changing = true;
+				while (jogc_is_changing.load())std::this_thread::sleep_for(std::chrono::milliseconds(1));
 			}
 			else if (p.first == "cor")
 			{
@@ -2116,8 +2116,8 @@ namespace kaanh
 				imp_->s2_nrt.jogc_is_running = true;
 
 				target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION | NOT_PRINT_CMD_INFO | NOT_LOG_CMD_INFO;
-				movepoint_is_changing = true;
-				while (movepoint_is_changing.load())std::this_thread::sleep_for(std::chrono::milliseconds(1));
+				jogc_is_changing = true;
+				while (jogc_is_changing.load())std::this_thread::sleep_for(std::chrono::milliseconds(1));
 			}
 		}
 		
@@ -2150,10 +2150,10 @@ namespace kaanh
 		// init status //
 		static int increase_status[6]{ 0,0,0,0,0,0 };
 		double max_vel[6];
-		if (movepoint_is_changing)
+		if (jogc_is_changing)
 		{
 			imp_->s1_rt = imp_->s2_nrt;
-			movepoint_is_changing.store(false);
+			jogc_is_changing.store(false);
 			for (int i = 0; i < 6; i++)
 			{
 				increase_status[i] = imp_->s1_rt.is_increase[i];
@@ -2333,7 +2333,7 @@ namespace kaanh
 		std::vector<int> increase_status;
 		int increase_count;
 	};
-	std::atomic_bool is_changing = false;
+	std::atomic_bool jogj_is_changing = false;
 	auto JogJ::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
 		auto c = target.controller;
@@ -2380,8 +2380,8 @@ namespace kaanh
 
 				imp_->s2_nrt.jogj_is_running = false;
                 imp_->s2_nrt.is_increase.assign(imp_->s2_nrt.is_increase.size(), 0);
-				is_changing = true;
-				while (is_changing.load())std::this_thread::sleep_for(std::chrono::milliseconds(1));
+				jogj_is_changing = true;
+				while (jogj_is_changing.load())std::this_thread::sleep_for(std::chrono::milliseconds(1));
 				target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION;
 			}
 			else if (p.first == "vel_percent")
@@ -2398,8 +2398,8 @@ namespace kaanh
 				imp_->s2_nrt.jogj_is_running = true;	
 
 				target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION | NOT_PRINT_CMD_INFO | NOT_LOG_CMD_INFO;
-				is_changing = true;
-				while (is_changing.load())std::this_thread::sleep_for(std::chrono::milliseconds(1));
+				jogj_is_changing = true;
+				while (jogj_is_changing.load())std::this_thread::sleep_for(std::chrono::milliseconds(1));
 			}
 		}
 
@@ -2431,9 +2431,9 @@ namespace kaanh
 		}
 		// init status and calculate target pos and max vel //
 		
-		if (is_changing)
+		if (jogj_is_changing)
 		{
-			is_changing.store(false);
+			jogj_is_changing.store(false);
 			imp_->s1_rt = imp_->s2_nrt;
 			for (int i = 0; i < imp_->s1_rt.is_increase.size(); i++)
 			{
