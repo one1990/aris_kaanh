@@ -1,11 +1,12 @@
 ﻿#include <algorithm>
-#include"kaanh.h"
+#include "kaanh.h"
 #include "sixdistalfc.h"
 #include "jointfc.h"
 #include "sevenjointfc.h"
 #include <array>
 #include <stdlib.h>
 #include"move_series.h"
+
 
 using namespace aris::dynamic;
 using namespace aris::plan;
@@ -252,11 +253,8 @@ namespace kaanh
 
     auto createControllerDaye()->std::unique_ptr<aris::control::Controller>	/*函数返回的是一个类指针，指针指向Controller,controller的类型是智能指针std::unique_ptr*/
     {
-
         std::unique_ptr<aris::control::Controller> controller(aris::robot::createControllerRokaeXB4());/*创建std::unique_ptr实例*/
-
         controller->slavePool().clear();	//清除slavePool中的元素，后面重新添加
-
         for (aris::Size i = 0; i < 6; ++i)
         {
 #ifdef WIN32
@@ -367,7 +365,7 @@ namespace kaanh
         controller->slavePool().add<aris::control::EthercatSlave>().loadXmlStr(xml_str);
 
         return controller;
-    };
+    }
     auto createModelDaye(const double *robot_pm)->std::unique_ptr<aris::dynamic::Model>
     {
 		aris::dynamic::PumaParam param;
@@ -400,7 +398,7 @@ namespace kaanh
 		*/
 		return std::move(model);
     }
-
+	
 	auto createControllerSanXiang()->std::unique_ptr<aris::control::Controller>	/*函数返回的是一个类指针，指针指向Controller,controller的类型是智能指针std::unique_ptr*/
 	{
 		std::unique_ptr<aris::control::Controller> controller(new aris::control::EthercatController);/*创建std::unique_ptr实例*/
@@ -473,13 +471,8 @@ namespace kaanh
 				"</EthercatMotion>";
             controller->slavePool().add<aris::control::EthercatMotion>().loadXmlStr(xml_str);
 		}
-
-
         dynamic_cast<aris::control::EthercatController*>(controller.get())->scanInfoForCurrentSlaves();
-
         dynamic_cast<aris::control::EthercatController*>(controller.get())->scanPdoForCurrentSlaves();
-
-        std::cout << controller->xmlString()<<std::endl;
 
 		return controller;
 	};
@@ -501,169 +494,132 @@ namespace kaanh
 	}
 
 
-	// 获取驱动器当前位置，并设置为起始位置 //
-	struct ShowAllParam
+	// 获取末端位姿pq,pe,关节角度j //
+	auto Get::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
-		std::vector<double> axis_pos_vec;
-		std::vector<double> axis_pq_vec;
-	};
-	auto ShowAll::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
-	{
-		ShowAllParam param;
-		param.axis_pos_vec.clear();
-		param.axis_pq_vec.clear();
-		param.axis_pos_vec.resize(6, 0.0);
-		param.axis_pq_vec.resize(7, 0.0);
-		target.param = param;
-
-		std::fill(target.mot_options.begin(), target.mot_options.end(),
-			Plan::USE_TARGET_POS);
-	}
-	auto ShowAll::executeRT(PlanTarget &target)->int
-	{
-		// 访问主站 //
-		auto controller =target.controller;
-		auto &param = std::any_cast<ShowAllParam&>(target.param);
-
-		// 取得起始位置 //
-		if (target.count == 1)
+		std::any pq_pe_j_vec;
+		for (auto cmd_param : params)
 		{
-			for (Size i = 0; i < param.axis_pos_vec.size(); ++i)
+			if (cmd_param.first == "all")
 			{
-#ifdef UNIX
-				target.model->motionPool().at(i).setMp(controller->motionAtAbs(i).actualPos());
-				param.axis_pos_vec[i] = controller->motionAtAbs(i).actualPos();
-#endif
+				pq_pe_j_vec = std::make_any<std::vector<double> >(13 + 3 * target.model->motionPool().size());
 
-#ifdef WIN32
-				param.axis_pos_vec[i] = target.model->motionPool().at(i).mp();
-#endif
+				target.server->getRtData([](aris::server::ControlServer& cs, std::any& data)
+				{
+					cs.model().generalMotionPool().at(0).getMpq(std::any_cast<std::vector<double>&>(data).data());
+					cs.model().generalMotionPool().at(0).getMpe(std::any_cast<std::vector<double>&>(data).data() + 7);
+					for (aris::Size i = 13; i < 13 + cs.model().motionPool().size(); i++)
+					{
+						std::any_cast<std::vector<double>&>(data)[i] = cs.model().motionPool()[i - 13].mp();
+					}
+					for (aris::Size i = 13 + cs.model().motionPool().size(); i < 13 + 2 * cs.model().motionPool().size(); i++)
+					{
+						std::any_cast<std::vector<double>&>(data)[i] = cs.model().motionPool()[i - 13 - cs.model().motionPool().size()].mv();
+					}
+					for (aris::Size i = 13 + 2 * cs.model().motionPool().size(); i < 13 + 3 * cs.model().motionPool().size(); i++)
+					{
+						std::any_cast<std::vector<double>&>(data)[i] = cs.model().motionPool()[i - 13 - 2 * cs.model().motionPool().size()].ma();
+					}
+
+				}, pq_pe_j_vec);
+				std::cout << "pq:" << " ";
+				for (aris::Size i = 0; i < 7; i++)
+				{
+					std::cout << std::any_cast<std::vector<double>&>(pq_pe_j_vec)[i] << " ";
+				}
+				std::cout << std::endl;
+				std::cout << "pe:" << " ";
+				for (aris::Size i = 7; i < 13; i++)
+				{
+					std::cout << std::any_cast<std::vector<double>&>(pq_pe_j_vec)[i] << " ";
+				}
+				std::cout << std::endl;
+				std::cout << "j:" << " ";
+				for (aris::Size i = 13; i < 13 + target.model->motionPool().size(); i++)
+				{
+					std::cout << std::any_cast<std::vector<double>&>(pq_pe_j_vec)[i] << " ";
+				}
+				std::cout << std::endl;
 			}
-			target.model->generalMotionPool().at(0).getMpq(param.axis_pq_vec.data());
-		}
-
-		if (target.model->solverPool().at(0).kinPos())return -1;
-
-		// 打印 //
-		auto &cout = controller->mout();
-		cout << "current pq:" << std::endl;
-		for (Size i = 0; i < 7; i++)
-		{
-			cout << param.axis_pq_vec[i] << " ";
-		}
-		cout << std::endl;
-		cout << "current pos:" << std::endl;
-		for (Size i = 0; i < 6; i++)
-		{
-			cout << param.axis_pos_vec[i] << "  ";
-		}
-		cout << std::endl;
-
-		// log //
-		auto &lout = controller->lout();
-		for (Size i = 0; i < 6; i++)
-		{
-			lout << param.axis_pos_vec[i] << " ";
-		}
-		lout << std::endl;
-		return 0;
-	}
-	auto ShowAll::collectNrt(PlanTarget &target)->void {}
-	ShowAll::ShowAll(const std::string &name): Plan(name)
-	{
-		command().loadXmlStr(
-			"<Command name=\"sha\">"
-			"</Command>");
-	}
-
-
-	// 获取末端位姿pq //
-	auto Get_ee_pq::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
-	{
-		auto ee_pq_vec = std::make_any<std::vector<double> >(7);
-		target.server->getRtData([](aris::server::ControlServer& cs, std::any& data)
-		{
-			cs.model().generalMotionPool().at(0).getMpq(std::any_cast<std::vector<double>&>(data).data());
-		}, ee_pq_vec);
-		auto pq = std::any_cast<std::vector<double>&>(ee_pq_vec);
-		
-		//取小数点后三位//
-		for (aris::Size i = 0; i < 7; i++)
-		{
-			pq[i] = std::floor(pq[i]*1000.0f + 0.5)/1000.0f;
-		}
-		
-		std::string ret(reinterpret_cast<char*>(pq.data()), pq.size() * sizeof(double));
-		target.ret = ret;
-		target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_PRINT_CMD_INFO | NOT_PRINT_CMD_INFO;
-	}
-	auto Get_ee_pq::collectNrt(PlanTarget &target)->void {}
-	Get_ee_pq::Get_ee_pq(const std::string &name) : Plan(name)
-	{
-		command().loadXmlStr(
-			"<Command name=\"get_ee_pq\">"
-			"</Command>");
-	}
-
-
-	// 获取末端位姿pe //
-	auto Get_ee_pe::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
-	{
-		auto ee_pe_vec = std::make_any<std::vector<double> >(6);
-		target.server->getRtData([](aris::server::ControlServer& cs, std::any& data)
-		{
-			cs.model().generalMotionPool().at(0).getMpe(std::any_cast<std::vector<double>&>(data).data());
-		}, ee_pe_vec);
-		auto pe = std::any_cast<std::vector<double>&>(ee_pe_vec);
-		
-		//取小数点后三位//
-		for (aris::Size i = 0; i < pe.size(); i++)
-		{
-			pe[i] = std::floor(pe[i] * 1000.0f + 0.5) / 1000.0f;
-		}
-		
-		std::string ret(reinterpret_cast<char*>(pe.data()), pe.size() * sizeof(double));
-		target.ret = ret;
-		target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_PRINT_CMD_INFO | NOT_PRINT_CMD_INFO;
-	}
-	auto Get_ee_pe::collectNrt(PlanTarget &target)->void {}
-	Get_ee_pe::Get_ee_pe(const std::string &name) : Plan(name)
-	{
-		command().loadXmlStr(
-			"<Command name=\"get_ee_pe\">"
-			"</Command>");
-	}
-
-
-	// 获取关节位置 //
-	auto Get_joint_pos::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
-	{
-		auto joint_pos = std::make_any<std::vector<double> >(target.model->motionPool().size(), 0.0);
-		target.server->getRtData([&](aris::server::ControlServer& cs, std::any &data)->void
-		{
-			for (aris::Size i = 0; i < cs.model().motionPool().size(); i++)
+			else if (cmd_param.first == "pq")
 			{
-				std::any_cast<std::vector<double>&>(data)[i] = cs.model().motionPool()[i].mp();
-			}		
-		}, joint_pos);
+				pq_pe_j_vec = std::make_any<std::vector<double> >(7);
 
-		auto pos = std::any_cast<std::vector<double>&>(joint_pos);
-		
+				target.server->getRtData([](aris::server::ControlServer& cs, std::any& data)
+				{
+					cs.model().generalMotionPool().at(0).getMpq(std::any_cast<std::vector<double>&>(data).data());
+				}, pq_pe_j_vec);
+				for (aris::Size i = 0; i < 7; i++)
+				{
+					std::cout << std::any_cast<std::vector<double>&>(pq_pe_j_vec)[i] << " ";
+				}
+				std::cout << std::endl;
+			}
+			else if (cmd_param.first == "pe")
+			{
+				pq_pe_j_vec = std::make_any<std::vector<double> >(6);
+
+				target.server->getRtData([](aris::server::ControlServer& cs, std::any& data)
+				{
+					cs.model().generalMotionPool().at(0).getMpe(std::any_cast<std::vector<double>&>(data).data());
+				}, pq_pe_j_vec);
+				for (aris::Size i = 0; i < 6; i++)
+				{
+					std::cout << std::any_cast<std::vector<double>&>(pq_pe_j_vec)[i] << " ";
+				}
+				std::cout << std::endl;
+			}
+			else if (cmd_param.first == "j")
+			{
+				pq_pe_j_vec = std::make_any<std::vector<double> >(3*target.model->motionPool().size());
+				target.server->getRtData([](aris::server::ControlServer& cs, std::any& data)
+				{
+					for (aris::Size i = 0; i < cs.model().motionPool().size(); i++)
+					{
+						std::any_cast<std::vector<double>&>(data)[i] = cs.model().motionPool()[i].mp();
+					}
+					for (aris::Size i = cs.model().motionPool().size(); i < 2*cs.model().motionPool().size(); i++)
+					{
+						std::any_cast<std::vector<double>&>(data)[i] = cs.model().motionPool()[i- cs.model().motionPool().size()].mv();
+					}		
+					for (aris::Size i = 2*cs.model().motionPool().size(); i < 3*cs.model().motionPool().size(); i++)
+					{
+						std::any_cast<std::vector<double>&>(data)[i] = cs.model().motionPool()[i- 2*cs.model().motionPool().size()].ma();
+					}
+					
+				}, pq_pe_j_vec);
+
+				for (aris::Size i = 0; i < target.model->motionPool().size(); i++)
+				{
+					std::cout << std::any_cast<std::vector<double>&>(pq_pe_j_vec)[i] << " ";
+				}
+				std::cout << std::endl;
+			}
+		}
+		auto pq_pe_j = std::any_cast<std::vector<double>&>(pq_pe_j_vec);
 		//取小数点后三位//
-		for (aris::Size i = 0; i < pos.size(); i++)
+		for (aris::Size i = 0; i < pq_pe_j.size(); i++)
 		{
-			pos[i] = std::floor(pos[i] * 1000.0f + 0.5) / 1000.0f;
+			pq_pe_j[i] = std::floor(pq_pe_j[i]*1000.0f + 0.5)/1000.0f;
 		}
 		
-		std::string ret(reinterpret_cast<char*>(pos.data()), pos.size() * sizeof(double));
+		std::string ret(reinterpret_cast<char*>(pq_pe_j.data()), pq_pe_j.size() * sizeof(double));
 		target.ret = ret;
 		target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_PRINT_CMD_INFO | NOT_PRINT_CMD_INFO;
 	}
-	auto Get_joint_pos::collectNrt(PlanTarget &target)->void {}
-	Get_joint_pos::Get_joint_pos(const std::string &name) : Plan(name)
+	auto Get::collectNrt(PlanTarget &target)->void {}
+	Get::Get(const std::string &name) : Plan(name)
 	{
 		command().loadXmlStr(
-			"<Command name=\"get_joint_pos\">"
+			"<Command name=\"get\">"
+			"	<GroupParam>"
+			"		<UniqueParam default=\"all\">"
+			"			<Param name=\"all\" abbreviation=\"a\"/>"
+			"			<Param name=\"pq\"/>"
+			"			<Param name=\"pe\"/>"
+			"			<Param name=\"j\"/>"
+			"		</UniqueParam>"
+			"	</GroupParam>"
 			"</Command>");
 	}
 
@@ -2072,26 +2028,26 @@ namespace kaanh
 
 	
 	// 示教运动--输入末端大地坐标系的位姿pe，控制动作 //
-	struct MovePointParam {};
-	struct MovePointStruct
+	struct JogCParam {};
+	struct JogCStruct
 	{
-		bool movepoint_is_running = false;
+		bool jogc_is_running = false;
 		int cor_system;
 		int vel_percent;
 		std::array<int, 6> is_increase;
 	};
-	struct MovePoint::Imp
+	struct JogC::Imp
 	{
-		MovePointStruct s1_rt, s2_nrt;
+		JogCStruct s1_rt, s2_nrt;
 		std::vector<double> pm_target;
 		double vel[6], acc[6], dec[6];
 		int increase_count;
 	};
 	std::atomic_bool movepoint_is_changing = false;
-	auto MovePoint::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	auto JogC::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
 		auto c = target.controller;
-		MovePointParam param;
+		JogCParam param;
 		imp_->pm_target.resize(16, 0.0);
 		
 		std::string ret = "ok";
@@ -2101,14 +2057,14 @@ namespace kaanh
 		{
 			if (p.first == "start")
 			{
-				if (imp_->s1_rt.movepoint_is_running)throw std::runtime_error("auto mode already started");
+				if (imp_->s1_rt.jogc_is_running)throw std::runtime_error("auto mode already started");
 
-				imp_->s2_nrt.movepoint_is_running = true;
+				imp_->s2_nrt.jogc_is_running = true;
 				std::fill_n(imp_->s2_nrt.is_increase.data(), 6, 0);
 				imp_->s2_nrt.cor_system= 0;
 				imp_->s2_nrt.vel_percent = 10;
 
-				imp_->s1_rt.movepoint_is_running = true;
+				imp_->s1_rt.jogc_is_running = true;
 				std::fill_n(imp_->s1_rt.is_increase.data(), 6, 0);
 				imp_->s1_rt.cor_system = 0;
 				imp_->s1_rt.vel_percent = 10;
@@ -2133,9 +2089,9 @@ namespace kaanh
 			}
 			else if (p.first == "stop")
 			{
-				if (!imp_->s1_rt.movepoint_is_running)throw std::runtime_error("manual mode not started, when stop");
+				if (!imp_->s1_rt.jogc_is_running)throw std::runtime_error("manual mode not started, when stop");
 
-				imp_->s2_nrt.movepoint_is_running = false;
+				imp_->s2_nrt.jogc_is_running = false;
                 std::fill_n(imp_->s2_nrt.is_increase.data(), 6, 0);
 
                 target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION;
@@ -2144,7 +2100,7 @@ namespace kaanh
 			}
 			else if (p.first == "cor")
 			{
-				if (!imp_->s1_rt.movepoint_is_running)throw std::runtime_error("manual mode not started, when pe");
+				if (!imp_->s1_rt.jogc_is_running)throw std::runtime_error("manual mode not started, when pe");
 
 				imp_->s2_nrt.cor_system = std::stoi(params.at("cor"));
 				auto velocity = std::stoi(params.at("vel_percent"));
@@ -2157,7 +2113,7 @@ namespace kaanh
 				imp_->s2_nrt.is_increase[4] = std::max(std::min(1, std::stoi(params.at("b"))), -1) * imp_->increase_count;
 				imp_->s2_nrt.is_increase[5] = std::max(std::min(1, std::stoi(params.at("c"))), -1) * imp_->increase_count;
 
-				imp_->s2_nrt.movepoint_is_running = true;
+				imp_->s2_nrt.jogc_is_running = true;
 
 				target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION | NOT_PRINT_CMD_INFO | NOT_LOG_CMD_INFO;
 				movepoint_is_changing = true;
@@ -2167,11 +2123,11 @@ namespace kaanh
 		
 		target.param = param;
 	}
-	auto MovePoint::executeRT(PlanTarget &target)->int
+	auto JogC::executeRT(PlanTarget &target)->int
 	{	
 		//获取驱动//
 		auto controller = target.controller;
-		auto &param = std::any_cast<MovePointParam&>(target.param);
+		auto &param = std::any_cast<JogCParam&>(target.param);
 		char eu_type[4]{ '1', '2', '3', '\0' };
 		
 		// 前三维为xyz，后三维是w的积分，注意没有物理含义
@@ -2323,14 +2279,14 @@ namespace kaanh
 		}
 		lout << std::endl;
 
-		return imp_->s1_rt.movepoint_is_running ? 1 : 0;
+		return imp_->s1_rt.jogc_is_running ? 1 : 0;
 	}
-	auto MovePoint::collectNrt(PlanTarget &target)->void {}
-	MovePoint::~MovePoint() = default;
-	MovePoint::MovePoint(const std::string &name) :Plan(name)
+	auto JogC::collectNrt(PlanTarget &target)->void {}
+	JogC::~JogC() = default;
+	JogC::JogC(const std::string &name) :Plan(name)
 	{
 		command().loadXmlStr(
-			"<Command name=\"movePoint\">"
+			"<Command name=\"jogC\">"
 			"	<GroupParam>"
 			"		<UniqueParam>"
 			"			<GroupParam name=\"start_group\">"
@@ -2355,33 +2311,33 @@ namespace kaanh
 			"	</GroupParam>"
 			"</Command>");
 	}
-	MovePoint::MovePoint(const MovePoint &other) = default;
-	MovePoint::MovePoint(MovePoint &other) = default;
-	MovePoint& MovePoint::operator=(const MovePoint &other) = default;
-	MovePoint& MovePoint::operator=(MovePoint &&other) = default;
+	JogC::JogC(const JogC &other) = default;
+	JogC::JogC(JogC &other) = default;
+	JogC& JogC::operator=(const JogC &other) = default;
+	JogC& JogC::operator=(JogC &&other) = default;
 
 
-	// 示教运动--输入末端大地坐标系的位姿pe，控制动作 //
-	struct MoveJPParam {};
-	struct MoveJPStruct 
+	// 示教运动--关节空间点动 //
+	struct JogJParam {};
+	struct JogJStruct
 	{
-		bool movejp_is_running = false;
+		bool jogj_is_running = false;
 		int vel_percent;
 		std::vector<int> is_increase;
 	};
-	struct MoveJP::Imp
+	struct JogJ::Imp
 	{
-		MoveJPStruct s1_rt, s2_nrt;
+		JogJStruct s1_rt, s2_nrt;
 		double vel, acc, dec;
 		std::vector<double> p_now, v_now, a_now, target_pos, max_vel;
 		std::vector<int> increase_status;
 		int increase_count;
 	};
 	std::atomic_bool is_changing = false;
-	auto MoveJP::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	auto JogJ::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
 		auto c = target.controller;
-		MoveJPParam param;
+		JogJParam param;
 
 		std::string ret = "ok";
 		target.ret = ret;
@@ -2397,14 +2353,14 @@ namespace kaanh
 		{
 			if (p.first == "start")
 			{
-				if (imp_->s1_rt.movejp_is_running)throw std::runtime_error("auto mode already started");
+				if (imp_->s1_rt.jogj_is_running)throw std::runtime_error("auto mode already started");
 
-				imp_->s2_nrt.movejp_is_running = true;
+				imp_->s2_nrt.jogj_is_running = true;
 				imp_->s2_nrt.is_increase.clear();
 				imp_->s2_nrt.is_increase.resize(c->motionPool().size(), 0);
 				imp_->s2_nrt.vel_percent = 10;
 
-				imp_->s1_rt.movejp_is_running = true;
+				imp_->s1_rt.jogj_is_running = true;
 				imp_->s1_rt.is_increase.clear();
 				imp_->s1_rt.is_increase.resize(c->motionPool().size(), 0);
 				imp_->s1_rt.vel_percent = 10;
@@ -2420,9 +2376,9 @@ namespace kaanh
 			}
 			else if (p.first == "stop")
 			{
-				if (!imp_->s1_rt.movejp_is_running)throw std::runtime_error("manual mode not started, when stop");
+				if (!imp_->s1_rt.jogj_is_running)throw std::runtime_error("manual mode not started, when stop");
 
-				imp_->s2_nrt.movejp_is_running = false;
+				imp_->s2_nrt.jogj_is_running = false;
                 imp_->s2_nrt.is_increase.assign(imp_->s2_nrt.is_increase.size(), 0);
 				is_changing = true;
 				while (is_changing.load())std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -2430,7 +2386,7 @@ namespace kaanh
 			}
 			else if (p.first == "vel_percent")
 			{
-				if (!imp_->s1_rt.movejp_is_running)throw std::runtime_error("manual mode not started, when pe");
+				if (!imp_->s1_rt.jogj_is_running)throw std::runtime_error("manual mode not started, when pe");
 
 				auto velocity = std::stoi(params.at("vel_percent"));
 				velocity = std::max(std::min(100, velocity), -100);
@@ -2439,7 +2395,7 @@ namespace kaanh
 				imp_->s2_nrt.is_increase.assign(imp_->s2_nrt.is_increase.size(), 0);
 				imp_->s2_nrt.is_increase[std::stoi(params.at("motion_id"))] = std::max(std::min(1, std::stoi(params.at("direction"))), -1) * imp_->increase_count;
 				
-				imp_->s2_nrt.movejp_is_running = true;	
+				imp_->s2_nrt.jogj_is_running = true;	
 
 				target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION | NOT_PRINT_CMD_INFO | NOT_LOG_CMD_INFO;
 				is_changing = true;
@@ -2449,12 +2405,12 @@ namespace kaanh
 
 		target.param = param;
 	}
-	auto MoveJP::executeRT(PlanTarget &target)->int
+	auto JogJ::executeRT(PlanTarget &target)->int
 	{
 
 		//获取驱动//
 		auto controller = target.controller;
-		auto &param = std::any_cast<MoveJPParam&>(target.param);
+		auto &param = std::any_cast<JogJParam&>(target.param);
 
 		// get current pe //
 		if (target.count == 1)
@@ -2550,14 +2506,14 @@ namespace kaanh
 		}
 		lout << std::endl;
 
-		return imp_->s1_rt.movejp_is_running ? 1 : 0;
+		return imp_->s1_rt.jogj_is_running ? 1 : 0;
 	}
-	auto MoveJP::collectNrt(PlanTarget &target)->void {}
-	MoveJP::~MoveJP() = default;
-	MoveJP::MoveJP(const std::string &name) :Plan(name)
+	auto JogJ::collectNrt(PlanTarget &target)->void {}
+	JogJ::~JogJ() = default;
+	JogJ::JogJ(const std::string &name) :Plan(name)
 	{
 		command().loadXmlStr(
-			"<Command name=\"moveJP\">"
+			"<Command name=\"jogJ\">"
 			"	<GroupParam>"
 			"		<UniqueParam>"
 			"			<GroupParam name=\"start_group\">"
@@ -2577,10 +2533,10 @@ namespace kaanh
 			"	</GroupParam>"
 			"</Command>");
 	}
-	MoveJP::MoveJP(const MoveJP &other) = default;
-	MoveJP::MoveJP(MoveJP &other) = default;
-	MoveJP& MoveJP::operator=(const MoveJP &other) = default;
-	MoveJP& MoveJP::operator=(MoveJP &&other) = default;
+	JogJ::JogJ(const JogJ &other) = default;
+	JogJ::JogJ(JogJ &other) = default;
+	JogJ& JogJ::operator=(const JogJ &other) = default;
+	JogJ& JogJ::operator=(JogJ &&other) = default;
 
 
 	// 夹爪控制 //
@@ -4090,12 +4046,7 @@ namespace kaanh
         plan_root->planPool().add<aris::plan::Start>();
         plan_root->planPool().add<aris::plan::Stop>();
 
-
-
-		plan_root->planPool().add<kaanh::ShowAll>();
-		plan_root->planPool().add<kaanh::Get_ee_pq>();
-		plan_root->planPool().add<kaanh::Get_ee_pe>();
-		plan_root->planPool().add<kaanh::Get_joint_pos>();
+		plan_root->planPool().add<kaanh::Get>();
 		plan_root->planPool().add<kaanh::MoveX>();
 		plan_root->planPool().add<kaanh::MoveJS>();
 		plan_root->planPool().add<kaanh::MoveJSN>();
@@ -4113,8 +4064,8 @@ namespace kaanh
 		plan_root->planPool().add<forcecontrol::MoveSPQ>();
 		plan_root->planPool().add<kaanh::MoveJM>();
 		plan_root->planPool().add<kaanh::MoveJI>();
-		plan_root->planPool().add<kaanh::MovePoint>();
-		plan_root->planPool().add<kaanh::MoveJP>();
+		plan_root->planPool().add<kaanh::JogC>();
+		plan_root->planPool().add<kaanh::JogJ>();
 		plan_root->planPool().add<kaanh::Grasp>();
 		plan_root->planPool().add<kaanh::ListenDI>();
 		plan_root->planPool().add<kaanh::MoveEA>();

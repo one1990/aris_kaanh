@@ -43,49 +43,16 @@ namespace kaanh
 
 	//auto registerPlan()->void;
 
-	class ShowAll : public aris::plan::Plan
-	{
-	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
-		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
-
-		explicit ShowAll(const std::string &name = "ShowAll_plan");
-		ARIS_REGISTER_TYPE(ShowAll);
-
-
-	};
-
-	class Get_ee_pq : public aris::plan::Plan
+	class Get : public aris::plan::Plan
 	{
 	public:
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
 		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
 
-		explicit Get_ee_pq(const std::string &name = "Get_ee_pq_plan");
-		ARIS_REGISTER_TYPE(Get_ee_pq);
+		explicit Get(const std::string &name = "Get_plan");
+		ARIS_REGISTER_TYPE(Get);
 	};
 
-	class Get_ee_pe : public aris::plan::Plan
-	{
-	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
-
-		explicit Get_ee_pe(const std::string &name = "Get_ee_pe_plan");
-		ARIS_REGISTER_TYPE(Get_ee_pe);
-	};
-
-	class Get_joint_pos : public aris::plan::Plan
-	{
-	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
-
-		explicit Get_joint_pos(const std::string &name = "Get_joint_pos_plan");
-		ARIS_REGISTER_TYPE(Get_joint_pos);
-
-	};
 
 	class MoveX : public aris::plan::Plan
 	{
@@ -164,20 +131,20 @@ namespace kaanh
 		ARIS_REGISTER_TYPE(MoveJI);
 	};
 
-	class MovePoint : public aris::plan::Plan
+	class JogC : public aris::plan::Plan
 	{
 	public:
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
 		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
 		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
 
-		virtual ~MovePoint();
-		explicit MovePoint(const std::string &name = "MovePoint_plan");
-		ARIS_REGISTER_TYPE(MovePoint);
-		MovePoint(const MovePoint &);
-		MovePoint(MovePoint &);
-		MovePoint& operator=(const MovePoint &);
-		MovePoint& operator=(MovePoint &&);
+		virtual ~JogC();
+		explicit JogC(const std::string &name = "JogJ_plan");
+		ARIS_REGISTER_TYPE(JogC);
+		JogC(const JogC &);
+		JogC(JogC &);
+		JogC& operator=(const JogC &);
+		JogC& operator=(JogC &&);
 		
 
 	private:
@@ -185,20 +152,20 @@ namespace kaanh
 		aris::core::ImpPtr<Imp> imp_;
 	};
 
-	class MoveJP : public aris::plan::Plan
+	class JogJ : public aris::plan::Plan
 	{
 	public:
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
 		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
 		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
 
-		virtual ~MoveJP();
-		explicit MoveJP(const std::string &name = "MoveJP_plan");
-		ARIS_REGISTER_TYPE(MoveJP);
-		MoveJP(const MoveJP &);
-		MoveJP(MoveJP &);
-		MoveJP& operator=(const MoveJP &);
-		MoveJP& operator=(MoveJP &&);
+		virtual ~JogJ();
+		explicit JogJ(const std::string &name = "JogJ_plan");
+		ARIS_REGISTER_TYPE(JogJ);
+		JogJ(const JogJ &);
+		JogJ(JogJ &);
+		JogJ& operator=(const JogJ &);
+		JogJ& operator=(JogJ &&);
 
 
 	private:
