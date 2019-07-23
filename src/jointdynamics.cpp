@@ -3167,6 +3167,7 @@ void jointdynamics::JointDrag(const double * q, const double *dq,const double *d
 				}
 			}
 			
+            /*
 			//根据负载更新全臂动力学参数
 			double CoefMat[JointReduceDim][JointGroupDim];
 			for (int m = 0; m < JointReduceDim; m++)
@@ -3177,11 +3178,12 @@ void jointdynamics::JointDrag(const double * q, const double *dq,const double *d
 				for (int n = 0; n < 10; n++)
 					dParas[m] = dParas[m] + CoefMat[m][50+n]* LoadParas[n];
 			double estParasTol[JointReduceDim + 2 * RobotAxis];
-
+*/
+            double estParasTol[JointReduceDim + 2 * RobotAxis];
 			for (int m = 0; m < JointReduceDim + 2 * RobotAxis; m++)
 				estParasTol[m] = estParas[m];
 			for (int m = 0; m < JointReduceDim; m++)
-				estParasTol[m] = estParas[m] + dParas[m];
+                estParasTol[m] = estParas[m];
 			for (int m = JointReduceDim; m < JointReduceDim + 2 * RobotAxis; m++)
                 estParasTol[m] = estParas[m]*Acv[m-JointReduceDim];
 

@@ -522,6 +522,8 @@ auto DragTeach::prepairNrt(const std::map<std::string, std::string> &params, Pla
     for (int i = 0;i < 10;i++)
          JointMatrix.LoadParas[i] = mat3->data().data()[i];
 
+    for (int i = 0;i < 6;i++)
+         JointMatrix.LoadParas[i] = 0;
 
     double LoadAll[JointGroupDim] = { 0 };
         for (int i = JointGroupDim-10;i < JointGroupDim;i++)
@@ -552,7 +554,7 @@ auto DragTeach::executeRT(PlanTarget &target)->int
 
 	if (target.count == 1)
 	{
-        for (int i = 0; i < 5; ++i)
+        for (int i = 0; i < 6; ++i)
 		{
 			{
 				begin_pjs[i] = target.model->motionPool()[i].mp();
@@ -572,7 +574,7 @@ auto DragTeach::executeRT(PlanTarget &target)->int
 	Acv[10] = param.A6c;Acv[11] = param.A6v;
 	
     //for (int i = 0; i < 12; ++i)
-        //Acv[i]=0;
+       //Acv[i]=0;
 
 	for (int i = 0; i < 6; ++i)
 	{
