@@ -311,9 +311,11 @@ auto JointTest::prepairNrt(const std::map<std::string, std::string> &params, Pla
 	for (int i = 0;i < JointReduceDim*JointGroupDim;i++)
 		JointMatrix.CoefParasJointInv[i] = mat2->data().data()[i];
 
-    //auto mat3 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("LoadParas"));
+    auto mat3 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("LoadParas"));
     for (int i = 0;i < 10;i++)
-         JointMatrix.LoadParas[i] = 0;//mat3->data().data()[i];
+         JointMatrix.LoadParas[i] = 0*mat3->data().data()[i];
+    for (int i = 0;i < 6;i++)
+         JointMatrix.LoadParas[i] = 0;
 
 
 	double LoadAll[JointGroupDim] = { 0 };
@@ -792,8 +794,8 @@ auto LoadDyna::executeRT(PlanTarget &target)->int
 	}
 
 	static bool flag[6] = {true,true,true,true,true,true};
-    double PosLimit[6] = { 1,1,0.2,1,0.5,1 };
-    double NegLimit[6] = { -1,-1,-0.2,-1,-0.5,-1 };
+    double PosLimit[6] = { 1,1,0.2,1,1.5,2.5 };
+    double NegLimit[6] = { -1,-1,-0.2,-1,-1.5,-2.5 };
 	double dTheta = 0.0001;
 	static double pArc[6], vArc[6], aArc[6], vArcMax[6] = { 0.15,0.15,0.15,0.15,0.15,0.15 };
 	static aris::Size t_count[6] = { 0 };

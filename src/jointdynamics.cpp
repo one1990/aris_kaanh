@@ -2955,6 +2955,7 @@ void jointdynamics::JointCollision(const double * q, const double *dq, const dou
 		}
 	}
 
+    /*
 	//根据负载更新全臂动力学参数
 	double CoefMat[JointReduceDim][JointGroupDim];
 	for (int m = 0; m < JointReduceDim; m++)
@@ -2969,13 +2970,13 @@ void jointdynamics::JointCollision(const double * q, const double *dq, const dou
 	for (int m = 0; m < JointReduceDim + 2 * RobotAxis; m++)
 		estParasTol[m] = estParas[m];
 	for (int m = 0; m < JointReduceDim; m++)
-		estParasTol[m] = estParas[m] + dParas[m];
-	
+        estParasTol[m] = estParas[m] + 0*dParas[m];
+    */
 
 	double estTor[RobotAxis] = { 0, 0, 0, 0, 0, 0 };
 	for (int i = 0; i < RobotAxis; i++)
 		for (int j = 0; j < JointReduceDim + 2 * RobotAxis; j++)
-			estTor[i] = estTor[i] + YtolMat[i][j] * estParasTol[j];
+            estTor[i] = estTor[i] + YtolMat[i][j] * estParas[j];
 
 	for (int i = 0; i < 6; i++)
 		CollisionFT[i] = estTor[i];
