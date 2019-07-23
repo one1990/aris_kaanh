@@ -908,7 +908,7 @@ auto LoadDyna::executeRT(PlanTarget &target)->int
 auto LoadDyna::collectNrt(aris::plan::PlanTarget &target)->void
 {
 	auto &param = std::any_cast<LoadDynaParam&>(target.param);
-	double dEst[LoadTotalParas] = { 0 };
+    double dEst[LoadReduceParas] = { 0 };
 	double dCoef[LoadReduceParas*10] = { 0 };
 	double StatisError[3] = {0,0,0};
     auto controller = target.controller;
@@ -934,7 +934,7 @@ auto LoadDyna::collectNrt(aris::plan::PlanTarget &target)->void
 
 	if (param.amplitude > 0)
 	{
-        JointMatrix.LoadRLS(AngleList, TorqueList, JointMatrix.CoefParasLoad,JointMatrix.CoefParasLoadInv,JointMatrix.estParasL0, StatisError);
+        JointMatrix.LoadRLStemp(AngleList, TorqueList, JointMatrix.CoefParasLoad,JointMatrix.CoefParasLoadInv,JointMatrix.estParasL0, StatisError);
 		for (int i = 0;i < LoadReduceParas + 6;i++)
 			cout << JointMatrix.estParasL0[i] << ",";
 
@@ -962,9 +962,12 @@ auto LoadDyna::collectNrt(aris::plan::PlanTarget &target)->void
 		for (int i = 0;i < LoadReduceParas + 6;i++)
 			JointMatrix.estParasL0[i] = mat0->data().data()[i];
 
-        JointMatrix.LoadRLS(AngleList, TorqueList, JointMatrix.CoefParasLoad, JointMatrix.CoefParasLoadInv,JointMatrix.estParasL, StatisError);
+        JointMatrix.LoadRLStemp(AngleList, TorqueList, JointMatrix.CoefParasLoad, JointMatrix.CoefParasLoadInv,JointMatrix.estParasL, StatisError);
 
-
+        for (int i = 0;i < LoadReduceParas + 6;i++)
+            cout << JointMatrix.estParasL[i] << ",";
+cout << std::endl;
+cout << std::endl;
 		for (int i = 0;i < LoadReduceParas;i++)
 			dEst[i] = JointMatrix.estParasL[i] - JointMatrix.estParasL0[i];
 
@@ -973,7 +976,7 @@ auto LoadDyna::collectNrt(aris::plan::PlanTarget &target)->void
         JointMatrix.LoadParasExt(dEst,JointMatrix.CoefParasLoad, JointMatrix.CoefParasLoadInv,JointMatrix.LoadParas);
 		for (int i = 0;i < 10;i++)
 			cout << JointMatrix.LoadParas[i] << ",";
-
+        cout << std::endl;
 		aris::core::Matrix mat2(1,10, JointMatrix.LoadParas);
 		if (target.model->variablePool().findByName("LoadParas") !=
 			target.model->variablePool().end())

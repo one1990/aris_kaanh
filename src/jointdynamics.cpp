@@ -2039,14 +2039,6 @@ void JointReducedMatrix(const double* q, const double* dq, const double* ddq, co
 	A0[5][57] = -t497 - t498;
 
 
-
-
-    A0[0][60] = ddq1;
-	A0[1][61] = ddq2;
-	A0[2][62] = ddq3;
-	A0[3][63] = ddq4;
-	A0[4][64] = ddq5;
-	A0[5][65] = ddq6;
 	double A0vec[6*JointGroupDim];
 	for (int i = 0; i < 6; i++)
 		for (int j = 0; j < JointGroupDim; j++)
@@ -2695,7 +2687,7 @@ void jointdynamics::RLS(const double *positionL, const double *sensorL, double *
 void jointdynamics::RLStemp(const double *positionL, const double *sensorL, double *estParas, const double *Coef, const double *CoefInv, double *StatisError)
 	{
 
-        double CutFreq = 20;
+        double CutFreq = 5;
 		A[0][0] = 0; A[0][1] = 1; A[0][2] = 0;
 		A[1][0] = 0; A[1][1] = 0; A[1][2] = 1;
 		A[2][0] = -CutFreq * CutFreq * CutFreq;
@@ -4561,13 +4553,10 @@ void LoadReducedMatrix(const double* q, const double* dq, const double* ddq, con
 
 
 
-	A0[0][40] = ddq3;
-	A0[1][41] = ddq5;
-	A0[2][42] = ddq6;
 	double AVec[3 * LoadTotalParas];
 	for (int i = 0; i < 3; i++)
 		for (int j = 0; j < LoadTotalParas; j++)
-			AVec[40 * i + j] = A0[i][j];
+            AVec[LoadTotalParas * i + j] = A0[i][j];
 	
 	s_mm(3, LoadReduceParas, LoadTotalParas, AVec, CoefInv, distalVec);
 

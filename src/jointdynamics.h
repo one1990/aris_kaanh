@@ -9,10 +9,10 @@
 
 namespace JointDynamicsInt
 { 
-    const int LoadTotalParas = 43;
-    const int LoadReduceParas = 14;
-	const int JointGroupDim = 66;
-	const int JointReduceDim = 40;
+    const int LoadTotalParas = 40;
+    const int LoadReduceParas = 13;
+    const int JointGroupDim = 60;
+    const int JointReduceDim = 30;
    
 
 	class jointdynamics
