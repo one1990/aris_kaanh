@@ -497,81 +497,92 @@ namespace kaanh
 	// 获取末端位姿pq,pe,关节角度j //
 	auto Get::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
-		std::any pq_pe_j_vec;
+		std::any part_pq_pe_j_vec;
 		for (auto cmd_param : params)
 		{
 			if (cmd_param.first == "all")
 			{
-				pq_pe_j_vec = std::make_any<std::vector<double> >(13 + 3 * target.model->motionPool().size());
+				auto pm_pq_pe_j_vec = std::make_any<std::vector<double> >(target.model->partPool().size() * 16 + 13 + 3 * target.model->motionPool().size());
 
 				target.server->getRtData([](aris::server::ControlServer& cs, std::any& data)
 				{
-					cs.model().generalMotionPool().at(0).getMpq(std::any_cast<std::vector<double>&>(data).data());
-					cs.model().generalMotionPool().at(0).getMpe(std::any_cast<std::vector<double>&>(data).data() + 7);
-					for (aris::Size i = 13; i < 13 + cs.model().motionPool().size(); i++)
+					for (aris::Size i(-1); ++i < cs.model().partPool().size();)
+						cs.model().partPool().at(i).getPm(std::any_cast<std::vector<double>&>(data).data() + i * 16);
+
+					cs.model().generalMotionPool().at(0).getMpq(std::any_cast<std::vector<double>&>(data).data() + cs.model().partPool().size() * 16);
+					cs.model().generalMotionPool().at(0).getMpe(std::any_cast<std::vector<double>&>(data).data() + cs.model().partPool().size() * 16 + 7);
+					for (aris::Size i = cs.model().partPool().size() * 16 + 13; i < cs.model().partPool().size() * 16 + 13 + cs.model().motionPool().size(); i++)
 					{
-						std::any_cast<std::vector<double>&>(data)[i] = cs.model().motionPool()[i - 13].mp();
+						std::any_cast<std::vector<double>&>(data)[i] = cs.model().motionPool()[i - cs.model().partPool().size() * 16 - 13].mp();
 					}
-					for (aris::Size i = 13 + cs.model().motionPool().size(); i < 13 + 2 * cs.model().motionPool().size(); i++)
+					for (aris::Size i = cs.model().partPool().size() * 16 + 13 + cs.model().motionPool().size(); i < cs.model().partPool().size() * 16 + 13 + 2 * cs.model().motionPool().size(); i++)
 					{
-						std::any_cast<std::vector<double>&>(data)[i] = cs.model().motionPool()[i - 13 - cs.model().motionPool().size()].mv();
+						std::any_cast<std::vector<double>&>(data)[i] = cs.model().motionPool()[i - cs.model().partPool().size() * 16 - 13 - cs.model().motionPool().size()].mv();
 					}
-					for (aris::Size i = 13 + 2 * cs.model().motionPool().size(); i < 13 + 3 * cs.model().motionPool().size(); i++)
+					for (aris::Size i = cs.model().partPool().size() * 16 + 13 + 2 * cs.model().motionPool().size(); i < cs.model().partPool().size() * 16 + 13 + 3 * cs.model().motionPool().size(); i++)
 					{
-						std::any_cast<std::vector<double>&>(data)[i] = cs.model().motionPool()[i - 13 - 2 * cs.model().motionPool().size()].ma();
+						std::any_cast<std::vector<double>&>(data)[i] = cs.model().motionPool()[i - cs.model().partPool().size() * 16 - 13 - 2 * cs.model().motionPool().size()].ma();
 					}
 
-				}, pq_pe_j_vec);
+				}, pm_pq_pe_j_vec);
+
+				part_pq_pe_j_vec = std::make_any<std::vector<double> >(target.model->partPool().size() * 7 + 13 + 3 * target.model->motionPool().size());
+
+				for (aris::Size i(-1); ++i < target.server->model().partPool().size();)
+					aris::dynamic::s_pm2pq(std::any_cast<std::vector<double>&>(pm_pq_pe_j_vec).data() + i * 16, std::any_cast<std::vector<double>&>(part_pq_pe_j_vec).data() + i * 7);
+				
+				/*
 				std::cout << "pq:" << " ";
 				for (aris::Size i = 0; i < 7; i++)
 				{
-					std::cout << std::any_cast<std::vector<double>&>(pq_pe_j_vec)[i] << " ";
+					std::cout << std::any_cast<std::vector<double>&>(part_pq_pe_j_vec)[i] << " ";
 				}
 				std::cout << std::endl;
 				std::cout << "pe:" << " ";
 				for (aris::Size i = 7; i < 13; i++)
 				{
-					std::cout << std::any_cast<std::vector<double>&>(pq_pe_j_vec)[i] << " ";
+					std::cout << std::any_cast<std::vector<double>&>(part_pq_pe_j_vec)[i] << " ";
 				}
 				std::cout << std::endl;
 				std::cout << "j:" << " ";
 				for (aris::Size i = 13; i < 13 + target.model->motionPool().size(); i++)
 				{
-					std::cout << std::any_cast<std::vector<double>&>(pq_pe_j_vec)[i] << " ";
+					std::cout << std::any_cast<std::vector<double>&>(part_pq_pe_j_vec)[i] << " ";
 				}
 				std::cout << std::endl;
+				*/
 			}
 			else if (cmd_param.first == "pq")
 			{
-				pq_pe_j_vec = std::make_any<std::vector<double> >(7);
+				part_pq_pe_j_vec = std::make_any<std::vector<double> >(7);
 
 				target.server->getRtData([](aris::server::ControlServer& cs, std::any& data)
 				{
 					cs.model().generalMotionPool().at(0).getMpq(std::any_cast<std::vector<double>&>(data).data());
-				}, pq_pe_j_vec);
+				}, part_pq_pe_j_vec);
 				for (aris::Size i = 0; i < 7; i++)
 				{
-					std::cout << std::any_cast<std::vector<double>&>(pq_pe_j_vec)[i] << " ";
+					std::cout << std::any_cast<std::vector<double>&>(part_pq_pe_j_vec)[i] << " ";
 				}
 				std::cout << std::endl;
 			}
 			else if (cmd_param.first == "pe")
 			{
-				pq_pe_j_vec = std::make_any<std::vector<double> >(6);
+				part_pq_pe_j_vec = std::make_any<std::vector<double> >(6);
 
 				target.server->getRtData([](aris::server::ControlServer& cs, std::any& data)
 				{
 					cs.model().generalMotionPool().at(0).getMpe(std::any_cast<std::vector<double>&>(data).data());
-				}, pq_pe_j_vec);
+				}, part_pq_pe_j_vec);
 				for (aris::Size i = 0; i < 6; i++)
 				{
-					std::cout << std::any_cast<std::vector<double>&>(pq_pe_j_vec)[i] << " ";
+					std::cout << std::any_cast<std::vector<double>&>(part_pq_pe_j_vec)[i] << " ";
 				}
 				std::cout << std::endl;
 			}
 			else if (cmd_param.first == "j")
 			{
-				pq_pe_j_vec = std::make_any<std::vector<double> >(3*target.model->motionPool().size());
+				part_pq_pe_j_vec = std::make_any<std::vector<double> >(3*target.model->motionPool().size());
 				target.server->getRtData([](aris::server::ControlServer& cs, std::any& data)
 				{
 					for (aris::Size i = 0; i < cs.model().motionPool().size(); i++)
@@ -587,16 +598,16 @@ namespace kaanh
 						std::any_cast<std::vector<double>&>(data)[i] = cs.model().motionPool()[i- 2*cs.model().motionPool().size()].ma();
 					}
 					
-				}, pq_pe_j_vec);
+				}, part_pq_pe_j_vec);
 
 				for (aris::Size i = 0; i < target.model->motionPool().size(); i++)
 				{
-					std::cout << std::any_cast<std::vector<double>&>(pq_pe_j_vec)[i] << " ";
+					std::cout << std::any_cast<std::vector<double>&>(part_pq_pe_j_vec)[i] << " ";
 				}
 				std::cout << std::endl;
 			}
 		}
-		auto pq_pe_j = std::any_cast<std::vector<double>&>(pq_pe_j_vec);
+		auto pq_pe_j = std::any_cast<std::vector<double>&>(part_pq_pe_j_vec);
 		//取小数点后三位//
 		for (aris::Size i = 0; i < pq_pe_j.size(); i++)
 		{
@@ -728,206 +739,206 @@ namespace kaanh
 		std::vector<bool> joint_active_vec;
 	};
 	auto MoveJS::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		MoveJSParam param;
+		for (Size i = 0; i < 6; i++)
 		{
-			MoveJSParam param;
-			for (Size i = 0; i < 6; i++)
-			{
-				param.j[i] = 0.0;
-			}
-			param.time = 0.0;
-			param.timenum = 0;	
+			param.j[i] = 0.0;
+		}
+		param.time = 0.0;
+		param.timenum = 0;	
 
-			param.joint_active_vec.clear();
-			param.joint_active_vec.resize(target.model->motionPool().size(), true);
+		param.joint_active_vec.clear();
+		param.joint_active_vec.resize(target.model->motionPool().size(), true);
 
-			for (auto &p : params)
+		for (auto &p : params)
+		{
+			if (p.first == "j1")
 			{
-				if (p.first == "j1")
+				if (p.second == "current_pos")
 				{
-					if (p.second == "current_pos")
-					{
-						param.joint_active_vec[0] = false;
-						param.j[0] = target.model->motionPool()[0].mp();
-					}
-					else
-					{
-						param.joint_active_vec[0] = true;
-						param.j[0] = std::stod(p.second);
-					}
+					param.joint_active_vec[0] = false;
+					param.j[0] = target.model->motionPool()[0].mp();
+				}
+				else
+				{
+					param.joint_active_vec[0] = true;
+					param.j[0] = std::stod(p.second);
+				}
 							
-				}
-				else if (p.first == "j2")
+			}
+			else if (p.first == "j2")
+			{
+				if (p.second == "current_pos")
 				{
-					if (p.second == "current_pos")
-					{
-						param.joint_active_vec[1] = false;
-						param.j[1] = target.model->motionPool()[1].mp();
-					}
-					else
-					{
-						param.joint_active_vec[1] = true;
-						param.j[1] = std::stod(p.second);
-					}
+					param.joint_active_vec[1] = false;
+					param.j[1] = target.model->motionPool()[1].mp();
 				}
-				else if (p.first == "j3")
+				else
 				{
-					if (p.second == "current_pos")
-					{
-						param.joint_active_vec[2] = false;
-						param.j[2] = target.model->motionPool()[2].mp();
-					}
-					else
-					{
-						param.joint_active_vec[2] = true;
-						param.j[2] = std::stod(p.second);
-					}
-				}
-				else if (p.first == "j4")
-				{
-					if (p.second == "current_pos")
-					{
-						param.joint_active_vec[3] = false;
-						param.j[3] = target.model->motionPool()[3].mp();
-					}
-					else
-					{
-						param.joint_active_vec[3] = true;
-						param.j[3] = std::stod(p.second);
-					}
-				}
-				else if (p.first == "j5")
-				{
-					if (p.second == "current_pos")
-					{
-						param.joint_active_vec[4] = false;
-						param.j[4] = target.model->motionPool()[4].mp();
-					}
-					else
-					{
-						param.joint_active_vec[4] = true;
-						param.j[4] = std::stod(p.second);
-					}
-				}
-				else if (p.first == "j6")
-				{
-					if (p.second == "current_pos")
-					{
-						param.joint_active_vec[5] = false;
-						param.j[5] = target.model->motionPool()[5].mp();
-					}
-					else
-					{
-						param.joint_active_vec[5] = true;
-						param.j[5] = std::stod(p.second);
-					}
-				}
-				else if (p.first == "time")
-				{
-						param.time = std::stod(p.second);
-				}
-				else if (p.first == "timenum")
-				{
-						param.timenum = std::stoi(p.second);
+					param.joint_active_vec[1] = true;
+					param.j[1] = std::stod(p.second);
 				}
 			}
-			target.param = param;
+			else if (p.first == "j3")
+			{
+				if (p.second == "current_pos")
+				{
+					param.joint_active_vec[2] = false;
+					param.j[2] = target.model->motionPool()[2].mp();
+				}
+				else
+				{
+					param.joint_active_vec[2] = true;
+					param.j[2] = std::stod(p.second);
+				}
+			}
+			else if (p.first == "j4")
+			{
+				if (p.second == "current_pos")
+				{
+					param.joint_active_vec[3] = false;
+					param.j[3] = target.model->motionPool()[3].mp();
+				}
+				else
+				{
+					param.joint_active_vec[3] = true;
+					param.j[3] = std::stod(p.second);
+				}
+			}
+			else if (p.first == "j5")
+			{
+				if (p.second == "current_pos")
+				{
+					param.joint_active_vec[4] = false;
+					param.j[4] = target.model->motionPool()[4].mp();
+				}
+				else
+				{
+					param.joint_active_vec[4] = true;
+					param.j[4] = std::stod(p.second);
+				}
+			}
+			else if (p.first == "j6")
+			{
+				if (p.second == "current_pos")
+				{
+					param.joint_active_vec[5] = false;
+					param.j[5] = target.model->motionPool()[5].mp();
+				}
+				else
+				{
+					param.joint_active_vec[5] = true;
+					param.j[5] = std::stod(p.second);
+				}
+			}
+			else if (p.first == "time")
+			{
+					param.time = std::stod(p.second);
+			}
+			else if (p.first == "timenum")
+			{
+					param.timenum = std::stoi(p.second);
+			}
+		}
+		target.param = param;
 
-			std::fill(target.mot_options.begin(), target.mot_options.end(),
-				Plan::USE_TARGET_POS);
+		std::fill(target.mot_options.begin(), target.mot_options.end(),
+			Plan::USE_TARGET_POS);
+
+	}
+	auto MoveJS::executeRT(PlanTarget &target)->int
+	{
+		auto &param = std::any_cast<MoveJSParam&>(target.param);
+		auto time = static_cast<int32_t>(param.time * 1000);
+		auto totaltime = static_cast<int32_t>(param.timenum * time);
+		static double begin_pjs[6];
+		static double step_pjs[6];
+			
+		if ((1 <= target.count) && (target.count <= time / 2))
+		{
+			// 获取当前起始点位置 //
+			if (target.count == 1)
+			{
+				for (Size i = 0; i < param.joint_active_vec.size(); ++i)
+				{
+					begin_pjs[i] = target.model->motionPool()[i].mp();
+					step_pjs[i] = target.model->motionPool()[i].mp();
+				}
+			}
+			for (Size i = 0; i < param.joint_active_vec.size(); ++i)
+			{
+				step_pjs[i] = begin_pjs[i] + param.j[i] * (1 - std::cos(2 * PI*target.count / time)) / 2;
+				target.model->motionPool().at(i).setMp(step_pjs[i]);
+			}
+		}
+		else if ((time / 2 < target.count) && (target.count <= totaltime - time/2))
+		{
+			// 获取当前起始点位置 //
+			if (target.count == time / 2+1)
+			{
+				for (Size i = 0; i < param.joint_active_vec.size(); ++i)
+				{
+					begin_pjs[i] = target.model->motionPool()[i].mp();
+					step_pjs[i] = target.model->motionPool()[i].mp();
+				}
+			}
+			for (Size i = 0; i < param.joint_active_vec.size(); ++i)
+			{
+				step_pjs[i] = begin_pjs[i] - 2*param.j[i] * (1 - std::cos(2 * PI*(target.count-time/2) / time)) / 2;
+				target.model->motionPool().at(i).setMp(step_pjs[i]);
+			}
 
 		}
-	auto MoveJS::executeRT(PlanTarget &target)->int
+		else if ((totaltime - time / 2 < target.count) && (target.count <= totaltime))
 		{
-			auto &param = std::any_cast<MoveJSParam&>(target.param);
-			auto time = static_cast<int32_t>(param.time * 1000);
-			auto totaltime = static_cast<int32_t>(param.timenum * time);
-			static double begin_pjs[6];
-			static double step_pjs[6];
-			
-			if ((1 <= target.count) && (target.count <= time / 2))
+			// 获取当前起始点位置 //
+			if (target.count == totaltime - time / 2 + 1)
 			{
-				// 获取当前起始点位置 //
-				if (target.count == 1)
-				{
-					for (Size i = 0; i < param.joint_active_vec.size(); ++i)
-					{
-						begin_pjs[i] = target.model->motionPool()[i].mp();
-						step_pjs[i] = target.model->motionPool()[i].mp();
-					}
-				}
 				for (Size i = 0; i < param.joint_active_vec.size(); ++i)
 				{
-					step_pjs[i] = begin_pjs[i] + param.j[i] * (1 - std::cos(2 * PI*target.count / time)) / 2;
-					target.model->motionPool().at(i).setMp(step_pjs[i]);
+					begin_pjs[i] = target.model->motionPool()[i].mp();
+					step_pjs[i] = target.model->motionPool()[i].mp();
 				}
 			}
-			else if ((time / 2 < target.count) && (target.count <= totaltime - time/2))
+			for (Size i = 0; i < param.joint_active_vec.size(); ++i)
 			{
-				// 获取当前起始点位置 //
-				if (target.count == time / 2+1)
-				{
-					for (Size i = 0; i < param.joint_active_vec.size(); ++i)
-					{
-						begin_pjs[i] = target.model->motionPool()[i].mp();
-						step_pjs[i] = target.model->motionPool()[i].mp();
-					}
-				}
-				for (Size i = 0; i < param.joint_active_vec.size(); ++i)
-				{
-					step_pjs[i] = begin_pjs[i] - 2*param.j[i] * (1 - std::cos(2 * PI*(target.count-time/2) / time)) / 2;
-					target.model->motionPool().at(i).setMp(step_pjs[i]);
-				}
-
+				step_pjs[i] = begin_pjs[i] - param.j[i] * (1 - std::cos(2 * PI*(target.count - totaltime + time / 2) / time)) / 2;
+				target.model->motionPool().at(i).setMp(step_pjs[i]);
 			}
-			else if ((totaltime - time / 2 < target.count) && (target.count <= totaltime))
-			{
-				// 获取当前起始点位置 //
-				if (target.count == totaltime - time / 2 + 1)
-				{
-					for (Size i = 0; i < param.joint_active_vec.size(); ++i)
-					{
-						begin_pjs[i] = target.model->motionPool()[i].mp();
-						step_pjs[i] = target.model->motionPool()[i].mp();
-					}
-				}
-				for (Size i = 0; i < param.joint_active_vec.size(); ++i)
-				{
-					step_pjs[i] = begin_pjs[i] - param.j[i] * (1 - std::cos(2 * PI*(target.count - totaltime + time / 2) / time)) / 2;
-					target.model->motionPool().at(i).setMp(step_pjs[i]);
-				}
-			}
+		}
 
-			if (target.model->solverPool().at(1).kinPos())return -1;
+		if (target.model->solverPool().at(1).kinPos())return -1;
 
-			// 访问主站 //
-			auto controller = target.controller;
+		// 访问主站 //
+		auto controller = target.controller;
 
-			// 打印电流 //
-			auto &cout = controller->mout();
-			if (target.count % 100 == 0)
-			{
-				for (Size i = 0; i < 6; i++)
-				{
-					cout << "pos" << i+1 << ":" << controller->motionAtAbs(i).actualPos() << "  " ;
-					cout << "vel" << i+1 << ":" << controller->motionAtAbs(i).actualVel() << "  ";
-					cout << "cur" << i+1 << ":" << controller->motionAtAbs(i).actualCur() << "  ";
-				}		
-				cout << std::endl;
-			}
-
-			// log 电流 //
-			auto &lout = controller->lout();
+		// 打印电流 //
+		auto &cout = controller->mout();
+		if (target.count % 100 == 0)
+		{
 			for (Size i = 0; i < 6; i++)
 			{
-				lout << controller->motionAtAbs(i).targetPos() << ",";
-				lout << controller->motionAtAbs(i).actualPos() << ",";
-				lout << controller->motionAtAbs(i).actualVel() << ",";
-				lout << controller->motionAtAbs(i).actualCur() << ",";
-			}
-			lout << std::endl;
-			
-			return totaltime - target.count;
+				cout << "pos" << i+1 << ":" << controller->motionAtAbs(i).actualPos() << "  " ;
+				cout << "vel" << i+1 << ":" << controller->motionAtAbs(i).actualVel() << "  ";
+				cout << "cur" << i+1 << ":" << controller->motionAtAbs(i).actualCur() << "  ";
+			}		
+			cout << std::endl;
 		}
+
+		// log 电流 //
+		auto &lout = controller->lout();
+		for (Size i = 0; i < 6; i++)
+		{
+			lout << controller->motionAtAbs(i).targetPos() << ",";
+			lout << controller->motionAtAbs(i).actualPos() << ",";
+			lout << controller->motionAtAbs(i).actualVel() << ",";
+			lout << controller->motionAtAbs(i).actualCur() << ",";
+		}
+		lout << std::endl;
+			
+		return totaltime - target.count;
+	}
 	auto MoveJS::collectNrt(PlanTarget &target)->void {}
 	MoveJS::MoveJS(const std::string &name) :Plan(name)
 	{
@@ -956,198 +967,198 @@ namespace kaanh
 		uint32_t timenum;
 	};
 	auto MoveJSN::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		MoveJSNParam param;
+		auto c = target.controller;
+		param.axis_pos_vec.clear();
+		param.axis_pos_vec.resize(target.model->motionPool().size(), 0.0);
+
+		param.axis_time_vec.clear();
+		param.axis_time_vec.resize(target.model->motionPool().size(), 1.0);
+
+		param.joint_active_vec.clear();
+		param.joint_active_vec.resize(target.model->motionPool().size(), true);
+
+		param.timenum = 0;
+		for (auto &p : params)
 		{
-			MoveJSNParam param;
-			auto c = target.controller;
-			param.axis_pos_vec.clear();
-			param.axis_pos_vec.resize(target.model->motionPool().size(), 0.0);
-
-			param.axis_time_vec.clear();
-			param.axis_time_vec.resize(target.model->motionPool().size(), 1.0);
-
-			param.joint_active_vec.clear();
-			param.joint_active_vec.resize(target.model->motionPool().size(), true);
-
-			param.timenum = 0;
-			for (auto &p : params)
+			if (p.first == "pos")
 			{
-				if (p.first == "pos")
+				auto pos = target.model->calculator().calculateExpression(p.second);
+				if (pos.size() == 1)
 				{
-					auto pos = target.model->calculator().calculateExpression(p.second);
-					if (pos.size() == 1)
+					param.axis_pos_vec.resize(param.axis_pos_vec.size(), pos.toDouble());
+				}
+				else if (pos.size() == param.axis_pos_vec.size())
+				{
+					param.axis_pos_vec.assign(pos.begin(), pos.end());
+				}
+				else
+				{
+					throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+				}
+
+				for (Size i = 0; i < param.axis_pos_vec.size(); ++i)
+				{
+					//超阈值保护//
+					if (param.axis_pos_vec[i] > 1.0)
 					{
-						param.axis_pos_vec.resize(param.axis_pos_vec.size(), pos.toDouble());
+						param.axis_pos_vec[i] = 1.0;
 					}
-					else if (pos.size() == param.axis_pos_vec.size())
+					if (param.axis_pos_vec[i] < -1.0)
 					{
-						param.axis_pos_vec.assign(pos.begin(), pos.end());
+						param.axis_pos_vec[i] = -1.0;
+					}
+					if (param.axis_pos_vec[i] >= 0)
+					{
+						param.axis_pos_vec[i] = param.axis_pos_vec[i] * c->motionPool()[i].maxPos();
 					}
 					else
 					{
-						throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
-					}
-
-					for (Size i = 0; i < param.axis_pos_vec.size(); ++i)
-					{
-						//超阈值保护//
-						if (param.axis_pos_vec[i] > 1.0)
-						{
-							param.axis_pos_vec[i] = 1.0;
-						}
-						if (param.axis_pos_vec[i] < -1.0)
-						{
-							param.axis_pos_vec[i] = -1.0;
-						}
-						if (param.axis_pos_vec[i] >= 0)
-						{
-							param.axis_pos_vec[i] = param.axis_pos_vec[i] * c->motionPool()[i].maxPos();
-						}
-						else
-						{
-							param.axis_pos_vec[i] = param.axis_pos_vec[i] * c->motionPool()[i].minPos();
-						}
-					}
-
-				}
-				else if (p.first == "time")
-				{
-					auto t = target.model->calculator().calculateExpression(p.second);
-					if (t.size() == 1)
-					{
-						param.axis_time_vec.resize(param.axis_time_vec.size(), t.toDouble());
-					}
-					else if (t.size() == param.axis_time_vec.size())
-					{
-						param.axis_time_vec.assign(t.begin(), t.end());
-					}
-					else
-					{
-						throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
-					}
-
-					for (Size i = 0; i < param.axis_time_vec.size(); ++i)
-					{
-						//超阈值保护，机器人单关节运动频率不超过5Hz//
-						if (param.axis_time_vec[i] < 0.2)
-						{
-							param.axis_time_vec[i] = 0.2;
-						}
+						param.axis_pos_vec[i] = param.axis_pos_vec[i] * c->motionPool()[i].minPos();
 					}
 				}
-				else if (p.first == "timenum")
+
+			}
+			else if (p.first == "time")
+			{
+				auto t = target.model->calculator().calculateExpression(p.second);
+				if (t.size() == 1)
 				{
-					param.timenum = std::stoi(p.second);
+					param.axis_time_vec.resize(param.axis_time_vec.size(), t.toDouble());
+				}
+				else if (t.size() == param.axis_time_vec.size())
+				{
+					param.axis_time_vec.assign(t.begin(), t.end());
+				}
+				else
+				{
+					throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+				}
+
+				for (Size i = 0; i < param.axis_time_vec.size(); ++i)
+				{
+					//超阈值保护，机器人单关节运动频率不超过5Hz//
+					if (param.axis_time_vec[i] < 0.2)
+					{
+						param.axis_time_vec[i] = 0.2;
+					}
 				}
 			}
-			target.param = param;
+			else if (p.first == "timenum")
+			{
+				param.timenum = std::stoi(p.second);
+			}
+		}
+		target.param = param;
 
-			std::fill(target.mot_options.begin(), target.mot_options.end(),
-				Plan::USE_TARGET_POS);
+		std::fill(target.mot_options.begin(), target.mot_options.end(),
+			Plan::USE_TARGET_POS);
 /*
 #ifdef WIN32
-				Plan::NOT_CHECK_POS_MIN |
-				Plan::NOT_CHECK_POS_MAX |
-				Plan::NOT_CHECK_POS_CONTINUOUS |
-				Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-				Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
-				Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
+			Plan::NOT_CHECK_POS_MIN |
+			Plan::NOT_CHECK_POS_MAX |
+			Plan::NOT_CHECK_POS_CONTINUOUS |
+			Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
+			Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
+			Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
+			Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
 #endif
-				Plan::NOT_CHECK_VEL_MIN |
-				Plan::NOT_CHECK_VEL_MAX |
-				Plan::NOT_CHECK_VEL_CONTINUOUS |
-				Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-				Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+			Plan::NOT_CHECK_VEL_MIN |
+			Plan::NOT_CHECK_VEL_MAX |
+			Plan::NOT_CHECK_VEL_CONTINUOUS |
+			Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
+			Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 */
-		}
+	}
 	auto MoveJSN::executeRT(PlanTarget &target)->int
+	{
+		auto &param = std::any_cast<MoveJSNParam&>(target.param);
+		static int32_t time[6];
+		static int32_t totaltime[6];
+		static int32_t totaltime_max = 0;
+		for (Size i = 0; i < 6; i++)
 		{
-			auto &param = std::any_cast<MoveJSNParam&>(target.param);
-			static int32_t time[6];
-			static int32_t totaltime[6];
-			static int32_t totaltime_max = 0;
-			for (Size i = 0; i < 6; i++)
+			time[i] = static_cast<uint32_t>(param.axis_time_vec[i] * 1000);
+			totaltime[i] = static_cast<uint32_t>(param.timenum * time[i]);
+			if (totaltime[i] > totaltime_max)
 			{
-				time[i] = static_cast<uint32_t>(param.axis_time_vec[i] * 1000);
-				totaltime[i] = static_cast<uint32_t>(param.timenum * time[i]);
-				if (totaltime[i] > totaltime_max)
-				{
-					totaltime_max = totaltime[i];
-				}
+				totaltime_max = totaltime[i];
 			}
-
-			static double begin_pjs[6];
-			static double step_pjs[6];
-
-			for (Size i = 0; i < param.axis_time_vec.size(); i++)
-			{
-				if ((1 <= target.count) && (target.count <= time[i] / 2))
-				{
-					// 获取当前起始点位置 //
-					if (target.count == 1)
-					{
-						begin_pjs[i] = target.model->motionPool()[i].mp();
-						step_pjs[i] = target.model->motionPool()[i].mp();
-					}
-					step_pjs[i] = begin_pjs[i] + param.axis_pos_vec[i] * (1 - std::cos(2 * PI*target.count / time[i])) / 2;
-					target.model->motionPool().at(i).setMp(step_pjs[i]);
-				}
-				else if ((time[i] / 2 < target.count) && (target.count <= totaltime[i] - time[i] / 2))
-				{
-					// 获取当前起始点位置 //
-					if (target.count == time[i] / 2 + 1)
-					{
-						begin_pjs[i] = target.model->motionPool()[i].mp();
-						step_pjs[i] = target.model->motionPool()[i].mp();
-					}
-					step_pjs[i] = begin_pjs[i] - 2 * param.axis_pos_vec[i] * (1 - std::cos(2 * PI*(target.count - time[i] / 2) / time[i])) / 2;
-					target.model->motionPool().at(i).setMp(step_pjs[i]);
-
-				}
-				else if ((totaltime[i] - time[i] / 2 < target.count) && (target.count <= totaltime[i]))
-				{
-					// 获取当前起始点位置 //
-					if (target.count == totaltime[i] - time[i] / 2 + 1)
-					{
-						begin_pjs[i] = target.model->motionPool()[i].mp();
-						step_pjs[i] = target.model->motionPool()[i].mp();
-					}
-					step_pjs[i] = begin_pjs[i] - param.axis_pos_vec[i] * (1 - std::cos(2 * PI*(target.count - totaltime[i] + time[i] / 2) / time[i])) / 2;
-					target.model->motionPool().at(i).setMp(step_pjs[i]);
-				}
-			}
-
-			if (target.model->solverPool().at(1).kinPos())return -1;
-
-			// 访问主站 //
-			auto controller = target.controller;
-
-			// 打印电流 //
-			auto &cout = controller->mout();
-			if (target.count % 100 == 0)
-			{
-				for (Size i = 0; i < 6; i++)
-				{
-					cout << "pos" << i + 1 << ":" << controller->motionAtAbs(i).actualPos() << "  ";
-					cout << "vel" << i + 1 << ":" << controller->motionAtAbs(i).actualVel() << "  ";
-					cout << "cur" << i + 1 << ":" << controller->motionAtAbs(i).actualCur() << "  ";
-				}
-				cout << std::endl;
-			}
-
-			// log 电流 //
-			auto &lout = controller->lout();
-			for (Size i = 0; i < 6; i++)
-			{
-				lout << controller->motionAtAbs(i).targetPos() << ",";
-				lout << controller->motionAtAbs(i).actualPos() << ",";
-				lout << controller->motionAtAbs(i).actualVel() << ",";
-				lout << controller->motionAtAbs(i).actualCur() << ",";
-			}
-			lout << std::endl;
-
-			return totaltime_max - target.count;
 		}
+
+		static double begin_pjs[6];
+		static double step_pjs[6];
+
+		for (Size i = 0; i < param.axis_time_vec.size(); i++)
+		{
+			if ((1 <= target.count) && (target.count <= time[i] / 2))
+			{
+				// 获取当前起始点位置 //
+				if (target.count == 1)
+				{
+					begin_pjs[i] = target.model->motionPool()[i].mp();
+					step_pjs[i] = target.model->motionPool()[i].mp();
+				}
+				step_pjs[i] = begin_pjs[i] + param.axis_pos_vec[i] * (1 - std::cos(2 * PI*target.count / time[i])) / 2;
+				target.model->motionPool().at(i).setMp(step_pjs[i]);
+			}
+			else if ((time[i] / 2 < target.count) && (target.count <= totaltime[i] - time[i] / 2))
+			{
+				// 获取当前起始点位置 //
+				if (target.count == time[i] / 2 + 1)
+				{
+					begin_pjs[i] = target.model->motionPool()[i].mp();
+					step_pjs[i] = target.model->motionPool()[i].mp();
+				}
+				step_pjs[i] = begin_pjs[i] - 2 * param.axis_pos_vec[i] * (1 - std::cos(2 * PI*(target.count - time[i] / 2) / time[i])) / 2;
+				target.model->motionPool().at(i).setMp(step_pjs[i]);
+
+			}
+			else if ((totaltime[i] - time[i] / 2 < target.count) && (target.count <= totaltime[i]))
+			{
+				// 获取当前起始点位置 //
+				if (target.count == totaltime[i] - time[i] / 2 + 1)
+				{
+					begin_pjs[i] = target.model->motionPool()[i].mp();
+					step_pjs[i] = target.model->motionPool()[i].mp();
+				}
+				step_pjs[i] = begin_pjs[i] - param.axis_pos_vec[i] * (1 - std::cos(2 * PI*(target.count - totaltime[i] + time[i] / 2) / time[i])) / 2;
+				target.model->motionPool().at(i).setMp(step_pjs[i]);
+			}
+		}
+
+		if (target.model->solverPool().at(1).kinPos())return -1;
+
+		// 访问主站 //
+		auto controller = target.controller;
+
+		// 打印电流 //
+		auto &cout = controller->mout();
+		if (target.count % 100 == 0)
+		{
+			for (Size i = 0; i < 6; i++)
+			{
+				cout << "pos" << i + 1 << ":" << controller->motionAtAbs(i).actualPos() << "  ";
+				cout << "vel" << i + 1 << ":" << controller->motionAtAbs(i).actualVel() << "  ";
+				cout << "cur" << i + 1 << ":" << controller->motionAtAbs(i).actualCur() << "  ";
+			}
+			cout << std::endl;
+		}
+
+		// log 电流 //
+		auto &lout = controller->lout();
+		for (Size i = 0; i < 6; i++)
+		{
+			lout << controller->motionAtAbs(i).targetPos() << ",";
+			lout << controller->motionAtAbs(i).actualPos() << ",";
+			lout << controller->motionAtAbs(i).actualVel() << ",";
+			lout << controller->motionAtAbs(i).actualCur() << ",";
+		}
+		lout << std::endl;
+
+		return totaltime_max - target.count;
+	}
 	auto MoveJSN::collectNrt(PlanTarget &target)->void {}
 	MoveJSN::MoveJSN(const std::string &name) :Plan(name)
 	{
@@ -1321,146 +1332,146 @@ namespace kaanh
 		std::vector<bool> joint_active_vec;
 	};
 	auto MoveTTT::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		auto c = target.controller;
+		MoveTTTParam param;
+
+		for (auto cmd_param : params)
 		{
-			auto c = target.controller;
-			MoveTTTParam param;
-
-			for (auto cmd_param : params)
+			if (cmd_param.first == "all")
 			{
-				if (cmd_param.first == "all")
+				param.joint_active_vec.resize(c->motionPool().size(), true);
+			}
+			else if (cmd_param.first == "none")
+			{
+				param.joint_active_vec.resize(c->motionPool().size(), false);
+			}
+			else if (cmd_param.first == "motion_id")
+			{
+				param.joint_active_vec.resize(c->motionPool().size(), false);
+				param.joint_active_vec.at(std::stoi(cmd_param.second)) = true;
+			}
+			else if (cmd_param.first == "physical_id")
+			{
+				param.joint_active_vec.resize(c->motionPool().size(), false);
+				param.joint_active_vec.at(c->motionAtPhy(std::stoi(cmd_param.second)).phyId()) = true;
+			}
+			else if (cmd_param.first == "slave_id")
+			{
+				param.joint_active_vec.resize(c->motionPool().size(), false);
+				param.joint_active_vec.at(c->motionAtPhy(std::stoi(cmd_param.second)).slaId()) = true;
+			}
+			else if (cmd_param.first == "pos")
+			{
+				aris::core::Matrix mat = target.model->calculator().calculateExpression(cmd_param.second);
+				if (mat.size() == 1)param.joint_pos_vec.resize(c->motionPool().size(), mat.toDouble());
+				else
 				{
-					param.joint_active_vec.resize(c->motionPool().size(), true);
-				}
-				else if (cmd_param.first == "none")
-				{
-					param.joint_active_vec.resize(c->motionPool().size(), false);
-				}
-				else if (cmd_param.first == "motion_id")
-				{
-					param.joint_active_vec.resize(c->motionPool().size(), false);
-					param.joint_active_vec.at(std::stoi(cmd_param.second)) = true;
-				}
-				else if (cmd_param.first == "physical_id")
-				{
-					param.joint_active_vec.resize(c->motionPool().size(), false);
-					param.joint_active_vec.at(c->motionAtPhy(std::stoi(cmd_param.second)).phyId()) = true;
-				}
-				else if (cmd_param.first == "slave_id")
-				{
-					param.joint_active_vec.resize(c->motionPool().size(), false);
-					param.joint_active_vec.at(c->motionAtPhy(std::stoi(cmd_param.second)).slaId()) = true;
-				}
-				else if (cmd_param.first == "pos")
-				{
-					aris::core::Matrix mat = target.model->calculator().calculateExpression(cmd_param.second);
-					if (mat.size() == 1)param.joint_pos_vec.resize(c->motionPool().size(), mat.toDouble());
-					else
-					{
-						param.joint_pos_vec.resize(mat.size());
-						std::copy(mat.begin(), mat.end(), param.joint_pos_vec.begin());
-					}
-				}
-				else if (cmd_param.first == "vel")
-				{
-					auto v = target.model->calculator().calculateExpression(cmd_param.second);
-					if (v.size() == 1)
-					{
-						param.axis_vel_vec.resize(c->motionPool().size(), v.toDouble());
-					}
-					else if (v.size() == c->motionPool().size())
-					{
-						param.axis_vel_vec.assign(v.begin(), v.end());
-					}
-					else
-					{
-						throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
-					}
-
-					for (Size i = 0; i < c->motionPool().size(); ++i)
-					{
-						if (param.axis_vel_vec[i] > 1.0)
-						{
-							param.axis_vel_vec[i] = 1.0;
-						}
-						if (param.axis_vel_vec[i] < 0.0)
-						{
-							param.axis_vel_vec[i] = 0.0;
-						}
-						param.axis_vel_vec[i] = param.axis_vel_vec[i] * c->motionPool()[i].maxVel();
-					}
-				}
-				else if (cmd_param.first == "acc")
-				{
-					auto a = target.model->calculator().calculateExpression(cmd_param.second);
-					if (a.size() == 1)
-					{
-						param.axis_acc_vec.resize(c->motionPool().size(), a.toDouble());
-					}
-					else if (a.size() == c->motionPool().size())
-					{
-						param.axis_acc_vec.assign(a.begin(), a.end());
-					}
-					else
-					{
-						throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
-					}
-
-					for (Size i = 0; i < c->motionPool().size(); ++i)
-					{
-						if (param.axis_acc_vec[i] > 1.0)
-						{
-							param.axis_acc_vec[i] = 1.0;
-						}
-						if (param.axis_acc_vec[i] < 0.0)
-						{
-							param.axis_acc_vec[i] = 0.0;
-						}
-						param.axis_acc_vec[i] = param.axis_acc_vec[i] * c->motionPool()[i].maxAcc();
-					}
-				}
-				else if (cmd_param.first == "dec")
-				{
-					auto d = target.model->calculator().calculateExpression(cmd_param.second);
-					if (d.size() == 1)
-					{
-						param.axis_dec_vec.resize(c->motionPool().size(), d.toDouble());
-					}
-					else if (d.size() == c->motionPool().size())
-					{
-						param.axis_dec_vec.assign(d.begin(), d.end());
-					}
-					else
-					{
-						throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
-					}
-
-					for (Size i = 0; i < c->motionPool().size(); ++i)
-					{
-						if (param.axis_dec_vec[i] > 1.0)
-						{
-							param.axis_dec_vec[i] = 1.0;
-						}
-						if (param.axis_dec_vec[i] < 0.0)
-						{
-							param.axis_dec_vec[i] = 0.0;
-						}
-						param.axis_dec_vec[i] = param.axis_dec_vec[i] * c->motionPool()[i].minAcc();
-					}
+					param.joint_pos_vec.resize(mat.size());
+					std::copy(mat.begin(), mat.end(), param.joint_pos_vec.begin());
 				}
 			}
+			else if (cmd_param.first == "vel")
+			{
+				auto v = target.model->calculator().calculateExpression(cmd_param.second);
+				if (v.size() == 1)
+				{
+					param.axis_vel_vec.resize(c->motionPool().size(), v.toDouble());
+				}
+				else if (v.size() == c->motionPool().size())
+				{
+					param.axis_vel_vec.assign(v.begin(), v.end());
+				}
+				else
+				{
+					throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+				}
 
-			param.begin_joint_pos_vec.resize(c->motionPool().size(), 0.0);
-			param.begin_axis_vel_vec.resize(c->motionPool().size(), 0.0);
-			param.begin_axis_acc_vec.resize(c->motionPool().size(), 0.0);
-			param.begin_axis_dec_vec.resize(c->motionPool().size(), 0.0);
+				for (Size i = 0; i < c->motionPool().size(); ++i)
+				{
+					if (param.axis_vel_vec[i] > 1.0)
+					{
+						param.axis_vel_vec[i] = 1.0;
+					}
+					if (param.axis_vel_vec[i] < 0.0)
+					{
+						param.axis_vel_vec[i] = 0.0;
+					}
+					param.axis_vel_vec[i] = param.axis_vel_vec[i] * c->motionPool()[i].maxVel();
+				}
+			}
+			else if (cmd_param.first == "acc")
+			{
+				auto a = target.model->calculator().calculateExpression(cmd_param.second);
+				if (a.size() == 1)
+				{
+					param.axis_acc_vec.resize(c->motionPool().size(), a.toDouble());
+				}
+				else if (a.size() == c->motionPool().size())
+				{
+					param.axis_acc_vec.assign(a.begin(), a.end());
+				}
+				else
+				{
+					throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+				}
 
+				for (Size i = 0; i < c->motionPool().size(); ++i)
+				{
+					if (param.axis_acc_vec[i] > 1.0)
+					{
+						param.axis_acc_vec[i] = 1.0;
+					}
+					if (param.axis_acc_vec[i] < 0.0)
+					{
+						param.axis_acc_vec[i] = 0.0;
+					}
+					param.axis_acc_vec[i] = param.axis_acc_vec[i] * c->motionPool()[i].maxAcc();
+				}
+			}
+			else if (cmd_param.first == "dec")
+			{
+				auto d = target.model->calculator().calculateExpression(cmd_param.second);
+				if (d.size() == 1)
+				{
+					param.axis_dec_vec.resize(c->motionPool().size(), d.toDouble());
+				}
+				else if (d.size() == c->motionPool().size())
+				{
+					param.axis_dec_vec.assign(d.begin(), d.end());
+				}
+				else
+				{
+					throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+				}
 
-			target.param = param;
-
-			std::fill(target.mot_options.begin(), target.mot_options.end(),
-				Plan::USE_TARGET_POS);
-
+				for (Size i = 0; i < c->motionPool().size(); ++i)
+				{
+					if (param.axis_dec_vec[i] > 1.0)
+					{
+						param.axis_dec_vec[i] = 1.0;
+					}
+					if (param.axis_dec_vec[i] < 0.0)
+					{
+						param.axis_dec_vec[i] = 0.0;
+					}
+					param.axis_dec_vec[i] = param.axis_dec_vec[i] * c->motionPool()[i].minAcc();
+				}
+			}
 		}
+
+		param.begin_joint_pos_vec.resize(c->motionPool().size(), 0.0);
+		param.begin_axis_vel_vec.resize(c->motionPool().size(), 0.0);
+		param.begin_axis_acc_vec.resize(c->motionPool().size(), 0.0);
+		param.begin_axis_dec_vec.resize(c->motionPool().size(), 0.0);
+
+
+		target.param = param;
+
+		std::fill(target.mot_options.begin(), target.mot_options.end(),
+			Plan::USE_TARGET_POS);
+
+	}
 	auto MoveTTT::executeRT(PlanTarget &target)->int
 		{
 			auto &param = std::any_cast<MoveTTTParam&>(target.param);
@@ -1584,229 +1595,229 @@ namespace kaanh
 		bool ab;
 	};
 	auto MoveJM::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
-		{
-			auto c = target.controller;
-			MoveJMParam param;
-			param.total_count_vec.resize(6, 1);
-			param.axis_begin_pos_vec.resize(6, 0.0);
+	{
+		auto c = target.controller;
+		MoveJMParam param;
+		param.total_count_vec.resize(6, 1);
+		param.axis_begin_pos_vec.resize(6, 0.0);
 
-			//params.at("pos")
-			for (auto &p : params)
+		//params.at("pos")
+		for (auto &p : params)
+		{
+			if (p.first == "pos")
 			{
-				if (p.first == "pos")
+				if (p.second == "current_pos")
 				{
-					if (p.second == "current_pos")
+					target.option |= aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
+				}
+				else
+				{
+					auto pos = target.model->calculator().calculateExpression(p.second);
+					if (pos.size() == 1)
 					{
-						target.option |= aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
+						param.axis_pos_vec.resize(param.axis_begin_pos_vec.size(), pos.toDouble());
+					}
+					else if (pos.size() == param.axis_begin_pos_vec.size())
+					{
+						param.axis_pos_vec.assign(pos.begin(), pos.end());
 					}
 					else
 					{
-						auto pos = target.model->calculator().calculateExpression(p.second);
-						if (pos.size() == 1)
+						throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+					}
+
+					for (Size i = 0; i < param.axis_begin_pos_vec.size(); ++i)
+					{
+						//超阈值保护//
+						if (param.axis_pos_vec[i] > 1.0)
 						{
-							param.axis_pos_vec.resize(param.axis_begin_pos_vec.size(), pos.toDouble());
+							param.axis_pos_vec[i] = 1.0;
 						}
-						else if (pos.size() == param.axis_begin_pos_vec.size())
+						if (param.axis_pos_vec[i] < -1.0)
 						{
-							param.axis_pos_vec.assign(pos.begin(), pos.end());
+							param.axis_pos_vec[i] = -1.0;
+						}
+						if (param.axis_pos_vec[i] >= 0)
+						{
+							param.axis_pos_vec[i] = param.axis_pos_vec[i] * c->motionPool()[i].maxPos();
 						}
 						else
 						{
-							throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
-						}
-
-						for (Size i = 0; i < param.axis_begin_pos_vec.size(); ++i)
-						{
-							//超阈值保护//
-							if (param.axis_pos_vec[i] > 1.0)
-							{
-								param.axis_pos_vec[i] = 1.0;
-							}
-							if (param.axis_pos_vec[i] < -1.0)
-							{
-								param.axis_pos_vec[i] = -1.0;
-							}
-							if (param.axis_pos_vec[i] >= 0)
-							{
-								param.axis_pos_vec[i] = param.axis_pos_vec[i] * c->motionPool()[i].maxPos();
-							}
-							else
-							{
-								param.axis_pos_vec[i] = param.axis_pos_vec[i] * c->motionPool()[i].minPos();
-							}					
-						}
+							param.axis_pos_vec[i] = param.axis_pos_vec[i] * c->motionPool()[i].minPos();
+						}					
 					}
-				}
-				else if (p.first == "vel")
-				{
-					auto v = target.model->calculator().calculateExpression(p.second);
-					if (v.size() == 1)
-					{
-						param.axis_vel_vec.resize(param.axis_begin_pos_vec.size(), v.toDouble());
-					}
-					else if (v.size() == param.axis_begin_pos_vec.size())
-					{
-						param.axis_vel_vec.assign(v.begin(), v.end());
-					}
-					else
-					{
-						throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
-					}
-
-					for (Size i = 0; i < param.axis_begin_pos_vec.size(); ++i)
-					{
-						//if (param.axis_vel_vec[i] > 1.0 || param.axis_vel_vec[i] < 0.01)
-						//	throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
-						if (param.axis_vel_vec[i] > 1.0)
-						{
-							param.axis_vel_vec[i] = 1.0;
-						}
-						if (param.axis_vel_vec[i] < 0.0)
-						{
-							param.axis_vel_vec[i] = 0.0;
-						}
-						param.axis_vel_vec[i] = param.axis_vel_vec[i] * c->motionPool()[i].maxVel();
-					}
-				}
-				else if (p.first == "acc")
-				{
-					auto a = target.model->calculator().calculateExpression(p.second);
-					if (a.size() == 1)
-					{
-						param.axis_acc_vec.resize(param.axis_begin_pos_vec.size(), a.toDouble());
-					}
-					else if (a.size() == param.axis_begin_pos_vec.size())
-					{
-						param.axis_acc_vec.assign(a.begin(), a.end());
-					}
-					else
-					{
-						throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
-					}
-
-					for (Size i = 0; i < param.axis_begin_pos_vec.size(); ++i)
-					{
-						if (param.axis_acc_vec[i] > 1.0)
-						{
-							param.axis_acc_vec[i] = 1.0;
-						}
-						if (param.axis_acc_vec[i] < 0.0)
-						{
-							param.axis_acc_vec[i] = 0.0;
-						}
-						param.axis_acc_vec[i] = param.axis_acc_vec[i] * c->motionPool()[i].maxAcc();
-					}
-				}
-				else if (p.first == "dec")
-				{
-					auto d = target.model->calculator().calculateExpression(p.second);
-					if (d.size() == 1)
-					{
-						param.axis_dec_vec.resize(param.axis_begin_pos_vec.size(), d.toDouble());
-					}
-					else if (d.size() == param.axis_begin_pos_vec.size())
-					{
-						param.axis_dec_vec.assign(d.begin(), d.end());
-					}
-					else
-					{
-						throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
-					}
-
-					for (Size i = 0; i < param.axis_begin_pos_vec.size(); ++i)
-					{
-						if (param.axis_dec_vec[i] > 1.0)
-						{
-							param.axis_dec_vec[i] = 1.0;
-						}
-						if (param.axis_dec_vec[i] < 0.0)
-						{
-							param.axis_dec_vec[i] = 0.0;
-						}
-						param.axis_dec_vec[i] = param.axis_dec_vec[i] * c->motionPool()[i].minAcc();
-					}
-				}
-				else if (p.first == "ab")
-				{
-					param.ab = std::stod(p.second);
 				}
 			}
-			target.param = param;
+			else if (p.first == "vel")
+			{
+				auto v = target.model->calculator().calculateExpression(p.second);
+				if (v.size() == 1)
+				{
+					param.axis_vel_vec.resize(param.axis_begin_pos_vec.size(), v.toDouble());
+				}
+				else if (v.size() == param.axis_begin_pos_vec.size())
+				{
+					param.axis_vel_vec.assign(v.begin(), v.end());
+				}
+				else
+				{
+					throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+				}
 
-			//std::fill(target.mot_options.begin(), target.mot_options.end(), Plan::USE_VEL_OFFSET);
+				for (Size i = 0; i < param.axis_begin_pos_vec.size(); ++i)
+				{
+					//if (param.axis_vel_vec[i] > 1.0 || param.axis_vel_vec[i] < 0.01)
+					//	throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+					if (param.axis_vel_vec[i] > 1.0)
+					{
+						param.axis_vel_vec[i] = 1.0;
+					}
+					if (param.axis_vel_vec[i] < 0.0)
+					{
+						param.axis_vel_vec[i] = 0.0;
+					}
+					param.axis_vel_vec[i] = param.axis_vel_vec[i] * c->motionPool()[i].maxVel();
+				}
+			}
+			else if (p.first == "acc")
+			{
+				auto a = target.model->calculator().calculateExpression(p.second);
+				if (a.size() == 1)
+				{
+					param.axis_acc_vec.resize(param.axis_begin_pos_vec.size(), a.toDouble());
+				}
+				else if (a.size() == param.axis_begin_pos_vec.size())
+				{
+					param.axis_acc_vec.assign(a.begin(), a.end());
+				}
+				else
+				{
+					throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+				}
 
+				for (Size i = 0; i < param.axis_begin_pos_vec.size(); ++i)
+				{
+					if (param.axis_acc_vec[i] > 1.0)
+					{
+						param.axis_acc_vec[i] = 1.0;
+					}
+					if (param.axis_acc_vec[i] < 0.0)
+					{
+						param.axis_acc_vec[i] = 0.0;
+					}
+					param.axis_acc_vec[i] = param.axis_acc_vec[i] * c->motionPool()[i].maxAcc();
+				}
+			}
+			else if (p.first == "dec")
+			{
+				auto d = target.model->calculator().calculateExpression(p.second);
+				if (d.size() == 1)
+				{
+					param.axis_dec_vec.resize(param.axis_begin_pos_vec.size(), d.toDouble());
+				}
+				else if (d.size() == param.axis_begin_pos_vec.size())
+				{
+					param.axis_dec_vec.assign(d.begin(), d.end());
+				}
+				else
+				{
+					throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+				}
+
+				for (Size i = 0; i < param.axis_begin_pos_vec.size(); ++i)
+				{
+					if (param.axis_dec_vec[i] > 1.0)
+					{
+						param.axis_dec_vec[i] = 1.0;
+					}
+					if (param.axis_dec_vec[i] < 0.0)
+					{
+						param.axis_dec_vec[i] = 0.0;
+					}
+					param.axis_dec_vec[i] = param.axis_dec_vec[i] * c->motionPool()[i].minAcc();
+				}
+			}
+			else if (p.first == "ab")
+			{
+				param.ab = std::stod(p.second);
+			}
 		}
+		target.param = param;
+
+		//std::fill(target.mot_options.begin(), target.mot_options.end(), Plan::USE_VEL_OFFSET);
+
+	}
 	auto MoveJM::executeRT(PlanTarget &target)->int
+	{
+		//获取驱动//
+		auto controller = target.controller;
+		auto &param = std::any_cast<MoveJMParam&>(target.param);
+		static double begin_pos[6];
+		static double pos[6];
+		// 取得起始位置 //
+		if (target.count == 1)
 		{
-			//获取驱动//
-			auto controller = target.controller;
-			auto &param = std::any_cast<MoveJMParam&>(target.param);
-			static double begin_pos[6];
-			static double pos[6];
-			// 取得起始位置 //
-			if (target.count == 1)
+			for (Size i = 0; i < param.axis_begin_pos_vec.size(); ++i)
 			{
-				for (Size i = 0; i < param.axis_begin_pos_vec.size(); ++i)
-				{
-					param.axis_begin_pos_vec[i] = controller->motionPool().at(i).targetPos();
-				}
+				param.axis_begin_pos_vec[i] = controller->motionPool().at(i).targetPos();
 			}
-			// 设置驱动器的位置 //
-			if (param.ab)
+		}
+		// 设置驱动器的位置 //
+		if (param.ab)
+		{
+			for (Size i = 0; i < param.axis_begin_pos_vec.size(); ++i)
 			{
-				for (Size i = 0; i < param.axis_begin_pos_vec.size(); ++i)
-				{
-					double p, v, a;
-					aris::plan::moveAbsolute(target.count, param.axis_begin_pos_vec[i], param.axis_pos_vec[i], param.axis_vel_vec[i] / 1000
-						, param.axis_acc_vec[i] / 1000 / 1000, param.axis_dec_vec[i] / 1000 / 1000, p, v, a, param.total_count_vec[i]);
-					controller->motionAtAbs(i).setTargetPos(p);
-					//速度前馈//
-					controller->motionAtAbs(i).setOffsetVel(v * 1000);
-					target.model->motionPool().at(i).setMp(p);
-				}
+				double p, v, a;
+				aris::plan::moveAbsolute(target.count, param.axis_begin_pos_vec[i], param.axis_pos_vec[i], param.axis_vel_vec[i] / 1000
+					, param.axis_acc_vec[i] / 1000 / 1000, param.axis_dec_vec[i] / 1000 / 1000, p, v, a, param.total_count_vec[i]);
+				controller->motionAtAbs(i).setTargetPos(p);
+				//速度前馈//
+				controller->motionAtAbs(i).setOffsetVel(v * 1000);
+				target.model->motionPool().at(i).setMp(p);
 			}
-			else
+		}
+		else
+		{
+			for (Size i = 0; i < param.axis_begin_pos_vec.size(); ++i)
 			{
-				for (Size i = 0; i < param.axis_begin_pos_vec.size(); ++i)
-				{
-					double p, v, a;
-					aris::plan::moveAbsolute(target.count, param.axis_begin_pos_vec[i], param.axis_begin_pos_vec[i] + param.axis_pos_vec[i], param.axis_vel_vec[i] / 1000
-						, param.axis_acc_vec[i] / 1000 / 1000, param.axis_dec_vec[i] / 1000 / 1000, p, v, a, param.total_count_vec[i]);
-					controller->motionAtAbs(i).setTargetPos(p);
-					//速度前馈//
-					controller->motionAtAbs(i).setOffsetVel(v * 1000);
-					target.model->motionPool().at(i).setMp(p);
-				}
+				double p, v, a;
+				aris::plan::moveAbsolute(target.count, param.axis_begin_pos_vec[i], param.axis_begin_pos_vec[i] + param.axis_pos_vec[i], param.axis_vel_vec[i] / 1000
+					, param.axis_acc_vec[i] / 1000 / 1000, param.axis_dec_vec[i] / 1000 / 1000, p, v, a, param.total_count_vec[i]);
+				controller->motionAtAbs(i).setTargetPos(p);
+				//速度前馈//
+				controller->motionAtAbs(i).setOffsetVel(v * 1000);
+				target.model->motionPool().at(i).setMp(p);
 			}
+		}
 				
-			if (target.model->solverPool().at(1).kinPos())return -1;
+		if (target.model->solverPool().at(1).kinPos())return -1;
 
-			// 打印电流 //
-			auto &cout = controller->mout();
-			if (target.count % 100 == 0)
-			{
-				for (Size i = 0; i < 6; i++)
-				{
-					cout << "pos" << i + 1 << ":" << controller->motionAtAbs(i).actualPos() << "  ";
-					cout << "vel" << i + 1 << ":" << controller->motionAtAbs(i).actualVel() << "  ";
-					cout << "cur" << i + 1 << ":" << controller->motionAtAbs(i).actualCur() << "  ";
-				}
-				cout << std::endl;
-			}
-
-			// log 电流 //
-			auto &lout = controller->lout();
+		// 打印电流 //
+		auto &cout = controller->mout();
+		if (target.count % 100 == 0)
+		{
 			for (Size i = 0; i < 6; i++)
 			{
-				lout << controller->motionAtAbs(i).targetPos() << ",";
-				lout << controller->motionAtAbs(i).actualPos() << ",";
-				lout << controller->motionAtAbs(i).actualVel() << ",";
-				lout << controller->motionAtAbs(i).actualCur() << ",";
+				cout << "pos" << i + 1 << ":" << controller->motionAtAbs(i).actualPos() << "  ";
+				cout << "vel" << i + 1 << ":" << controller->motionAtAbs(i).actualVel() << "  ";
+				cout << "cur" << i + 1 << ":" << controller->motionAtAbs(i).actualCur() << "  ";
 			}
-			lout << std::endl;
-
-			return (static_cast<int>(*std::max_element(param.total_count_vec.begin(), param.total_count_vec.end())) > target.count) ? 1 : 0;
+			cout << std::endl;
 		}
+
+		// log 电流 //
+		auto &lout = controller->lout();
+		for (Size i = 0; i < 6; i++)
+		{
+			lout << controller->motionAtAbs(i).targetPos() << ",";
+			lout << controller->motionAtAbs(i).actualPos() << ",";
+			lout << controller->motionAtAbs(i).actualVel() << ",";
+			lout << controller->motionAtAbs(i).actualCur() << ",";
+		}
+		lout << std::endl;
+
+		return (static_cast<int>(*std::max_element(param.total_count_vec.begin(), param.total_count_vec.end())) > target.count) ? 1 : 0;
+	}
 	auto MoveJM::collectNrt(PlanTarget &target)->void {}
 	MoveJM::MoveJM(const std::string &name) :Plan(name)
 	{
@@ -1835,183 +1846,183 @@ namespace kaanh
 		std::vector<double> axis_dec_vec;
 	};
 	auto MoveJI::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		auto c = target.controller;
+		MoveJIParam param;
+		param.pq.resize(7, 0.0);
+		param.total_count_vec.resize(6, 1);
+		param.axis_begin_pos_vec.resize(6, 0.0);
+		param.axis_pos_vec.resize(6, 0.0);
+
+		//params.at("pq")
+		for (auto &p : params)
 		{
-			auto c = target.controller;
-			MoveJIParam param;
-			param.pq.resize(7, 0.0);
-			param.total_count_vec.resize(6, 1);
-			param.axis_begin_pos_vec.resize(6, 0.0);
-			param.axis_pos_vec.resize(6, 0.0);
-
-			//params.at("pq")
-			for (auto &p : params)
+			if (p.first == "pq")
 			{
-				if (p.first == "pq")
+				if (p.second == "current_pos")
 				{
-					if (p.second == "current_pos")
-					{
-						target.option |= aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
-					}
-					else
-					{
-						auto pqarray = target.model->calculator().calculateExpression(p.second);
-						param.pq.assign(pqarray.begin(), pqarray.end());
-					}
+					target.option |= aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
 				}
-				else if (p.first == "vel")
+				else
 				{
-					auto v = target.model->calculator().calculateExpression(p.second);
-					if (v.size() == 1)
-					{
-						param.axis_vel_vec.resize(param.axis_pos_vec.size(), v.toDouble());
-					}
-					else if (v.size() == param.axis_pos_vec.size())
-					{
-						param.axis_vel_vec.assign(v.begin(), v.end());
-					}
-					else
-					{
-						throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
-					}
-
-					for (Size i = 0; i < param.axis_pos_vec.size(); ++i)
-					{
-						//if (param.axis_vel_vec[i] > 1.0 || param.axis_vel_vec[i] < 0.01)
-						//	throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
-						if (param.axis_vel_vec[i] > 1.0)
-						{
-							param.axis_vel_vec[i] = 1.0;
-						}
-						if (param.axis_vel_vec[i] < 0.0)
-						{
-							param.axis_vel_vec[i] = 0.0;
-						}
-						param.axis_vel_vec[i] = param.axis_vel_vec[i] * c->motionPool()[i].maxVel();
-					}
-				}
-				else if (p.first == "acc")
-				{
-					auto a = target.model->calculator().calculateExpression(p.second);
-					if (a.size() == 1)
-					{
-						param.axis_acc_vec.resize(param.axis_pos_vec.size(), a.toDouble());
-					}
-					else if (a.size() == param.axis_pos_vec.size())
-					{
-						param.axis_acc_vec.assign(a.begin(), a.end());
-					}
-					else
-					{
-						throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
-					}
-
-					for (Size i = 0; i < param.axis_pos_vec.size(); ++i)
-					{
-						if (param.axis_acc_vec[i] > 1.0)
-						{
-							param.axis_acc_vec[i] = 1.0;
-						}
-						if (param.axis_acc_vec[i] < 0.0)
-						{
-							param.axis_acc_vec[i] = 0.0;
-						}
-						param.axis_acc_vec[i] = param.axis_acc_vec[i] * c->motionPool()[i].maxAcc();
-					}
-				}
-				else if (p.first == "dec")
-				{
-					auto d = target.model->calculator().calculateExpression(p.second);
-					if (d.size() == 1)
-					{
-						param.axis_dec_vec.resize(param.axis_pos_vec.size(), d.toDouble());
-					}
-					else if (d.size() == param.axis_pos_vec.size())
-					{
-						param.axis_dec_vec.assign(d.begin(), d.end());
-					}
-					else
-					{
-						throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
-					}
-
-					for (Size i = 0; i < param.axis_pos_vec.size(); ++i)
-					{
-						if (param.axis_dec_vec[i] > 1.0)
-						{
-							param.axis_dec_vec[i] = 1.0;
-						}	
-						if (param.axis_dec_vec[i] < 0.0)
-						{
-							param.axis_dec_vec[i] = 0.0;
-						}
-						param.axis_dec_vec[i] = param.axis_dec_vec[i] * c->motionPool()[i].minAcc();
-					}
+					auto pqarray = target.model->calculator().calculateExpression(p.second);
+					param.pq.assign(pqarray.begin(), pqarray.end());
 				}
 			}
-			target.param = param;
-
-			std::fill(target.mot_options.begin(), target.mot_options.end(),
-				Plan::USE_VEL_OFFSET);
-
-		}
-	auto MoveJI::executeRT(PlanTarget &target)->int
-		{
-            //获取驱动//
-			auto controller = target.controller;
-			auto &param = std::any_cast<MoveJIParam&>(target.param);
-			static double begin_pos[6];
-			static double pos[6];
-			// 取得起始位置 //
-            if (target.count == 1)
+			else if (p.first == "vel")
 			{
-				target.model->generalMotionPool().at(0).setMpq(param.pq.data());	//generalMotionPool()指模型末端，at(0)表示第1个末端，对于6足就有6个末端，对于机器人只有1个末端
-				if (target.model->solverPool().at(0).kinPos())return -1;
+				auto v = target.model->calculator().calculateExpression(p.second);
+				if (v.size() == 1)
+				{
+					param.axis_vel_vec.resize(param.axis_pos_vec.size(), v.toDouble());
+				}
+				else if (v.size() == param.axis_pos_vec.size())
+				{
+					param.axis_vel_vec.assign(v.begin(), v.end());
+				}
+				else
+				{
+					throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+				}
+
 				for (Size i = 0; i < param.axis_pos_vec.size(); ++i)
 				{
-					param.axis_begin_pos_vec[i] = controller->motionPool().at(i).targetPos();
-					param.axis_pos_vec[i] = target.model->motionPool().at(i).mp();		//motionPool()指模型驱动器，at(0)表示第1个驱动器
+					//if (param.axis_vel_vec[i] > 1.0 || param.axis_vel_vec[i] < 0.01)
+					//	throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+					if (param.axis_vel_vec[i] > 1.0)
+					{
+						param.axis_vel_vec[i] = 1.0;
+					}
+					if (param.axis_vel_vec[i] < 0.0)
+					{
+						param.axis_vel_vec[i] = 0.0;
+					}
+					param.axis_vel_vec[i] = param.axis_vel_vec[i] * c->motionPool()[i].maxVel();
 				}
 			}
-            // 设置驱动器的位置 //
+			else if (p.first == "acc")
+			{
+				auto a = target.model->calculator().calculateExpression(p.second);
+				if (a.size() == 1)
+				{
+					param.axis_acc_vec.resize(param.axis_pos_vec.size(), a.toDouble());
+				}
+				else if (a.size() == param.axis_pos_vec.size())
+				{
+					param.axis_acc_vec.assign(a.begin(), a.end());
+				}
+				else
+				{
+					throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+				}
+
+				for (Size i = 0; i < param.axis_pos_vec.size(); ++i)
+				{
+					if (param.axis_acc_vec[i] > 1.0)
+					{
+						param.axis_acc_vec[i] = 1.0;
+					}
+					if (param.axis_acc_vec[i] < 0.0)
+					{
+						param.axis_acc_vec[i] = 0.0;
+					}
+					param.axis_acc_vec[i] = param.axis_acc_vec[i] * c->motionPool()[i].maxAcc();
+				}
+			}
+			else if (p.first == "dec")
+			{
+				auto d = target.model->calculator().calculateExpression(p.second);
+				if (d.size() == 1)
+				{
+					param.axis_dec_vec.resize(param.axis_pos_vec.size(), d.toDouble());
+				}
+				else if (d.size() == param.axis_pos_vec.size())
+				{
+					param.axis_dec_vec.assign(d.begin(), d.end());
+				}
+				else
+				{
+					throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+				}
+
+				for (Size i = 0; i < param.axis_pos_vec.size(); ++i)
+				{
+					if (param.axis_dec_vec[i] > 1.0)
+					{
+						param.axis_dec_vec[i] = 1.0;
+					}	
+					if (param.axis_dec_vec[i] < 0.0)
+					{
+						param.axis_dec_vec[i] = 0.0;
+					}
+					param.axis_dec_vec[i] = param.axis_dec_vec[i] * c->motionPool()[i].minAcc();
+				}
+			}
+		}
+		target.param = param;
+
+		std::fill(target.mot_options.begin(), target.mot_options.end(),
+			Plan::USE_VEL_OFFSET);
+
+	}
+	auto MoveJI::executeRT(PlanTarget &target)->int
+	{
+        //获取驱动//
+		auto controller = target.controller;
+		auto &param = std::any_cast<MoveJIParam&>(target.param);
+		static double begin_pos[6];
+		static double pos[6];
+		// 取得起始位置 //
+        if (target.count == 1)
+		{
+			target.model->generalMotionPool().at(0).setMpq(param.pq.data());	//generalMotionPool()指模型末端，at(0)表示第1个末端，对于6足就有6个末端，对于机器人只有1个末端
+			if (target.model->solverPool().at(0).kinPos())return -1;
 			for (Size i = 0; i < param.axis_pos_vec.size(); ++i)
 			{
-				double p, v, a;
-				aris::plan::moveAbsolute(target.count, param.axis_begin_pos_vec[i], param.axis_pos_vec[i], param.axis_vel_vec[i] / 1000
-					, param.axis_acc_vec[i] / 1000 / 1000, param.axis_dec_vec[i] / 1000 / 1000, p, v, a, param.total_count_vec[i]);
-				controller->motionAtAbs(i).setTargetPos(p);
-				//速度前馈//
-				controller->motionAtAbs(i).setOffsetVel(v*1000);
-				target.model->motionPool().at(i).setMp(p);
-			}		
-			if (target.model->solverPool().at(1).kinPos())return -1;
-
-			// 打印电流 //
-			auto &cout = controller->mout();
-			if (target.count % 100 == 0)
-			{
-				for (Size i = 0; i < 6; i++)
-				{
-					cout << "pos" << i + 1 << ":" << controller->motionAtAbs(i).actualPos() << "  ";
-					cout << "vel" << i + 1 << ":" << controller->motionAtAbs(i).actualVel() << "  ";
-					cout << "cur" << i + 1 << ":" << controller->motionAtAbs(i).actualCur() << "  ";
-				}
-                //cout <<endl;
+				param.axis_begin_pos_vec[i] = controller->motionPool().at(i).targetPos();
+				param.axis_pos_vec[i] = target.model->motionPool().at(i).mp();		//motionPool()指模型驱动器，at(0)表示第1个驱动器
 			}
+		}
+        // 设置驱动器的位置 //
+		for (Size i = 0; i < param.axis_pos_vec.size(); ++i)
+		{
+			double p, v, a;
+			aris::plan::moveAbsolute(target.count, param.axis_begin_pos_vec[i], param.axis_pos_vec[i], param.axis_vel_vec[i] / 1000
+				, param.axis_acc_vec[i] / 1000 / 1000, param.axis_dec_vec[i] / 1000 / 1000, p, v, a, param.total_count_vec[i]);
+			controller->motionAtAbs(i).setTargetPos(p);
+			//速度前馈//
+			controller->motionAtAbs(i).setOffsetVel(v*1000);
+			target.model->motionPool().at(i).setMp(p);
+		}		
+		if (target.model->solverPool().at(1).kinPos())return -1;
 
-
-			// log 电流 //
-			auto &lout = controller->lout();
+		// 打印电流 //
+		auto &cout = controller->mout();
+		if (target.count % 100 == 0)
+		{
 			for (Size i = 0; i < 6; i++)
 			{
-				lout << controller->motionAtAbs(i).targetPos() << ",";
-				lout << controller->motionAtAbs(i).actualPos() << ",";
-				lout << controller->motionAtAbs(i).actualVel() << ",";
-				lout << controller->motionAtAbs(i).actualCur() << ",";
+				cout << "pos" << i + 1 << ":" << controller->motionAtAbs(i).actualPos() << "  ";
+				cout << "vel" << i + 1 << ":" << controller->motionAtAbs(i).actualVel() << "  ";
+				cout << "cur" << i + 1 << ":" << controller->motionAtAbs(i).actualCur() << "  ";
 			}
-			lout << std::endl;
-
-			return (static_cast<int>(*std::max_element(param.total_count_vec.begin(), param.total_count_vec.end())) > target.count) ? 1 : 0;
+            //cout <<endl;
 		}
+
+
+		// log 电流 //
+		auto &lout = controller->lout();
+		for (Size i = 0; i < 6; i++)
+		{
+			lout << controller->motionAtAbs(i).targetPos() << ",";
+			lout << controller->motionAtAbs(i).actualPos() << ",";
+			lout << controller->motionAtAbs(i).actualVel() << ",";
+			lout << controller->motionAtAbs(i).actualCur() << ",";
+		}
+		lout << std::endl;
+
+		return (static_cast<int>(*std::max_element(param.total_count_vec.begin(), param.total_count_vec.end())) > target.count) ? 1 : 0;
+	}
 	auto MoveJI::collectNrt(PlanTarget &target)->void {}
 	MoveJI::MoveJI(const std::string &name) :Plan(name)
 	{
@@ -2545,37 +2556,37 @@ namespace kaanh
 		bool status;
 	};
 	auto Grasp::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		GraspParam param = { 0 };
+		for (auto &p : params)
 		{
-			GraspParam param = { 0 };
-			for (auto &p : params)
+			if (p.first == "status")
 			{
-				if (p.first == "status")
-				{
-					param.status = std::stod(p.second);
-				}
+				param.status = std::stod(p.second);
 			}
-			target.param = param;
+		}
+		target.param = param;
 
-		}
+	}
 	auto Grasp::executeRT(PlanTarget &target)->int
+	{
+		auto &param = std::any_cast<GraspParam&>(target.param);
+		// 访问主站 //
+		auto controller = dynamic_cast<aris::control::EthercatController*>(target.controller);
+		static std::uint8_t dq = 0x01;
+		if (param.status)
 		{
-			auto &param = std::any_cast<GraspParam&>(target.param);
-			// 访问主站 //
-			auto controller = dynamic_cast<aris::control::EthercatController*>(target.controller);
-			static std::uint8_t dq = 0x01;
-			if (param.status)
-			{
-				dq = 0x01;
-				controller->slavePool().at(7).writePdo(0x7001, 0x01, dq);
-			}
-			else
-			{
-				dq = 0x00;
-				controller->slavePool().at(7).writePdo(0x7001, 0x01, dq);
-			}	
-			//std::cout << int(a) << std::endl;
-			return 0;
+			dq = 0x01;
+			controller->slavePool().at(7).writePdo(0x7001, 0x01, dq);
 		}
+		else
+		{
+			dq = 0x00;
+			controller->slavePool().at(7).writePdo(0x7001, 0x01, dq);
+		}	
+		//std::cout << int(a) << std::endl;
+		return 0;
+	}
 	auto Grasp::collectNrt(PlanTarget &target)->void {}
 	Grasp::Grasp(const std::string &name) :Plan(name)
 	{
@@ -2591,177 +2602,177 @@ namespace kaanh
 	// 监听DI信号 //
 	auto ListenDI::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void{}
 	auto ListenDI::executeRT(PlanTarget &target)->int
+	{
+		if (is_automatic)
 		{
-			if (is_automatic)
-			{
-				// 访问主站 //
-				auto controller = dynamic_cast<aris::control::EthercatController*>(target.controller);
-				static std::uint8_t di = 0x00;
-				static std::int16_t di_delay[6] = { 0,0,0,0,0,0 };
-				controller->slavePool().at(7).readPdo(0x6001, 0x01, di);
-				//模拟DI信号为1//
-				//di = 0x01;
+			// 访问主站 //
+			auto controller = dynamic_cast<aris::control::EthercatController*>(target.controller);
+			static std::uint8_t di = 0x00;
+			static std::int16_t di_delay[6] = { 0,0,0,0,0,0 };
+			controller->slavePool().at(7).readPdo(0x6001, 0x01, di);
+			//模拟DI信号为1//
+			//di = 0x01;
 
-				auto &lout = controller->lout();
-				auto &cout = controller->mout();
-				//di信号持续100ms才会有效，其他情况会将di信号全部置为0//
-				switch (di)
+			auto &lout = controller->lout();
+			auto &cout = controller->mout();
+			//di信号持续100ms才会有效，其他情况会将di信号全部置为0//
+			switch (di)
+			{
+			case 0x00:
+			{
+				which_di = 0;
+				for (Size i = 0; i < 6; i++)
 				{
-				case 0x00:
+					di_delay[i] = 0;
+				}
+				break;
+			}
+			case 0x01:
+			{
+				for (Size i = 0; i < 6; i++)
 				{
-					which_di = 0;
-					for (Size i = 0; i < 6; i++)
+					if (i == 0)
+					{
+						di_delay[i] = di_delay[i] + 1;
+					}
+					else
 					{
 						di_delay[i] = 0;
 					}
-					break;
 				}
-				case 0x01:
+				if (di_delay[0] >= 100)
 				{
-					for (Size i = 0; i < 6; i++)
-					{
-						if (i == 0)
-						{
-							di_delay[i] = di_delay[i] + 1;
-						}
-						else
-						{
-							di_delay[i] = 0;
-						}
-					}
-					if (di_delay[0] >= 100)
-					{
-						which_di = 1;
-						di_delay[0] = 0;
-					}
-					break;
+					which_di = 1;
+					di_delay[0] = 0;
 				}
-				case 0x02:
+				break;
+			}
+			case 0x02:
+			{
+				for (Size i = 0; i < 6; i++)
 				{
-					for (Size i = 0; i < 6; i++)
+					if (i == 1)
 					{
-						if (i == 1)
-						{
-							di_delay[i] = di_delay[i] + 1;
-						}
-						else
-						{
-							di_delay[i] = 0;
-						}
+						di_delay[i] = di_delay[i] + 1;
 					}
-					if (di_delay[1] >= 100)
-					{
-						which_di = 2;
-						di_delay[1] = 0;
-					}
-					break;
-				}
-				case 0x04:
-				{
-					for (Size i = 0; i < 6; i++)
-					{
-						if (i == 2)
-						{
-							di_delay[i] = di_delay[i] + 1;
-						}
-						else
-						{
-							di_delay[i] = 0;
-						}
-					}
-					if (di_delay[2] >= 100)
-					{
-						which_di = 3;
-						di_delay[2] = 0;
-					}
-					break;
-				}
-				case 0x08:
-				{
-					for (Size i = 0; i < 6; i++)
-					{
-						if (i == 3)
-						{
-							di_delay[i] = di_delay[i] + 1;
-						}
-						else
-						{
-							di_delay[i] = 0;
-						}
-					}
-					if (di_delay[3] >= 100)
-					{
-						which_di = 4;
-						di_delay[3] = 0;
-					}
-					break;
-				}
-				case 0x10:
-				{
-					for (Size i = 0; i < 6; i++)
-					{
-						if (i == 4)
-						{
-							di_delay[i] = di_delay[i] + 1;
-						}
-						else
-						{
-							di_delay[i] = 0;
-						}
-					}
-					if (di_delay[4] >= 100)
-					{
-						which_di = 5;
-						di_delay[4] = 0;
-					}
-					break;
-				}
-				case 0x20:
-				{
-					for (Size i = 0; i < 6; i++)
-					{
-						if (i == 5)
-						{
-							di_delay[i] = di_delay[i] + 1;
-						}
-						else
-						{
-							di_delay[i] = 0;
-						}
-					}
-					if (di_delay[5] >= 100)
-					{
-						which_di = 6;
-						di_delay[5] = 0;
-					}
-					break;
-				}
-				default:
-				{
-					which_di = 0;
-					for (Size i = 0; i < 6; i++)
+					else
 					{
 						di_delay[i] = 0;
 					}
-					lout << "unexpected di:" << di << std::endl;
 				}
-				}
-				if (which_di == 0)
+				if (di_delay[1] >= 100)
 				{
-					return 1;
+					which_di = 2;
+					di_delay[1] = 0;
 				}
-				else
+				break;
+			}
+			case 0x04:
+			{
+				for (Size i = 0; i < 6; i++)
 				{
-					return 0;
+					if (i == 2)
+					{
+						di_delay[i] = di_delay[i] + 1;
+					}
+					else
+					{
+						di_delay[i] = 0;
+					}
 				}
-				
+				if (di_delay[2] >= 100)
+				{
+					which_di = 3;
+					di_delay[2] = 0;
+				}
+				break;
+			}
+			case 0x08:
+			{
+				for (Size i = 0; i < 6; i++)
+				{
+					if (i == 3)
+					{
+						di_delay[i] = di_delay[i] + 1;
+					}
+					else
+					{
+						di_delay[i] = 0;
+					}
+				}
+				if (di_delay[3] >= 100)
+				{
+					which_di = 4;
+					di_delay[3] = 0;
+				}
+				break;
+			}
+			case 0x10:
+			{
+				for (Size i = 0; i < 6; i++)
+				{
+					if (i == 4)
+					{
+						di_delay[i] = di_delay[i] + 1;
+					}
+					else
+					{
+						di_delay[i] = 0;
+					}
+				}
+				if (di_delay[4] >= 100)
+				{
+					which_di = 5;
+					di_delay[4] = 0;
+				}
+				break;
+			}
+			case 0x20:
+			{
+				for (Size i = 0; i < 6; i++)
+				{
+					if (i == 5)
+					{
+						di_delay[i] = di_delay[i] + 1;
+					}
+					else
+					{
+						di_delay[i] = 0;
+					}
+				}
+				if (di_delay[5] >= 100)
+				{
+					which_di = 6;
+					di_delay[5] = 0;
+				}
+				break;
+			}
+			default:
+			{
+				which_di = 0;
+				for (Size i = 0; i < 6; i++)
+				{
+					di_delay[i] = 0;
+				}
+				lout << "unexpected di:" << di << std::endl;
+			}
+			}
+			if (which_di == 0)
+			{
+				return 1;
 			}
 			else
 			{
 				return 0;
 			}
-			
+				
 		}
+		else
+		{
+			return 0;
+		}
+			
+	}
 	ListenDI::ListenDI(const std::string &name) :Plan(name)
 	{
 		command().loadXmlStr(
@@ -2777,25 +2788,25 @@ namespace kaanh
 		double time;
 	};
 	auto MoveEA::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		MoveEAParam param = { 0.0,0.0 };
+		for (auto &p : params)
 		{
-			MoveEAParam param = { 0.0,0.0 };
-			for (auto &p : params)
+			if (p.first == "s")
 			{
-				if (p.first == "s")
-				{
-					param.s = std::stod(p.second);
-				}
-				else if (p.first == "time")
-				{
-					param.time = std::stod(p.second);
-				}
+				param.s = std::stod(p.second);
 			}
-			target.param = param;
-
-			std::fill(target.mot_options.begin(), target.mot_options.end(),
-				Plan::USE_TARGET_POS);
-
+			else if (p.first == "time")
+			{
+				param.time = std::stod(p.second);
+			}
 		}
+		target.param = param;
+
+		std::fill(target.mot_options.begin(), target.mot_options.end(),
+			Plan::USE_TARGET_POS);
+
+	}
 	auto MoveEA::executeRT(PlanTarget &target)->int
 		{
 			auto &param = std::any_cast<MoveEAParam&>(target.param);
