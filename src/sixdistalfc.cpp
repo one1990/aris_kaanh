@@ -137,17 +137,13 @@ auto MoveXYZ::prepairNrt(const std::map<std::string, std::string> &params, PlanT
 		Plan::NOT_CHECK_POS_MIN |
 		Plan::NOT_CHECK_POS_MAX |
 		Plan::NOT_CHECK_POS_CONTINUOUS |
-		Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
 		Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
 #endif
 		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
 		Plan::NOT_CHECK_VEL_MIN |
 		Plan::NOT_CHECK_VEL_MAX |
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
-		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 
 
@@ -531,15 +527,12 @@ auto MoveDistal::prepairNrt(const std::map<std::string, std::string> &params, Pl
 		Plan::NOT_CHECK_POS_MIN |
 		Plan::NOT_CHECK_POS_MAX |
 		Plan::NOT_CHECK_POS_CONTINUOUS |
-		Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
 		Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
 		//#endif
 		Plan::NOT_CHECK_VEL_MIN |
 		Plan::NOT_CHECK_VEL_MAX |
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
-		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
         Plan::NOT_CHECK_VEL_FOLLOWING_ERROR|
         Plan::NOT_CHECK_ENABLE;
 
@@ -765,15 +758,12 @@ auto DistalTest::prepairNrt(const std::map<std::string, std::string> &params, Pl
         Plan::NOT_CHECK_POS_MIN |
         Plan::NOT_CHECK_POS_MAX |
         Plan::NOT_CHECK_POS_CONTINUOUS |
-        Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
         Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-        Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
         Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
         //#endif
         Plan::NOT_CHECK_VEL_MIN |
         Plan::NOT_CHECK_VEL_MAX |
         Plan::NOT_CHECK_VEL_CONTINUOUS |
-        Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
         Plan::NOT_CHECK_VEL_FOLLOWING_ERROR|
         Plan::NOT_CHECK_ENABLE;
 
@@ -982,15 +972,12 @@ auto SetTool::prepairNrt(const std::map<std::string, std::string> &params, PlanT
 		Plan::NOT_CHECK_POS_MIN |
 		Plan::NOT_CHECK_POS_MAX |
 		Plan::NOT_CHECK_POS_CONTINUOUS |
-		Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
 		Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
 		//#endif
 		Plan::NOT_CHECK_VEL_MIN |
 		Plan::NOT_CHECK_VEL_MAX |
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
-		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 
 
@@ -1167,15 +1154,12 @@ auto MovePressure::prepairNrt(const std::map<std::string, std::string> &params, 
 		Plan::NOT_CHECK_POS_MIN |
 		Plan::NOT_CHECK_POS_MAX |
 		Plan::NOT_CHECK_POS_CONTINUOUS |
-		Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
 		Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
 		//#endif
 		Plan::NOT_CHECK_VEL_MIN |
 		Plan::NOT_CHECK_VEL_MAX |
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
-		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 
 
@@ -1548,7 +1532,6 @@ auto MovePressureToolYZ::prepairNrt(const std::map<std::string, std::string> &pa
     for(auto &option:target.mot_options) option|=
 		Plan::USE_TARGET_POS |
         Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-        Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START|
         Plan::NOT_CHECK_ENABLE;
 
     //读取动力学参数
@@ -2332,15 +2315,12 @@ auto MovePressureToolXY::prepairNrt(const std::map<std::string, std::string> &pa
 		Plan::NOT_CHECK_POS_MIN |
 		Plan::NOT_CHECK_POS_MAX |
 		Plan::NOT_CHECK_POS_CONTINUOUS |
-		Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
 		Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
 		//#endif
 		Plan::NOT_CHECK_VEL_MIN |
 		Plan::NOT_CHECK_VEL_MAX |
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
-		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
         Plan::NOT_CHECK_VEL_FOLLOWING_ERROR|
         Plan::NOT_CHECK_ENABLE;
 
@@ -3008,15 +2988,12 @@ auto MoveFeed::prepairNrt(const std::map<std::string, std::string> &params, Plan
 		Plan::NOT_CHECK_POS_MIN |
 		Plan::NOT_CHECK_POS_MAX |
 		Plan::NOT_CHECK_POS_CONTINUOUS |
-		Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
 		Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
 		//#endif
 		Plan::NOT_CHECK_VEL_MIN |
 		Plan::NOT_CHECK_VEL_MAX |
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
-		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 
 
@@ -3414,15 +3391,12 @@ auto MoveJoint::prepairNrt(const std::map<std::string, std::string> &params, Pla
 		Plan::NOT_CHECK_POS_MIN |
 		Plan::NOT_CHECK_POS_MAX |
 		Plan::NOT_CHECK_POS_CONTINUOUS |
-		Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
 		Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
 		//#endif
 		Plan::NOT_CHECK_VEL_MIN |
 		Plan::NOT_CHECK_VEL_MAX |
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
-		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
         Plan::NOT_CHECK_VEL_FOLLOWING_ERROR|
         Plan::NOT_CHECK_ENABLE;
 

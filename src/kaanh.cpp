@@ -3202,23 +3202,8 @@ namespace kaanh
             param.My = 0.0;
             param.Mz = 0.0;
             target.param = param;
-
-#ifdef WIN32
-            target.option |=
-
-                Plan::NOT_CHECK_POS_MIN |
-                Plan::NOT_CHECK_POS_MAX |
-                Plan::NOT_CHECK_POS_CONTINUOUS |
-                Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
-                Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-                Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
-                Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
-                Plan::NOT_CHECK_VEL_MIN |
-                Plan::NOT_CHECK_VEL_MAX |
-                Plan::NOT_CHECK_VEL_CONTINUOUS |
-                Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-                Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
-#endif
+			std::fill(target.mot_options.begin(), target.mot_options.end(),
+				Plan::NOT_CHECK_ENABLE);
         }
     auto FSSignal::executeRT(PlanTarget &target)->int
         {

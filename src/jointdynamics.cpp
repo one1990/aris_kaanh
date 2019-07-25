@@ -3457,8 +3457,6 @@ void jointdynamics::LoadParasExt(const double *dEst,const double *Coef, const do
     s_householder_utp2pinv(LoadReduceParas, 10, rank, U, tau, p, pinv, tau2, 1e-10);
 	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A)*b //
 	s_mm(10, 1, LoadReduceParas, pinv, dEst, Load);
-
-
 }
 
 

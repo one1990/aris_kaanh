@@ -91,9 +91,7 @@ namespace forcecontrol
 		std::fill(target.mot_options.begin(), target.mot_options.end(),
 			Plan::USE_TARGET_POS |
             Plan::USE_VEL_OFFSET |
-            Plan::NOT_CHECK_ENABLE|
-            Plan::NOT_CHECK_VEL_CONTINUOUS|
-            Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START);
+            Plan::NOT_CHECK_ENABLE);
 
 	}
 	auto MoveJRC::executeRT(PlanTarget &target)->int
