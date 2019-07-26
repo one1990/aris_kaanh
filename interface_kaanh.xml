@@ -192,7 +192,7 @@
                                 <Table id="id_1034">
                                     <tr>
                                         <td>
-                                            <Button id="" text="Get pq" style="width:180px" repeat="1" rate="200" cmd="get_ee_pq" return_attached="$BinaryLabel{id_109}"/>
+                                            <Button id="" text="Get pq" style="width:180px" repeat="1" rate="200" cmd="get --pq" return_attached="$BinaryLabel{id_109}"/>
                                         </td>
                                         <td>
                                             <BinaryLabel id="id_109" style="width:400px"/>
@@ -200,7 +200,7 @@
                                     </tr>
                                     <tr>
                                         <td>
-                                            <Button id="" text="Get pe" style="width:180px" repeat="1" rate="200" cmd="get_ee_pe" return_attached="$BinaryLabel{id_110}"/>
+                                            <Button id="" text="Get pe" style="width:180px" repeat="1" rate="200" cmd="get --pe" return_attached="$BinaryLabel{id_110}"/>
                                         </td>
                                         <td>
                                             <BinaryLabel id="id_110" style="width:400px"/>
@@ -208,7 +208,7 @@
                                     </tr>
                                     <tr>
                                         <td>
-                                            <Button id="" text="Get joint pos" style="width:180px" repeat="1" rate="200" cmd="get_joint_pos" return_attached="$BinaryLabel{id_111}"/>
+                                            <Button id="" text="Get joint pos" style="width:180px" repeat="1" rate="200" cmd="get --j" return_attached="$BinaryLabel{id_111}"/>
                                         </td>
                                         <td>
                                             <BinaryLabel id="id_111" style="width:400px"/>
@@ -246,37 +246,37 @@
                         <AccordionItem text="single axis_jog" id="52">
                             <Panel>
                                 <Panel text="|CMD" id="id_27">
-                                    <Button id="id_28" text="start" cmd="moveJP --start" return_attached=""/>
-                                    <Button id="id_30" text="stop" cmd="moveJP --stop" return_attached=""/>
+                                    <Button id="id_28" text="start" cmd="jogJ --start" return_attached=""/>
+                                    <Button id="id_30" text="stop" cmd="jogJ --stop" return_attached=""/>
                                 </Panel>
                                 <Panel text="|CMD" id="id_7">
                                     <Slider id="id_9" default="10" max="100" min="0" step="1" parameter="vel_percent"/>
                                     <Br/>
-                                    <Button id="id_31" text="j1-" repeat="0" rate="20" style="width: 100px" cmd="moveJP -m=0 --direction=-1 --vel_percent=$Slider{id_9}" return_attached=""/>
-                                    <Button id="id_32" text="j1+" repeat="0" rate="20" style="width: 100px" cmd="moveJP -m=0 --direction=1 --vel_percent=$Slider{id_9}" return_attached=""/>
+                                    <Button id="id_31" text="j1-" repeat="0" rate="20" style="width: 100px" cmd="jogJ -m=0 --direction=-1 --vel_percent=$Slider{id_9}" return_attached=""/>
+                                    <Button id="id_32" text="j1+" repeat="0" rate="20" style="width: 100px" cmd="jogJ -m=0 --direction=1 --vel_percent=$Slider{id_9}" return_attached=""/>
                                     <Br/>
-                                    <Button id="id_33" text="j2-" repeat="0" rate="20" style="width: 100px" cmd="moveJP -m=1 --direction=-1 --vel_percent=$Slider{id_9}" return_attached=""/>
-                                    <Button id="id_34" text="j2+" repeat="0" rate="20" style="width: 100px" cmd="moveJP -m=1 --direction=1 --vel_percent=$Slider{id_9}" return_attached=""/>
+                                    <Button id="id_33" text="j2-" repeat="0" rate="20" style="width: 100px" cmd="jogJ -m=1 --direction=-1 --vel_percent=$Slider{id_9}" return_attached=""/>
+                                    <Button id="id_34" text="j2+" repeat="0" rate="20" style="width: 100px" cmd="jogJ -m=1 --direction=1 --vel_percent=$Slider{id_9}" return_attached=""/>
                                     <Br/>
-                                    <Button id="id_35" text="j3-" repeat="0" rate="20" style="width: 100px" cmd="moveJP -m=2 --direction=-1 --vel_percent=$Slider{id_9}" return_attached=""/>
-                                    <Button id="id_36" text="j3+" repeat="0" rate="20" style="width: 100px" cmd="moveJP -m=2 --direction=1 --vel_percent=$Slider{id_9}" return_attached=""/>
+                                    <Button id="id_35" text="j3-" repeat="0" rate="20" style="width: 100px" cmd="jogJ -m=2 --direction=-1 --vel_percent=$Slider{id_9}" return_attached=""/>
+                                    <Button id="id_36" text="j3+" repeat="0" rate="20" style="width: 100px" cmd="jogJ -m=2 --direction=1 --vel_percent=$Slider{id_9}" return_attached=""/>
                                     <Br/>
-                                    <Button id="id_37" text="j4-" repeat="0" rate="20" style="width: 100px" cmd="moveJP -m=3 --direction=-1 --vel_percent=$Slider{id_9}" return_attached=""/>
-                                    <Button id="id_38" text="j4+" repeat="0" rate="20" style="width: 100px" cmd="moveJP -m=3 --direction=1 --vel_percent=$Slider{id_9}" return_attached=""/>
+                                    <Button id="id_37" text="j4-" repeat="0" rate="20" style="width: 100px" cmd="jogJ -m=3 --direction=-1 --vel_percent=$Slider{id_9}" return_attached=""/>
+                                    <Button id="id_38" text="j4+" repeat="0" rate="20" style="width: 100px" cmd="jogJ -m=3 --direction=1 --vel_percent=$Slider{id_9}" return_attached=""/>
                                     <Br/>
-                                    <Button id="id_39" text="j5-" repeat="0" rate="20" style="width: 100px" cmd="moveJP -m=4 --direction=-1 --vel_percent=$Slider{id_9}" return_attached=""/>
-                                    <Button id="id_40" text="j5+" repeat="0" rate="20" style="width: 100px" cmd="moveJP -m=4 --direction=1 --vel_percent=$Slider{id_9}" return_attached=""/>
+                                    <Button id="id_39" text="j5-" repeat="0" rate="20" style="width: 100px" cmd="jogJ -m=4 --direction=-1 --vel_percent=$Slider{id_9}" return_attached=""/>
+                                    <Button id="id_40" text="j5+" repeat="0" rate="20" style="width: 100px" cmd="jogJ -m=4 --direction=1 --vel_percent=$Slider{id_9}" return_attached=""/>
                                     <Br/>
-                                    <Button id="id_41" text="j6-" repeat="0" rate="20" style="width: 100px" cmd="moveJP -m=5 --direction=-1 --vel_percent=$Slider{id_9}" return_attached=""/>
-                                    <Button id="id_42" text="j6+" repeat="0" rate="20" style="width: 100px" cmd="moveJP -m=5 --direction=1 --vel_percent=$Slider{id_9}" return_attached=""/>
+                                    <Button id="id_41" text="j6-" repeat="0" rate="20" style="width: 100px" cmd="jogJ -m=5 --direction=-1 --vel_percent=$Slider{id_9}" return_attached=""/>
+                                    <Button id="id_42" text="j6+" repeat="0" rate="20" style="width: 100px" cmd="jogJ -m=5 --direction=1 --vel_percent=$Slider{id_9}" return_attached=""/>
                                 </Panel>
                             </Panel>
                         </AccordionItem>
                         <AccordionItem text="coordinate jog" id="53">
                             <Panel>
                                 <Panel text="|CMD" id="id_23">
-                                    <Button id="id_24" text="start" cmd="movePoint --start" return_attached=""/>
-                                    <Button id="id_26" text="stop" cmd="movePoint --stop" return_attached=""/>
+                                    <Button id="id_24" text="start" cmd="jogC --start" return_attached=""/>
+                                    <Button id="id_26" text="stop" cmd="jogC --stop" return_attached=""/>
                                 </Panel>
                                 <Panel text="|CMD" id="id_22">
                                     <Select id="id_8" parameter="cor">
@@ -285,23 +285,23 @@
                                     </Select>
                                     <Slider id="id_6" default="10" max="100" min="0" step="1" parameter="vel_percent"/>
                                     <Br/>
-                                    <Button id="id_10" text="x-" repeat="0" rate="20" style="width: 100px" cmd="movePoint --x=-1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
-                                    <Button id="id_11" text="x+" repeat="0" rate="20" style="width: 100px" cmd="movePoint --x=1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
+                                    <Button id="id_10" text="x-" repeat="0" rate="20" style="width: 100px" cmd="jogC --x=-1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
+                                    <Button id="id_11" text="x+" repeat="0" rate="20" style="width: 100px" cmd="jogC --x=1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
                                     <Br/>
-                                    <Button id="id_12" text="y-" repeat="0" rate="20" style="width: 100px" cmd="movePoint --y=-1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
-                                    <Button id="id_13" text="y+" repeat="0" rate="20" style="width: 100px" cmd="movePoint --y=1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
+                                    <Button id="id_12" text="y-" repeat="0" rate="20" style="width: 100px" cmd="jogC --y=-1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
+                                    <Button id="id_13" text="y+" repeat="0" rate="20" style="width: 100px" cmd="jogC --y=1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
                                     <Br/>
-                                    <Button id="id_14" text="z-" repeat="0" rate="20" style="width: 100px" cmd="movePoint --z=-1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
-                                    <Button id="id_15" text="z+" repeat="0" rate="20" style="width: 100px" cmd="movePoint --z=1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
+                                    <Button id="id_14" text="z-" repeat="0" rate="20" style="width: 100px" cmd="jogC --z=-1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
+                                    <Button id="id_15" text="z+" repeat="0" rate="20" style="width: 100px" cmd="jogC --z=1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
                                     <Br/>
-                                    <Button id="id_16" text="a-" repeat="0" rate="20" style="width: 100px" cmd="movePoint --a=-1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
-                                    <Button id="id_17" text="a+" repeat="0" rate="20" style="width: 100px" cmd="movePoint --a=1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
+                                    <Button id="id_16" text="a-" repeat="0" rate="20" style="width: 100px" cmd="jogC --a=-1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
+                                    <Button id="id_17" text="a+" repeat="0" rate="20" style="width: 100px" cmd="jogC --a=1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
                                     <Br/>
-                                    <Button id="id_18" text="b-" repeat="0" rate="20" style="width: 100px" cmd="movePoint --b=-1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
-                                    <Button id="id_19" text="b+" repeat="0" rate="20" style="width: 100px" cmd="movePoint --b=1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
+                                    <Button id="id_18" text="b-" repeat="0" rate="20" style="width: 100px" cmd="jogC --b=-1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
+                                    <Button id="id_19" text="b+" repeat="0" rate="20" style="width: 100px" cmd="jogC --b=1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
                                     <Br/>
-                                    <Button id="id_20" text="c-" repeat="0" rate="20" style="width: 100px" cmd="movePoint --c=-1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
-                                    <Button id="id_21" text="c+" repeat="0" rate="20" style="width: 100px" cmd="movePoint --c=1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
+                                    <Button id="id_20" text="c-" repeat="0" rate="20" style="width: 100px" cmd="jogC --c=-1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
+                                    <Button id="id_21" text="c+" repeat="0" rate="20" style="width: 100px" cmd="jogC --c=1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
                                 </Panel>
                             </Panel>
                         </AccordionItem>
@@ -498,37 +498,37 @@
                         <AccordionItem text="single axis_jog" id="52">
                             <Panel>
                                 <Panel text="|CMD" id="id_27">
-                                    <Button id="id_28" text="start" cmd="moveJP --start" return_attached=""/>
-                                    <Button id="id_30" text="stop" cmd="moveJP --stop" return_attached=""/>
+                                    <Button id="id_28" text="start" cmd="jogJ --start" return_attached=""/>
+                                    <Button id="id_30" text="stop" cmd="jogJ --stop" return_attached=""/>
                                 </Panel>
                                 <Panel text="|CMD" id="id_7">
                                     <Slider id="id_9" default="10" max="100" min="0" step="1" parameter="vel_percent"/>
                                     <Br/>
-                                    <Button id="id_31" text="j1-" repeat="0" rate="20" style="width: 100px" cmd="moveJP -m=0 --direction=-1 --vel_percent=$Slider{id_9}" return_attached=""/>
-                                    <Button id="id_32" text="j1+" repeat="0" rate="20" style="width: 100px" cmd="moveJP -m=0 --direction=1 --vel_percent=$Slider{id_9}" return_attached=""/>
+                                    <Button id="id_31" text="j1-" repeat="0" rate="20" style="width: 100px" cmd="jogJ -m=0 --direction=-1 --vel_percent=$Slider{id_9}" return_attached=""/>
+                                    <Button id="id_32" text="j1+" repeat="0" rate="20" style="width: 100px" cmd="jogJ -m=0 --direction=1 --vel_percent=$Slider{id_9}" return_attached=""/>
                                     <Br/>
-                                    <Button id="id_33" text="j2-" repeat="0" rate="20" style="width: 100px" cmd="moveJP -m=1 --direction=-1 --vel_percent=$Slider{id_9}" return_attached=""/>
-                                    <Button id="id_34" text="j2+" repeat="0" rate="20" style="width: 100px" cmd="moveJP -m=1 --direction=1 --vel_percent=$Slider{id_9}" return_attached=""/>
+                                    <Button id="id_33" text="j2-" repeat="0" rate="20" style="width: 100px" cmd="jogJ -m=1 --direction=-1 --vel_percent=$Slider{id_9}" return_attached=""/>
+                                    <Button id="id_34" text="j2+" repeat="0" rate="20" style="width: 100px" cmd="jogJ -m=1 --direction=1 --vel_percent=$Slider{id_9}" return_attached=""/>
                                     <Br/>
-                                    <Button id="id_35" text="j3-" repeat="0" rate="20" style="width: 100px" cmd="moveJP -m=2 --direction=-1 --vel_percent=$Slider{id_9}" return_attached=""/>
-                                    <Button id="id_36" text="j3+" repeat="0" rate="20" style="width: 100px" cmd="moveJP -m=2 --direction=1 --vel_percent=$Slider{id_9}" return_attached=""/>
+                                    <Button id="id_35" text="j3-" repeat="0" rate="20" style="width: 100px" cmd="jogJ -m=2 --direction=-1 --vel_percent=$Slider{id_9}" return_attached=""/>
+                                    <Button id="id_36" text="j3+" repeat="0" rate="20" style="width: 100px" cmd="jogJ -m=2 --direction=1 --vel_percent=$Slider{id_9}" return_attached=""/>
                                     <Br/>
-                                    <Button id="id_37" text="j4-" repeat="0" rate="20" style="width: 100px" cmd="moveJP -m=3 --direction=-1 --vel_percent=$Slider{id_9}" return_attached=""/>
-                                    <Button id="id_38" text="j4+" repeat="0" rate="20" style="width: 100px" cmd="moveJP -m=3 --direction=1 --vel_percent=$Slider{id_9}" return_attached=""/>
+                                    <Button id="id_37" text="j4-" repeat="0" rate="20" style="width: 100px" cmd="jogJ -m=3 --direction=-1 --vel_percent=$Slider{id_9}" return_attached=""/>
+                                    <Button id="id_38" text="j4+" repeat="0" rate="20" style="width: 100px" cmd="jogJ -m=3 --direction=1 --vel_percent=$Slider{id_9}" return_attached=""/>
                                     <Br/>
-                                    <Button id="id_39" text="j5-" repeat="0" rate="20" style="width: 100px" cmd="moveJP -m=4 --direction=-1 --vel_percent=$Slider{id_9}" return_attached=""/>
-                                    <Button id="id_40" text="j5+" repeat="0" rate="20" style="width: 100px" cmd="moveJP -m=4 --direction=1 --vel_percent=$Slider{id_9}" return_attached=""/>
+                                    <Button id="id_39" text="j5-" repeat="0" rate="20" style="width: 100px" cmd="jogJ -m=4 --direction=-1 --vel_percent=$Slider{id_9}" return_attached=""/>
+                                    <Button id="id_40" text="j5+" repeat="0" rate="20" style="width: 100px" cmd="jogJ -m=4 --direction=1 --vel_percent=$Slider{id_9}" return_attached=""/>
                                     <Br/>
-                                    <Button id="id_41" text="j6-" repeat="0" rate="20" style="width: 100px" cmd="moveJP -m=5 --direction=-1 --vel_percent=$Slider{id_9}" return_attached=""/>
-                                    <Button id="id_42" text="j6+" repeat="0" rate="20" style="width: 100px" cmd="moveJP -m=5 --direction=1 --vel_percent=$Slider{id_9}" return_attached=""/>
+                                    <Button id="id_41" text="j6-" repeat="0" rate="20" style="width: 100px" cmd="jogJ -m=5 --direction=-1 --vel_percent=$Slider{id_9}" return_attached=""/>
+                                    <Button id="id_42" text="j6+" repeat="0" rate="20" style="width: 100px" cmd="jogJ -m=5 --direction=1 --vel_percent=$Slider{id_9}" return_attached=""/>
                                 </Panel>
                             </Panel>
                         </AccordionItem>
                         <AccordionItem text="coordinate jog" id="53">
                             <Panel>
                                 <Panel text="|CMD" id="id_23">
-                                    <Button id="id_24" text="start" cmd="movePoint --start" return_attached=""/>
-                                    <Button id="id_26" text="stop" cmd="movePoint --stop" return_attached=""/>
+                                    <Button id="id_24" text="start" cmd="jogC --start" return_attached=""/>
+                                    <Button id="id_26" text="stop" cmd="jogC --stop" return_attached=""/>
                                 </Panel>
                                 <Panel text="|CMD" id="id_22">
                                     <Select id="id_8" parameter="cor">
@@ -537,23 +537,23 @@
                                     </Select>
                                     <Slider id="id_6" default="10" max="100" min="0" step="1" parameter="vel_percent"/>
                                     <Br/>
-                                    <Button id="id_10" text="x-" repeat="0" rate="20" style="width: 100px" cmd="movePoint --x=-1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
-                                    <Button id="id_11" text="x+" repeat="0" rate="20" style="width: 100px" cmd="movePoint --x=1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
+                                    <Button id="id_10" text="x-" repeat="0" rate="20" style="width: 100px" cmd="jogC --x=-1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
+                                    <Button id="id_11" text="x+" repeat="0" rate="20" style="width: 100px" cmd="jogC --x=1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
                                     <Br/>
-                                    <Button id="id_12" text="y-" repeat="0" rate="20" style="width: 100px" cmd="movePoint --y=-1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
-                                    <Button id="id_13" text="y+" repeat="0" rate="20" style="width: 100px" cmd="movePoint --y=1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
+                                    <Button id="id_12" text="y-" repeat="0" rate="20" style="width: 100px" cmd="jogC --y=-1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
+                                    <Button id="id_13" text="y+" repeat="0" rate="20" style="width: 100px" cmd="jogC --y=1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
                                     <Br/>
-                                    <Button id="id_14" text="z-" repeat="0" rate="20" style="width: 100px" cmd="movePoint --z=-1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
-                                    <Button id="id_15" text="z+" repeat="0" rate="20" style="width: 100px" cmd="movePoint --z=1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
+                                    <Button id="id_14" text="z-" repeat="0" rate="20" style="width: 100px" cmd="jogC --z=-1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
+                                    <Button id="id_15" text="z+" repeat="0" rate="20" style="width: 100px" cmd="jogC --z=1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
                                     <Br/>
-                                    <Button id="id_16" text="a-" repeat="0" rate="20" style="width: 100px" cmd="movePoint --a=-1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
-                                    <Button id="id_17" text="a+" repeat="0" rate="20" style="width: 100px" cmd="movePoint --a=1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
+                                    <Button id="id_16" text="a-" repeat="0" rate="20" style="width: 100px" cmd="jogC --a=-1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
+                                    <Button id="id_17" text="a+" repeat="0" rate="20" style="width: 100px" cmd="jogC --a=1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
                                     <Br/>
-                                    <Button id="id_18" text="b-" repeat="0" rate="20" style="width: 100px" cmd="movePoint --b=-1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
-                                    <Button id="id_19" text="b+" repeat="0" rate="20" style="width: 100px" cmd="movePoint --b=1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
+                                    <Button id="id_18" text="b-" repeat="0" rate="20" style="width: 100px" cmd="jogC --b=-1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
+                                    <Button id="id_19" text="b+" repeat="0" rate="20" style="width: 100px" cmd="jogC --b=1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
                                     <Br/>
-                                    <Button id="id_20" text="c-" repeat="0" rate="20" style="width: 100px" cmd="movePoint --c=-1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
-                                    <Button id="id_21" text="c+" repeat="0" rate="20" style="width: 100px" cmd="movePoint --c=1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
+                                    <Button id="id_20" text="c-" repeat="0" rate="20" style="width: 100px" cmd="jogC --c=-1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
+                                    <Button id="id_21" text="c+" repeat="0" rate="20" style="width: 100px" cmd="jogC --c=1 --cor=${id_8} --vel_percent=$Slider{id_6}" return_attached=""/>
                                 </Panel>
                             </Panel>
                         </AccordionItem>
