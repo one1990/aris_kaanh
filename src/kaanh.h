@@ -53,7 +53,6 @@ namespace kaanh
 		ARIS_REGISTER_TYPE(Get);
 	};
 
-
 	class MoveX : public aris::plan::Plan
 	{
 	public:
@@ -129,6 +128,22 @@ namespace kaanh
 
 		explicit MoveJI(const std::string &name = "MoveJI_plan");
 		ARIS_REGISTER_TYPE(MoveJI);
+	};
+
+	class MoveC : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void override;
+		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+
+		virtual ~MoveC();
+		explicit MoveC(const std::string &name = "MoveC_plan");
+		ARIS_REGISTER_TYPE(MoveC);
+		ARIS_DECLARE_BIG_FOUR(MoveC);
+
+	private:
+		struct Imp;
+		aris::core::ImpPtr<Imp> imp_;
 	};
 
 	class JogC : public aris::plan::Plan

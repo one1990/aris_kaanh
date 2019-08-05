@@ -560,11 +560,13 @@ namespace kaanh
 				{
 					cs.model().generalMotionPool().at(0).getMpq(std::any_cast<std::vector<double>&>(data).data());
 				}, part_pq_pe_j_vec);
+				/*
 				for (aris::Size i = 0; i < 7; i++)
 				{
 					std::cout << std::any_cast<std::vector<double>&>(part_pq_pe_j_vec)[i] << " ";
 				}
 				std::cout << std::endl;
+				*/
 			}
 			else if (cmd_param.first == "pe")
 			{
@@ -574,11 +576,13 @@ namespace kaanh
 				{
 					cs.model().generalMotionPool().at(0).getMpe(std::any_cast<std::vector<double>&>(data).data());
 				}, part_pq_pe_j_vec);
+				/*
 				for (aris::Size i = 0; i < 6; i++)
 				{
 					std::cout << std::any_cast<std::vector<double>&>(part_pq_pe_j_vec)[i] << " ";
 				}
 				std::cout << std::endl;
+				*/
 			}
 			else if (cmd_param.first == "j")
 			{
@@ -599,12 +603,13 @@ namespace kaanh
 					}
 					
 				}, part_pq_pe_j_vec);
-
+				/*
 				for (aris::Size i = 0; i < target.model->motionPool().size(); i++)
 				{
 					std::cout << std::any_cast<std::vector<double>&>(part_pq_pe_j_vec)[i] << " ";
 				}
 				std::cout << std::endl;
+				*/
 			}
 		}
 		auto pq_pe_j = std::any_cast<std::vector<double>&>(part_pq_pe_j_vec);
@@ -2036,6 +2041,375 @@ namespace kaanh
 			"	</GroupParam>"
 			"</Command>");
 	}
+
+
+	auto check_eul_validity(const std::string &eul_type)->bool
+	{
+		if (eul_type.size() < 3)return false;
+
+		for (int i = 0; i < 3; ++i)if (eul_type[i] > '3' || eul_type[i] < '1')return false;
+
+		if (eul_type[0] == eul_type[1] || eul_type[1] == eul_type[2]) return false;
+
+		return true;
+	}
+	auto find_mid_pq(const std::map<std::string, std::string> &params, PlanTarget &target, double *mid_pq_out)->bool
+	{
+		double pos_unit;
+		auto pos_unit_found = params.find("pos_unit");
+		if (pos_unit_found == params.end()) pos_unit = 1.0;
+		else if (pos_unit_found->second == "m")pos_unit = 1.0;
+		else if (pos_unit_found->second == "mm")pos_unit = 0.001;
+		else if (pos_unit_found->second == "cm")pos_unit = 0.01;
+		else THROW_FILE_AND_LINE("");
+
+		for (auto cmd_param : params)
+		{
+			if (cmd_param.first == "mid_pq")
+			{
+				auto pq_mat = target.model->calculator().calculateExpression(cmd_param.second);
+				if (pq_mat.size() != 7)THROW_FILE_AND_LINE("");
+				aris::dynamic::s_vc(7, pq_mat.data(), mid_pq_out);
+				aris::dynamic::s_nv(3, pos_unit, mid_pq_out);
+				return true;
+			}
+			else if (cmd_param.first == "mid_pm")
+			{
+				auto pm_mat = target.model->calculator().calculateExpression(cmd_param.second);
+				if (pm_mat.size() != 16)THROW_FILE_AND_LINE("");
+				aris::dynamic::s_pm2pq(pm_mat.data(), mid_pq_out);
+				aris::dynamic::s_nv(3, pos_unit, mid_pq_out);
+				return true;
+			}
+			else if (cmd_param.first == "mid_pe")
+			{
+				double ori_unit;
+				auto ori_unit_found = params.find("mid_ori_unit");
+				if (ori_unit_found == params.end()) ori_unit = 1.0;
+				else if (ori_unit_found->second == "rad")ori_unit = 1.0;
+				else if (ori_unit_found->second == "degree")ori_unit = PI / 180.0;
+				else THROW_FILE_AND_LINE("");
+
+				std::string eul_type;
+				auto eul_type_found = params.find("mid_eul_type");
+				if (eul_type_found == params.end()) eul_type = "321";
+				else if (check_eul_validity(eul_type_found->second.data()))	eul_type = eul_type_found->second;
+				else THROW_FILE_AND_LINE("");
+
+				auto pe_mat = target.model->calculator().calculateExpression(cmd_param.second);
+				if (pe_mat.size() != 6)THROW_FILE_AND_LINE("");
+				aris::dynamic::s_nv(3, ori_unit, pe_mat.data() + 3);
+				aris::dynamic::s_pe2pq(pe_mat.data(), mid_pq_out, eul_type.data());
+				aris::dynamic::s_nv(3, pos_unit, mid_pq_out);
+				return true;
+			}
+		}
+
+		THROW_FILE_AND_LINE("No mid pose input");
+	}
+	auto find_end_pq(const std::map<std::string, std::string> &params, PlanTarget &target, double *end_pq_out)->bool
+	{
+		double pos_unit;
+		auto pos_unit_found = params.find("pos_unit");
+		if (pos_unit_found == params.end()) pos_unit = 1.0;
+		else if (pos_unit_found->second == "m")pos_unit = 1.0;
+		else if (pos_unit_found->second == "mm")pos_unit = 0.001;
+		else if (pos_unit_found->second == "cm")pos_unit = 0.01;
+		else THROW_FILE_AND_LINE("");
+
+		for (auto cmd_param : params)
+		{
+			if (cmd_param.first == "end_pq")
+			{
+				auto pq_mat = target.model->calculator().calculateExpression(cmd_param.second);
+				if (pq_mat.size() != 7)THROW_FILE_AND_LINE("");
+				aris::dynamic::s_vc(7, pq_mat.data(), end_pq_out);
+				aris::dynamic::s_nv(3, pos_unit, end_pq_out);
+				return true;
+			}
+			else if (cmd_param.first == "end_pm")
+			{
+				auto pm_mat = target.model->calculator().calculateExpression(cmd_param.second);
+				if (pm_mat.size() != 16)THROW_FILE_AND_LINE("");
+				aris::dynamic::s_pm2pq(pm_mat.data(), end_pq_out);
+				aris::dynamic::s_nv(3, pos_unit, end_pq_out);
+				return true;
+			}
+			else if (cmd_param.first == "end_pe")
+			{
+				double ori_unit;
+				auto ori_unit_found = params.find("mid_ori_unit");
+				if (ori_unit_found == params.end()) ori_unit = 1.0;
+				else if (ori_unit_found->second == "rad")ori_unit = 1.0;
+				else if (ori_unit_found->second == "degree")ori_unit = PI / 180.0;
+				else THROW_FILE_AND_LINE("");
+
+				std::string eul_type;
+				auto eul_type_found = params.find("mid_eul_type");
+				if (eul_type_found == params.end()) eul_type = "321";
+				else if (check_eul_validity(eul_type_found->second.data()))	eul_type = eul_type_found->second;
+				else THROW_FILE_AND_LINE("");
+
+				auto pe_mat = target.model->calculator().calculateExpression(cmd_param.second);
+				if (pe_mat.size() != 6)THROW_FILE_AND_LINE("");
+				aris::dynamic::s_nv(3, ori_unit, pe_mat.data() + 3);
+				aris::dynamic::s_pe2pq(pe_mat.data(), end_pq_out, eul_type.data());
+				aris::dynamic::s_nv(3, pos_unit, end_pq_out);
+				return true;
+			}
+		}
+
+		THROW_FILE_AND_LINE("No end pose input");
+	}
+	void slerp(double starting[4], double ending[4], double result[4], double t)
+	{
+		double cosa = starting[0] * ending[0] + starting[1] * ending[1] + starting[2] * ending[2] + starting[3] * ending[3];
+
+		// If the dot product is negative, the quaternions have opposite handed-ness and slerp won't take
+		// the shorter path. Fix by reversing one quaternion.
+		if (cosa < 0.0f)
+		{
+			ending[0] = -ending[0];
+			ending[1] = -ending[1];
+			ending[2] = -ending[2];
+			ending[3] = -ending[3];
+			cosa = -cosa;
+		}
+
+		double k0, k1;
+
+		// If the inputs are too close for comfort, linearly interpolate
+		if (cosa > 0.9995f)
+		{
+			k0 = 1.0f - t;
+			k1 = t;
+		}
+		else
+		{
+			double sina = sqrt(1.0f - cosa * cosa);
+			double a = atan2(sina, cosa);
+			k0 = sin((1.0f - t)*a) / sina;
+			k1 = sin(t*a) / sina;
+		}
+		result[0] = starting[0] * k0 + ending[0] * k1;
+		result[1] = starting[1] * k0 + ending[1] * k1;
+		result[2] = starting[2] * k0 + ending[2] * k1;
+		result[3] = starting[3] * k0 + ending[3] * k1;
+	}
+	struct MoveCParam
+	{
+		std::vector<double> joint_vel, joint_acc, joint_dec, ee_begin_pq, ee_mid_pq, ee_end_pq, joint_pos_begin, joint_pos_end;
+		Size total_count[6];
+		double acc, vel, dec;
+		double angular_acc, angular_vel, angular_dec;
+	};
+	struct MoveC::Imp {};
+	auto MoveC::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		MoveCParam mvc_param;
+		mvc_param.ee_begin_pq.resize(7);
+		mvc_param.ee_mid_pq.resize(7);
+		mvc_param.ee_end_pq.resize(7);
+		if (!find_mid_pq(params, target, mvc_param.ee_mid_pq.data()))THROW_FILE_AND_LINE("");
+		if (!find_end_pq(params, target, mvc_param.ee_end_pq.data()))THROW_FILE_AND_LINE("");
+
+		for (auto cmd_param : params)
+		{
+			if (cmd_param.first == "acc")
+			{
+				mvc_param.acc = std::stod(cmd_param.second);
+			}
+			else if (cmd_param.first == "vel")
+			{
+				mvc_param.vel = std::stod(cmd_param.second);
+			}
+			else if (cmd_param.first == "dec")
+			{
+				mvc_param.dec = std::stod(cmd_param.second);
+			}
+			else if (cmd_param.first == "angular_acc")
+			{
+				mvc_param.angular_acc = std::stod(cmd_param.second);
+			}
+			else if (cmd_param.first == "angular_vel")
+			{
+				mvc_param.angular_vel = std::stod(cmd_param.second);
+			}
+			else if (cmd_param.first == "angular_dec")
+			{
+				mvc_param.angular_dec = std::stod(cmd_param.second);
+			}
+		}
+
+		for (auto &option : target.mot_options)	option |= Plan::USE_TARGET_POS;
+		target.param = mvc_param;
+	}
+	auto MoveC::executeRT(PlanTarget &target)->int
+	{
+		auto &mvc_param = std::any_cast<MoveCParam &>(target.param);
+		auto controller = target.controller;
+
+		// 取得起始位置 //
+		static double pos_ratio, ori_ratio;
+		static double A[9], b[3], C[3], R, theta, ori_theta;
+		double p, v, a;
+		aris::Size pos_total_count, ori_total_count;
+
+		if (target.count == 1)
+		{
+			target.model->generalMotionPool().at(0).getMpq(mvc_param.ee_begin_pq.data());
+
+			//排除3点共线的情况//		
+			std::vector<double> mul_cross(3);
+			std::vector<double> p1(3);
+			std::vector<double> p2(3);
+			std::vector<double> p3(3);
+			std::copy(mvc_param.ee_begin_pq.data(), mvc_param.ee_begin_pq.data() + 3, p1.data());
+			std::copy(mvc_param.ee_mid_pq.data(), mvc_param.ee_mid_pq.data() + 3, p2.data());
+			std::copy(mvc_param.ee_end_pq.data(), mvc_param.ee_end_pq.data() + 3, p3.data());
+			s_vs(3, p2.data(), p3.data());
+			s_vs(3, p1.data(), p2.data());
+			s_c3(p2.data(), p3.data(), mul_cross.data());
+			double normv = aris::dynamic::s_norm(3, mul_cross.data());
+			if (normv <= 1e-10) return -1;
+			
+			//通过AC=b 解出圆心C//
+			A[0] = 2 * (mvc_param.ee_begin_pq[0] - mvc_param.ee_mid_pq[0]);
+			A[1] = 2 * (mvc_param.ee_begin_pq[1] - mvc_param.ee_mid_pq[1]);
+			A[2] = 2 * (mvc_param.ee_begin_pq[2] - mvc_param.ee_mid_pq[2]);
+			A[3] = 2 * (mvc_param.ee_mid_pq[0] - mvc_param.ee_end_pq[0]);
+			A[4] = 2 * (mvc_param.ee_mid_pq[1] - mvc_param.ee_end_pq[1]);
+			A[5] = 2 * (mvc_param.ee_mid_pq[2] - mvc_param.ee_end_pq[2]);
+			A[6] = (A[1] * A[5] - A[4] * A[2]) / 4;
+			A[7] = (A[0] * A[5] - A[3] * A[2]) / 4;
+			A[8] = (A[0] * A[4] - A[3] * A[1]) / 4;
+			b[0] = pow(mvc_param.ee_begin_pq[0], 2) + pow(mvc_param.ee_begin_pq[1], 2) + pow(mvc_param.ee_begin_pq[2], 2) - pow(mvc_param.ee_mid_pq[0], 2) - pow(mvc_param.ee_mid_pq[1], 2) - pow(mvc_param.ee_mid_pq[2], 2);
+			b[1] = pow(mvc_param.ee_mid_pq[0], 2) + pow(mvc_param.ee_mid_pq[1], 2) + pow(mvc_param.ee_mid_pq[2], 2) - pow(mvc_param.ee_end_pq[0], 2) - pow(mvc_param.ee_end_pq[1], 2) - pow(mvc_param.ee_end_pq[2], 2);
+			b[2] = A[6] * mvc_param.ee_begin_pq[0] + A[7] * mvc_param.ee_begin_pq[1] + A[8] * mvc_param.ee_begin_pq[2];
+			
+			//解线性方程组
+			{
+				double pinv[9];
+				std::vector<double> U_vec(9);
+				auto U = U_vec.data();
+				double tau[3];
+				aris::Size p[3];
+				aris::Size rank;
+				s_householder_utp(3, 3, A, U, tau, p, rank, 1e-10);
+				double tau2[3];
+				s_householder_utp2pinv(3, 3, rank, U, tau, p, pinv, tau2, 1e-10);
+				//获取圆心
+				s_mm(3, 1, 3, pinv, b, C);
+				//获取半径
+				R = sqrt(pow(mvc_param.ee_begin_pq[0] - C[0], 2) + pow(mvc_param.ee_begin_pq[1] - C[1], 2) + pow(mvc_param.ee_begin_pq[2] - C[2], 2));
+			}
+				
+			//求旋转角度theta//	
+			double u, v, w;
+			double u1, v1, w1;
+			u = A[6];
+			v = A[7];
+			w = A[8];
+			u1 = (mvc_param.ee_begin_pq[1] - C[1])*(mvc_param.ee_end_pq[2] - mvc_param.ee_begin_pq[2]) - (mvc_param.ee_begin_pq[2] - C[2])*(mvc_param.ee_end_pq[1] - mvc_param.ee_begin_pq[1]);
+			v1 = (mvc_param.ee_begin_pq[2] - C[2])*(mvc_param.ee_end_pq[0] - mvc_param.ee_begin_pq[0]) - (mvc_param.ee_begin_pq[0] - C[0])*(mvc_param.ee_end_pq[2] - mvc_param.ee_begin_pq[2]);
+			w1 = (mvc_param.ee_begin_pq[0] - C[0])*(mvc_param.ee_end_pq[1] - mvc_param.ee_begin_pq[1]) - (mvc_param.ee_begin_pq[1] - C[1])*(mvc_param.ee_end_pq[0] - mvc_param.ee_begin_pq[0]);
+
+			double H = u * u1 + v * v1 + w * w1;
+			
+			// 判断theta 与 pi 的关系
+			if (H >= 0)
+			{
+				theta = 2 * asin(sqrt(pow((mvc_param.ee_end_pq[0] - mvc_param.ee_begin_pq[0]), 2) + pow((mvc_param.ee_end_pq[1] - mvc_param.ee_begin_pq[1]), 2) + pow((mvc_param.ee_end_pq[2] - mvc_param.ee_begin_pq[2]), 2)) / (2 * R));
+			}
+			else
+			{
+				theta = 2 * 3.1415 - 2 * asin(sqrt(pow((mvc_param.ee_end_pq[0] - mvc_param.ee_begin_pq[0]), 2) + pow((mvc_param.ee_end_pq[1] - mvc_param.ee_begin_pq[1]), 2) + pow((mvc_param.ee_end_pq[2] - mvc_param.ee_begin_pq[2]), 2)) / (2 * R));
+			}
+			
+			double normv_begin_pq = aris::dynamic::s_norm(4, mvc_param.ee_begin_pq.data() + 3);
+			double normv_end_pq = aris::dynamic::s_norm(4, mvc_param.ee_end_pq.data() + 3);
+
+			ori_theta = std::abs((mvc_param.ee_begin_pq[3] * mvc_param.ee_end_pq[3] + mvc_param.ee_begin_pq[4] * mvc_param.ee_end_pq[4] + mvc_param.ee_begin_pq[5] * mvc_param.ee_end_pq[5] + mvc_param.ee_begin_pq[6] * mvc_param.ee_end_pq[6])/ (normv_begin_pq* normv_end_pq));
+
+			aris::plan::moveAbsolute(target.count, 0.0, theta, mvc_param.vel / 1000 / R, mvc_param.acc / 1000 / 1000 / R, mvc_param.dec / 1000 / 1000 / R, p, v, a, pos_total_count);
+			aris::plan::moveAbsolute(target.count, 0.0, 1.0, mvc_param.angular_vel / 1000 / ori_theta / 2.0, mvc_param.angular_acc / 1000 / 1000 / ori_theta / 2.0, mvc_param.angular_dec / 1000 / 1000 / ori_theta / 2.0, p, v, a, ori_total_count);
+
+			pos_ratio = pos_total_count < ori_total_count ? double(pos_total_count) / ori_total_count : 1.0;
+			ori_ratio = ori_total_count < pos_total_count ? double(ori_total_count) / pos_total_count : 1.0;
+		}
+
+		//位置规划//
+		double w[3], pmr[16], pqt[7];
+		aris::dynamic::s_vc(3, A + 6, w);
+		auto normv = aris::dynamic::s_norm(3, w);
+		if (std::abs(normv) > 1e-10)aris::dynamic::s_nv(3, 1 / normv, w); //数乘
+		aris::plan::moveAbsolute(target.count, 0.0, theta, mvc_param.vel / 1000 / R * pos_ratio, mvc_param.acc / 1000 / 1000 / R * pos_ratio * pos_ratio, mvc_param.dec / 1000 / 1000 / R * pos_ratio* pos_ratio, p, v, a, pos_total_count);
+		
+		double pqr[7]{ C[0], C[1], C[2], w[0] * sin(p / 2.0), w[1] * sin(p / 2.0), w[2] * sin(p / 2.0), cos(p / 2.0) };
+		double pos[4]{ mvc_param.ee_begin_pq[0] - C[0], mvc_param.ee_begin_pq[1] - C[1], mvc_param.ee_begin_pq[2] - C[2], 1};
+		aris::dynamic::s_pq2pm(pqr, pmr);
+		s_mm(4, 1, 4, pmr, aris::dynamic::RowMajor{ 4 }, pos, 1, pqt, 1);
+
+		//姿态规划//
+		aris::plan::moveAbsolute(target.count, 0.0, 1.0, mvc_param.angular_vel / 1000 / ori_theta / 2.0 * ori_ratio, mvc_param.angular_acc / 1000 / 1000 / ori_theta / 2.0 * ori_ratio * ori_ratio, mvc_param.angular_dec / 1000 / 1000 / ori_theta / 2.0* ori_ratio * ori_ratio, p, v, a, ori_total_count);
+		slerp(mvc_param.ee_begin_pq.data() + 3, mvc_param.ee_end_pq.data() + 3, pqt + 3, p);
+
+		// set目标位置，并进行运动学反解 //
+		target.model->generalMotionPool().at(0).setMpq(pqt);
+		if (target.model->solverPool().at(0).kinPos())return -1;
+
+		////////////////////////////////////// log ///////////////////////////////////////
+		auto &lout = controller->lout();
+		{
+			lout << target.count << " " << pqt[0] << " " << pqt[1] << " " << pqt[2] << " " << pqt[3] << " " << pqt[4] << " " << pqt[5] << " " << pqt[6] << "  ";
+			for (Size i = 0; i < 6; i++)
+			{
+				lout << controller->motionAtAbs(i).targetPos() << ",";
+				lout << controller->motionAtAbs(i).actualPos() << ",";
+				lout << controller->motionAtAbs(i).actualVel() << ",";
+				lout << controller->motionAtAbs(i).actualCur() << ",";
+			}
+			lout << std::endl;
+		}
+		//////////////////////////////////////////////////////////////////////////////////
+
+		return std::max(pos_total_count, ori_total_count) > target.count ? 1 : 0;
+	}
+	MoveC::~MoveC() = default;
+	MoveC::MoveC(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"moveC\">"
+			"	<GroupParam>"
+			"		<Param name=\"pos_unit\" default=\"m\"/>"
+			"		<UniqueParam default=\"mid_pq\">"
+			"			<Param name=\"mid_pq\" default=\"{0,0,0,0,0,0,1}\"/>"
+			"			<Param name=\"mid_pm\" default=\"{1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1}\"/>"
+			"			<GroupParam>"
+			"				<Param name=\"mid_pe\" default=\"{0,0,0,0,0,0}\"/>"
+			"				<Param name=\"mid_ori_unit\" default=\"rad\"/>"
+			"				<Param name=\"mid_eul_type\" default=\"321\"/>"
+			"			</GroupParam>"
+			"		</UniqueParam>"
+			"		<UniqueParam default=\"end_pq\">"
+			"			<Param name=\"end_pq\" default=\"{0,0,0,0,0,0,1}\"/>"
+			"			<Param name=\"end_pm\" default=\"{1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1}\"/>"
+			"			<GroupParam>"
+			"				<Param name=\"end_pe\" default=\"{0,0,0,0,0,0}\"/>"
+			"				<Param name=\"end_ori_unit\" default=\"rad\"/>"
+			"				<Param name=\"end_eul_type\" default=\"321\"/>"
+			"			</GroupParam>"
+			"		</UniqueParam>"
+			"		<Param name=\"acc\" default=\"0.1\"/>"
+			"		<Param name=\"vel\" default=\"0.1\"/>"
+			"		<Param name=\"dec\" default=\"0.1\"/>"
+			"		<Param name=\"angular_acc\" default=\"0.1\"/>"
+			"		<Param name=\"angular_vel\" default=\"0.1\"/>"
+			"		<Param name=\"angular_dec\" default=\"0.1\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
+	ARIS_DEFINE_BIG_FOUR_CPP(MoveC);
 
 	
 	// 示教运动--输入末端大地坐标系的位姿pe，控制动作 //
@@ -4060,6 +4434,7 @@ namespace kaanh
 		plan_root->planPool().add<forcecontrol::MoveSPQ>();
 		plan_root->planPool().add<kaanh::MoveJM>();
 		plan_root->planPool().add<kaanh::MoveJI>();
+		plan_root->planPool().add<kaanh::MoveC>();
 		plan_root->planPool().add<kaanh::JogC>();
 		plan_root->planPool().add<kaanh::JogJ>();
 		plan_root->planPool().add<kaanh::Grasp>();
