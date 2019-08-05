@@ -21,6 +21,9 @@ namespace JointDynamicsInt
 
 		double A[3][3];
 		double B[3];
+	
+	double estParasLYang[LoadTotalParas + 6] = { 0 };
+	double estParasL0Yang[LoadTotalParas + 6] = { 0 };
 
     double estParasL[LoadReduceParas+6] = { 0 };
 	double CoefParasL[LoadReduceParas* LoadTotalParas] = { 0 };
@@ -33,6 +36,7 @@ namespace JointDynamicsInt
 
 	double estParasJoint0[JointReduceDim+12] = { 0 };
 	double estParasJoint[JointReduceDim + 12] = { 0 };
+	double estParasJointYang[JointGroupDim + 12] = { 0 };
 	double CoefParasJoint[JointReduceDim* JointGroupDim] = { 0 };
 	double CoefParasJointInv[JointReduceDim* JointGroupDim] = { 0 };
 
@@ -46,12 +50,17 @@ namespace JointDynamicsInt
 		void RLS(const double *positionList, const double *sensorList, double *estParas, double *Coef, double *CoefInv, double *StatisError);
 		void RLStemp(const double *positionList, const double *sensorList, double *estParas, const double *Coef, const double *CoefInv, double *StatisError);
 		void RLSaris(const double *positionList, const double *sensorList, double *estParas, double *Coef, double *CoefInv, double *StatisError);
+        void RLSYang(const double *positionList, const double *sensorList, double *estParas, double *StatisError);
+
 
 		void LoadRLS(const double *positionList, const double *sensorList, const double *Coef, const double *CoefInv,double *estParas, double *StatisError);
 		void LoadRLStemp(const double *positionList, const double *sensorList, const double *Coef, const double *CoefInv, double *estParas, double *StatisError);
+		void LoadRLSYang(const double *positionList, const double *sensorList, double *estParas, double *StatisError);
+
 
 		void YYbase(const double *AngList, const double *VelList, const double *AccList, double *Load2Joint, double *Coef, double*CoefInv,const int TestNum);
 		void LoadParasExt(const double *dEst, const double *Coef, const double*CoefInv, double *Load);
+		void LoadParasExtYang(const double *positionL, const double *sensorL, const double * estParasL0, double* Load, double *StatisError);
 
 		//void sixDistalMatrix(const double * q, const double *dq,const double *ddq,const double *ts,double );
 		

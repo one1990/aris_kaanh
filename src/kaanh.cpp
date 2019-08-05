@@ -1251,15 +1251,15 @@ namespace kaanh
 				}
 			}
 		}
-
+double p, v, a;
 		aris::Size total_count{ 1 };
 		for (Size i = 0; i < param.joint_active_vec.size(); ++i)
 		{
 			if (param.joint_active_vec[i])
 			{
-				double p, v, a;
+				
 				aris::Size t_count;
-				aris::plan::moveAbsolute(target.count, param.begin_joint_pos_vec[i], param.begin_joint_pos_vec[i]+param.joint_pos_vec[i], param.vel / 1000, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
+				aris::plan::moveAbsolute(target.count/1, param.begin_joint_pos_vec[i], param.begin_joint_pos_vec[i]+param.joint_pos_vec[i], param.vel / 1000, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
 				controller->motionAtAbs(i).setTargetPos(p);
 				target.model->motionPool().at(i).setMp(p);
 				total_count = std::max(total_count, t_count);
@@ -1285,9 +1285,9 @@ namespace kaanh
 		auto &lout = controller->lout();
 		for (Size i = 0; i < param.joint_active_vec.size(); i++)
 		{
-			lout << controller->motionAtAbs(i).targetPos() << ",";
-			lout << controller->motionAtAbs(i).actualPos() << ",";
-			lout << controller->motionAtAbs(i).actualVel() << ",";
+			lout << p << ",";
+			lout << v << ",";
+			lout << a << ",";
 		}
 		lout << std::endl;
 

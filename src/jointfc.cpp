@@ -175,7 +175,7 @@ auto JointDyna::executeRT(PlanTarget &target)->int
             //TorqueList[6 * (target.count - 1) + i] = POSRLS[i + 6][target.count - 1] / f2c_index[i];
 
             AngleList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualPos();
-            TorqueList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
+			TorqueList[6 * (CollectNum - 1) + i] = 0;//controller->motionAtAbs(i).actualCur() / f2c_index[i];
             //TorqueList[6 * (CollectNum - 1) + i] = 2;//controller->motionAtAbs(i).actualTor() * f2f_index[i];
 		}
 
@@ -205,6 +205,7 @@ auto JointDyna::collectNrt(aris::plan::PlanTarget &target)->void
 	auto &cout = controller->mout();
 	cout << "collect" << std::endl;
 
+   /*RLS Kai
 	auto mat1 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("CoefParasJoint"));
 	for (int i = 0;i < JointReduceDim*JointGroupDim;i++)
 		JointMatrix.CoefParasJoint[i] = mat1->data().data()[i];
@@ -213,9 +214,8 @@ auto JointDyna::collectNrt(aris::plan::PlanTarget &target)->void
 	for (int i = 0;i < JointReduceDim*JointGroupDim;i++)
 		JointMatrix.CoefParasJointInv[i] = mat2->data().data()[i];
 
-    JointMatrix.RLStemp(AngleList, TorqueList, JointMatrix.estParasJoint, JointMatrix.CoefParasJoint, JointMatrix.CoefParasJointInv, StatisError);
-
 	
+    JointMatrix.RLStemp(AngleList, TorqueList, JointMatrix.estParasJoint, JointMatrix.CoefParasJoint, JointMatrix.CoefParasJointInv, StatisError);
 	//cout<<"collect"<<std::endl;
 	for (int i = 0;i < JointReduceDim+12;i++)
 		cout << JointMatrix.estParasJoint[i] << ",";
@@ -230,8 +230,26 @@ auto JointDyna::collectNrt(aris::plan::PlanTarget &target)->void
 	else
 	{
 		target.model->variablePool().add<aris::dynamic::MatrixVariable>("estParasJoint", mat0);
-	}
+	}*/
 
+
+	///*RLS Yang
+	JointMatrix.RLSYang(AngleList, TorqueList, JointMatrix.estParasJointYang, StatisError);
+	//cout<<"collect"<<std::endl;
+	for (int i = 0;i < JointGroupDim + 12;i++)
+		cout << JointMatrix.estParasJointYang[i] << ",";
+
+	aris::core::Matrix mat0(1, JointGroupDim + 12, JointMatrix.estParasJointYang);
+	if (target.model->variablePool().findByName("estParasJoint") !=
+		target.model->variablePool().end())
+	{
+		dynamic_cast<aris::dynamic::MatrixVariable*>(
+			&*target.model->variablePool().findByName("estParasJoint"))->data() = mat0;
+	}
+	else
+	{
+		target.model->variablePool().add<aris::dynamic::MatrixVariable>("estParasJoint", mat0);
+	}
 
 
 	cout << std::endl;
@@ -889,7 +907,7 @@ auto LoadDyna::executeRT(PlanTarget &target)->int
             //TorqueList[6 * (target.count - 1) + i] = POSRLS[i + 6][target.count - 1];
 
             AngleList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualPos();
-            TorqueList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
+			TorqueList[6 * (CollectNum - 1) + i] = 0;//controller->motionAtAbs(i).actualCur() / f2c_index[i];
         }
 	
         lout << target.count << ",";
@@ -920,7 +938,7 @@ auto LoadDyna::collectNrt(aris::plan::PlanTarget &target)->void
 	 // auto &lout = controller->lout();
     cout << "param.InitEst" << std::endl;
 	
-	//读取YYbase 参数
+	/*LoadRLSKai
 	auto mat0 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("CoefParasLoad"));
 	for (int i = 0;i < LoadTotalParas * LoadReduceParas;i++)
 		JointMatrix.CoefParasLoad[i] = mat0->data().data()[i];
@@ -928,13 +946,6 @@ auto LoadDyna::collectNrt(aris::plan::PlanTarget &target)->void
 	auto mat1 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("CoefParasLoadInv"));
 	for (int i = 0;i < LoadTotalParas * LoadReduceParas;i++)
 		JointMatrix.CoefParasLoadInv[i] = mat1->data().data()[i];
-	//double data[10]{ 0.0 };
-	//aris::core::Matrix mat(10,1,data);
-	//aris::core::Matrix mat2 = { { 1.0,2.0,3.0 }, { 1.0,2.0,3.0 } };
-	//target.model->variablePool().add<aris::dynamic::MatrixVariable>("p0", mat);
-	
-	//auto mat = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("p0"));
-
 
 	if (param.amplitude > 0)
 	{
@@ -993,9 +1004,56 @@ cout << std::endl;
 			target.model->variablePool().add<aris::dynamic::MatrixVariable>("LoadParas", mat2);
 		}
 		
-    }
+    }*/
 
+	//*LoadRLSYang
+	
+	if (param.amplitude > 0)
+	{
+		JointMatrix.LoadRLSYang(AngleList, TorqueList, JointMatrix.estParasL0Yang, StatisError);
+		for (int i = 0;i < LoadTotalParas + 6;i++)
+			cout << JointMatrix.estParasL0Yang[i] << ",";
 
+		aris::core::Matrix mat0(1,LoadTotalParas + 6, JointMatrix.estParasL0Yang);
+		if (target.model->variablePool().findByName("estParasL0") !=
+			target.model->variablePool().end())
+		{
+			dynamic_cast<aris::dynamic::MatrixVariable*>(
+				&*target.model->variablePool().findByName("estParasL0"))->data() = mat0;
+		}
+		else
+		{
+			target.model->variablePool().add<aris::dynamic::MatrixVariable>("estParasL0", mat0);
+		}
+
+		cout << "collect0" <<std::endl;
+	}
+	else
+	{
+
+		auto mat0 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("estParasL0"));
+		for (int i = 0;i < LoadTotalParas + 6;i++)
+			JointMatrix.estParasL0Yang[i] = mat0->data().data()[i];
+
+		//JointMatrix.LoadRLStemp(AngleList, TorqueList, JointMatrix.CoefParasLoad, JointMatrix.CoefParasLoadInv,JointMatrix.estParasL, StatisError);
+
+		JointMatrix.LoadParasExtYang(AngleList, TorqueList, JointMatrix.estParasL0Yang,JointMatrix.LoadParas, StatisError);
+		for (int i = 0;i < 10;i++)
+			cout << JointMatrix.LoadParas[i] << ",";
+		cout << std::endl;
+		aris::core::Matrix mat2(1,10, JointMatrix.LoadParas);
+		if (target.model->variablePool().findByName("LoadParas") !=
+			target.model->variablePool().end())
+		{
+			dynamic_cast<aris::dynamic::MatrixVariable*>(
+				&*target.model->variablePool().findByName("LoadParas"))->data() = mat2;
+		}
+		else
+		{
+			target.model->variablePool().add<aris::dynamic::MatrixVariable>("LoadParas", mat2);
+		}
+
+	}
 
 	std::cout << std::endl;
 	std::cout << "*****************************Statictic Model Error*****************************************" << std::endl;

@@ -2684,6 +2684,209 @@ void jointdynamics::RLS(const double *positionL, const double *sensorL, double *
 
 	}
 
+void jointdynamics::RLSYang(const double *positionL, const double *sensorL, double *estParas, double *StatisError)
+	{
+
+		double CutFreq = 5;
+		A[0][0] = 0; A[0][1] = 1; A[0][2] = 0;
+		A[1][0] = 0; A[1][1] = 0; A[1][2] = 1;
+		A[2][0] = -CutFreq * CutFreq * CutFreq;
+		A[2][1] = -2 * CutFreq * CutFreq;
+		A[2][2] = -2 * CutFreq;
+		B[0] = 0; B[1] = 0;
+		B[2] = -A[2][0];
+
+
+
+		//positionList[id(2, 2, 6)];
+		double stateMot0[RobotAxis][3] = { 0 };
+		double stateMot1[RobotAxis][3] = { 0 };
+		double stateTor0[RobotAxis][3] = { 0 };
+		double stateTor1[RobotAxis][3] = { 0 };
+
+
+
+		double q[RobotAxis];
+		double dq[RobotAxis];
+		double ddq[RobotAxis];
+		double ts[RobotAxis];
+		//std::array<double, 6> estParas;
+
+		double intDT = 8 * DT;
+		int length = 6;
+		std::vector<double> regressorMatrix_vec(RobotAxis * SampleNum * JointGroupDim);
+		double* regressorVector = regressorMatrix_vec.data();
+
+		std::vector<double> regressorMatrixFric_vec(6 * SampleNum * 12);
+		double* regressorVectorFric = regressorMatrixFric_vec.data();
+
+		std::vector<double> regressorForces_vec(RobotAxis * SampleNum);
+		double* regressorForces = regressorForces_vec.data();
+
+		double posCur[RobotAxis];
+		double torCur[RobotAxis];
+		for (int j = 0; j < RobotAxis; j++)
+		{
+			stateMot0[j][0] = positionL[j];
+			stateTor0[j][0] = sensorL[j];
+		}
+
+		for (int i = 0; i < SampleNum; i++)
+		{
+
+			for (int j = 0; j < RobotAxis; j++)
+			{
+
+				posCur[j] = positionL[RobotAxis*i + j];
+				torCur[j] = sensorL[RobotAxis*i + j];
+
+				stateMot1[j][0] = stateMot0[j][0] + intDT * (A[0][0] * stateMot0[j][0] + A[0][1] * stateMot0[j][1] + A[0][2] * stateMot0[j][2] + B[0] * posCur[j]);
+				stateMot1[j][1] = stateMot0[j][1] + intDT * (A[1][0] * stateMot0[j][0] + A[1][1] * stateMot0[j][1] + A[1][2] * stateMot0[j][2] + B[1] * posCur[j]);
+				stateMot1[j][2] = stateMot0[j][2] + intDT * (A[2][0] * stateMot0[j][0] + A[2][1] * stateMot0[j][1] + A[2][2] * stateMot0[j][2] + B[2] * posCur[j]);
+
+				stateTor1[j][0] = stateTor0[j][0] + intDT * (A[0][0] * stateTor0[j][0] + A[0][1] * stateTor0[j][1] + A[0][2] * stateTor0[j][2] + B[0] * torCur[j]);
+				stateTor1[j][1] = stateTor0[j][1] + intDT * (A[1][0] * stateTor0[j][0] + A[1][1] * stateTor0[j][1] + A[1][2] * stateTor0[j][2] + B[1] * torCur[j]);
+				stateTor1[j][2] = stateTor0[j][2] + intDT * (A[2][0] * stateTor0[j][0] + A[2][1] * stateTor0[j][1] + A[2][2] * stateTor0[j][2] + B[2] * torCur[j]);
+			}
+
+			for (int j = 0; j < RobotAxis; j++)
+			{
+				q[j] = stateMot1[j][0];
+				dq[j] = stateMot1[j][1];
+				ddq[j] = stateMot1[j][2];
+				ts[j] = stateTor1[j][0];
+			}
+
+			for (int k = 0; k < RobotAxis; k++)
+			{
+				q[k] = q[k] * DirectionFlag[k] + JointOffset[k] + ZeroOffset[k];
+				dq[k] = dq[k] * DirectionFlag[k];
+				ddq[k] = ddq[k] * DirectionFlag[k];
+
+			}
+			double distalVec[RobotAxis * JointGroupDim];
+			JointMatrix(q, dq, ddq, ts, distalVec);
+			double Y[RobotAxis][JointGroupDim];
+			for (int m = 0; m < RobotAxis; m++)
+				for (int n = 0; n < JointGroupDim; n++)
+					Y[m][n] = distalVec[JointGroupDim * m + n];
+
+			double Y1[RobotAxis][2 * RobotAxis];
+			for (int m = 0; m < RobotAxis; m++)
+			{
+				for (int n = 0; n < 2 * RobotAxis; n++)
+				{
+					Y1[m][n] = 0;
+					if (n == 2 * m)
+						Y1[m][n] = 1 * sign(dq[m]);
+					if (n == 2 * m + 1)
+						Y1[m][n] = dq[m];
+				}
+			}
+
+
+
+			for (int m = 0; m < RobotAxis; m++)
+			{
+				for (int n = 0; n < JointGroupDim; n++)
+				{
+					regressorVector[(i * RobotAxis + m)*JointGroupDim + n] = Y[m][n];
+
+				}
+
+				for (int n = 0; n < 12; n++)
+				{
+					regressorVectorFric[(i * RobotAxis + m) * 12 + n] = Y1[m][n];
+
+				}
+
+
+				regressorForces[i * RobotAxis + m] = ts[m];
+
+			}
+
+			for (int j = 0; j < RobotAxis; j++)
+			{
+
+				stateMot0[j][0] = stateMot1[j][0];
+				stateMot0[j][1] = stateMot1[j][1];
+				stateMot0[j][2] = stateMot1[j][2];
+
+				stateTor0[j][0] = stateTor1[j][0];
+				stateTor0[j][1] = stateTor1[j][1];
+				stateTor0[j][2] = stateTor1[j][2];
+			}
+			std::cout << i << std::endl;
+		}
+
+		std::vector<double> QwithFric_vec(RobotAxis * SampleNum * (JointGroupDim + 2 * RobotAxis));
+		auto QwithFric = QwithFric_vec.data();
+		for (int i = 0;i < RobotAxis * SampleNum;i++)
+		{
+			for (int j = 0;j < JointGroupDim;j++)
+				QwithFric[i*(JointGroupDim + 2 * RobotAxis) + j] = regressorVector[i*JointGroupDim + j];
+			for (int j = JointGroupDim;j < JointGroupDim + 2 * RobotAxis;j++)
+				QwithFric[i*(JointGroupDim + 2 * RobotAxis) + j] = regressorVectorFric[i * 2 * RobotAxis + j - JointGroupDim];
+		}
+
+		// 求解 A的广义逆pinv 和 x
+		std::vector<double> pinv_vec(RobotAxis * SampleNum * (JointGroupDim + 2 * RobotAxis));
+		auto pinv = pinv_vec.data();
+
+		// 所需的中间变量，请对U的对角线元素做处理
+		std::vector<double> UQ_vec(RobotAxis * SampleNum * (JointGroupDim + 2 * RobotAxis));
+		auto UQ = UQ_vec.data();
+
+		std::vector<double> tauQ_vec(RobotAxis * SampleNum);
+		auto tauQ = tauQ_vec.data();
+
+		std::vector<aris::Size> pQ_vec(RobotAxis * SampleNum);
+		auto pQ = pQ_vec.data();
+
+		aris::Size rankQ;
+
+		s_householder_utp(RobotAxis * SampleNum, JointGroupDim + 2 * RobotAxis, QwithFric, UQ, tauQ, pQ, rankQ, 1e-10);
+
+		// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A) //
+		std::vector<double> tauQ2_vec(RobotAxis * SampleNum);
+		auto tauQ2 = tauQ2_vec.data();
+
+		s_householder_utp2pinv(RobotAxis * SampleNum, JointGroupDim + 2 * RobotAxis, rankQ, UQ, tauQ, pQ, pinv, tauQ2, 1e-10);
+		// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A)*b //
+		s_mm(JointGroupDim + 2 * RobotAxis, 1, RobotAxis * SampleNum, pinv, regressorForces, estParas);
+
+
+		/*
+		std::ofstream outfile("C:/Users/gk/Desktop/Kaanh_gk/EstParas.txt");
+		if (!outfile)
+		{
+			std::cout << "Unable to open otfile";
+			exit(1); // terminate with error
+		}
+
+		for (int i = 0;i < 3 * SampleNum*TotalParas;i++)
+			outfile << regressorVector[i] << std::endl;
+
+		outfile.close();
+		*/
+
+		//Calculate Model Error
+		std::vector<double> Error_vec(RobotAxis * SampleNum);
+		auto Error = Error_vec.data();
+
+		s_mm(RobotAxis * SampleNum, 1, JointGroupDim + 12, QwithFric, estParas, Error);
+		for (int i = 0;i < RobotAxis*SampleNum;i++)
+			Error[i] = Error[i] - regressorForces[i];
+
+		double SumError[RobotAxis] = { 0 };
+		for (int j = 0;j < 6;j++)
+			for (int i = 0;i < SampleNum;i++)
+				SumError[j] = SumError[j] + Error[i * 6 + j] * Error[i * 6 + j];
+
+		for (int j = 0;j < RobotAxis;j++)
+			StatisError[j] = sqrt(SumError[j] / SampleNum);
+	}
+
 void jointdynamics::RLStemp(const double *positionL, const double *sensorL, double *estParas, const double *Coef, const double *CoefInv, double *StatisError)
 	{
 
@@ -4977,6 +5180,204 @@ void jointdynamics::LoadRLStemp(const double *positionL, const double *sensorL, 
 
 }
 
+void jointdynamics::LoadRLSYang(const double *positionL, const double *sensorL, double *estParas, double *StatisError)
+{
+
+	double CutFreq = 5;
+	A[0][0] = 0; A[0][1] = 1; A[0][2] = 0;
+	A[1][0] = 0; A[1][1] = 0; A[1][2] = 1;
+	A[2][0] = -CutFreq * CutFreq * CutFreq;
+	A[2][1] = -2 * CutFreq * CutFreq;
+	A[2][2] = -2 * CutFreq;
+	B[0] = 0; B[1] = 0;
+	B[2] = -A[2][0];
+	//positionList[id(2, 2, 6)];
+	double stateMot0[RobotAxis][3] = { 0 };
+	double stateMot1[RobotAxis][3] = { 0 };
+	double stateTor0[RobotAxis][3] = { 0 };
+	double stateTor1[RobotAxis][3] = { 0 };
+
+
+
+	double q[RobotAxis];
+	double dq[RobotAxis];
+	double ddq[RobotAxis];
+	double ts[RobotAxis];
+
+	double intDT = 8 * DT;
+	int length = 6;
+	std::vector<double> regressorMatrix_vec(3 * SampleNum * LoadTotalParas);
+	double* regressorVector = regressorMatrix_vec.data();
+
+	std::vector<double> regressorMatrixFric_vec(3 * SampleNum * 6);
+	double* regressorVectorFric = regressorMatrixFric_vec.data();
+
+	std::vector<double> regressorForces_vec(3 * SampleNum);
+	double* regressorForces = regressorForces_vec.data();
+
+	double posCur[RobotAxis];
+	double torCur[RobotAxis];
+
+	for (int j = 0; j < RobotAxis; j++)
+	{
+		stateMot0[j][0] = positionL[j];
+		stateTor0[j][0] = sensorL[j];
+	}
+
+	for (int i = 0; i < SampleNum; i++)
+	{
+
+		for (int j = 0; j < RobotAxis; j++)
+		{
+
+			posCur[j] = positionL[RobotAxis*i + j];
+			torCur[j] = sensorL[RobotAxis*i + j];
+
+			stateMot1[j][0] = stateMot0[j][0] + intDT * (A[0][0] * stateMot0[j][0] + A[0][1] * stateMot0[j][1] + A[0][2] * stateMot0[j][2] + B[0] * posCur[j]);
+			stateMot1[j][1] = stateMot0[j][1] + intDT * (A[1][0] * stateMot0[j][0] + A[1][1] * stateMot0[j][1] + A[1][2] * stateMot0[j][2] + B[1] * posCur[j]);
+			stateMot1[j][2] = stateMot0[j][2] + intDT * (A[2][0] * stateMot0[j][0] + A[2][1] * stateMot0[j][1] + A[2][2] * stateMot0[j][2] + B[2] * posCur[j]);
+
+			stateTor1[j][0] = stateTor0[j][0] + intDT * (A[0][0] * stateTor0[j][0] + A[0][1] * stateTor0[j][1] + A[0][2] * stateTor0[j][2] + B[0] * torCur[j]);
+			stateTor1[j][1] = stateTor0[j][1] + intDT * (A[1][0] * stateTor0[j][0] + A[1][1] * stateTor0[j][1] + A[1][2] * stateTor0[j][2] + B[1] * torCur[j]);
+			stateTor1[j][2] = stateTor0[j][2] + intDT * (A[2][0] * stateTor0[j][0] + A[2][1] * stateTor0[j][1] + A[2][2] * stateTor0[j][2] + B[2] * torCur[j]);
+		}
+
+		for (int j = 0; j < RobotAxis; j++)
+		{
+			q[j] = stateMot1[j][0];
+			dq[j] = stateMot1[j][1];
+			ddq[j] = stateMot1[j][2];
+			ts[j] = stateTor1[j][0];
+		}
+
+		for (int k = 0; k < RobotAxis; k++)
+		{
+			q[k] = q[k] * DirectionFlag[k] + JointOffset[k] + ZeroOffset[k];
+			dq[k] = dq[k] * DirectionFlag[k];
+			ddq[k] = ddq[k] * DirectionFlag[k];
+
+		}
+
+		double LoadVec[3 * LoadTotalParas];
+		LoadFullMatrix(q, dq, ddq, ts, LoadVec);
+		double Y[3][LoadTotalParas];
+		for (int m = 0; m < 3; m++)
+			for (int n = 0; n < LoadTotalParas; n++)
+				Y[m][n] = LoadVec[LoadTotalParas * m + n];
+
+		double Y1[3][6] = { 0 };
+		Y1[0][0] = 1 * sign(dq[2]); Y1[0][1] = dq[2];
+		Y1[1][2] = 1 * sign(dq[4]); Y1[1][3] = dq[4];
+		Y1[2][4] = 1 * sign(dq[5]); Y1[2][5] = dq[5];
+
+
+		for (int m = 0; m < 3; m++)
+		{
+			for (int n = 0; n < LoadTotalParas; n++)
+			{
+				regressorVector[(i * 3 + m) * LoadTotalParas + n] = Y[m][n];
+
+			}
+
+			for (int n = 0; n < 6; n++)
+			{
+				regressorVectorFric[(i * 3 + m) * 6 + n] = Y1[m][n];
+
+			}
+
+		}
+
+		regressorForces[i * 3 + 0] = ts[2];
+		regressorForces[i * 3 + 1] = ts[4];
+		regressorForces[i * 3 + 2] = ts[5];
+
+
+		for (int j = 0; j < 6; j++)
+		{
+
+			stateMot0[j][0] = stateMot1[j][0];
+			stateMot0[j][1] = stateMot1[j][1];
+			stateMot0[j][2] = stateMot1[j][2];
+
+			stateTor0[j][0] = stateTor1[j][0];
+			stateTor0[j][1] = stateTor1[j][1];
+			stateTor0[j][2] = stateTor1[j][2];
+		}
+
+	}
+
+	std::vector<double> QwithFric_vec(3 * SampleNum * (LoadTotalParas + 6));
+	auto QwithFric = QwithFric_vec.data();
+	for (int i = 0;i < 3 * SampleNum;i++)
+	{
+		for (int j = 0;j < LoadTotalParas;j++)
+			QwithFric[i*(LoadTotalParas + 6) + j] = regressorVector[i*LoadTotalParas + j];
+		for (int j = LoadTotalParas;j < LoadTotalParas + 6;j++)
+			QwithFric[i*(LoadTotalParas + 6) + j] = regressorVectorFric[i * 6 + j - LoadTotalParas];
+	}
+
+
+
+	// 求解 A的广义逆pinv 和 x
+	std::vector<double> pinv_vec(3 * SampleNum * (LoadTotalParas + 6));
+	auto pinv = pinv_vec.data();
+
+	// 所需的中间变量，请对U的对角线元素做处理
+	std::vector<double> UQ_vec(3 * SampleNum * (LoadTotalParas + 6));
+	auto UQ = UQ_vec.data();
+
+	std::vector<double> tauQ_vec(3 * SampleNum);
+	auto tauQ = tauQ_vec.data();
+
+	std::vector<aris::Size> pQ_vec(3 * SampleNum);
+	auto pQ = pQ_vec.data();
+
+	aris::Size rankQ;
+
+	s_householder_utp(3 * SampleNum, LoadTotalParas + 6, QwithFric, UQ, tauQ, pQ, rankQ, 1e-10);
+
+	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A) //
+	double tauQ2[3 * SampleNum];
+
+	s_householder_utp2pinv(3 * SampleNum, LoadTotalParas + 6, rankQ, UQ, tauQ, pQ, pinv, tauQ2, 1e-10);
+	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A)*b //
+	s_mm(LoadTotalParas + 6, 1, 3 * SampleNum, pinv, regressorForces, estParas);
+
+
+	/*
+	std::ofstream outfile("C:/Users/gk/Desktop/Kaanh_gk/EstParas.txt");
+	if (!outfile)
+	{
+		std::cout << "Unable to open otfile";
+		exit(1); // terminate with error
+	}
+
+	for (int i = 0;i < 3 * SampleNum*TotalParas;i++)
+		outfile << regressorVector[i] << std::endl;
+
+	outfile.close();
+	*/
+
+
+	//Calculate Model Error
+	std::vector<double> Error_vec(3 * SampleNum);
+	auto Error = Error_vec.data();
+
+	s_mm(3 * SampleNum, 1, LoadTotalParas + 6, QwithFric, estParas, Error);
+	for (int i = 0;i < 3 * SampleNum;i++)
+		Error[i] = Error[i] - regressorForces[i];
+
+	double SumError[3] = { 0 };
+	for (int j = 0;j < 3;j++)
+		for (int i = 0;i < SampleNum;i++)
+			SumError[j] = SumError[j] + Error[i * 3 + j] * Error[i * 3 + j];
+
+	for (int j = 0;j < 3;j++)
+		StatisError[j] = sqrt(SumError[j] / SampleNum);
+
+
+}
+
 
 void jointdynamics::YYbase(const double *AngList, const double *VelList, const double *AccList, double *Load2Joint,double *Coef,double*CoefInv,const int TestNum)
 {
@@ -5104,6 +5505,232 @@ void jointdynamics::YYbase(const double *AngList, const double *VelList, const d
 	s_householder_utp2pinv(13, 40, rankInv, UInv, tauInv, pInv, pinvInv, tau2Inv, 1e-10);
 	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A)*b //
 	s_mm(40, 13, 40, EYE, pinvInv, CoefInv);
+}
+
+
+void jointdynamics::LoadParasExtYang(const double *positionL, const double *sensorL, const double * estParasL0, double* Load, double *StatisError)
+{
+
+	double CutFreq = 5;
+	A[0][0] = 0; A[0][1] = 1; A[0][2] = 0;
+	A[1][0] = 0; A[1][1] = 0; A[1][2] = 1;
+	A[2][0] = -CutFreq * CutFreq * CutFreq;
+	A[2][1] = -2 * CutFreq * CutFreq;
+	A[2][2] = -2 * CutFreq;
+	B[0] = 0; B[1] = 0;
+	B[2] = -A[2][0];
+	//positionList[id(2, 2, 6)];
+	double stateMot0[RobotAxis][3] = { 0 };
+	double stateMot1[RobotAxis][3] = { 0 };
+	double stateTor0[RobotAxis][3] = { 0 };
+	double stateTor1[RobotAxis][3] = { 0 };
+
+
+
+	double q[RobotAxis];
+	double dq[RobotAxis];
+	double ddq[RobotAxis];
+	double ts[RobotAxis];
+
+	double intDT = 8 * DT;
+	int length = 6;
+	std::vector<double> regressorMatrix_vec(3 * SampleNum * LoadTotalParas);
+	double* regressorVector = regressorMatrix_vec.data();
+
+	std::vector<double> regressorMatrixFric_vec(3 * SampleNum * 6);
+	double* regressorVectorFric = regressorMatrixFric_vec.data();
+
+	std::vector<double> regressorForces_vec(3 * SampleNum);
+	double* regressorForces = regressorForces_vec.data();
+
+	double posCur[RobotAxis];
+	double torCur[RobotAxis];
+
+	for (int j = 0; j < RobotAxis; j++)
+	{
+		stateMot0[j][0] = positionL[j];
+		stateTor0[j][0] = sensorL[j];
+	}
+
+	for (int i = 0; i < SampleNum; i++)
+	{
+
+		for (int j = 0; j < RobotAxis; j++)
+		{
+
+			posCur[j] = positionL[RobotAxis*i + j];
+			torCur[j] = sensorL[RobotAxis*i + j];
+
+			stateMot1[j][0] = stateMot0[j][0] + intDT * (A[0][0] * stateMot0[j][0] + A[0][1] * stateMot0[j][1] + A[0][2] * stateMot0[j][2] + B[0] * posCur[j]);
+			stateMot1[j][1] = stateMot0[j][1] + intDT * (A[1][0] * stateMot0[j][0] + A[1][1] * stateMot0[j][1] + A[1][2] * stateMot0[j][2] + B[1] * posCur[j]);
+			stateMot1[j][2] = stateMot0[j][2] + intDT * (A[2][0] * stateMot0[j][0] + A[2][1] * stateMot0[j][1] + A[2][2] * stateMot0[j][2] + B[2] * posCur[j]);
+
+			stateTor1[j][0] = stateTor0[j][0] + intDT * (A[0][0] * stateTor0[j][0] + A[0][1] * stateTor0[j][1] + A[0][2] * stateTor0[j][2] + B[0] * torCur[j]);
+			stateTor1[j][1] = stateTor0[j][1] + intDT * (A[1][0] * stateTor0[j][0] + A[1][1] * stateTor0[j][1] + A[1][2] * stateTor0[j][2] + B[1] * torCur[j]);
+			stateTor1[j][2] = stateTor0[j][2] + intDT * (A[2][0] * stateTor0[j][0] + A[2][1] * stateTor0[j][1] + A[2][2] * stateTor0[j][2] + B[2] * torCur[j]);
+		}
+
+		for (int j = 0; j < RobotAxis; j++)
+		{
+			q[j] = stateMot1[j][0];
+			dq[j] = stateMot1[j][1];
+			ddq[j] = stateMot1[j][2];
+			ts[j] = stateTor1[j][0];
+		}
+
+		for (int k = 0; k < RobotAxis; k++)
+		{
+			q[k] = q[k] * DirectionFlag[k] + JointOffset[k] + ZeroOffset[k];
+			dq[k] = dq[k] * DirectionFlag[k];
+			ddq[k] = ddq[k] * DirectionFlag[k];
+
+		}
+
+		double LoadVec[3 * LoadTotalParas];
+		LoadFullMatrix(q, dq, ddq, ts, LoadVec);
+		double Y[3][LoadTotalParas];
+		for (int m = 0; m < 3; m++)
+			for (int n = 0; n < LoadTotalParas; n++)
+				Y[m][n] = LoadVec[LoadTotalParas * m + n];
+
+		double Y1[3][6] = { 0 };
+		Y1[0][0] = 1 * sign(dq[2]); Y1[0][1] = dq[2];
+		Y1[1][2] = 1 * sign(dq[4]); Y1[1][3] = dq[4];
+		Y1[2][4] = 1 * sign(dq[5]); Y1[2][5] = dq[5];
+
+
+		for (int m = 0; m < 3; m++)
+		{
+			for (int n = 0; n < LoadTotalParas; n++)
+			{
+				regressorVector[(i * 3 + m) * LoadTotalParas + n] = Y[m][n];
+
+			}
+
+			for (int n = 0; n < 6; n++)
+			{
+				regressorVectorFric[(i * 3 + m) * 6 + n] = Y1[m][n];
+
+			}
+
+		}
+
+		regressorForces[i * 3 + 0] = ts[2];
+		regressorForces[i * 3 + 1] = ts[4];
+		regressorForces[i * 3 + 2] = ts[5];
+
+
+		for (int j = 0; j < 6; j++)
+		{
+
+			stateMot0[j][0] = stateMot1[j][0];
+			stateMot0[j][1] = stateMot1[j][1];
+			stateMot0[j][2] = stateMot1[j][2];
+
+			stateTor0[j][0] = stateTor1[j][0];
+			stateTor0[j][1] = stateTor1[j][1];
+			stateTor0[j][2] = stateTor1[j][2];
+		}
+
+	}
+
+	std::vector<double> QwithFric_vec(3 * SampleNum * (LoadTotalParas + 6));
+	auto QwithFric = QwithFric_vec.data();
+	for (int i = 0;i < 3 * SampleNum;i++)
+	{
+		for (int j = 0;j < LoadTotalParas;j++)
+			QwithFric[i*(LoadTotalParas + 6) + j] = regressorVector[i*LoadTotalParas + j];
+		for (int j = LoadTotalParas;j < LoadTotalParas + 6;j++)
+			QwithFric[i*(LoadTotalParas + 6) + j] = regressorVectorFric[i * 6 + j - LoadTotalParas];
+	}
+
+
+	std::vector<double> BaseTor_vec(3 * SampleNum);
+	auto BaseTor = BaseTor_vec.data();
+	s_mm(3 * SampleNum, 1, LoadTotalParas + 6, QwithFric, estParasL0, BaseTor);
+
+	std::vector<double> LoadTor_vec(3 * SampleNum);
+	auto LoadTor = LoadTor_vec.data();
+	for (int i = 0;i < 3 * SampleNum;i++)
+		LoadTor[i] = regressorForces[i] - BaseTor[i];
+
+	std::vector<double> LoadRegressor_vec(3 * SampleNum * 10);
+	auto LoadRegressor = LoadRegressor_vec.data();
+	for (int i = 0;i < 3 * SampleNum;i++)
+		for (int j = 0;j < 10;j++)
+			LoadRegressor[i*10 + j] = regressorVector[i*LoadTotalParas + 30 + j];
+
+
+	// 求解 A的广义逆pinv 和 x
+	std::vector<double> Lpinv_vec(3 * SampleNum * 10);
+	auto Lpinv = Lpinv_vec.data();
+
+	// 所需的中间变量，请对U的对角线元素做处理
+	std::vector<double> Q_vec(3 * SampleNum * 10);
+	auto Q = Q_vec.data();
+
+	std::vector<double> tau_vec(3 * SampleNum);
+	auto tau = tau_vec.data();
+
+	std::vector<aris::Size> p_vec(3 * SampleNum);
+	auto p = p_vec.data();
+
+	aris::Size rank;
+
+	s_householder_utp(3 * SampleNum, 10, LoadRegressor, Q, tau, p, rank, 1e-10);
+	
+	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A) //
+	double tau2[3 * SampleNum];
+
+	s_householder_utp2pinv(3 * SampleNum, 10, rank, Q, tau, p, Lpinv, tau2, 1e-10);
+	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A)*b //
+	s_mm(10, 1, 3 * SampleNum, Lpinv, LoadTor, Load);
+
+
+
+	// 求解 A的广义逆pinv 和 x
+	std::vector<double> pinv_vec(3 * SampleNum * (LoadTotalParas + 6));
+	auto pinv = pinv_vec.data();
+
+	// 所需的中间变量，请对U的对角线元素做处理
+	std::vector<double> UQ_vec(3 * SampleNum * (LoadTotalParas + 6));
+	auto UQ = UQ_vec.data();
+
+	std::vector<double> tauQ_vec(3 * SampleNum);
+	auto tauQ = tauQ_vec.data();
+
+	std::vector<aris::Size> pQ_vec(3 * SampleNum);
+	auto pQ = pQ_vec.data();
+
+	aris::Size rankQ;
+
+	s_householder_utp(3 * SampleNum, LoadTotalParas + 6, QwithFric, UQ, tauQ, pQ, rankQ, 1e-10);
+
+	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A) //
+	double tauQ2[3 * SampleNum];
+
+	s_householder_utp2pinv(3 * SampleNum, LoadTotalParas + 6, rankQ, UQ, tauQ, pQ, pinv, tauQ2, 1e-10);
+	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A)*b //
+	double estParas[LoadTotalParas + 6] = { 0 };
+	s_mm(LoadTotalParas + 6, 1, 3 * SampleNum, pinv, regressorForces, estParas);
+
+	//Calculate Model Error
+	std::vector<double> Error_vec(3 * SampleNum);
+	auto Error = Error_vec.data();
+
+	s_mm(3 * SampleNum, 1, LoadTotalParas + 6, QwithFric, estParas, Error);
+	for (int i = 0;i < 3 * SampleNum;i++)
+		Error[i] = Error[i] - regressorForces[i];
+
+	double SumError[3] = { 0 };
+	for (int j = 0;j < 3;j++)
+		for (int i = 0;i < SampleNum;i++)
+			SumError[j] = SumError[j] + Error[i * 3 + j] * Error[i * 3 + j];
+
+	for (int j = 0;j < 3;j++)
+		StatisError[j] = sqrt(SumError[j] / SampleNum);
+
+
 }
 
 
