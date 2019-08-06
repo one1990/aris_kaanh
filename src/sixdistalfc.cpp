@@ -3725,7 +3725,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
     ft_offset[i] = std::max(-500.0, ft_offset[i]);
     ft_offset[i] = std::min(500.0, ft_offset[i]);
     //if(abs(pa[i])<1)
-        controller->motionAtAbs(i).setTargetCur(ft_offset[i]);
+        controller->motionAtAbs(i).setTargetToq(ft_offset[i]);
     }
 
 

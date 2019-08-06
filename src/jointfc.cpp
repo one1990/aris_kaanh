@@ -601,7 +601,7 @@ auto DragTeach::executeRT(PlanTarget &target)->int
         if(ft_offset<-500)
            ft_offset = -500.0;
 
-        controller->motionAtAbs(i).setTargetCur(ft_offset);
+        controller->motionAtAbs(i).setTargetToq(ft_offset);
 	}
 
     if (target.model->solverPool().at(1).kinPos())return -1;

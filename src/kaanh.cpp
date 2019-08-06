@@ -63,7 +63,7 @@ namespace kaanh
 			"				<PdoEntry name=\"mode_of_display\" index=\"0x6061\" subindex=\"0x00\" size=\"8\"/>"
 			"				<PdoEntry name=\"pos_actual_value\" index=\"0x6064\" subindex=\"0x00\" size=\"32\"/>"
 			"				<PdoEntry name=\"vel_actual_value\" index=\"0x606c\" subindex=\"0x00\" size=\"32\"/>"
-			"				<PdoEntry name=\"cur_actual_value\" index=\"0x6078\" subindex=\"0x00\" size=\"16\"/>"
+            "				<PdoEntry name=\"tor_actual_value\" index=\"0x6077\" subindex=\"0x00\" size=\"16\"/>"
 			"			</Pdo>"
 			"		</SyncManager>"
 			"	</SyncManagerPoolObject>"
@@ -78,12 +78,12 @@ namespace kaanh
 
 #ifdef UNIX
 
-        dynamic_cast<aris::control::Motion&>(controller->slavePool()[0]).setPosOffset(0.00293480352126769);
-        dynamic_cast<aris::control::Motion&>(controller->slavePool()[1]).setPosOffset(-2.50023777179214);
-        dynamic_cast<aris::control::Motion&>(controller->slavePool()[2]).setPosOffset(-0.292382537944081);
-        dynamic_cast<aris::control::Motion&>(controller->slavePool()[3]).setPosOffset(0.0582675097338009);
-        dynamic_cast<aris::control::Motion&>(controller->slavePool()[4]).setPosOffset(1.53363576057128);
-        dynamic_cast<aris::control::Motion&>(controller->slavePool()[5]).setPosOffset(25.924544999999998);
+        dynamic_cast<aris::control::Motion&>(controller->slavePool()[0]).setPosOffset(0.083326167813560906);
+        dynamic_cast<aris::control::Motion&>(controller->slavePool()[1]).setPosOffset(0.40688722035956698);
+        dynamic_cast<aris::control::Motion&>(controller->slavePool()[2]).setPosOffset(-0.063596878644675794);
+        dynamic_cast<aris::control::Motion&>(controller->slavePool()[3]).setPosOffset(0.65575523199999997);
+        dynamic_cast<aris::control::Motion&>(controller->slavePool()[4]).setPosOffset(-1.49538803280913);
+        dynamic_cast<aris::control::Motion&>(controller->slavePool()[5]).setPosOffset(-3.2476329105045001);
 		
         for(int i=0; i<6; i++)
         {
@@ -1967,7 +1967,7 @@ namespace kaanh
 		target.param = param;
 
 		std::fill(target.mot_options.begin(), target.mot_options.end(),
-			Plan::USE_VEL_OFFSET);
+            Plan::USE_OFFSET_VEL);
 
 	}
 	auto MoveJI::executeRT(PlanTarget &target)->int
@@ -3365,8 +3365,8 @@ namespace kaanh
 			target.param = param;
 
 			std::fill(target.mot_options.begin(), target.mot_options.end(),
-				Plan::USE_TARGET_POS |
-				Plan::USE_VEL_OFFSET);
+                Plan::USE_TARGET_POS |
+                Plan::USE_OFFSET_VEL);
 
 		}
 	auto MoveEAP::executeRT(PlanTarget &target)->int
@@ -3454,7 +3454,7 @@ namespace kaanh
 			}
 
 			//电流前馈//
-			controller->motionAtAbs(6).setOffsetCur(fore_cur);
+            controller->motionAtAbs(6).setOffsetToq(fore_cur);
 
 			//对速度进行均值滤波, 对摩擦力进行滤波//
 			double mean_vel, fe, filteredforce;

@@ -547,7 +547,7 @@ auto SevenDragTeach::executeRT(PlanTarget &target)->int
 			switch (status[i])
 			{
 			case MODING:
-				target.controller->motionPool()[i].setTargetCur(0.0);
+                target.controller->motionPool()[i].setTargetToq(0.0);
 				status[i] = target.controller->motionPool()[i].mode(10) ? status[i] : ENABLING;
 				break;
 			case ENABLING:
@@ -562,7 +562,7 @@ auto SevenDragTeach::executeRT(PlanTarget &target)->int
 
 
 			{
-				target.controller->motionPool()[i].setTargetCur(0.0);
+                target.controller->motionPool()[i].setTargetToq(0.0);
 				begin_pjs[i] = target.model->motionPool()[i].mp();
 				controller->motionPool().at(i).setModeOfOperation(10);	//切换到电流控制
 			}
@@ -603,7 +603,7 @@ auto SevenDragTeach::executeRT(PlanTarget &target)->int
 		ft_offset = std::max(-Limit[i], ft_offset);
 		ft_offset = std::min(Limit[i], ft_offset);
 
-		controller->motionAtAbs(i).setTargetCur(ft_offset);
+        controller->motionAtAbs(i).setTargetToq(ft_offset);
 		cout << ft_offset << "***";
 	}
 	cout << std::endl;

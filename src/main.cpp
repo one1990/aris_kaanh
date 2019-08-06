@@ -34,16 +34,17 @@ int main(int argc, char *argv[])
   
 	//生成kaanh.xml文档
 
-    /*
+
     //-------for rokae robot begin//
     cs.resetController(kaanh::createControllerRokaeXB4().release());
     //cs.resetModel(aris::robot::createModelRokaeXB4().release());
     cs.resetModel(kaanh::createModelRokae().release());
     cs.resetPlanRoot(kaanh::createPlanRootRokaeXB4().release());
+    cs.interfacePool().add<aris::server::WebInterface>("", "5866");
     cs.resetSensorRoot(new aris::sensor::SensorRoot);
     cs.saveXmlFile(xmlpath.string().c_str());
     //-------for rokae robot end// 
-	*/
+
 
     /*
     //-------for sanxiang robot begin//
@@ -74,7 +75,7 @@ int main(int argc, char *argv[])
 
 	
 	//Start Web Socket//
-	cs.startWebSock("5866");
+    cs.open();
 
 	//Receive Command//
 	cs.runCmdLine();
