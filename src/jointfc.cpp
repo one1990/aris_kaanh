@@ -355,7 +355,7 @@ auto JointTest::prepairNrt(const std::map<std::string, std::string> &params, Pla
 
 	auto mat3 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("LoadParas"));
 	for (int i = 0;i < 10;i++)
-		 JointMatrix.LoadParas[i] = 0*mat3->data().data()[i];
+         JointMatrix.LoadParas[i] = 1*mat3->data().data()[i];
 	
 
 	//for (int i = 50;i < JointGroupDim;i++)
@@ -581,7 +581,7 @@ auto DragTeach::prepairNrt(const std::map<std::string, std::string> &params, Pla
 
 	auto mat3 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("LoadParas"));
 	for (int i = 0;i < 10;i++)
-		JointMatrix.LoadParas[i] = 0 * mat3->data().data()[i];
+        JointMatrix.LoadParas[i] = 1 * mat3->data().data()[i];
 }
 auto DragTeach::executeRT(PlanTarget &target)->int
 {

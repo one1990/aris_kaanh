@@ -3199,7 +3199,7 @@ void jointdynamics::JointCollisionYang(const double * q, const double *dq, const
 
 	}
 
-	double estParasWithLoad[JointGroupDim] = { 0 };
+    double estParasWithLoad[JointGroupDim + 2 * RobotAxis] = { 0 };
 
 	for (int i = 0;i < JointGroupDim + 2 * RobotAxis;i++)
 		estParasWithLoad[i] = estParas[i];
