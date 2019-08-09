@@ -5,6 +5,7 @@
 #include <aris.hpp>
 #include"forcecontrol.h"
 #include"iir.h"
+#include"CJsonObject.hpp"
 
 //statemachine//
 # define M_RUN 0	//手动单步执行

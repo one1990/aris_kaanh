@@ -17,7 +17,7 @@ include_directories(${aris_INCLUDE_DIRS})
 
 message(${aris_DIR})
 
-add_library(kaanh_lib STATIC src/kaanh.cpp src/iir.cpp src/forcecontrol.cpp src/kaanh.h src/iir.h src/forcecontrol.h src/cplan.cpp src/cplan.h src/robotconfig.cpp src/robotconfig.h src/sixdistalfc.cpp src/sixdistalfc.h src/sixdistaldynamics.cpp src/sixdistaldynamics.h src/jointdynamics.cpp src/jointdynamics.h src/jointfc.cpp src/jointfc.h src/sevenjointdynamics.cpp src/sevenjointdynamics.h src/sevenjointfc.cpp src/sevenjointfc.h src/tempvariables.h src/move_series.cpp src/move_series.h)
+add_library(kaanh_lib STATIC src/kaanh.cpp src/iir.cpp src/forcecontrol.cpp src/cJSON.c src/cJSON.h src/kaanh.h src/CJsonObject.hpp src/CJsonObject.cpp src/iir.h src/forcecontrol.h src/cplan.cpp src/cplan.h src/robotconfig.cpp src/robotconfig.h src/sixdistalfc.cpp src/sixdistalfc.h src/sixdistaldynamics.cpp src/sixdistaldynamics.h src/jointdynamics.cpp src/jointdynamics.h src/jointfc.cpp src/jointfc.h src/sevenjointdynamics.cpp src/sevenjointdynamics.h src/sevenjointfc.cpp src/sevenjointfc.h src/tempvariables.h src/move_series.cpp src/move_series.h)
 #add_library(kaanh_lib STATIC src/kaanh.cpp src/iir.cpp src/forcecontrol.cpp src/kaanh.h src/iir.h src/forcecontrol.h src/cplan.cpp src/cplan.h)
 
 # user program started...

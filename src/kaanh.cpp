@@ -494,133 +494,79 @@ namespace kaanh
 	}
 
 
-	// 获取末端位姿pq,pe,关节角度j //
+	// 获取part_pq，end_pq，end_pe等 //
+	struct GetParam
+	{
+		std::vector<double> part_pm, part_pq, end_pq, end_pe, motion_pos, motion_vel, motion_acc, motion_toq, ai;
+		std::vector<bool> di;
+		std::int32_t state_code;
+		std::int32_t return_code;
+		std::string return_message;
+	};
 	auto Get::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
-		std::any part_pq_pe_j_vec;
-		for (auto cmd_param : params)
+		GetParam par;
+		par.part_pm.resize(target.model->partPool().size() * 16, 0.0);
+		par.part_pq.resize(target.model->partPool().size() * 7, 0.0);
+		par.end_pq.resize(7, 0.0);
+		par.end_pe.resize(6, 0.0);
+		par.motion_pos.resize(6, 0.0);
+		par.motion_vel.resize(6, 0.0);
+		par.motion_acc.resize(6, 0.0);
+		par.motion_toq.resize(6, 0.0);
+		par.ai.resize(100, 1.0);
+		par.di.resize(100, false);
+		std::any param = par;
+		//std::any param = std::make_any<GetParam>();
+
+		target.server->getRtData([](aris::server::ControlServer& cs, std::any& data)->void
 		{
-			if (cmd_param.first == "all")
+			for (aris::Size i(-1); ++i < cs.model().partPool().size();)
 			{
-				auto pm_pq_pe_j_vec = std::make_any<std::vector<double> >(target.model->partPool().size() * 16 + 13 + 3 * target.model->motionPool().size());
-
-				target.server->getRtData([](aris::server::ControlServer& cs, std::any& data)
-				{
-					for (aris::Size i(-1); ++i < cs.model().partPool().size();)
-						cs.model().partPool().at(i).getPm(std::any_cast<std::vector<double>&>(data).data() + i * 16);
-
-					cs.model().generalMotionPool().at(0).getMpq(std::any_cast<std::vector<double>&>(data).data() + cs.model().partPool().size() * 16);
-					cs.model().generalMotionPool().at(0).getMpe(std::any_cast<std::vector<double>&>(data).data() + cs.model().partPool().size() * 16 + 7);
-					for (aris::Size i = cs.model().partPool().size() * 16 + 13; i < cs.model().partPool().size() * 16 + 13 + cs.model().motionPool().size(); i++)
-					{
-						std::any_cast<std::vector<double>&>(data)[i] = cs.model().motionPool()[i - cs.model().partPool().size() * 16 - 13].mp();
-					}
-					for (aris::Size i = cs.model().partPool().size() * 16 + 13 + cs.model().motionPool().size(); i < cs.model().partPool().size() * 16 + 13 + 2 * cs.model().motionPool().size(); i++)
-					{
-						std::any_cast<std::vector<double>&>(data)[i] = cs.model().motionPool()[i - cs.model().partPool().size() * 16 - 13 - cs.model().motionPool().size()].mv();
-					}
-					for (aris::Size i = cs.model().partPool().size() * 16 + 13 + 2 * cs.model().motionPool().size(); i < cs.model().partPool().size() * 16 + 13 + 3 * cs.model().motionPool().size(); i++)
-					{
-						std::any_cast<std::vector<double>&>(data)[i] = cs.model().motionPool()[i - cs.model().partPool().size() * 16 - 13 - 2 * cs.model().motionPool().size()].ma();
-					}
-
-				}, pm_pq_pe_j_vec);
-
-				part_pq_pe_j_vec = std::make_any<std::vector<double> >(target.model->partPool().size() * 7 + 13 + 3 * target.model->motionPool().size());
-
-				for (aris::Size i(-1); ++i < target.server->model().partPool().size();)
-					aris::dynamic::s_pm2pq(std::any_cast<std::vector<double>&>(pm_pq_pe_j_vec).data() + i * 16, std::any_cast<std::vector<double>&>(part_pq_pe_j_vec).data() + i * 7);
-				
-				/*
-				std::cout << "pq:" << " ";
-				for (aris::Size i = 0; i < 7; i++)
-				{
-					std::cout << std::any_cast<std::vector<double>&>(part_pq_pe_j_vec)[i] << " ";
-				}
-				std::cout << std::endl;
-				std::cout << "pe:" << " ";
-				for (aris::Size i = 7; i < 13; i++)
-				{
-					std::cout << std::any_cast<std::vector<double>&>(part_pq_pe_j_vec)[i] << " ";
-				}
-				std::cout << std::endl;
-				std::cout << "j:" << " ";
-				for (aris::Size i = 13; i < 13 + target.model->motionPool().size(); i++)
-				{
-					std::cout << std::any_cast<std::vector<double>&>(part_pq_pe_j_vec)[i] << " ";
-				}
-				std::cout << std::endl;
-				*/
+				cs.model().partPool().at(i).getPm(std::any_cast<GetParam &>(data).part_pm.data() + i * 16);
 			}
-			else if (cmd_param.first == "pq")
+
+			cs.model().generalMotionPool().at(0).getMpq(std::any_cast<GetParam &>(data).end_pq.data());
+			cs.model().generalMotionPool().at(0).getMpe(std::any_cast<GetParam &>(data).end_pe.data());
+
+			for (aris::Size i = 0; i < cs.controller().motionPool().size(); i++)
 			{
-				part_pq_pe_j_vec = std::make_any<std::vector<double> >(7);
-
-				target.server->getRtData([](aris::server::ControlServer& cs, std::any& data)
-				{
-					cs.model().generalMotionPool().at(0).getMpq(std::any_cast<std::vector<double>&>(data).data());
-				}, part_pq_pe_j_vec);
-				/*
-				for (aris::Size i = 0; i < 7; i++)
-				{
-					std::cout << std::any_cast<std::vector<double>&>(part_pq_pe_j_vec)[i] << " ";
-				}
-				std::cout << std::endl;
-				*/
+				std::any_cast<GetParam &>(data).motion_pos[i] = cs.controller().motionPool()[i].actualPos();
+				std::any_cast<GetParam &>(data).motion_vel[i] = cs.controller().motionPool()[i].actualVel();
+				std::any_cast<GetParam &>(data).motion_acc[i] = cs.model().motionPool()[i].ma();
+				std::any_cast<GetParam &>(data).motion_toq[i] = cs.controller().motionPool()[i].actualToq();
 			}
-			else if (cmd_param.first == "pe")
+			for (aris::Size i = 0; i < 100; i++)
 			{
-				part_pq_pe_j_vec = std::make_any<std::vector<double> >(6);
+				std::any_cast<GetParam &>(data).ai[i] = 1.0;
+				std::any_cast<GetParam &>(data).di[i] = false;
+			}
+			std::any_cast<GetParam &>(data).state_code = 100;
+			std::any_cast<GetParam &>(data).return_code = 100;
+			std::any_cast<GetParam &>(data).return_message = "ok";
 
-				target.server->getRtData([](aris::server::ControlServer& cs, std::any& data)
-				{
-					cs.model().generalMotionPool().at(0).getMpe(std::any_cast<std::vector<double>&>(data).data());
-				}, part_pq_pe_j_vec);
-				/*
-				for (aris::Size i = 0; i < 6; i++)
-				{
-					std::cout << std::any_cast<std::vector<double>&>(part_pq_pe_j_vec)[i] << " ";
-				}
-				std::cout << std::endl;
-				*/
-			}
-			else if (cmd_param.first == "j")
-			{
-				part_pq_pe_j_vec = std::make_any<std::vector<double> >(3*target.model->motionPool().size());
-				target.server->getRtData([](aris::server::ControlServer& cs, std::any& data)
-				{
-					for (aris::Size i = 0; i < cs.model().motionPool().size(); i++)
-					{
-						std::any_cast<std::vector<double>&>(data)[i] = cs.model().motionPool()[i].mp();
-					}
-					for (aris::Size i = cs.model().motionPool().size(); i < 2*cs.model().motionPool().size(); i++)
-					{
-						std::any_cast<std::vector<double>&>(data)[i] = cs.model().motionPool()[i- cs.model().motionPool().size()].mv();
-					}		
-					for (aris::Size i = 2*cs.model().motionPool().size(); i < 3*cs.model().motionPool().size(); i++)
-					{
-						std::any_cast<std::vector<double>&>(data)[i] = cs.model().motionPool()[i- 2*cs.model().motionPool().size()].ma();
-					}
-					
-				}, part_pq_pe_j_vec);
-				/*
-				for (aris::Size i = 0; i < target.model->motionPool().size(); i++)
-				{
-					std::cout << std::any_cast<std::vector<double>&>(part_pq_pe_j_vec)[i] << " ";
-				}
-				std::cout << std::endl;
-				*/
-			}
-		}
-		auto pq_pe_j = std::any_cast<std::vector<double>&>(part_pq_pe_j_vec);
-		//取小数点后三位//
-		for (aris::Size i = 0; i < pq_pe_j.size(); i++)
-		{
-			pq_pe_j[i] = std::floor(pq_pe_j[i]*1000.0f + 0.5)/1000.0f;
-		}
+		}, param);
 		
-		std::string ret(reinterpret_cast<char*>(pq_pe_j.data()), pq_pe_j.size() * sizeof(double));
-		target.ret = ret;
+		auto out_data = std::any_cast<GetParam &>(param);
+
+		for (aris::Size i(-1); ++i < target.server->model().partPool().size();)
+			aris::dynamic::s_pm2pq(out_data.part_pm.data() + i * 16, out_data.part_pq.data() + i * 7);
+
+		std::vector<std::pair<std::string, std::any>> out_param;
+		out_param.push_back(std::make_pair<std::string, std::any>("part_pq", out_data.part_pq));
+		out_param.push_back(std::make_pair<std::string, std::any>("end_pq", out_data.end_pq));
+		out_param.push_back(std::make_pair<std::string, std::any>("end_pe", out_data.end_pe));
+		out_param.push_back(std::make_pair<std::string, std::any>("motion_pos", out_data.motion_pos));
+		out_param.push_back(std::make_pair<std::string, std::any>("motion_vel", out_data.motion_vel));
+		out_param.push_back(std::make_pair<std::string, std::any>("motion_acc", out_data.motion_acc));
+		out_param.push_back(std::make_pair<std::string, std::any>("motion_toq", out_data.motion_toq));
+		out_param.push_back(std::make_pair<std::string, std::any>("ai", out_data.ai));
+		out_param.push_back(std::make_pair<std::string, std::any>("di", out_data.di));
+		out_param.push_back(std::make_pair<std::string, std::any>("state_code", out_data.state_code));
+		out_param.push_back(std::make_pair<std::string, std::any>("return_code", out_data.return_code));
+		out_param.push_back(std::make_pair<std::string, std::any>("return_message", out_data.return_message));
+
+		target.ret = out_param;
 		target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_PRINT_CMD_INFO | NOT_PRINT_CMD_INFO;
 	}
 	auto Get::collectNrt(PlanTarget &target)->void {}
@@ -628,14 +574,6 @@ namespace kaanh
 	{
 		command().loadXmlStr(
 			"<Command name=\"get\">"
-			"	<GroupParam>"
-			"		<UniqueParam default=\"all\">"
-			"			<Param name=\"all\" abbreviation=\"a\"/>"
-			"			<Param name=\"pq\"/>"
-			"			<Param name=\"pe\"/>"
-			"			<Param name=\"j\"/>"
-			"		</UniqueParam>"
-			"	</GroupParam>"
 			"</Command>");
 	}
 
@@ -2379,7 +2317,7 @@ namespace kaanh
 	MoveC::MoveC(const std::string &name) :Plan(name)
 	{
 		command().loadXmlStr(
-			"<Command name=\"moveC\">"
+			"<Command name=\"mvc\">"
 			"	<GroupParam>"
 			"		<Param name=\"pos_unit\" default=\"m\"/>"
 			"		<UniqueParam default=\"mid_pq\">"
@@ -2671,7 +2609,7 @@ namespace kaanh
 	JogC::JogC(const std::string &name) :Plan(name)
 	{
 		command().loadXmlStr(
-			"<Command name=\"jogC\">"
+			"<Command name=\"jc\">"
 			"	<GroupParam>"
 			"		<UniqueParam>"
 			"			<GroupParam name=\"start_group\">"
@@ -2898,7 +2836,7 @@ namespace kaanh
 	JogJ::JogJ(const std::string &name) :Plan(name)
 	{
 		command().loadXmlStr(
-			"<Command name=\"jogJ\">"
+			"<Command name=\"jj\">"
 			"	<GroupParam>"
 			"		<UniqueParam>"
 			"			<GroupParam name=\"start_group\">"

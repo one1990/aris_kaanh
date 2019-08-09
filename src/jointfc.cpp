@@ -207,7 +207,7 @@ auto JointDyna::collectNrt(aris::plan::PlanTarget &target)->void
 		cout << JointMatrix.estParasJoint[i] << ",";
 
 	aris::core::Matrix mat0(1,JointReduceDim + 12, JointMatrix.estParasJoint);
-	if (target.model->variablePool().findByName("estParasJoint") !=
+	if (target.model->variablePool().findByName(".") !=
 		target.model->variablePool().end())
 	{
 		dynamic_cast<aris::dynamic::MatrixVariable*>(
