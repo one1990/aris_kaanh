@@ -2845,13 +2845,13 @@ void jointdynamics::RLSYang(const double *positionL, const double *sensorL, doub
 
 		aris::Size rankQ;
 
-		s_householder_utp(RobotAxis * SampleNum, JointGroupDim + 2 * RobotAxis, QwithFric, UQ, tauQ, pQ, rankQ, 1e-10);
+        s_householder_utp(RobotAxis * SampleNum, JointGroupDim + 2 * RobotAxis, QwithFric, UQ, tauQ, pQ, rankQ, 1e-1);
 
 		// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A) //
 		std::vector<double> tauQ2_vec(RobotAxis * SampleNum);
 		auto tauQ2 = tauQ2_vec.data();
 
-		s_householder_utp2pinv(RobotAxis * SampleNum, JointGroupDim + 2 * RobotAxis, rankQ, UQ, tauQ, pQ, pinv, tauQ2, 1e-10);
+        s_householder_utp2pinv(RobotAxis * SampleNum, JointGroupDim + 2 * RobotAxis, rankQ, UQ, tauQ, pQ, pinv, tauQ2, 1e-1);
 		// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A)*b //
 		s_mm(JointGroupDim + 2 * RobotAxis, 1, RobotAxis * SampleNum, pinv, regressorForces, estParas);
 
@@ -5334,12 +5334,12 @@ void jointdynamics::LoadRLSYang(const double *positionL, const double *sensorL, 
 
 	aris::Size rankQ;
 
-	s_householder_utp(3 * SampleNum, LoadTotalParas + 6, QwithFric, UQ, tauQ, pQ, rankQ, 1e-10);
+    s_householder_utp(3 * SampleNum, LoadTotalParas + 6, QwithFric, UQ, tauQ, pQ, rankQ, 1e-3);
 
 	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A) //
 	double tauQ2[3 * SampleNum];
 
-	s_householder_utp2pinv(3 * SampleNum, LoadTotalParas + 6, rankQ, UQ, tauQ, pQ, pinv, tauQ2, 1e-10);
+    s_householder_utp2pinv(3 * SampleNum, LoadTotalParas + 6, rankQ, UQ, tauQ, pQ, pinv, tauQ2, 1e-3);
 	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A)*b //
 	s_mm(LoadTotalParas + 6, 1, 3 * SampleNum, pinv, regressorForces, estParas);
 
@@ -5677,12 +5677,11 @@ void jointdynamics::LoadParasExtYang(const double *positionL, const double *sens
 
 	aris::Size rank;
 
-	s_householder_utp(3 * SampleNum, 10, LoadRegressor, Q, tau, p, rank, 1e-10);
+    s_householder_utp(3 * SampleNum, 10, LoadRegressor, Q, tau, p, rank, 1e-3);
 	
 	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A) //
 	double tau2[3 * SampleNum];
-
-	s_householder_utp2pinv(3 * SampleNum, 10, rank, Q, tau, p, Lpinv, tau2, 1e-10);
+    s_householder_utp2pinv(3 * SampleNum, 10, rank, Q, tau, p, Lpinv, tau2, 1e-3);
 	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A)*b //
 	s_mm(10, 1, 3 * SampleNum, Lpinv, LoadTor, Load);
 
@@ -5704,15 +5703,18 @@ void jointdynamics::LoadParasExtYang(const double *positionL, const double *sens
 
 	aris::Size rankQ;
 
-	s_householder_utp(3 * SampleNum, LoadTotalParas + 6, QwithFric, UQ, tauQ, pQ, rankQ, 1e-10);
+    s_householder_utp(3 * SampleNum, LoadTotalParas + 6, QwithFric, UQ, tauQ, pQ, rankQ, 1e-3);
 
 	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A) //
 	double tauQ2[3 * SampleNum];
 
-	s_householder_utp2pinv(3 * SampleNum, LoadTotalParas + 6, rankQ, UQ, tauQ, pQ, pinv, tauQ2, 1e-10);
+    s_householder_utp2pinv(3 * SampleNum, LoadTotalParas + 6, rankQ, UQ, tauQ, pQ, pinv, tauQ2, 1e-3);
 	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A)*b //
 	double estParas[LoadTotalParas + 6] = { 0 };
 	s_mm(LoadTotalParas + 6, 1, 3 * SampleNum, pinv, regressorForces, estParas);
+
+    for (int i = 0;i < 46;i++)
+        std::cout << estParas[i] << std::endl;
 
 	//Calculate Model Error
 	std::vector<double> Error_vec(3 * SampleNum);

@@ -175,7 +175,7 @@ auto JointDyna::executeRT(PlanTarget &target)->int
             //TorqueList[6 * (target.count - 1) + i] = POSRLS[i + 6][target.count - 1] / f2c_index[i];
 
             AngleList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualPos();
-			TorqueList[6 * (CollectNum - 1) + i] = 0;//controller->motionAtAbs(i).actualCur() / f2c_index[i];
+            TorqueList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
             //TorqueList[6 * (CollectNum - 1) + i] = 2;//controller->motionAtAbs(i).actualTor() * f2f_index[i];
 		}
 
@@ -907,7 +907,7 @@ auto LoadDyna::executeRT(PlanTarget &target)->int
             //TorqueList[6 * (target.count - 1) + i] = POSRLS[i + 6][target.count - 1];
 
             AngleList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualPos();
-			TorqueList[6 * (CollectNum - 1) + i] = 0;//controller->motionAtAbs(i).actualCur() / f2c_index[i];
+            TorqueList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
         }
 	
         lout << target.count << ",";
