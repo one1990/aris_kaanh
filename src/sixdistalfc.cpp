@@ -3234,7 +3234,8 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 	auto controller = target.controller;
     auto &cout = controller->mout();
 
-    static double PqEnd0[7], PqEnd[7];
+	static double PqEnd0[7] = { 0 }, PqEnd[7] = { 0 };
+	static double Pm0[9] = { 0 }, Pm[9] = { 0 }, pmtemp[16] = { 0 };
     target.model->generalMotionPool().at(0).getMpq(PqEnd);
 	// 获取当前起始点位置 //
 	if (target.count == 1)
@@ -3246,10 +3247,29 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 		}
         for (int i = 0; i < 7; ++i)
             PqEnd0[i] = PqEnd[i];
+
+		target.model->generalMotionPool()[0].getMpm(pmtemp);
+		Pm0[0] = pmtemp[0];Pm0[1] = pmtemp[1];Pm0[2] = pmtemp[2];
+		Pm0[3] = pmtemp[4];Pm0[4] = pmtemp[5];Pm0[5] = pmtemp[6];
+		Pm0[6] = pmtemp[8];Pm0[7] = pmtemp[9];Pm0[8] = pmtemp[10];
+
+		double temp;
+		temp = Pm0[1];Pm0[1] = Pm0[3];Pm0[3] = temp;
+		temp = Pm0[2];Pm0[2] = Pm0[6];Pm0[6] = temp;
+		temp = Pm0[5];Pm0[5] = Pm0[7];Pm0[7] = temp;
 	}
 
 
 	if (target.model->solverPool().at(1).kinPos())return -1;
+
+
+	target.model->generalMotionPool()[0].getMpm(pmtemp);
+	Pm[0] = pmtemp[0];Pm[1] = pmtemp[1];Pm[2] = pmtemp[2];
+	Pm[3] = pmtemp[4];Pm[4] = pmtemp[5];Pm[5] = pmtemp[6];
+	Pm[6] = pmtemp[8];Pm[7] = pmtemp[9];Pm[8] = pmtemp[10];
+
+	double PmTrans[9] = { 0 };
+	s_mm(3, 3, 3, Pm0, Pm, PmTrans);
 
 
 	double ft[6];

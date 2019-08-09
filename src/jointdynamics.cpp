@@ -2845,13 +2845,13 @@ void jointdynamics::RLSYang(const double *positionL, const double *sensorL, doub
 
 		aris::Size rankQ;
 
-        s_householder_utp(RobotAxis * SampleNum, JointGroupDim + 2 * RobotAxis, QwithFric, UQ, tauQ, pQ, rankQ, 1e-1);
+        s_householder_utp(RobotAxis * SampleNum, JointGroupDim + 2 * RobotAxis, QwithFric, UQ, tauQ, pQ, rankQ, 1e-3);
 
 		// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A) //
 		std::vector<double> tauQ2_vec(RobotAxis * SampleNum);
 		auto tauQ2 = tauQ2_vec.data();
 
-        s_householder_utp2pinv(RobotAxis * SampleNum, JointGroupDim + 2 * RobotAxis, rankQ, UQ, tauQ, pQ, pinv, tauQ2, 1e-1);
+        s_householder_utp2pinv(RobotAxis * SampleNum, JointGroupDim + 2 * RobotAxis, rankQ, UQ, tauQ, pQ, pinv, tauQ2, 1e-3);
 		// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A)*b //
 		s_mm(JointGroupDim + 2 * RobotAxis, 1, RobotAxis * SampleNum, pinv, regressorForces, estParas);
 
@@ -3187,6 +3187,72 @@ void jointdynamics::JointCollision(const double * q, const double *dq, const dou
 
 }
 
+void jointdynamics::JointCollisionYang(const double * q, const double *dq, const double *ddq, const double *ts, const double *estParas, const double * LoadParas, double * CollisionFT, const double* Acv)
+{
+
+	double q0[6], dq0[6], ddq0[6];
+	for (int k = 0; k < RobotAxis; k++)
+	{
+		q0[k] = q[k] * DirectionFlag[k] + JointOffset[k] + ZeroOffset[k];
+		dq0[k] = dq[k] * DirectionFlag[k];
+		ddq0[k] = ddq[k] * DirectionFlag[k];
+
+	}
+
+	double estParasWithLoad[JointGroupDim] = { 0 };
+
+	for (int i = 0;i < JointGroupDim + 2 * RobotAxis;i++)
+		estParasWithLoad[i] = estParas[i];
+	for (int i = 50;i < JointGroupDim;i++)
+		estParasWithLoad[i] = estParas[i]+LoadParas[i-50];
+
+	double distalVec[RobotAxis * JointGroupDim];
+	JointMatrix(q0, dq0, ddq0, ts, distalVec);
+	
+
+	double YYMat[RobotAxis][JointGroupDim];
+	for (int m = 0; m < RobotAxis; m++)
+		for (int n = 0; n < JointGroupDim; n++)
+			YYMat[m][n] = distalVec[JointGroupDim * m + n];
+
+	double Y1[RobotAxis][2 * RobotAxis];
+	for (int m = 0; m < RobotAxis; m++)
+	{
+		for (int n = 0; n < 2 * RobotAxis; n++)
+		{
+			Y1[m][n] = 0;
+			if (n == 2 * m)
+				Y1[m][n] = 1 * sign(dq0[m]);
+			if (n == 2 * m + 1)
+				Y1[m][n] = dq0[m];
+		}
+	}
+
+	double YtolMat[RobotAxis][JointGroupDim + 2 * RobotAxis];
+
+	for (int m = 0; m < RobotAxis; m++)
+	{
+		for (int n = 0; n < JointGroupDim; n++)
+		{
+			YtolMat[m][n] = YYMat[m][n];
+		}
+
+		for (int n = JointGroupDim; n < JointGroupDim + 2 * RobotAxis; n++)
+		{
+			YtolMat[m][n] = Y1[m][n - JointGroupDim];
+		}
+	}
+
+	double estTor[RobotAxis] = { 0, 0, 0, 0, 0, 0 };
+	for (int i = 0; i < RobotAxis; i++)
+		for (int j = 0; j < JointGroupDim + 2 * RobotAxis; j++)
+			estTor[i] = estTor[i] + YtolMat[i][j] * estParasWithLoad[j];
+
+	for (int i = 0; i < 6; i++)
+		CollisionFT[i] = estTor[i];
+
+
+}
 
 
 void jointdynamics::JointCollisionAris(const double * q, const double *dq, const double *ddq, const double *ts, const double *estParas, const double * CoefInv, const double * Coef, const double * LoadParas, double * CollisionFT, const double* Acv)
@@ -3401,6 +3467,75 @@ void jointdynamics::JointDrag(const double * q, const double *dq,const double *d
 
         }
 
+void jointdynamics::JointDragYang(const double * q, const double *dq, const double *ddq, const double *ts, const double *estParas, const double * LoadParas, double * CollisionFT, const double* Acv)
+{
+
+	double q0[6], dq0[6], ddq0[6];
+	for (int k = 0; k < RobotAxis; k++)
+	{
+		q0[k] = q[k] * DirectionFlag[k] + JointOffset[k] + ZeroOffset[k];
+		dq0[k] = dq[k] * DirectionFlag[k];
+		ddq0[k] = ddq[k] * DirectionFlag[k];
+
+	}
+
+	double distalVec[RobotAxis * JointGroupDim];
+	JointMatrix(q0, dq0, ddq0, ts, distalVec);
+
+
+	double YYMat[RobotAxis][JointGroupDim];
+	for (int m = 0; m < RobotAxis; m++)
+		for (int n = 0; n < JointGroupDim; n++)
+			YYMat[m][n] = distalVec[JointGroupDim * m + n];
+
+	double Y1[RobotAxis][2 * RobotAxis];
+	for (int m = 0; m < RobotAxis; m++)
+	{
+		for (int n = 0; n < 2 * RobotAxis; n++)
+		{
+			Y1[m][n] = 0;
+			if (n == 2 * m)
+				Y1[m][n] = 1 * sign(dq[m]);
+			if (n == 2 * m + 1)
+				Y1[m][n] = dq[m];
+		}
+	}
+
+	double YtolMat[RobotAxis][JointGroupDim + 2 * RobotAxis];
+
+	for (int m = 0; m < RobotAxis; m++)
+	{
+		for (int n = 0; n < JointGroupDim; n++)
+		{
+			YtolMat[m][n] = YYMat[m][n];
+		}
+
+		for (int n = JointGroupDim; n < JointGroupDim + 2 * RobotAxis; n++)
+		{
+			YtolMat[m][n] = Y1[m][n - JointGroupDim];
+		}
+	}
+
+	
+	double estParasWithLoad[JointGroupDim + 2 * RobotAxis];
+	for (int i = 0;i < JointGroupDim + 2 * RobotAxis;i++)
+		estParasWithLoad[i] = estParas[i];
+	for (int i = 50;i < JointGroupDim;i++)
+		estParasWithLoad[i] = estParas[i] + LoadParas[i - 50];
+	for (int i = JointGroupDim;i < JointGroupDim + 2 * RobotAxis;i++)
+		estParasWithLoad[i] = estParas[i]* Acv[i-JointGroupDim];
+	
+
+	double estTor[RobotAxis] = { 0, 0, 0, 0, 0, 0 };
+	for (int i = 0; i < RobotAxis; i++)
+		for (int j = 0; j < JointGroupDim + 2 * RobotAxis; j++)
+			estTor[i] = estTor[i] + YtolMat[i][j] * estParasWithLoad[j];
+
+	for (int i = 0; i < 6; i++)
+		CollisionFT[i] = estTor[i];
+
+
+}
 
 
 

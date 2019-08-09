@@ -317,6 +317,7 @@ auto JointTest::prepairNrt(const std::map<std::string, std::string> &params, Pla
 		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 
 	//读取动力学参数
+	/*KAI
 	auto mat0 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("estParasJoint"));
 	for (int i = 0;i < JointReduceDim + 12;i++)
 		JointMatrix.estParasJoint[i] = mat0->data().data()[i];
@@ -345,6 +346,21 @@ auto JointTest::prepairNrt(const std::map<std::string, std::string> &params, Pla
 	s_mm(JointReduceDim, 1, JointGroupDim, JointMatrix.CoefParasJoint, LoadAll, LoadParasAdd);
 	for (int i = 0;i < JointReduceDim;i++)
         JointMatrix.estParasJoint[i] = JointMatrix.estParasJoint[i]+ 1*LoadParasAdd[i];
+		*/
+
+	///*Yang
+	auto mat0 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("estParasJoint"));
+	for (int i = 0;i < JointGroupDim + 12;i++)
+		JointMatrix.estParasJoint[i] = mat0->data().data()[i];
+
+	auto mat3 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("LoadParas"));
+	for (int i = 0;i < 10;i++)
+		 JointMatrix.LoadParas[i] = 0*mat3->data().data()[i];
+	
+
+	//for (int i = 50;i < JointGroupDim;i++)
+		//JointMatrix.estParasJoint[i] = JointMatrix.estParasJoint[i]+ JointMatrix.LoadParas[i-50];
+		
 
 }
 auto JointTest::executeRT(PlanTarget &target)->int
@@ -398,7 +414,9 @@ auto JointTest::executeRT(PlanTarget &target)->int
 	}
 
 	double Acv[12] = { 1,1,1,1,1,1,1,1,1,1,1,1 };
-    JointMatrix.JointCollision(q, dq, ddq, ts, JointMatrix.estParasJoint, JointMatrix.CoefParasJointInv, JointMatrix.CoefParasJoint, JointMatrix.LoadParas,CollisionFT,Acv);
+    //JointMatrix.JointCollision(q, dq, ddq, ts, JointMatrix.estParasJoint, JointMatrix.CoefParasJointInv, JointMatrix.CoefParasJoint, JointMatrix.LoadParas,CollisionFT,Acv);
+
+	JointMatrix.JointCollisionYang(q, dq, ddq, ts, JointMatrix.estParasJoint, JointMatrix.LoadParas, CollisionFT, Acv);
 
     if (target.model->solverPool().at(1).kinPos())return -1;
     for (int i = 0;i < 6;i++)
@@ -524,6 +542,7 @@ auto DragTeach::prepairNrt(const std::map<std::string, std::string> &params, Pla
         Plan::NOT_CHECK_ENABLE;
 
 	//读取动力学参数
+	/*KAI
 	auto mat0 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("estParasJoint"));
 	for (int i = 0;i < JointReduceDim + 12;i++)
 		JointMatrix.estParasJoint[i] = mat0->data().data()[i];
@@ -553,7 +572,16 @@ auto DragTeach::prepairNrt(const std::map<std::string, std::string> &params, Pla
 
     for (int i = 0;i < JointReduceDim;i++)
           JointMatrix.estParasJoint[i] = JointMatrix.estParasJoint[i]+ 1*LoadParasAdd[i];
+		  */
 
+		  ///*Yang
+	auto mat0 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("estParasJoint"));
+	for (int i = 0;i < JointGroupDim + 12;i++)
+		JointMatrix.estParasJoint[i] = mat0->data().data()[i];
+
+	auto mat3 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("LoadParas"));
+	for (int i = 0;i < 10;i++)
+		JointMatrix.LoadParas[i] = 0 * mat3->data().data()[i];
 }
 auto DragTeach::executeRT(PlanTarget &target)->int
 {
@@ -609,7 +637,9 @@ auto DragTeach::executeRT(PlanTarget &target)->int
 		ts[i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
 	}
 
-	JointMatrix.JointDrag(q, dq, ddq, ts, JointMatrix.estParasJoint, JointMatrix.CoefParasJointInv, JointMatrix.CoefParasJoint, JointMatrix.LoadParas, ModelTor,Acv);
+	//JointMatrix.JointDrag(q, dq, ddq, ts, JointMatrix.estParasJoint, JointMatrix.CoefParasJointInv, JointMatrix.CoefParasJoint, JointMatrix.LoadParas, ModelTor,Acv);
+	JointMatrix.JointDragYang(q, dq, ddq, ts, JointMatrix.estParasJoint, JointMatrix.LoadParas, ModelTor, Acv);
+
 
     for (int i = 0;i < 5;i++)
 	{
