@@ -19,7 +19,7 @@ auto uixmlpath = std::filesystem::absolute(".");
 auto modelxmlpath = std::filesystem::absolute(".");
 const std::string xmlfile = "kaanh.xml";
 const std::string uixmlfile = "interface_kaanh.xml";
-const std::string modelxmlfile = "model_kaanh.xml";
+const std::string modelxmlfile = "model_rokae.xml";
 
 int main(int argc, char *argv[])
 {
@@ -33,7 +33,6 @@ int main(int argc, char *argv[])
 
   
 	//生成kaanh.xml文档
-
 
     //-------for rokae robot begin//
     cs.resetController(kaanh::createControllerRokaeXB4().release());

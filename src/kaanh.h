@@ -189,6 +189,24 @@ namespace kaanh
 		aris::core::ImpPtr<Imp> imp_;
 	};
 
+	class JogJ1 : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+
+		virtual ~JogJ1();
+		explicit JogJ1(const std::string &name = "JogJ1_plan");
+		ARIS_REGISTER_TYPE(JogJ1);
+		ARIS_DECLARE_BIG_FOUR(JogJ1);
+
+
+	private:
+		struct Imp;
+		aris::core::ImpPtr<Imp> imp_;
+	};
+
 	class Grasp : public aris::plan::Plan
 	{
 	public:

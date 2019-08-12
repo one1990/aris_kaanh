@@ -16,6 +16,7 @@ extern int data_num, data_num_send;
 extern std::atomic_int which_di;
 extern std::atomic_bool is_automatic;
 
+
 namespace kaanh
 {
 	aris::dynamic::Marker tool1;
@@ -497,16 +498,17 @@ namespace kaanh
 	// 获取part_pq，end_pq，end_pe等 //
 	struct GetParam
 	{
-		std::vector<double> part_pm, part_pq, end_pq, end_pe, motion_pos, motion_vel, motion_acc, motion_toq, ai;
+		std::vector<double> part_pq, end_pq, end_pe, motion_pos, motion_vel, motion_acc, motion_toq, ai;
 		std::vector<bool> di;
 		std::int32_t state_code;
 		std::int32_t return_code;
 		std::string return_message;
+		aris::control::EthercatController::SlaveLinkState sls[6];
+		aris::control::EthercatController::MasterLinkState mls{};
 	};
 	auto Get::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
 		GetParam par;
-		par.part_pm.resize(target.model->partPool().size() * 16, 0.0);
 		par.part_pq.resize(target.model->partPool().size() * 7, 0.0);
 		par.end_pq.resize(7, 0.0);
 		par.end_pe.resize(6, 0.0);
@@ -518,12 +520,12 @@ namespace kaanh
 		par.di.resize(100, false);
 		std::any param = par;
 		//std::any param = std::make_any<GetParam>();
-
-		target.server->getRtData([](aris::server::ControlServer& cs, std::any& data)->void
+		
+		target.server->getRtData([&](aris::server::ControlServer& cs, std::any& data)->void
 		{
 			for (aris::Size i(-1); ++i < cs.model().partPool().size();)
 			{
-				cs.model().partPool().at(i).getPm(std::any_cast<GetParam &>(data).part_pm.data() + i * 16);
+				cs.model().partPool().at(i).getPq(std::any_cast<GetParam &>(data).part_pq.data() + i * 7);
 			}
 
 			cs.model().generalMotionPool().at(0).getMpq(std::any_cast<GetParam &>(data).end_pq.data());
@@ -541,16 +543,20 @@ namespace kaanh
 				std::any_cast<GetParam &>(data).ai[i] = 1.0;
 				std::any_cast<GetParam &>(data).di[i] = false;
 			}
-			std::any_cast<GetParam &>(data).state_code = 100;
-			std::any_cast<GetParam &>(data).return_code = 100;
-			std::any_cast<GetParam &>(data).return_message = "ok";
+			std::any_cast<GetParam &>(data).state_code = 0;
+			
+			auto ec = dynamic_cast<aris::control::EthercatController*>(&cs.controller());
+			ec->getLinkState(&std::any_cast<GetParam &>(data).mls, std::any_cast<GetParam &>(data).sls);
 
 		}, param);
-		
-		auto out_data = std::any_cast<GetParam &>(param);
 
-		for (aris::Size i(-1); ++i < target.server->model().partPool().size();)
-			aris::dynamic::s_pm2pq(out_data.part_pm.data() + i * 16, out_data.part_pq.data() + i * 7);
+		auto out_data = std::any_cast<GetParam &>(param);
+		std::vector<int> slave_online(6, 0), slave_al_state(6, 0);
+		for (aris::Size i = 0; i < 6; i++)
+		{
+			slave_online[i] = int(out_data.sls[i].online);
+			slave_al_state[i] = int(out_data.sls[i].al_state);
+		}
 
 		std::vector<std::pair<std::string, std::any>> out_param;
 		out_param.push_back(std::make_pair<std::string, std::any>("part_pq", out_data.part_pq));
@@ -563,8 +569,9 @@ namespace kaanh
 		out_param.push_back(std::make_pair<std::string, std::any>("ai", out_data.ai));
 		out_param.push_back(std::make_pair<std::string, std::any>("di", out_data.di));
 		out_param.push_back(std::make_pair<std::string, std::any>("state_code", out_data.state_code));
-		out_param.push_back(std::make_pair<std::string, std::any>("return_code", out_data.return_code));
-		out_param.push_back(std::make_pair<std::string, std::any>("return_message", out_data.return_message));
+		out_param.push_back(std::make_pair<std::string, std::any>("slave_link_num", std::int32_t(out_data.mls.slaves_responding)));
+		out_param.push_back(std::make_pair<std::string, std::any>("slave_online_state", slave_online));
+		out_param.push_back(std::make_pair<std::string, std::any>("slave_al_state", slave_al_state));
 
 		target.ret = out_param;
 		target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_PRINT_CMD_INFO | NOT_PRINT_CMD_INFO;
@@ -611,6 +618,9 @@ namespace kaanh
 			std::fill(target.mot_options.begin(), target.mot_options.end(),
 				//用于使用模型轨迹驱动电机//
 				Plan::USE_TARGET_POS);
+
+			std::vector<std::pair<std::string, std::any>> ret;
+			target.ret = ret;
 
 		}
 	auto MoveX::executeRT(PlanTarget &target)->int
@@ -788,6 +798,8 @@ namespace kaanh
 
 		std::fill(target.mot_options.begin(), target.mot_options.end(),
 			Plan::USE_TARGET_POS);
+		std::vector<std::pair<std::string, std::any>> ret;
+		target.ret = ret;
 
 	}
 	auto MoveJS::executeRT(PlanTarget &target)->int
@@ -997,6 +1009,8 @@ namespace kaanh
 
 		std::fill(target.mot_options.begin(), target.mot_options.end(),
 			Plan::USE_TARGET_POS);
+		std::vector<std::pair<std::string, std::any>> ret;
+		target.ret = ret;
 /*
 #ifdef WIN32
 			Plan::NOT_CHECK_POS_MIN |
@@ -1182,7 +1196,8 @@ namespace kaanh
 		target.param = param;
 
 		//std::fill(target.mot_options.begin(), target.mot_options.end(), Plan::USE_TARGET_POS);
-
+		std::vector<std::pair<std::string, std::any>> ret;
+		target.ret = ret;
 	}
 	auto MoveJR::executeRT(PlanTarget &target)->int
 	{
@@ -1413,6 +1428,9 @@ namespace kaanh
 
 		std::fill(target.mot_options.begin(), target.mot_options.end(),
 			Plan::USE_TARGET_POS);
+
+		std::vector<std::pair<std::string, std::any>> ret;
+		target.ret = ret;
 
 	}
 	auto MoveTTT::executeRT(PlanTarget &target)->int
@@ -1689,6 +1707,9 @@ namespace kaanh
 
 		//std::fill(target.mot_options.begin(), target.mot_options.end(), Plan::USE_VEL_OFFSET);
 
+		std::vector<std::pair<std::string, std::any>> ret;
+		target.ret = ret;
+
 	}
 	auto MoveJM::executeRT(PlanTarget &target)->int
 	{
@@ -1906,6 +1927,9 @@ namespace kaanh
 
 		std::fill(target.mot_options.begin(), target.mot_options.end(),
             Plan::USE_OFFSET_VEL);
+
+		std::vector<std::pair<std::string, std::any>> ret;
+		target.ret = ret;
 
 	}
 	auto MoveJI::executeRT(PlanTarget &target)->int
@@ -2181,6 +2205,10 @@ namespace kaanh
 
 		for (auto &option : target.mot_options)	option |= Plan::USE_TARGET_POS;
 		target.param = mvc_param;
+
+		std::vector<std::pair<std::string, std::any>> ret;
+		target.ret = ret;
+
 	}
 	auto MoveC::executeRT(PlanTarget &target)->int
 	{
@@ -2373,7 +2401,7 @@ namespace kaanh
 		JogCParam param;
 		imp_->pm_target.resize(16, 0.0);
 		
-		std::string ret = "ok";
+		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
 		
 		for (auto &p : params)
@@ -2609,7 +2637,7 @@ namespace kaanh
 	JogC::JogC(const std::string &name) :Plan(name)
 	{
 		command().loadXmlStr(
-			"<Command name=\"jc\">"
+			"<Command name=\"jogC\">"
 			"	<GroupParam>"
 			"		<UniqueParam>"
 			"			<GroupParam name=\"start_group\">"
@@ -2662,7 +2690,7 @@ namespace kaanh
 		auto c = target.controller;
 		JogJParam param;
 
-		std::string ret = "ok";
+		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
 
 		imp_->p_now.resize(c->motionPool().size(), 0.0);
@@ -2694,15 +2722,15 @@ namespace kaanh
 				imp_->acc = std::stod(params.at("acc"));
 				imp_->dec = std::stod(params.at("dec"));
 
-                std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | USE_TARGET_POS);
-                //target.option |= EXECUTE_WHEN_ALL_PLAN_COLLECTED | NOT_PRINT_EXECUTE_COUNT;
+				std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | USE_TARGET_POS);
+				//target.option |= EXECUTE_WHEN_ALL_PLAN_COLLECTED | NOT_PRINT_EXECUTE_COUNT;
 			}
 			else if (p.first == "stop")
 			{
 				if (!imp_->s1_rt.jogj_is_running)throw std::runtime_error("manual mode not started, when stop");
 
 				imp_->s2_nrt.jogj_is_running = false;
-                imp_->s2_nrt.is_increase.assign(imp_->s2_nrt.is_increase.size(), 0);
+				imp_->s2_nrt.is_increase.assign(imp_->s2_nrt.is_increase.size(), 0);
 				jogj_is_changing = true;
 				while (jogj_is_changing.load())std::this_thread::sleep_for(std::chrono::milliseconds(1));
 				target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION;
@@ -2717,8 +2745,8 @@ namespace kaanh
 
 				imp_->s2_nrt.is_increase.assign(imp_->s2_nrt.is_increase.size(), 0);
 				imp_->s2_nrt.is_increase[std::stoi(params.at("motion_id"))] = std::max(std::min(1, std::stoi(params.at("direction"))), -1) * imp_->increase_count;
-				
-				imp_->s2_nrt.jogj_is_running = true;	
+
+				imp_->s2_nrt.jogj_is_running = true;
 
 				target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION | NOT_PRINT_CMD_INFO | NOT_LOG_CMD_INFO;
 				jogj_is_changing = true;
@@ -2740,20 +2768,20 @@ namespace kaanh
 		{
 			for (Size i = 0; i < imp_->p_now.size(); ++i)
 			{
-                /*
+				/*
 				imp_->p_start[i] = target.model->motionPool().at(i).mp();
 				imp_->p_now[i] = target.model->motionPool().at(i).mp();
 				imp_->v_now[i] = target.model->motionPool().at(i).mv();
 				imp_->a_now[i] = target.model->motionPool().at(i).ma();
-                */
-                imp_->target_pos[i] = controller->motionAtAbs(i).actualPos();
-                imp_->p_now[i] = controller->motionAtAbs(i).actualPos();
-                imp_->v_now[i] = controller->motionAtAbs(i).actualVel();
-                imp_->a_now[i] = 0.0;
+				*/
+				imp_->target_pos[i] = controller->motionAtAbs(i).actualPos();
+				imp_->p_now[i] = controller->motionAtAbs(i).actualPos();
+				imp_->v_now[i] = controller->motionAtAbs(i).actualVel();
+				imp_->a_now[i] = 0.0;
 			}
 		}
 		// init status and calculate target pos and max vel //
-		
+
 		if (jogj_is_changing)
 		{
 			jogj_is_changing.store(false);
@@ -2761,7 +2789,7 @@ namespace kaanh
 			for (int i = 0; i < imp_->s1_rt.is_increase.size(); i++)
 			{
 				imp_->increase_status[i] = imp_->s1_rt.is_increase[i];
-			}	
+			}
 		}
 		for (int i = 0; i < imp_->s1_rt.is_increase.size(); i++)
 		{
@@ -2771,27 +2799,27 @@ namespace kaanh
 		}
 		// 梯形轨迹规划 //
 		static double p_next, v_next, a_next;
-		for(int i=0; i< imp_->p_now.size(); i++)
+		for (int i = 0; i < imp_->p_now.size(); i++)
 		{
 			aris::Size t;
 			aris::plan::moveAbsolute2(imp_->p_now[i], imp_->v_now[i], imp_->a_now[i]
-                , imp_->target_pos[i], 0.0, 0.0
+				, imp_->target_pos[i], 0.0, 0.0
 				, imp_->max_vel[i], imp_->acc, imp_->dec
 				, 1e-3, 1e-10, p_next, v_next, a_next, t);
 
-            target.model->motionPool().at(i).setMp(p_next);
-            controller->motionAtAbs(i).setTargetPos(p_next);
+			target.model->motionPool().at(i).setMp(p_next);
+			controller->motionAtAbs(i).setTargetPos(p_next);
 			imp_->p_now[i] = p_next;
 			imp_->v_now[i] = v_next;
 			imp_->a_now[i] = a_next;
 		}
 
-        // 运动学反解//
+		// 运动学反解//
 		if (target.model->solverPool().at(1).kinPos())return -1;
 
 		// 打印 //
 		auto &cout = controller->mout();
-        if (target.count % 200 == 0)
+		if (target.count % 200 == 0)
 		{
 			for (int i = 0; i < imp_->p_now.size(); i++)
 			{
@@ -2813,19 +2841,19 @@ namespace kaanh
 				cout << imp_->v_now[i] << "  ";
 			}
 			cout << std::endl;
-			cout << "------------------------------------------" <<std::endl;
+			cout << "------------------------------------------" << std::endl;
 		}
 
 		// log //
 		auto &lout = controller->lout();
 		for (int i = 0; i < imp_->p_now.size(); i++)
 		{
-            lout << imp_->target_pos[i] << " ";
-            lout << imp_->v_now[i] << " ";
-            lout << imp_->a_now[i] << " ";
-            lout << controller->motionAtAbs(i).actualPos() << " ";
-            lout << controller->motionAtAbs(i).actualVel() << " ";
-            //lout << controller->motionAtAbs(i).actualCur() << " ";
+			lout << imp_->target_pos[i] << " ";
+			lout << imp_->v_now[i] << " ";
+			lout << imp_->a_now[i] << " ";
+			lout << controller->motionAtAbs(i).actualPos() << " ";
+			lout << controller->motionAtAbs(i).actualVel() << " ";
+			//lout << controller->motionAtAbs(i).actualCur() << " ";
 		}
 		lout << std::endl;
 
@@ -2836,7 +2864,7 @@ namespace kaanh
 	JogJ::JogJ(const std::string &name) :Plan(name)
 	{
 		command().loadXmlStr(
-			"<Command name=\"jj\">"
+			"<Command name=\"jogJ\">"
 			"	<GroupParam>"
 			"		<UniqueParam>"
 			"			<GroupParam name=\"start_group\">"
@@ -2862,6 +2890,157 @@ namespace kaanh
 	JogJ& JogJ::operator=(JogJ &&other) = default;
 
 
+	// 示教运动--关节空间点动 //
+	struct JogJ1Param {};
+	struct JogJ1::Imp
+	{
+		int motion_id;
+		double vel, acc, dec;
+		double p_now, v_now, a_now, target_pos, max_vel;
+		int increase_status;
+		int increase_count;
+		int vel_percent;
+		static std::atomic_int32_t j1_count;
+	};
+	std::atomic_int32_t JogJ1::Imp::j1_count = 0;
+	auto JogJ1::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		auto&cs = aris::server::ControlServer::instance();
+		auto c = target.controller;
+		JogJ1Param param;
+		
+		std::vector<std::pair<std::string, std::any>> ret;
+		target.ret = ret;
+		
+		imp_->motion_id = 0;
+		imp_->p_now = 0.0;
+		imp_->v_now = 0.0;
+		imp_->a_now = 0.0;
+		imp_->target_pos = 0.0;
+		imp_->max_vel = 0.0;
+		imp_->increase_status = 0;
+		imp_->vel_percent = 0;
+
+		for (auto &p : params)
+		{
+			imp_->increase_count = std::stoi(params.at("increase_count"));
+			if (imp_->increase_count < 0 || imp_->increase_count>1e5)THROW_FILE_AND_LINE("");
+			
+			imp_->vel = std::stod(params.at("vel"));
+			imp_->acc = std::stod(params.at("acc"));
+			imp_->dec = std::stod(params.at("dec"));
+
+			auto velocity = std::stoi(params.at("vel_percent"));
+			velocity = std::max(std::min(100, velocity), -100);
+			imp_->vel_percent = velocity;
+			imp_->increase_status = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
+		}
+
+		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentTarget();
+		//当前有指令在执行//
+		if (planptr)
+		{
+			if (planptr->plan->name() != "jj1") throw std::runtime_error("Other command is running");
+			else
+			{
+				imp_->j1_count.store(imp_->increase_count);
+				target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION;
+			}
+		}
+		//当前没有指令在执行//
+		else
+		{
+			imp_->j1_count.store(imp_->increase_count);
+			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | USE_TARGET_POS | NOT_CHECK_ENABLE);
+		}
+
+		target.param = param;
+	}
+	auto JogJ1::executeRT(PlanTarget &target)->int
+	{
+
+		//获取驱动//
+		auto controller = target.controller;
+		auto &param = std::any_cast<JogJ1Param&>(target.param);
+
+		// get current pos //
+		if (target.count == 1)
+		{
+			imp_->target_pos = controller->motionAtAbs(imp_->motion_id).actualPos();
+			imp_->p_now = controller->motionAtAbs(imp_->motion_id).actualPos();
+			imp_->v_now = controller->motionAtAbs(imp_->motion_id).actualVel();
+			imp_->a_now = 0.0;
+		}
+
+		// init status and calculate target pos and max vel //
+		imp_->max_vel = imp_->vel*1.0*imp_->vel_percent / 100.0;
+		imp_->target_pos += aris::dynamic::s_sgn(imp_->increase_status)*imp_->max_vel * 1e-3;
+
+		// 梯形轨迹规划 //
+		static double p_next, v_next, a_next;
+
+		aris::Size t;
+		aris::plan::moveAbsolute2(imp_->p_now, imp_->v_now, imp_->a_now
+			, imp_->target_pos, 0.0, 0.0
+			, imp_->max_vel, imp_->acc, imp_->dec
+			, 1e-3, 1e-10, p_next, v_next, a_next, t);
+
+		target.model->motionPool().at(imp_->motion_id).setMp(p_next);
+		controller->motionAtAbs(imp_->motion_id).setTargetPos(p_next);
+		imp_->p_now = p_next;
+		imp_->v_now = v_next;
+		imp_->a_now = a_next;
+		
+
+		// 运动学反解//
+		if (target.model->solverPool().at(1).kinPos())return -1;
+
+		// 打印 //
+		auto &cout = controller->mout();
+		if (target.count % 10 == 0)
+		{
+			cout << imp_->increase_status << "  ";
+			cout << imp_->target_pos << "  ";
+			cout << imp_->p_now << "  ";
+			cout << imp_->v_now << "  ";
+			cout << imp_->a_now << "  ";
+			cout << "------------------------------------------" << std::endl;
+		}
+
+		// log //
+		auto &lout = controller->lout();
+		{
+			lout << imp_->target_pos << " ";
+			lout << imp_->p_now << " ";
+			lout << imp_->v_now << " ";
+			lout << imp_->a_now << " ";
+			lout << controller->motionAtAbs(imp_->motion_id).actualPos() << " ";
+			lout << controller->motionAtAbs(imp_->motion_id).actualVel() << " ";
+			lout << std::endl;
+		}
+
+		int ret = --imp_->j1_count;
+		return ret;
+	}
+	auto JogJ1::collectNrt(PlanTarget &target)->void {}
+	JogJ1::~JogJ1() = default;
+	JogJ1::JogJ1(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"jj1\">"
+			"	<GroupParam>"
+			"		<Param name=\"increase_count\" default=\"100\"/>"
+			"		<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
+			"		<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"
+			"		<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"
+			"		<Param name=\"vel_percent\" default=\"10\"/>"
+			"		<Param name=\"direction\" default=\"1\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
+	ARIS_DEFINE_BIG_FOUR_CPP(JogJ1);
+
+
 	// 夹爪控制 //
 	struct GraspParam
 	{
@@ -2878,7 +3057,8 @@ namespace kaanh
 			}
 		}
 		target.param = param;
-
+		std::vector<std::pair<std::string, std::any>> ret;
+		target.ret = ret;
 	}
 	auto Grasp::executeRT(PlanTarget &target)->int
 	{
@@ -3115,6 +3295,9 @@ namespace kaanh
 		}
 		target.param = param;
 
+		std::vector<std::pair<std::string, std::any>> ret;
+		target.ret = ret;
+
 		std::fill(target.mot_options.begin(), target.mot_options.end(),
 			Plan::USE_TARGET_POS);
 
@@ -3301,6 +3484,9 @@ namespace kaanh
 				}
 			}
 			target.param = param;
+
+			std::vector<std::pair<std::string, std::any>> ret;
+			target.ret = ret;
 
 			std::fill(target.mot_options.begin(), target.mot_options.end(),
                 Plan::USE_TARGET_POS |
@@ -3516,6 +3702,9 @@ namespace kaanh
             target.param = param;
 			std::fill(target.mot_options.begin(), target.mot_options.end(),
 				Plan::NOT_CHECK_ENABLE);
+
+			std::vector<std::pair<std::string, std::any>> ret;
+			target.ret = ret;
         }
     auto FSSignal::executeRT(PlanTarget &target)->int
         {
@@ -3631,6 +3820,9 @@ namespace kaanh
             std::fill(target.mot_options.begin(), target.mot_options.end(),
                 Plan::NOT_CHECK_ENABLE);
 
+			std::vector<std::pair<std::string, std::any>> ret;
+			target.ret = ret;
+
         }
     auto ATIFS::executeRT(PlanTarget &target)->int
     {
@@ -3737,7 +3929,7 @@ namespace kaanh
 		auto &controller = target.controller;
 		controller->slavePool().clear();
 
-		std::string ret = "ok";
+		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
 		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
 	}
@@ -3816,7 +4008,7 @@ namespace kaanh
 		cs.saveXmlFile(xmlpath.string().c_str());
 		*/
 
-		std::string ret = "ok";
+		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
 		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
 	}
@@ -3935,7 +4127,7 @@ namespace kaanh
 		cs.saveXmlFile(xmlpath.string().c_str());
 		*/
 
-		std::string ret = "ok";
+		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
 		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
 
@@ -4016,7 +4208,7 @@ namespace kaanh
 		target.model->partPool().at(param.part_id).geometryPool().clear();
 		target.model->partPool().at(param.part_id).geometryPool().add<FileGeometry>(param.name, param.file_path, param.pe.data());
 
-		std::string ret = "ok";
+		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
 		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
 
@@ -4063,7 +4255,7 @@ namespace kaanh
 		cs.interfaceRoot().loadXmlFile(xmlpath_ui.string().c_str());
 		//cs.saveXmlFile(xmlpath.string().c_str());
 
-		std::string ret = "ok";
+		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
 		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
 
@@ -4186,7 +4378,7 @@ namespace kaanh
 		xmlpath = xmlpath / xmlfile;
 		cs.saveXmlFile(xmlpath.string().c_str());
 		*/
-		std::string ret = "ok";
+		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
 		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
 	}
@@ -4222,7 +4414,7 @@ namespace kaanh
 		xmlpath = xmlpath / xmlfile;
 		cs.saveXmlFile(xmlpath.string().c_str());
 
-		std::string ret = "ok";
+		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
 		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
 	}
@@ -4244,7 +4436,7 @@ namespace kaanh
         cs.start();
 		
         std::cout<<2<<std::endl;
-		std::string ret = "ok";
+		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
 		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
 	}
@@ -4260,7 +4452,7 @@ namespace kaanh
 	auto Update::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
 		system("bash /home/kaanh/Document/kaanh/update_arislib.sh");
-		std::string ret = "ok";
+		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
 		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
 	}
@@ -4278,7 +4470,7 @@ namespace kaanh
 		auto&cs = aris::server::ControlServer::instance();
 		if (!cs.running())throw std::runtime_error("cs is already stopping!");
 		cs.stop();
-		std::string ret = "ok";
+		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
 		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
 	}
@@ -4314,7 +4506,7 @@ namespace kaanh
 			controller->slavePool().at(i).writeSdo(0x60c2, 0x01, &param.cycle_time);
 		}
 		
-		std::string ret = "ok";
+		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
 		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
 	}
@@ -4348,7 +4540,6 @@ namespace kaanh
         plan_root->planPool().add<aris::plan::MoveL>();
         plan_root->planPool().add<aris::plan::MoveJ>();
 
-        plan_root->planPool().add<aris::plan::GetPartPq>();
         plan_root->planPool().add<aris::plan::GetXml>();
         plan_root->planPool().add<aris::plan::SetXml>();
         plan_root->planPool().add<aris::plan::Start>();
@@ -4375,6 +4566,7 @@ namespace kaanh
 		plan_root->planPool().add<kaanh::MoveC>();
 		plan_root->planPool().add<kaanh::JogC>();
 		plan_root->planPool().add<kaanh::JogJ>();
+		plan_root->planPool().add<kaanh::JogJ1>();
 		plan_root->planPool().add<kaanh::Grasp>();
 		plan_root->planPool().add<kaanh::ListenDI>();
 		plan_root->planPool().add<kaanh::MoveEA>();
