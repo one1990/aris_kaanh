@@ -553,13 +553,13 @@ namespace kaanh
 			for (aris::Size i = 0; i < 6; i++)
 			{
 				auto cm = dynamic_cast<aris::control::EthercatMotion*>(&cs.controller().motionPool()[i]);
-				if (cm->statusWord() & 0x6f == 0x27)
+				if ((cm->statusWord() & 0x6f) != 0x27)
 				{
-					std::any_cast<GetParam &>(data).motion_state[i] = 1;
+					std::any_cast<GetParam &>(data).motion_state[i] = 0;
 				}
 				else
 				{
-					std::any_cast<GetParam &>(data).motion_state[i] = 0;
+					std::any_cast<GetParam &>(data).motion_state[i] = 1;
 				}
 			}
 
