@@ -505,6 +505,7 @@ namespace kaanh
 		std::string return_message;
 		aris::control::EthercatController::SlaveLinkState sls[6];
 		aris::control::EthercatController::MasterLinkState mls{};
+		std::vector<int> motion_state;
 	};
 	auto Get::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
@@ -518,6 +519,7 @@ namespace kaanh
 		par.motion_toq.resize(6, 0.0);
 		par.ai.resize(100, 1.0);
 		par.di.resize(100, false);
+		par.motion_state.resize(6, 0);
 		std::any param = par;
 		//std::any param = std::make_any<GetParam>();
 		
@@ -548,6 +550,19 @@ namespace kaanh
 			auto ec = dynamic_cast<aris::control::EthercatController*>(&cs.controller());
 			ec->getLinkState(&std::any_cast<GetParam &>(data).mls, std::any_cast<GetParam &>(data).sls);
 
+			for (aris::Size i = 0; i < 6; i++)
+			{
+				auto cm = dynamic_cast<aris::control::EthercatMotion*>(&cs.controller().motionPool()[i]);
+				if (cm->statusWord() & 0x6f != 0x27)
+				{
+					std::any_cast<GetParam &>(data).motion_state[i] = 0;
+				}
+				else
+				{
+					std::any_cast<GetParam &>(data).motion_state[i] = 1;
+				}
+			}
+
 		}, param);
 
 		auto out_data = std::any_cast<GetParam &>(param);
@@ -572,6 +587,7 @@ namespace kaanh
 		out_param.push_back(std::make_pair<std::string, std::any>("slave_link_num", std::int32_t(out_data.mls.slaves_responding)));
 		out_param.push_back(std::make_pair<std::string, std::any>("slave_online_state", slave_online));
 		out_param.push_back(std::make_pair<std::string, std::any>("slave_al_state", slave_al_state));
+		out_param.push_back(std::make_pair<std::string, std::any>("motion_state", out_data.motion_state));
 
 		target.ret = out_param;
 		target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_PRINT_CMD_INFO | NOT_PRINT_CMD_INFO;
