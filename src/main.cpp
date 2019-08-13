@@ -82,8 +82,6 @@ int main(int argc, char *argv[])
 	cs.interfaceRoot().loadXmlFile(uixmlpath.string().c_str());
 	cs.model().loadXmlFile(modelxmlpath.string().c_str());
 	cs.saveXmlFile(xmlpath.string().c_str());
-    
-	std::cout << cs.model().name() << std::endl;
 
 	cs.start();
 
