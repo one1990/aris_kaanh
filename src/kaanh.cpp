@@ -706,8 +706,8 @@ namespace kaanh
 		param.a2 = 1.020;
 		param.d3 = 0.0;
 		param.a3 = 0.0;
-		//param.d4 = 0.86;//2100
-		param.d4 = 1.010;
+		param.d4 = 0.86;
+		//param.d4 = 1.010;
 
 		param.tool0_pe[2] = 0.153;
 
