@@ -3235,7 +3235,8 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
     auto &cout = controller->mout();
 
 	static double PqEnd0[7] = { 0 }, PqEnd[7] = { 0 };
-	static double Pm0[9] = { 0 }, Pm[9] = { 0 }, pmtemp[16] = { 0 };
+	static double begin_pm[16], relative_pm[16], relative_pa[6], pos_ratio, ori_ratio, norm_pos, norm_ori;
+	double end_pm[16];
     target.model->generalMotionPool().at(0).getMpq(PqEnd);
 	// 获取当前起始点位置 //
 	if (target.count == 1)
@@ -3248,40 +3249,100 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
         for (int i = 0; i < 7; ++i)
             PqEnd0[i] = PqEnd[i];
 
-		target.model->generalMotionPool()[0].getMpm(pmtemp);
-		Pm0[0] = pmtemp[0];Pm0[1] = pmtemp[1];Pm0[2] = pmtemp[2];
-		Pm0[3] = pmtemp[4];Pm0[4] = pmtemp[5];Pm0[5] = pmtemp[6];
-		Pm0[6] = pmtemp[8];Pm0[7] = pmtemp[9];Pm0[8] = pmtemp[10];
+		PqEnd0[0] = 0.398;PqEnd0[1] = 0;PqEnd0[2] = 0.6295;PqEnd0[3] = 0;PqEnd0[4] = 0.7071;PqEnd0[5] = 0;PqEnd0[6] = 0.7071;
+		aris::dynamic::s_pq2pm(PqEnd0, begin_pm);
+		target.model->generalMotionPool()[0].getMpm(begin_pm);
+	}	
+		double TransMatrix[4][4];
+		for (int i = 0;i < 4;i++)
+			for (int j = 0;j < 4;j++)
+				TransMatrix[i][j] = begin_pm[4 * i + j];
 
-		double temp;
-		temp = Pm0[1];Pm0[1] = Pm0[3];Pm0[3] = temp;
-		temp = Pm0[2];Pm0[2] = Pm0[6];Pm0[6] = temp;
-		temp = Pm0[5];Pm0[5] = Pm0[7];Pm0[7] = temp;
-	}
+		double n[3] = { TransMatrix[0][0], TransMatrix[0][1], TransMatrix[0][2] };
+		double o[3] = { TransMatrix[1][0], TransMatrix[1][1], TransMatrix[1][2] };
+		double a[3] = { TransMatrix[2][0], TransMatrix[2][1], TransMatrix[2][2] };
+	
 
 
 	if (target.model->solverPool().at(1).kinPos())return -1;
 
-
+	/*
 	target.model->generalMotionPool()[0].getMpm(pmtemp);
 	Pm[0] = pmtemp[0];Pm[1] = pmtemp[1];Pm[2] = pmtemp[2];
 	Pm[3] = pmtemp[4];Pm[4] = pmtemp[5];Pm[5] = pmtemp[6];
 	Pm[6] = pmtemp[8];Pm[7] = pmtemp[9];Pm[8] = pmtemp[10];
-
 	double PmTrans[9] = { 0 };
-	s_mm(3, 3, 3, Pm0, Pm, PmTrans);
+	s_mm(3, 3, 3, Pm0, Pm, PmTrans);*/
+
+	PqEnd[0] = 0.398;PqEnd[1] = 0;PqEnd[2] = 0.6295;PqEnd[3] = 0;PqEnd[4] =0;PqEnd[5] = 0;PqEnd[6] = 1;
+	aris::dynamic::s_pq2pm(PqEnd, end_pm);
+	//target.model->generalMotionPool()[0].getMpm(end_pm);
+	aris::dynamic::s_inv_pm_dot_pm(begin_pm, end_pm, relative_pm);
+	// relative_pa //
+	double pq[7];
+	aris::dynamic::s_pm2pq(relative_pm, pq);
 
 
-	double ft[6];
-    double KP[7] = {650,650,0,0,0,0,0};
-    double KI[7] = {350,350,0,0,0,0,0};
+	double ft[6] = { 0 }, ftemp[6] = { 0 };
+    double KP[7] = {650,650,0,-110,-110,-110,0};
+    double KI[7] = {350,350,0,-0,-0,-0,0};
     static double ErrSum[7]={0};
-	for (int i = 0; i < 6; ++i)
+	for (int i = 0; i < 3; ++i)
 	{
-        ErrSum[i]=ErrSum[i]+(PqEnd0[i] - PqEnd[i])*0.001;
-        ft[i] = KP[i] * (PqEnd0[i] - PqEnd[i])+KI[i]*ErrSum[i];
-		//ft[i] = std::max(std::min(ft[i], 300, -300);
+        ErrSum[i]=ErrSum[i]+(PqEnd[i] - PqEnd0[i])*0.001;
+        ft[i] = KP[i] * (PqEnd[i]- PqEnd0[i])+KI[i]*ErrSum[i];
 	}
+
+
+	/*
+	//姿态误差1
+	double omega = 2*acos(pq[6]);
+	for (int i = 3; i < 6; ++i)
+	{
+		ErrSum[i] = ErrSum[i] + (pq[i])*0.001;
+		ftemp[i] = KP[i] * (pq[i]) + KI[i] * ErrSum[i];
+	}
+	ft[3] = n[0] * ftemp[3] + n[1] * ftemp[4] + n[2] * ftemp[5];
+	ft[4] = o[0] * ftemp[3] + o[1] * ftemp[4] + o[2] * ftemp[5];
+	ft[5] = a[0] * ftemp[3] + a[1] * ftemp[4] + a[2] * ftemp[5];
+	*/
+
+	
+	//姿态误差2
+	double cos_theta = PqEnd[3] * PqEnd0[3] + PqEnd[4] * PqEnd0[4] + PqEnd[5] * PqEnd0[5] + PqEnd[6] * PqEnd0[6];
+	if (cos_theta < 0)
+	{
+		PqEnd[3] = -PqEnd[3];
+		PqEnd[4] = -PqEnd[4];
+		PqEnd[5] = -PqEnd[5];
+		PqEnd[6] = -PqEnd[6];
+	}
+	cos_theta = PqEnd[3] * PqEnd0[3] + PqEnd[4] * PqEnd0[4] + PqEnd[5] * PqEnd0[5] + PqEnd[6] * PqEnd0[6];
+	double theta = acos(cos_theta);
+	double sin_theta = sin(theta);
+	double dq[4] = { 0 };
+
+	if (theta < 0.1)
+	{
+		dq[0] = -PqEnd0[3] + PqEnd[3];
+		dq[1] = -PqEnd0[4] + PqEnd[4];
+		dq[2] = -PqEnd0[5] + PqEnd[5];
+		dq[3] = -PqEnd0[6] + PqEnd[6];
+	}
+	else
+	{ 
+		dq[0] = (PqEnd0[3] * cos_theta*(-theta) + theta * PqEnd[3]) / sin_theta;
+		dq[1] = (PqEnd0[4] * cos_theta*(-theta) + theta * PqEnd[4]) / sin_theta;
+		dq[2] = (PqEnd0[5] * cos_theta*(-theta) + theta * PqEnd[5]) / sin_theta;
+		dq[3] = (PqEnd0[6] * cos_theta*(-theta) + theta * PqEnd[6]) / sin_theta;
+	}
+	
+	for (int i = 3; i < 6; ++i)
+	{
+		ErrSum[i] = ErrSum[i] + (pq[i])*0.001;
+		ft[i] = KP[i] * (dq[i-3]) + KI[i] * ErrSum[i];
+	}
+	
 
 
 
