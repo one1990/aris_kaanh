@@ -699,12 +699,15 @@ namespace kaanh
 	auto createModelQifan()->std::unique_ptr<aris::dynamic::Model>
 	{
 		aris::dynamic::PumaParam param;
-		param.d1 = 0.596+0.229;
-		param.a1 = 0.22;
+		
+		
+		param.d1 = 0.596;
+		param.a1 = 0.220;
 		param.a2 = 1.020;
 		param.d3 = 0.0;
 		param.a3 = 0.0;
-		param.d4 = 0.86;
+		//param.d4 = 0.86;//2100
+		param.d4 = 1.010;
 
 		param.tool0_pe[2] = 0.153;
 
@@ -3162,7 +3165,7 @@ namespace kaanh
 			param.increase_status = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
 		}
 
-		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentTarget();
+		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
 		//当前有指令在执行//
 		if (planptr && planptr->plan->name() != "jj1")throw std::runtime_error("Other command is running");
 
@@ -3309,7 +3312,7 @@ namespace kaanh
 			param.increase_status = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
 		}
 
-		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentTarget();
+		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
 		//当前有指令在执行//
 		if (planptr && planptr->plan->name() != "jj2")throw std::runtime_error("Other command is running");
 
@@ -3456,7 +3459,7 @@ namespace kaanh
 			param.increase_status = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
 		}
 
-		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentTarget();
+		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
 		//当前有指令在执行//
 		if (planptr && planptr->plan->name() != "jj3")throw std::runtime_error("Other command is running");
 
@@ -3603,7 +3606,7 @@ namespace kaanh
 			param.increase_status = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
 		}
 
-		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentTarget();
+		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
 		//当前有指令在执行//
 		if (planptr && planptr->plan->name() != "jj4")throw std::runtime_error("Other command is running");
 
@@ -3750,7 +3753,7 @@ namespace kaanh
 			param.increase_status = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
 		}
 
-		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentTarget();
+		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
 		//当前有指令在执行//
 		if (planptr && planptr->plan->name() != "jj5")throw std::runtime_error("Other command is running");
 
@@ -3897,7 +3900,7 @@ namespace kaanh
 			param.increase_status = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
 		}
 
-		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentTarget();
+		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
 		//当前有指令在执行//
 		if (planptr && planptr->plan->name() != "jj6")throw std::runtime_error("Other command is running");
 
@@ -4059,7 +4062,7 @@ namespace kaanh
 			param.increase_status[param.moving_type] = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
 		}
 
-		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentTarget();
+		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
 		
 		//当前有指令在执行//
 		if (planptr && planptr->plan->name() != "jx")throw std::runtime_error("Other command is running");
@@ -4255,7 +4258,7 @@ namespace kaanh
 			param.increase_status[param.moving_type] = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
 		}
 
-		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentTarget();
+		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
 
 		//当前有指令在执行//
 		if (planptr && planptr->plan->name() != "jy")throw std::runtime_error("Other command is running");
@@ -4451,7 +4454,7 @@ namespace kaanh
 			param.increase_status[param.moving_type] = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
 		}
 
-		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentTarget();
+		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
 
 		//当前有指令在执行//
 		if (planptr && planptr->plan->name() != "jx")throw std::runtime_error("Other command is running");
@@ -4647,7 +4650,7 @@ namespace kaanh
 			param.increase_status[param.moving_type] = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
 		}
 
-		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentTarget();
+		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
 
 		//当前有指令在执行//
 		if (planptr && planptr->plan->name() != "jx")throw std::runtime_error("Other command is running");
@@ -4843,7 +4846,7 @@ namespace kaanh
 			param.increase_status[param.moving_type] = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
 		}
 
-		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentTarget();
+		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
 
 		//当前有指令在执行//
 		if (planptr && planptr->plan->name() != "jx")throw std::runtime_error("Other command is running");
@@ -5039,7 +5042,7 @@ namespace kaanh
 			param.increase_status[param.moving_type] = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
 		}
 
-		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentTarget();
+		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
 
 		//当前有指令在执行//
 		if (planptr && planptr->plan->name() != "jx")throw std::runtime_error("Other command is running");

@@ -33,6 +33,7 @@ int main(int argc, char *argv[])
 
   
 	//生成kaanh.xml文档
+	
     //-------for rokae robot begin//
     cs.resetController(kaanh::createControllerRokaeXB4().release());
     //cs.resetModel(aris::robot::createModelRokaeXB4().release());
@@ -81,7 +82,10 @@ int main(int argc, char *argv[])
 	cs.interfaceRoot().loadXmlFile(uixmlpath.string().c_str());
 	cs.model().loadXmlFile(modelxmlpath.string().c_str());
 	cs.saveXmlFile(xmlpath.string().c_str());
-    cs.start();
+    
+	std::cout << cs.model().name() << std::endl;
+
+	cs.start();
 
 	
 	//Start Web Socket//
