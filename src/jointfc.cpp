@@ -852,7 +852,9 @@ auto LoadDyna::executeRT(PlanTarget &target)->int
 	
 	static int CountOffsetPos[6] = { 1,1,1,1,1,1 }, CountOffsetNeg[6] = { 1,1,1,1,1,1};
 
-	for (int i = 0;i < 6;i++)
+
+	if (CollectNum < SampleNum)
+		for (int i = 0;i < 6;i++)
 	{
 		
 		if (flag[i])
@@ -893,7 +895,33 @@ auto LoadDyna::executeRT(PlanTarget &target)->int
 		if(i==2||i==4||i==5)
             target.model->motionPool().at(i).setMp(step_pjs[i]);
 	}
+	else
+		for (int i = 0;i < 6;i++)
+		{
 
+			if (flag[i])
+			{
+				if (vArc[i] > 0.0001*10e-3)
+				{
+					vArc[i] = vArc[i] - 0.001*10e-3;
+				    step_pjs[i] = step_pjs[i] + vArc[i];
+				}
+
+			}
+			if (flag[i] == false)
+			{
+
+				if (vArc[i] > 0.0001*10e-3)
+				{
+					vArc[i] = vArc[i] - 0.001*10e-3;
+					step_pjs[i] = step_pjs[i] - vArc[i];
+			     }
+
+
+			}
+			if (i == 2 || i == 4 || i == 5)
+				target.model->motionPool().at(i).setMp(step_pjs[i]);
+		}
 
 
 
@@ -926,7 +954,7 @@ auto LoadDyna::executeRT(PlanTarget &target)->int
 
 	
 
-    if(target.count%8==0)
+    if(target.count%8==0&& CollectNum< SampleNum)
     {
         for (int i = 0; i < 6; i++)
         {
@@ -953,7 +981,9 @@ auto LoadDyna::executeRT(PlanTarget &target)->int
     }
 	
 	
-    return SampleNum - CollectNum;
+
+
+    return (150+SampleNum) - CollectNum;
 }
 
 
