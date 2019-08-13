@@ -3274,7 +3274,7 @@ namespace kaanh
 			"		<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
 			"		<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"
 			"		<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"
-			"		<Param name=\"vel_percent\" default=\"30\"/>"
+			"		<Param name=\"vel_percent\" default=\"10\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
 			"	</GroupParam>"
 			"</Command>");
@@ -3421,7 +3421,7 @@ namespace kaanh
 			"		<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
 			"		<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"
 			"		<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"
-			"		<Param name=\"vel_percent\" default=\"30\"/>"
+			"		<Param name=\"vel_percent\" default=\"10\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
 			"	</GroupParam>"
 			"</Command>");
@@ -3568,7 +3568,7 @@ namespace kaanh
 			"		<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
 			"		<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"
 			"		<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"
-			"		<Param name=\"vel_percent\" default=\"30\"/>"
+			"		<Param name=\"vel_percent\" default=\"10\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
 			"	</GroupParam>"
 			"</Command>");
@@ -3715,7 +3715,7 @@ namespace kaanh
 			"		<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
 			"		<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"
 			"		<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"
-			"		<Param name=\"vel_percent\" default=\"30\"/>"
+			"		<Param name=\"vel_percent\" default=\"10\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
 			"	</GroupParam>"
 			"</Command>");
@@ -3862,7 +3862,7 @@ namespace kaanh
 			"		<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
 			"		<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"
 			"		<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"
-			"		<Param name=\"vel_percent\" default=\"30\"/>"
+			"		<Param name=\"vel_percent\" default=\"10\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
 			"	</GroupParam>"
 			"</Command>");
@@ -4009,7 +4009,7 @@ namespace kaanh
 			"		<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
 			"		<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"
 			"		<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"
-			"		<Param name=\"vel_percent\" default=\"30\"/>"
+			"		<Param name=\"vel_percent\" default=\"10\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
 			"	</GroupParam>"
 			"</Command>");
@@ -4041,13 +4041,6 @@ namespace kaanh
 		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
 
-		for (aris::Size i = 0; i < 6; i++)
-		{
-			param.vel[i] = c->motionPool().at(i).maxVel();
-			param.acc[i] = c->motionPool().at(i).maxAcc();
-			param.dec[i] = c->motionPool().at(i).maxAcc();
-		}
-
 		for (auto &p : params)
 		{
 			param.increase_count = std::stoi(params.at("increase_count"));
@@ -4058,7 +4051,6 @@ namespace kaanh
 
 			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_AND_LINE("");
 
-			/*
 			auto mat = target.model->calculator().calculateExpression(params.at("vel"));
 			if (mat.size() != 6)THROW_FILE_AND_LINE("");
 			std::copy(mat.begin(), mat.end(), param.vel);
@@ -4070,7 +4062,6 @@ namespace kaanh
 			mat = target.model->calculator().calculateExpression(params.at("dec"));
 			if (mat.size() != 6)THROW_FILE_AND_LINE("");
 			std::copy(mat.begin(), mat.end(), param.dec);
-			*/
 
 			param.increase_status[param.moving_type] = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
 		}
@@ -4246,13 +4237,6 @@ namespace kaanh
 		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
 
-		for (aris::Size i = 0; i < 6; i++)
-		{
-			param.vel[i] = c->motionPool().at(i).maxVel();
-			param.acc[i] = c->motionPool().at(i).maxAcc();
-			param.dec[i] = c->motionPool().at(i).maxAcc();
-		}
-
 		for (auto &p : params)
 		{
 			param.increase_count = std::stoi(params.at("increase_count"));
@@ -4262,6 +4246,18 @@ namespace kaanh
 			param.vel_percent = velocity;
 
 			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_AND_LINE("");
+
+			auto mat = target.model->calculator().calculateExpression(params.at("vel"));
+			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			std::copy(mat.begin(), mat.end(), param.vel);
+
+			mat = target.model->calculator().calculateExpression(params.at("acc"));
+			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			std::copy(mat.begin(), mat.end(), param.acc);
+
+			mat = target.model->calculator().calculateExpression(params.at("dec"));
+			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			std::copy(mat.begin(), mat.end(), param.dec);
 
 			param.increase_status[param.moving_type] = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
 		}
@@ -4437,13 +4433,6 @@ namespace kaanh
 		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
 
-		for (aris::Size i = 0; i < 6; i++)
-		{
-			param.vel[i] = c->motionPool().at(i).maxVel();
-			param.acc[i] = c->motionPool().at(i).maxAcc();
-			param.dec[i] = c->motionPool().at(i).maxAcc();
-		}
-
 		for (auto &p : params)
 		{
 			param.increase_count = std::stoi(params.at("increase_count"));
@@ -4454,13 +4443,25 @@ namespace kaanh
 
 			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_AND_LINE("");
 
+			auto mat = target.model->calculator().calculateExpression(params.at("vel"));
+			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			std::copy(mat.begin(), mat.end(), param.vel);
+
+			mat = target.model->calculator().calculateExpression(params.at("acc"));
+			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			std::copy(mat.begin(), mat.end(), param.acc);
+
+			mat = target.model->calculator().calculateExpression(params.at("dec"));
+			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			std::copy(mat.begin(), mat.end(), param.dec);
+
 			param.increase_status[param.moving_type] = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
 		}
 
 		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
 
 		//当前有指令在执行//
-		if (planptr && planptr->plan->name() != "jx")throw std::runtime_error("Other command is running");
+		if (planptr && planptr->plan->name() != "jz")throw std::runtime_error("Other command is running");
 
 		if (param.jz_count.exchange(param.increase_count))
 		{
@@ -4628,13 +4629,6 @@ namespace kaanh
 		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
 
-		for (aris::Size i = 0; i < 6; i++)
-		{
-			param.vel[i] = c->motionPool().at(i).maxVel();
-			param.acc[i] = c->motionPool().at(i).maxAcc();
-			param.dec[i] = c->motionPool().at(i).maxAcc();
-		}
-
 		for (auto &p : params)
 		{
 			param.increase_count = std::stoi(params.at("increase_count"));
@@ -4645,13 +4639,25 @@ namespace kaanh
 
 			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_AND_LINE("");
 
+			auto mat = target.model->calculator().calculateExpression(params.at("vel"));
+			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			std::copy(mat.begin(), mat.end(), param.vel);
+
+			mat = target.model->calculator().calculateExpression(params.at("acc"));
+			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			std::copy(mat.begin(), mat.end(), param.acc);
+
+			mat = target.model->calculator().calculateExpression(params.at("dec"));
+			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			std::copy(mat.begin(), mat.end(), param.dec);
+
 			param.increase_status[param.moving_type] = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
 		}
 
 		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
 
 		//当前有指令在执行//
-		if (planptr && planptr->plan->name() != "jx")throw std::runtime_error("Other command is running");
+		if (planptr && planptr->plan->name() != "jrx")throw std::runtime_error("Other command is running");
 
 		if (param.jrx_count.exchange(param.increase_count))
 		{
@@ -4836,13 +4842,25 @@ namespace kaanh
 
 			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_AND_LINE("");
 
+			auto mat = target.model->calculator().calculateExpression(params.at("vel"));
+			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			std::copy(mat.begin(), mat.end(), param.vel);
+
+			mat = target.model->calculator().calculateExpression(params.at("acc"));
+			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			std::copy(mat.begin(), mat.end(), param.acc);
+
+			mat = target.model->calculator().calculateExpression(params.at("dec"));
+			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			std::copy(mat.begin(), mat.end(), param.dec);
+
 			param.increase_status[param.moving_type] = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
 		}
 
 		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
 
 		//当前有指令在执行//
-		if (planptr && planptr->plan->name() != "jx")throw std::runtime_error("Other command is running");
+		if (planptr && planptr->plan->name() != "jry")throw std::runtime_error("Other command is running");
 
 		if (param.jry_count.exchange(param.increase_count))
 		{
@@ -5010,13 +5028,6 @@ namespace kaanh
 		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
 
-		for (aris::Size i = 0; i < 6; i++)
-		{
-			param.vel[i] = c->motionPool().at(i).maxVel();
-			param.acc[i] = c->motionPool().at(i).maxAcc();
-			param.dec[i] = c->motionPool().at(i).maxAcc();
-		}
-
 		for (auto &p : params)
 		{
 			param.increase_count = std::stoi(params.at("increase_count"));
@@ -5027,13 +5038,25 @@ namespace kaanh
 
 			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_AND_LINE("");
 
+			auto mat = target.model->calculator().calculateExpression(params.at("vel"));
+			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			std::copy(mat.begin(), mat.end(), param.vel);
+
+			mat = target.model->calculator().calculateExpression(params.at("acc"));
+			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			std::copy(mat.begin(), mat.end(), param.acc);
+
+			mat = target.model->calculator().calculateExpression(params.at("dec"));
+			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			std::copy(mat.begin(), mat.end(), param.dec);
+
 			param.increase_status[param.moving_type] = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
 		}
 
 		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
 
 		//当前有指令在执行//
-		if (planptr && planptr->plan->name() != "jx")throw std::runtime_error("Other command is running");
+		if (planptr && planptr->plan->name() != "jrz")throw std::runtime_error("Other command is running");
 
 		if (param.jrz_count.exchange(param.increase_count))
 		{
@@ -6680,6 +6703,9 @@ namespace kaanh
         plan_root->planPool().add<aris::plan::Recover>();
         auto &rs = plan_root->planPool().add<aris::plan::Reset>();
         rs.command().findParam("pos")->setDefaultValue("{0.5,0.3925,0.7899,0.5,0.5,0.5}");
+		
+		//qifan//
+		//rs.command().findParam("pos")->setDefaultValue("{0.5,0.353,0.5,0.5,0.5,0.5}");
 
         plan_root->planPool().add<aris::plan::MoveAbsJ>();
 
