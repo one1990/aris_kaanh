@@ -155,7 +155,7 @@ namespace kaanh
 		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
 
 		virtual ~JogC();
-		explicit JogC(const std::string &name = "JogJ_plan");
+		explicit JogC(const std::string &name = "JogC_plan");
 		ARIS_REGISTER_TYPE(JogC);
 		JogC(const JogC &);
 		JogC(JogC &);
@@ -199,12 +199,138 @@ namespace kaanh
 		virtual ~JogJ1();
 		explicit JogJ1(const std::string &name = "JogJ1_plan");
 		ARIS_REGISTER_TYPE(JogJ1);
-		ARIS_DECLARE_BIG_FOUR(JogJ1);
+	};
 
+	class JogJ2 : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
 
-	private:
-		struct Imp;
-		aris::core::ImpPtr<Imp> imp_;
+		virtual ~JogJ2();
+		explicit JogJ2(const std::string &name = "JogJ2_plan");
+		ARIS_REGISTER_TYPE(JogJ2);
+	};
+
+	class JogJ3 : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+
+		virtual ~JogJ3();
+		explicit JogJ3(const std::string &name = "JogJ3_plan");
+		ARIS_REGISTER_TYPE(JogJ3);
+	};
+
+	class JogJ4 : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+
+		virtual ~JogJ4();
+		explicit JogJ4(const std::string &name = "JogJ4_plan");
+		ARIS_REGISTER_TYPE(JogJ4);
+	};
+
+	class JogJ5 : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+
+		virtual ~JogJ5();
+		explicit JogJ5(const std::string &name = "JogJ5_plan");
+		ARIS_REGISTER_TYPE(JogJ5);
+	};
+
+	class JogJ6 : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+
+		virtual ~JogJ6();
+		explicit JogJ6(const std::string &name = "JogJ6_plan");
+		ARIS_REGISTER_TYPE(JogJ6);
+	};
+
+	class JX : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+
+		virtual ~JX();
+		explicit JX(const std::string &name = "JX_plan");
+		ARIS_REGISTER_TYPE(JX);
+	};
+
+	class JY : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+
+		virtual ~JY();
+		explicit JY(const std::string &name = "JY_plan");
+		ARIS_REGISTER_TYPE(JY);
+	};
+
+	class JZ : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+
+		virtual ~JZ();
+		explicit JZ(const std::string &name = "JZ_plan");
+		ARIS_REGISTER_TYPE(JZ);
+	};
+
+	class JRX : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+
+		virtual ~JRX();
+		explicit JRX(const std::string &name = "JRX_plan");
+		ARIS_REGISTER_TYPE(JRX);
+	};
+
+	class JRY : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+
+		virtual ~JRY();
+		explicit JRY(const std::string &name = "JRY_plan");
+		ARIS_REGISTER_TYPE(JRY);
+	};
+
+	class JRZ : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+
+		virtual ~JRZ();
+		explicit JRZ(const std::string &name = "JRZ_plan");
+		ARIS_REGISTER_TYPE(JRZ);
 	};
 
 	class Grasp : public aris::plan::Plan

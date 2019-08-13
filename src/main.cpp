@@ -19,7 +19,7 @@ auto uixmlpath = std::filesystem::absolute(".");
 auto modelxmlpath = std::filesystem::absolute(".");
 const std::string xmlfile = "kaanh.xml";
 const std::string uixmlfile = "interface_kaanh.xml";
-const std::string modelxmlfile = "model_rokae.xml";
+const std::string modelxmlfile = "model_kaanh.xml";
 
 int main(int argc, char *argv[])
 {
@@ -54,6 +54,7 @@ int main(int argc, char *argv[])
     cs.saveXmlFile(xmlpath.string().c_str());
     //-------for sanxiang robot end//
     */
+
 
 	/*
     //-------for daye robot begin//

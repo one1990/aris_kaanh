@@ -501,8 +501,6 @@ namespace kaanh
 		std::vector<double> part_pq, end_pq, end_pe, motion_pos, motion_vel, motion_acc, motion_toq, ai;
 		std::vector<bool> di;
 		std::int32_t state_code;
-		std::int32_t return_code;
-		std::string return_message;
 		aris::control::EthercatController::SlaveLinkState sls[6];
 		aris::control::EthercatController::MasterLinkState mls{};
 		std::vector<int> motion_state;
@@ -2685,7 +2683,6 @@ namespace kaanh
 
 
 	// 示教运动--关节空间点动 //
-	struct JogJParam {};
 	struct JogJStruct
 	{
 		bool jogj_is_running = false;
@@ -2704,7 +2701,6 @@ namespace kaanh
 	auto JogJ::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
 		auto c = target.controller;
-		JogJParam param;
 
 		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
@@ -2770,14 +2766,11 @@ namespace kaanh
 			}
 		}
 
-		target.param = param;
 	}
 	auto JogJ::executeRT(PlanTarget &target)->int
 	{
-
 		//获取驱动//
 		auto controller = target.controller;
-		auto &param = std::any_cast<JogJParam&>(target.param);
 
 		// get current pe //
 		if (target.count == 1)
@@ -2906,9 +2899,8 @@ namespace kaanh
 	JogJ& JogJ::operator=(JogJ &&other) = default;
 
 
-	// 示教运动--关节空间点动 //
-	struct JogJ1Param {};
-	struct JogJ1::Imp
+	// 示教运动--关节1点动 //
+	struct JogJParam 
 	{
 		int motion_id;
 		double vel, acc, dec;
@@ -2916,97 +2908,106 @@ namespace kaanh
 		int increase_status;
 		int increase_count;
 		int vel_percent;
-		static std::atomic_int32_t j1_count;
+		static std::atomic_int32_t j1_count, j2_count, j3_count, j4_count, j5_count, j6_count;
 	};
-	std::atomic_int32_t JogJ1::Imp::j1_count = 0;
+	std::atomic_int32_t JogJParam::j1_count = 0;
 	auto JogJ1::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
 		auto&cs = aris::server::ControlServer::instance();
 		auto c = target.controller;
-		JogJ1Param param;
+		JogJParam param;
 		
 		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
 		
-		imp_->motion_id = 0;
-		imp_->p_now = 0.0;
-		imp_->v_now = 0.0;
-		imp_->a_now = 0.0;
-		imp_->target_pos = 0.0;
-		imp_->max_vel = 0.0;
-		imp_->increase_status = 0;
-		imp_->vel_percent = 0;
+		param.motion_id = 0;
+		param.p_now = 0.0;
+		param.v_now = 0.0;
+		param.a_now = 0.0;
+		param.target_pos = 0.0;
+		param.max_vel = 0.0;
+		param.increase_status = 0;
+		param.vel_percent = 0;
 
 		for (auto &p : params)
 		{
-			imp_->increase_count = std::stoi(params.at("increase_count"));
-			if (imp_->increase_count < 0 || imp_->increase_count>1e5)THROW_FILE_AND_LINE("");
+			param.increase_count = std::stoi(params.at("increase_count"));
+			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_AND_LINE("");
 			
-			imp_->vel = std::stod(params.at("vel"));
-			imp_->acc = std::stod(params.at("acc"));
-			imp_->dec = std::stod(params.at("dec"));
+			param.vel = std::stod(params.at("vel"));
+			param.acc = std::stod(params.at("acc"));
+			param.dec = std::stod(params.at("dec"));
 
 			auto velocity = std::stoi(params.at("vel_percent"));
 			velocity = std::max(std::min(100, velocity), -100);
-			imp_->vel_percent = velocity;
-			imp_->increase_status = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
+			param.vel_percent = velocity;
+			param.increase_status = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
 		}
 
 		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentTarget();
 		//当前有指令在执行//
-		if (planptr)
+		if (planptr && planptr->plan->name() != "jj1")throw std::runtime_error("Other command is running");
+
+		if (param.j1_count.exchange(param.increase_count))
 		{
-			if (planptr->plan->name() != "jj1") throw std::runtime_error("Other command is running");
-			else
-			{
-				imp_->j1_count.store(imp_->increase_count);
-				target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION;
-			}
+			target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION;
 		}
-		//当前没有指令在执行//
 		else
 		{
-			imp_->j1_count.store(imp_->increase_count);
-			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | USE_TARGET_POS | NOT_CHECK_ENABLE);
+			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
 		}
-
 		target.param = param;
 	}
 	auto JogJ1::executeRT(PlanTarget &target)->int
 	{
-
 		//获取驱动//
 		auto controller = target.controller;
-		auto &param = std::any_cast<JogJ1Param&>(target.param);
+		auto &param = std::any_cast<JogJParam&>(target.param);
 
 		// get current pos //
 		if (target.count == 1)
 		{
+			/*
 			imp_->target_pos = controller->motionAtAbs(imp_->motion_id).actualPos();
 			imp_->p_now = controller->motionAtAbs(imp_->motion_id).actualPos();
 			imp_->v_now = controller->motionAtAbs(imp_->motion_id).actualVel();
 			imp_->a_now = 0.0;
+			*/
+			param.target_pos = target.model->motionPool().at(param.motion_id).mp();
+			param.p_now = target.model->motionPool()[param.motion_id].mp();
+			param.v_now = target.model->motionPool()[param.motion_id].mv();
+			param.a_now = 0.0;
+
 		}
 
 		// init status and calculate target pos and max vel //
-		imp_->max_vel = imp_->vel*1.0*imp_->vel_percent / 100.0;
-		imp_->target_pos += aris::dynamic::s_sgn(imp_->increase_status)*imp_->max_vel * 1e-3;
+		param.max_vel = param.vel*1.0*param.vel_percent / 100.0;
+		
+		param.target_pos += aris::dynamic::s_sgn(param.increase_status)*param.max_vel * 1e-3;
 
 		// 梯形轨迹规划 //
 		static double p_next, v_next, a_next;
 
 		aris::Size t;
-		aris::plan::moveAbsolute2(imp_->p_now, imp_->v_now, imp_->a_now
-			, imp_->target_pos, 0.0, 0.0
-			, imp_->max_vel, imp_->acc, imp_->dec
+		auto finished = aris::plan::moveAbsolute2(param.p_now, param.v_now, param.a_now
+			, param.target_pos, 0.0, 0.0
+			, param.max_vel, param.acc, param.dec
 			, 1e-3, 1e-10, p_next, v_next, a_next, t);
 
-		target.model->motionPool().at(imp_->motion_id).setMp(p_next);
-		controller->motionAtAbs(imp_->motion_id).setTargetPos(p_next);
-		imp_->p_now = p_next;
-		imp_->v_now = v_next;
-		imp_->a_now = a_next;
-		
+		if (param.j1_count == 0)
+		{
+			param.increase_status = 0;
+		}
+		else
+		{
+			--param.j1_count;
+		}
+
+		target.model->motionPool().at(param.motion_id).setMp(p_next);
+		//controller->motionAtAbs(imp_->motion_id).setTargetPos(p_next);
+		param.p_now = p_next;
+		param.v_now = v_next;
+		param.a_now = a_next;
 
 		// 运动学反解//
 		if (target.model->solverPool().at(1).kinPos())return -1;
@@ -3015,46 +3016,1966 @@ namespace kaanh
 		auto &cout = controller->mout();
 		if (target.count % 10 == 0)
 		{
-			cout << imp_->increase_status << "  ";
-			cout << imp_->target_pos << "  ";
-			cout << imp_->p_now << "  ";
-			cout << imp_->v_now << "  ";
-			cout << imp_->a_now << "  ";
+			cout << param.j1_count << "  ";
+			cout << param.target_pos << "  ";
+			cout << param.p_now << "  ";
+			cout << param.v_now << "  ";
+			cout << param.a_now << "  ";
 			cout << "------------------------------------------" << std::endl;
 		}
 
 		// log //
 		auto &lout = controller->lout();
 		{
-			lout << imp_->target_pos << " ";
-			lout << imp_->p_now << " ";
-			lout << imp_->v_now << " ";
-			lout << imp_->a_now << " ";
-			lout << controller->motionAtAbs(imp_->motion_id).actualPos() << " ";
-			lout << controller->motionAtAbs(imp_->motion_id).actualVel() << " ";
+			lout << param.target_pos << " ";
+			lout << param.p_now << " ";
+			lout << param.v_now << " ";
+			lout << param.a_now << " ";
+			lout << controller->motionAtAbs(param.motion_id).actualPos() << " ";
+			lout << controller->motionAtAbs(param.motion_id).actualVel() << " ";
 			lout << std::endl;
 		}
 
-		int ret = --imp_->j1_count;
-		return ret;
+		return finished;
 	}
 	auto JogJ1::collectNrt(PlanTarget &target)->void {}
 	JogJ1::~JogJ1() = default;
 	JogJ1::JogJ1(const std::string &name) :Plan(name)
 	{
 		command().loadXmlStr(
-			"<Command name=\"jj1\">"
+			"<Command name=\"j1\">"
 			"	<GroupParam>"
 			"		<Param name=\"increase_count\" default=\"100\"/>"
 			"		<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
 			"		<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"
 			"		<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"
-			"		<Param name=\"vel_percent\" default=\"10\"/>"
+			"		<Param name=\"vel_percent\" default=\"30\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
 			"	</GroupParam>"
 			"</Command>");
 	}
-	ARIS_DEFINE_BIG_FOUR_CPP(JogJ1);
+
+
+	// 示教运动--关节2点动 //
+	std::atomic_int32_t JogJParam::j2_count = 0;
+	auto JogJ2::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		auto&cs = aris::server::ControlServer::instance();
+		auto c = target.controller;
+		JogJParam param;
+
+		std::vector<std::pair<std::string, std::any>> ret;
+		target.ret = ret;
+
+		param.motion_id = 1;
+		param.p_now = 0.0;
+		param.v_now = 0.0;
+		param.a_now = 0.0;
+		param.target_pos = 0.0;
+		param.max_vel = 0.0;
+		param.increase_status = 0;
+		param.vel_percent = 0;
+
+		for (auto &p : params)
+		{
+			param.increase_count = std::stoi(params.at("increase_count"));
+			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_AND_LINE("");
+
+			param.vel = std::stod(params.at("vel"));
+			param.acc = std::stod(params.at("acc"));
+			param.dec = std::stod(params.at("dec"));
+
+			auto velocity = std::stoi(params.at("vel_percent"));
+			velocity = std::max(std::min(100, velocity), -100);
+			param.vel_percent = velocity;
+			param.increase_status = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
+		}
+
+		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentTarget();
+		//当前有指令在执行//
+		if (planptr && planptr->plan->name() != "jj2")throw std::runtime_error("Other command is running");
+
+		if (param.j2_count.exchange(param.increase_count))
+		{
+			target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION;
+		}
+		else
+		{
+			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
+		}
+		target.param = param;
+	}
+	auto JogJ2::executeRT(PlanTarget &target)->int
+	{
+		//获取驱动//
+		auto controller = target.controller;
+		auto &param = std::any_cast<JogJParam&>(target.param);
+
+		// get current pos //
+		if (target.count == 1)
+		{
+			/*
+			imp_->target_pos = controller->motionAtAbs(imp_->motion_id).actualPos();
+			imp_->p_now = controller->motionAtAbs(imp_->motion_id).actualPos();
+			imp_->v_now = controller->motionAtAbs(imp_->motion_id).actualVel();
+			imp_->a_now = 0.0;
+			*/
+			param.target_pos = target.model->motionPool().at(param.motion_id).mp();
+			param.p_now = target.model->motionPool()[param.motion_id].mp();
+			param.v_now = target.model->motionPool()[param.motion_id].mv();
+			param.a_now = 0.0;
+
+		}
+
+		// init status and calculate target pos and max vel //
+		param.max_vel = param.vel*1.0*param.vel_percent / 100.0;
+
+		param.target_pos += aris::dynamic::s_sgn(param.increase_status)*param.max_vel * 1e-3;
+
+		// 梯形轨迹规划 //
+		static double p_next, v_next, a_next;
+
+		aris::Size t;
+		auto finished = aris::plan::moveAbsolute2(param.p_now, param.v_now, param.a_now
+			, param.target_pos, 0.0, 0.0
+			, param.max_vel, param.acc, param.dec
+			, 1e-3, 1e-10, p_next, v_next, a_next, t);
+
+		if (param.j2_count == 0)
+		{
+			param.increase_status = 0;
+		}
+		else
+		{
+			--param.j2_count;
+		}
+
+		target.model->motionPool().at(param.motion_id).setMp(p_next);
+		//controller->motionAtAbs(imp_->motion_id).setTargetPos(p_next);
+		param.p_now = p_next;
+		param.v_now = v_next;
+		param.a_now = a_next;
+
+		// 运动学反解//
+		if (target.model->solverPool().at(1).kinPos())return -1;
+
+		// 打印 //
+		auto &cout = controller->mout();
+		if (target.count % 10 == 0)
+		{
+			cout << param.j2_count << "  ";
+			cout << param.target_pos << "  ";
+			cout << param.p_now << "  ";
+			cout << param.v_now << "  ";
+			cout << param.a_now << "  ";
+			cout << "------------------------------------------" << std::endl;
+		}
+
+		// log //
+		auto &lout = controller->lout();
+		{
+			lout << param.target_pos << " ";
+			lout << param.p_now << " ";
+			lout << param.v_now << " ";
+			lout << param.a_now << " ";
+			lout << controller->motionAtAbs(param.motion_id).actualPos() << " ";
+			lout << controller->motionAtAbs(param.motion_id).actualVel() << " ";
+			lout << std::endl;
+		}
+
+		return finished;
+	}
+	auto JogJ2::collectNrt(PlanTarget &target)->void {}
+	JogJ2::~JogJ2() = default;
+	JogJ2::JogJ2(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"j2\">"
+			"	<GroupParam>"
+			"		<Param name=\"increase_count\" default=\"100\"/>"
+			"		<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
+			"		<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"
+			"		<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"
+			"		<Param name=\"vel_percent\" default=\"30\"/>"
+			"		<Param name=\"direction\" default=\"1\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
+
+
+	// 示教运动--关节3点动 //
+	std::atomic_int32_t JogJParam::j3_count = 0;
+	auto JogJ3::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		auto&cs = aris::server::ControlServer::instance();
+		auto c = target.controller;
+		JogJParam param;
+
+		std::vector<std::pair<std::string, std::any>> ret;
+		target.ret = ret;
+
+		param.motion_id = 2;
+		param.p_now = 0.0;
+		param.v_now = 0.0;
+		param.a_now = 0.0;
+		param.target_pos = 0.0;
+		param.max_vel = 0.0;
+		param.increase_status = 0;
+		param.vel_percent = 0;
+
+		for (auto &p : params)
+		{
+			param.increase_count = std::stoi(params.at("increase_count"));
+			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_AND_LINE("");
+
+			param.vel = std::stod(params.at("vel"));
+			param.acc = std::stod(params.at("acc"));
+			param.dec = std::stod(params.at("dec"));
+
+			auto velocity = std::stoi(params.at("vel_percent"));
+			velocity = std::max(std::min(100, velocity), -100);
+			param.vel_percent = velocity;
+			param.increase_status = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
+		}
+
+		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentTarget();
+		//当前有指令在执行//
+		if (planptr && planptr->plan->name() != "jj3")throw std::runtime_error("Other command is running");
+
+		if (param.j3_count.exchange(param.increase_count))
+		{
+			target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION;
+		}
+		else
+		{
+			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
+		}
+		target.param = param;
+	}
+	auto JogJ3::executeRT(PlanTarget &target)->int
+	{
+		//获取驱动//
+		auto controller = target.controller;
+		auto &param = std::any_cast<JogJParam&>(target.param);
+
+		// get current pos //
+		if (target.count == 1)
+		{
+			/*
+			imp_->target_pos = controller->motionAtAbs(imp_->motion_id).actualPos();
+			imp_->p_now = controller->motionAtAbs(imp_->motion_id).actualPos();
+			imp_->v_now = controller->motionAtAbs(imp_->motion_id).actualVel();
+			imp_->a_now = 0.0;
+			*/
+			param.target_pos = target.model->motionPool().at(param.motion_id).mp();
+			param.p_now = target.model->motionPool()[param.motion_id].mp();
+			param.v_now = target.model->motionPool()[param.motion_id].mv();
+			param.a_now = 0.0;
+
+		}
+
+		// init status and calculate target pos and max vel //
+		param.max_vel = param.vel*1.0*param.vel_percent / 100.0;
+
+		param.target_pos += aris::dynamic::s_sgn(param.increase_status)*param.max_vel * 1e-3;
+
+		// 梯形轨迹规划 //
+		static double p_next, v_next, a_next;
+
+		aris::Size t;
+		auto finished = aris::plan::moveAbsolute2(param.p_now, param.v_now, param.a_now
+			, param.target_pos, 0.0, 0.0
+			, param.max_vel, param.acc, param.dec
+			, 1e-3, 1e-10, p_next, v_next, a_next, t);
+
+		if (param.j3_count == 0)
+		{
+			param.increase_status = 0;
+		}
+		else
+		{
+			--param.j3_count;
+		}
+
+		target.model->motionPool().at(param.motion_id).setMp(p_next);
+		//controller->motionAtAbs(imp_->motion_id).setTargetPos(p_next);
+		param.p_now = p_next;
+		param.v_now = v_next;
+		param.a_now = a_next;
+
+		// 运动学反解//
+		if (target.model->solverPool().at(1).kinPos())return -1;
+
+		// 打印 //
+		auto &cout = controller->mout();
+		if (target.count % 10 == 0)
+		{
+			cout << param.j3_count << "  ";
+			cout << param.target_pos << "  ";
+			cout << param.p_now << "  ";
+			cout << param.v_now << "  ";
+			cout << param.a_now << "  ";
+			cout << "------------------------------------------" << std::endl;
+		}
+
+		// log //
+		auto &lout = controller->lout();
+		{
+			lout << param.target_pos << " ";
+			lout << param.p_now << " ";
+			lout << param.v_now << " ";
+			lout << param.a_now << " ";
+			lout << controller->motionAtAbs(param.motion_id).actualPos() << " ";
+			lout << controller->motionAtAbs(param.motion_id).actualVel() << " ";
+			lout << std::endl;
+		}
+
+		return finished;
+	}
+	auto JogJ3::collectNrt(PlanTarget &target)->void {}
+	JogJ3::~JogJ3() = default;
+	JogJ3::JogJ3(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"j3\">"
+			"	<GroupParam>"
+			"		<Param name=\"increase_count\" default=\"100\"/>"
+			"		<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
+			"		<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"
+			"		<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"
+			"		<Param name=\"vel_percent\" default=\"30\"/>"
+			"		<Param name=\"direction\" default=\"1\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
+
+
+	// 示教运动--关节4点动 //
+	std::atomic_int32_t JogJParam::j4_count = 0;
+	auto JogJ4::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		auto&cs = aris::server::ControlServer::instance();
+		auto c = target.controller;
+		JogJParam param;
+
+		std::vector<std::pair<std::string, std::any>> ret;
+		target.ret = ret;
+
+		param.motion_id = 3;
+		param.p_now = 0.0;
+		param.v_now = 0.0;
+		param.a_now = 0.0;
+		param.target_pos = 0.0;
+		param.max_vel = 0.0;
+		param.increase_status = 0;
+		param.vel_percent = 0;
+
+		for (auto &p : params)
+		{
+			param.increase_count = std::stoi(params.at("increase_count"));
+			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_AND_LINE("");
+
+			param.vel = std::stod(params.at("vel"));
+			param.acc = std::stod(params.at("acc"));
+			param.dec = std::stod(params.at("dec"));
+
+			auto velocity = std::stoi(params.at("vel_percent"));
+			velocity = std::max(std::min(100, velocity), -100);
+			param.vel_percent = velocity;
+			param.increase_status = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
+		}
+
+		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentTarget();
+		//当前有指令在执行//
+		if (planptr && planptr->plan->name() != "jj4")throw std::runtime_error("Other command is running");
+
+		if (param.j4_count.exchange(param.increase_count))
+		{
+			target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION;
+		}
+		else
+		{
+			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
+		}
+		target.param = param;
+	}
+	auto JogJ4::executeRT(PlanTarget &target)->int
+	{
+		//获取驱动//
+		auto controller = target.controller;
+		auto &param = std::any_cast<JogJParam&>(target.param);
+
+		// get current pos //
+		if (target.count == 1)
+		{
+			/*
+			imp_->target_pos = controller->motionAtAbs(imp_->motion_id).actualPos();
+			imp_->p_now = controller->motionAtAbs(imp_->motion_id).actualPos();
+			imp_->v_now = controller->motionAtAbs(imp_->motion_id).actualVel();
+			imp_->a_now = 0.0;
+			*/
+			param.target_pos = target.model->motionPool().at(param.motion_id).mp();
+			param.p_now = target.model->motionPool()[param.motion_id].mp();
+			param.v_now = target.model->motionPool()[param.motion_id].mv();
+			param.a_now = 0.0;
+
+		}
+
+		// init status and calculate target pos and max vel //
+		param.max_vel = param.vel*1.0*param.vel_percent / 100.0;
+
+		param.target_pos += aris::dynamic::s_sgn(param.increase_status)*param.max_vel * 1e-3;
+
+		// 梯形轨迹规划 //
+		static double p_next, v_next, a_next;
+
+		aris::Size t;
+		auto finished = aris::plan::moveAbsolute2(param.p_now, param.v_now, param.a_now
+			, param.target_pos, 0.0, 0.0
+			, param.max_vel, param.acc, param.dec
+			, 1e-3, 1e-10, p_next, v_next, a_next, t);
+
+		if (param.j4_count == 0)
+		{
+			param.increase_status = 0;
+		}
+		else
+		{
+			--param.j4_count;
+		}
+
+		target.model->motionPool().at(param.motion_id).setMp(p_next);
+		//controller->motionAtAbs(imp_->motion_id).setTargetPos(p_next);
+		param.p_now = p_next;
+		param.v_now = v_next;
+		param.a_now = a_next;
+
+		// 运动学反解//
+		if (target.model->solverPool().at(1).kinPos())return -1;
+
+		// 打印 //
+		auto &cout = controller->mout();
+		if (target.count % 10 == 0)
+		{
+			cout << param.j4_count << "  ";
+			cout << param.target_pos << "  ";
+			cout << param.p_now << "  ";
+			cout << param.v_now << "  ";
+			cout << param.a_now << "  ";
+			cout << "------------------------------------------" << std::endl;
+		}
+
+		// log //
+		auto &lout = controller->lout();
+		{
+			lout << param.target_pos << " ";
+			lout << param.p_now << " ";
+			lout << param.v_now << " ";
+			lout << param.a_now << " ";
+			lout << controller->motionAtAbs(param.motion_id).actualPos() << " ";
+			lout << controller->motionAtAbs(param.motion_id).actualVel() << " ";
+			lout << std::endl;
+		}
+
+		return finished;
+	}
+	auto JogJ4::collectNrt(PlanTarget &target)->void {}
+	JogJ4::~JogJ4() = default;
+	JogJ4::JogJ4(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"j4\">"
+			"	<GroupParam>"
+			"		<Param name=\"increase_count\" default=\"100\"/>"
+			"		<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
+			"		<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"
+			"		<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"
+			"		<Param name=\"vel_percent\" default=\"30\"/>"
+			"		<Param name=\"direction\" default=\"1\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
+
+
+	// 示教运动--关节5点动 //
+	std::atomic_int32_t JogJParam::j5_count = 0;
+	auto JogJ5::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		auto&cs = aris::server::ControlServer::instance();
+		auto c = target.controller;
+		JogJParam param;
+
+		std::vector<std::pair<std::string, std::any>> ret;
+		target.ret = ret;
+
+		param.motion_id = 4;
+		param.p_now = 0.0;
+		param.v_now = 0.0;
+		param.a_now = 0.0;
+		param.target_pos = 0.0;
+		param.max_vel = 0.0;
+		param.increase_status = 0;
+		param.vel_percent = 0;
+
+		for (auto &p : params)
+		{
+			param.increase_count = std::stoi(params.at("increase_count"));
+			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_AND_LINE("");
+
+			param.vel = std::stod(params.at("vel"));
+			param.acc = std::stod(params.at("acc"));
+			param.dec = std::stod(params.at("dec"));
+
+			auto velocity = std::stoi(params.at("vel_percent"));
+			velocity = std::max(std::min(100, velocity), -100);
+			param.vel_percent = velocity;
+			param.increase_status = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
+		}
+
+		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentTarget();
+		//当前有指令在执行//
+		if (planptr && planptr->plan->name() != "jj5")throw std::runtime_error("Other command is running");
+
+		if (param.j5_count.exchange(param.increase_count))
+		{
+			target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION;
+		}
+		else
+		{
+			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
+		}
+		target.param = param;
+	}
+	auto JogJ5::executeRT(PlanTarget &target)->int
+	{
+		//获取驱动//
+		auto controller = target.controller;
+		auto &param = std::any_cast<JogJParam&>(target.param);
+
+		// get current pos //
+		if (target.count == 1)
+		{
+			/*
+			imp_->target_pos = controller->motionAtAbs(imp_->motion_id).actualPos();
+			imp_->p_now = controller->motionAtAbs(imp_->motion_id).actualPos();
+			imp_->v_now = controller->motionAtAbs(imp_->motion_id).actualVel();
+			imp_->a_now = 0.0;
+			*/
+			param.target_pos = target.model->motionPool().at(param.motion_id).mp();
+			param.p_now = target.model->motionPool()[param.motion_id].mp();
+			param.v_now = target.model->motionPool()[param.motion_id].mv();
+			param.a_now = 0.0;
+
+		}
+
+		// init status and calculate target pos and max vel //
+		param.max_vel = param.vel*1.0*param.vel_percent / 100.0;
+
+		param.target_pos += aris::dynamic::s_sgn(param.increase_status)*param.max_vel * 1e-3;
+
+		// 梯形轨迹规划 //
+		static double p_next, v_next, a_next;
+
+		aris::Size t;
+		auto finished = aris::plan::moveAbsolute2(param.p_now, param.v_now, param.a_now
+			, param.target_pos, 0.0, 0.0
+			, param.max_vel, param.acc, param.dec
+			, 1e-3, 1e-10, p_next, v_next, a_next, t);
+
+		if (param.j5_count == 0)
+		{
+			param.increase_status = 0;
+		}
+		else
+		{
+			--param.j5_count;
+		}
+
+		target.model->motionPool().at(param.motion_id).setMp(p_next);
+		//controller->motionAtAbs(imp_->motion_id).setTargetPos(p_next);
+		param.p_now = p_next;
+		param.v_now = v_next;
+		param.a_now = a_next;
+
+		// 运动学反解//
+		if (target.model->solverPool().at(1).kinPos())return -1;
+
+		// 打印 //
+		auto &cout = controller->mout();
+		if (target.count % 10 == 0)
+		{
+			cout << param.j5_count << "  ";
+			cout << param.target_pos << "  ";
+			cout << param.p_now << "  ";
+			cout << param.v_now << "  ";
+			cout << param.a_now << "  ";
+			cout << "------------------------------------------" << std::endl;
+		}
+
+		// log //
+		auto &lout = controller->lout();
+		{
+			lout << param.target_pos << " ";
+			lout << param.p_now << " ";
+			lout << param.v_now << " ";
+			lout << param.a_now << " ";
+			lout << controller->motionAtAbs(param.motion_id).actualPos() << " ";
+			lout << controller->motionAtAbs(param.motion_id).actualVel() << " ";
+			lout << std::endl;
+		}
+
+		return finished;
+	}
+	auto JogJ5::collectNrt(PlanTarget &target)->void {}
+	JogJ5::~JogJ5() = default;
+	JogJ5::JogJ5(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"j5\">"
+			"	<GroupParam>"
+			"		<Param name=\"increase_count\" default=\"100\"/>"
+			"		<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
+			"		<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"
+			"		<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"
+			"		<Param name=\"vel_percent\" default=\"30\"/>"
+			"		<Param name=\"direction\" default=\"1\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
+
+
+	// 示教运动--关节6点动 //
+	std::atomic_int32_t JogJParam::j6_count = 0;
+	auto JogJ6::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		auto&cs = aris::server::ControlServer::instance();
+		auto c = target.controller;
+		JogJParam param;
+
+		std::vector<std::pair<std::string, std::any>> ret;
+		target.ret = ret;
+
+		param.motion_id = 5;
+		param.p_now = 0.0;
+		param.v_now = 0.0;
+		param.a_now = 0.0;
+		param.target_pos = 0.0;
+		param.max_vel = 0.0;
+		param.increase_status = 0;
+		param.vel_percent = 0;
+
+		for (auto &p : params)
+		{
+			param.increase_count = std::stoi(params.at("increase_count"));
+			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_AND_LINE("");
+
+			param.vel = std::stod(params.at("vel"));
+			param.acc = std::stod(params.at("acc"));
+			param.dec = std::stod(params.at("dec"));
+
+			auto velocity = std::stoi(params.at("vel_percent"));
+			velocity = std::max(std::min(100, velocity), -100);
+			param.vel_percent = velocity;
+			param.increase_status = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
+		}
+
+		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentTarget();
+		//当前有指令在执行//
+		if (planptr && planptr->plan->name() != "jj6")throw std::runtime_error("Other command is running");
+
+		if (param.j6_count.exchange(param.increase_count))
+		{
+			target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION;
+		}
+		else
+		{
+			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
+		}
+		target.param = param;
+	}
+	auto JogJ6::executeRT(PlanTarget &target)->int
+	{
+		//获取驱动//
+		auto controller = target.controller;
+		auto &param = std::any_cast<JogJParam&>(target.param);
+
+		// get current pos //
+		if (target.count == 1)
+		{
+			/*
+			imp_->target_pos = controller->motionAtAbs(imp_->motion_id).actualPos();
+			imp_->p_now = controller->motionAtAbs(imp_->motion_id).actualPos();
+			imp_->v_now = controller->motionAtAbs(imp_->motion_id).actualVel();
+			imp_->a_now = 0.0;
+			*/
+			param.target_pos = target.model->motionPool().at(param.motion_id).mp();
+			param.p_now = target.model->motionPool()[param.motion_id].mp();
+			param.v_now = target.model->motionPool()[param.motion_id].mv();
+			param.a_now = 0.0;
+
+		}
+
+		// init status and calculate target pos and max vel //
+		param.max_vel = param.vel*1.0*param.vel_percent / 100.0;
+		param.target_pos += aris::dynamic::s_sgn(param.increase_status)*param.max_vel * 1e-3;
+
+		// 梯形轨迹规划 //
+		static double p_next, v_next, a_next;
+
+		aris::Size t;
+		auto finished = aris::plan::moveAbsolute2(param.p_now, param.v_now, param.a_now
+			, param.target_pos, 0.0, 0.0
+			, param.max_vel, param.acc, param.dec
+			, 1e-3, 1e-10, p_next, v_next, a_next, t);
+
+		//当计数器j6_count等于0时，increase_status=0，即目标位置不再变更//
+		if (param.j6_count == 0)
+		{
+			param.increase_status = 0;
+		}
+		else
+		{
+			--param.j6_count;
+		}
+
+		target.model->motionPool().at(param.motion_id).setMp(p_next);
+		//controller->motionAtAbs(imp_->motion_id).setTargetPos(p_next);
+		param.p_now = p_next;
+		param.v_now = v_next;
+		param.a_now = a_next;
+
+		// 运动学反解//
+		if (target.model->solverPool().at(1).kinPos())return -1;
+
+		// 打印 //
+		auto &cout = controller->mout();
+		if (target.count % 10 == 0)
+		{
+			cout << param.j6_count << "  ";
+			cout << param.target_pos << "  ";
+			cout << param.p_now << "  ";
+			cout << param.v_now << "  ";
+			cout << param.a_now << "  ";
+			cout << "------------------------------------------" << std::endl;
+		}
+
+		// log //
+		auto &lout = controller->lout();
+		{
+			lout << param.target_pos << " ";
+			lout << param.p_now << " ";
+			lout << param.v_now << " ";
+			lout << param.a_now << " ";
+			lout << controller->motionAtAbs(param.motion_id).actualPos() << " ";
+			lout << controller->motionAtAbs(param.motion_id).actualVel() << " ";
+			lout << std::endl;
+		}
+
+		return finished;
+	}
+	auto JogJ6::collectNrt(PlanTarget &target)->void {}
+	JogJ6::~JogJ6() = default;
+	JogJ6::JogJ6(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"j6\">"
+			"	<GroupParam>"
+			"		<Param name=\"increase_count\" default=\"100\"/>"
+			"		<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
+			"		<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"
+			"		<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"
+			"		<Param name=\"vel_percent\" default=\"30\"/>"
+			"		<Param name=\"direction\" default=\"1\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
+
+
+	// 示教运动--jogx //
+	struct JCParam 
+	{
+		std::vector<double> pm_target;
+		double vel[6], acc[6], dec[6];
+		int increase_count;
+		int cor_system;
+		int vel_percent;
+		int moving_type;
+		int increase_status[6]{0,0,0,0,0,0};
+		static std::atomic_int32_t jx_count, jy_count, jz_count, jrx_count, jry_count, jrz_count;
+	};
+	std::atomic_int32_t JCParam::jx_count = 0;
+	auto JX::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		auto&cs = aris::server::ControlServer::instance();
+		auto c = target.controller;
+		JCParam param;
+
+		param.pm_target.resize(16, 0.0);
+		param.moving_type = 0;//0,1,2,3,4,5分别表示沿x,y,z,Rx,Ry,Rz动作//
+
+		std::vector<std::pair<std::string, std::any>> ret;
+		target.ret = ret;
+
+		for (auto &p : params)
+		{
+			param.increase_count = std::stoi(params.at("increase_count"));
+			param.cor_system = std::stoi(params.at("cor"));
+			auto velocity = std::stoi(params.at("vel_percent"));
+			velocity = std::max(std::min(100, velocity), -100);
+			param.vel_percent = velocity;
+
+			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_AND_LINE("");
+
+			auto mat = target.model->calculator().calculateExpression(params.at("vel"));
+			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			std::copy(mat.begin(), mat.end(), param.vel);
+
+			mat = target.model->calculator().calculateExpression(params.at("acc"));
+			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			std::copy(mat.begin(), mat.end(), param.acc);
+
+			mat = target.model->calculator().calculateExpression(params.at("dec"));
+			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			std::copy(mat.begin(), mat.end(), param.dec);
+
+			param.increase_status[param.moving_type] = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
+		}
+
+		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentTarget();
+		
+		//当前有指令在执行//
+		if (planptr && planptr->plan->name() != "jx")throw std::runtime_error("Other command is running");
+
+		if (param.jx_count.exchange(param.increase_count))
+		{
+			target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION;
+		}
+		else
+		{
+			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
+		}
+		target.param = param;
+
+	}
+	auto JX::executeRT(PlanTarget &target)->int
+	{
+		//获取驱动//
+		auto controller = target.controller;
+		auto &param = std::any_cast<JCParam&>(target.param);
+		char eu_type[4]{ '1', '2', '3', '\0' };
+
+		// 前三维为xyz，后三维是w的积分，注意没有物理含义
+		static double target_p[6];
+
+		// get current pe //
+		static double p_now[6], v_now[6], a_now[6];
+		if (target.count == 1)
+		{
+			target.model->generalMotionPool()[0].getMpe(target_p);
+			std::fill_n(target_p + 3, 3, 0.0);
+
+			target.model->generalMotionPool()[0].getMpe(p_now, eu_type);
+			std::fill_n(p_now + 3, 3, 0.0);
+
+			target.model->generalMotionPool()[0].getMve(v_now, eu_type);
+			target.model->generalMotionPool()[0].getMae(a_now, eu_type);
+		}
+
+		// init status //
+		double max_vel[6]{ 0,0,0,0,0,0 };
+
+		// calculate target pos and max vel //
+		for (int i = 0; i < 6; i++)
+		{
+			max_vel[i] = param.vel[i] * 1.0 * param.vel_percent / 100.0;
+			target_p[i] += aris::dynamic::s_sgn(param.increase_status[i]) * max_vel[i] * 1e-3;
+		}
+		// 梯形轨迹规划 calculate real value //
+		double p_next[6]{ 0,0,0,0,0,0 }, v_next[6]{ 0,0,0,0,0,0 }, a_next[6]{ 0,0,0,0,0,0 };
+		int finished[6]{0,0,0,0,0,0};
+		for (int i = 0; i < 6; i++)
+		{
+			aris::Size t;
+			finished[i] = aris::plan::moveAbsolute2(p_now[i], v_now[i], a_now[i]
+				, target_p[i], 0.0, 0.0
+				, max_vel[i], param.acc[i], param.dec[i]
+				, 1e-3, 1e-10, p_next[i], v_next[i], a_next[i], t);
+		}
+
+		//当计数器jx_count等于0时，increase_status=0，即目标位置不再变更//
+		if (param.jx_count == 0)
+		{
+			param.increase_status[param.moving_type] = 0;
+		}
+		else
+		{
+			--param.jx_count;
+		}
+
+		//将欧拉角转换成四元数，求绕任意旋转轴转动的旋转矩阵//
+		double w[3], pm[16];
+		aris::dynamic::s_vc(3, v_next + 3, w);
+		auto normv = aris::dynamic::s_norm(3, w);
+		if (std::abs(normv) > 1e-10)aris::dynamic::s_nv(3, 1 / normv, w); //数乘
+		auto theta = normv * 1e-3;
+		double pq[7]{ p_next[0] - p_now[0], p_next[1] - p_now[1], p_next[2] - p_now[2], w[0] * sin(theta / 2.0), w[1] * sin(theta / 2.0), w[2] * sin(theta / 2.0), cos(theta / 2.0) };
+		s_pq2pm(pq, pm);
+
+		// 获取当前位姿矩阵 //
+		double pm_now[16];
+		target.model->generalMotionPool()[0].getMpm(pm_now);
+
+		// 保存下个周期的copy //
+		s_vc(6, p_next, p_now);
+		s_vc(6, v_next, v_now);
+		s_vc(6, a_next, a_now);
+
+		//绝对坐标系
+		if (param.cor_system == 0)
+		{
+			s_pm_dot_pm(pm, pm_now, param.pm_target.data());
+		}
+		//工具坐标系
+		else if (param.cor_system == 1)
+		{
+			s_pm_dot_pm(pm_now, pm, param.pm_target.data());
+		}
+
+		target.model->generalMotionPool().at(0).setMpm(param.pm_target.data());
+
+		// 运动学反解 //
+		if (target.model->solverPool().at(0).kinPos())return -1;
+
+		// 打印 //
+		auto &cout = controller->mout();
+		if (target.count % 10 == 0)
+		{
+			cout << "jx_count:" << std::endl;
+			cout << param.jx_count << "  ";
+			cout << std::endl;
+			cout << "increase_status:" << std::endl;
+			cout << param.increase_status[param.moving_type] << "  ";
+			cout << std::endl;
+			cout << "p_next:" << std::endl;
+			cout << p_next[param.moving_type] << "  ";
+			cout << std::endl;
+			cout << "v_next:" << std::endl;
+			cout << v_next[param.moving_type] << "  ";
+			cout << std::endl;
+		}
+
+		// log //
+		auto &lout = controller->lout();
+		for (int i = 0; i < 6; i++)
+		{
+			lout << target_p[i] << " ";
+			lout << p_now[i] << " ";
+			lout << v_now[i] << " ";
+			lout << a_now[i] << " ";
+			lout << controller->motionAtAbs(i).actualPos() << " ";
+			lout << controller->motionAtAbs(i).actualVel() << " ";
+		}
+		lout << std::endl;
+
+		return finished[param.moving_type];
+	}
+	auto JX::collectNrt(PlanTarget &target)->void {}
+	JX::~JX() = default;
+	JX::JX(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"jx\">"
+			"	<GroupParam>"
+			"		<Param name=\"increase_count\" default=\"100\"/>"
+			"		<Param name=\"vel\" default=\"{0.05,0.05,0.05,0.25,0.25,0.25}\"/>"
+			"		<Param name=\"acc\" default=\"{0.2,0.2,0.2,1,1,1}\"/>"
+			"		<Param name=\"dec\" default=\"{0.2,0.2,0.2,1,1,1}\"/>"
+			"		<Param name=\"cor\" default=\"0\"/>"
+			"		<Param name=\"vel_percent\" default=\"20\"/>"
+			"		<Param name=\"direction\" default=\"1\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
+	
+
+	// 示教运动--jogy //
+	std::atomic_int32_t JCParam::jy_count = 0;
+	auto JY::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		auto&cs = aris::server::ControlServer::instance();
+		auto c = target.controller;
+		JCParam param;
+
+		param.pm_target.resize(16, 0.0);
+		param.moving_type = 1;//0,1,2,3,4,5分别表示沿x,y,z,Rx,Ry,Rz动作//
+
+		std::vector<std::pair<std::string, std::any>> ret;
+		target.ret = ret;
+
+		for (auto &p : params)
+		{
+			param.increase_count = std::stoi(params.at("increase_count"));
+			param.cor_system = std::stoi(params.at("cor"));
+			auto velocity = std::stoi(params.at("vel_percent"));
+			velocity = std::max(std::min(100, velocity), -100);
+			param.vel_percent = velocity;
+
+			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_AND_LINE("");
+
+			auto mat = target.model->calculator().calculateExpression(params.at("vel"));
+			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			std::copy(mat.begin(), mat.end(), param.vel);
+
+			mat = target.model->calculator().calculateExpression(params.at("acc"));
+			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			std::copy(mat.begin(), mat.end(), param.acc);
+
+			mat = target.model->calculator().calculateExpression(params.at("dec"));
+			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			std::copy(mat.begin(), mat.end(), param.dec);
+
+			param.increase_status[param.moving_type] = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
+		}
+
+		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentTarget();
+
+		//当前有指令在执行//
+		if (planptr && planptr->plan->name() != "jy")throw std::runtime_error("Other command is running");
+
+		if (param.jy_count.exchange(param.increase_count))
+		{
+			target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION;
+		}
+		else
+		{
+			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
+		}
+		target.param = param;
+
+	}
+	auto JY::executeRT(PlanTarget &target)->int
+	{
+		//获取驱动//
+		auto controller = target.controller;
+		auto &param = std::any_cast<JCParam&>(target.param);
+		char eu_type[4]{ '1', '2', '3', '\0' };
+
+		// 前三维为xyz，后三维是w的积分，注意没有物理含义
+		static double target_p[6];
+
+		// get current pe //
+		static double p_now[6], v_now[6], a_now[6];
+		if (target.count == 1)
+		{
+			target.model->generalMotionPool()[0].getMpe(target_p);
+			std::fill_n(target_p + 3, 3, 0.0);
+
+			target.model->generalMotionPool()[0].getMpe(p_now, eu_type);
+			std::fill_n(p_now + 3, 3, 0.0);
+
+			target.model->generalMotionPool()[0].getMve(v_now, eu_type);
+			target.model->generalMotionPool()[0].getMae(a_now, eu_type);
+		}
+
+		// init status //
+		double max_vel[6]{ 0,0,0,0,0,0 };
+
+		// calculate target pos and max vel //
+		for (int i = 0; i < 6; i++)
+		{
+			max_vel[i] = param.vel[i] * 1.0 * param.vel_percent / 100.0;
+			target_p[i] += aris::dynamic::s_sgn(param.increase_status[i]) * max_vel[i] * 1e-3;
+		}
+		// 梯形轨迹规划 calculate real value //
+		double p_next[6]{ 0,0,0,0,0,0 }, v_next[6]{ 0,0,0,0,0,0 }, a_next[6]{ 0,0,0,0,0,0 };
+		int finished[6]{ 0,0,0,0,0,0 };
+		for (int i = 0; i < 6; i++)
+		{
+			aris::Size t;
+			finished[i] = aris::plan::moveAbsolute2(p_now[i], v_now[i], a_now[i]
+				, target_p[i], 0.0, 0.0
+				, max_vel[i], param.acc[i], param.dec[i]
+				, 1e-3, 1e-10, p_next[i], v_next[i], a_next[i], t);
+		}
+
+		//当计数器jy_count等于0时，increase_status=0，即目标位置不再变更//
+		if (param.jy_count == 0)
+		{
+			param.increase_status[param.moving_type] = 0;
+		}
+		else
+		{
+			--param.jy_count;
+		}
+
+		//将欧拉角转换成四元数，求绕任意旋转轴转动的旋转矩阵//
+		double w[3], pm[16];
+		aris::dynamic::s_vc(3, v_next + 3, w);
+		auto normv = aris::dynamic::s_norm(3, w);
+		if (std::abs(normv) > 1e-10)aris::dynamic::s_nv(3, 1 / normv, w); //数乘
+		auto theta = normv * 1e-3;
+		double pq[7]{ p_next[0] - p_now[0], p_next[1] - p_now[1], p_next[2] - p_now[2], w[0] * sin(theta / 2.0), w[1] * sin(theta / 2.0), w[2] * sin(theta / 2.0), cos(theta / 2.0) };
+		s_pq2pm(pq, pm);
+
+		// 获取当前位姿矩阵 //
+		double pm_now[16];
+		target.model->generalMotionPool()[0].getMpm(pm_now);
+
+		// 保存下个周期的copy //
+		s_vc(6, p_next, p_now);
+		s_vc(6, v_next, v_now);
+		s_vc(6, a_next, a_now);
+
+		//绝对坐标系
+		if (param.cor_system == 0)
+		{
+			s_pm_dot_pm(pm, pm_now, param.pm_target.data());
+		}
+		//工具坐标系
+		else if (param.cor_system == 1)
+		{
+			s_pm_dot_pm(pm_now, pm, param.pm_target.data());
+		}
+
+		target.model->generalMotionPool().at(0).setMpm(param.pm_target.data());
+
+		// 运动学反解 //
+		if (target.model->solverPool().at(0).kinPos())return -1;
+
+		// 打印 //
+		auto &cout = controller->mout();
+		if (target.count % 10 == 0)
+		{
+			cout << "jy_count:" << std::endl;
+			cout << param.jy_count << "  ";
+			cout << std::endl;
+			cout << "increase_status:" << std::endl;
+			cout << param.increase_status[param.moving_type] << "  ";
+			cout << std::endl;
+			cout << "p_next:" << std::endl;
+			cout << p_next[param.moving_type] << "  ";
+			cout << std::endl;
+			cout << "v_next:" << std::endl;
+			cout << v_next[param.moving_type] << "  ";
+			cout << std::endl;
+		}
+
+		// log //
+		auto &lout = controller->lout();
+		for (int i = 0; i < 6; i++)
+		{
+			lout << target_p[i] << " ";
+			lout << p_now[i] << " ";
+			lout << v_now[i] << " ";
+			lout << a_now[i] << " ";
+			lout << controller->motionAtAbs(i).actualPos() << " ";
+			lout << controller->motionAtAbs(i).actualVel() << " ";
+		}
+		lout << std::endl;
+
+		return finished[param.moving_type];
+	}
+	auto JY::collectNrt(PlanTarget &target)->void {}
+	JY::~JY() = default;
+	JY::JY(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"jy\">"
+			"	<GroupParam>"
+			"		<Param name=\"increase_count\" default=\"100\"/>"
+			"		<Param name=\"vel\" default=\"{0.05,0.05,0.05,0.25,0.25,0.25}\"/>"
+			"		<Param name=\"acc\" default=\"{0.2,0.2,0.2,1,1,1}\"/>"
+			"		<Param name=\"dec\" default=\"{0.2,0.2,0.2,1,1,1}\"/>"
+			"		<Param name=\"cor\" default=\"0\"/>"
+			"		<Param name=\"vel_percent\" default=\"20\"/>"
+			"		<Param name=\"direction\" default=\"1\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
+
+
+	// 示教运动--jogz //
+	std::atomic_int32_t JCParam::jz_count = 0;
+	auto JZ::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		auto&cs = aris::server::ControlServer::instance();
+		auto c = target.controller;
+		JCParam param;
+
+		param.pm_target.resize(16, 0.0);
+		param.moving_type = 2;//0,1,2,3,4,5分别表示沿x,y,z,Rx,Ry,Rz动作//
+
+		std::vector<std::pair<std::string, std::any>> ret;
+		target.ret = ret;
+
+		for (auto &p : params)
+		{
+			param.increase_count = std::stoi(params.at("increase_count"));
+			param.cor_system = std::stoi(params.at("cor"));
+			auto velocity = std::stoi(params.at("vel_percent"));
+			velocity = std::max(std::min(100, velocity), -100);
+			param.vel_percent = velocity;
+
+			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_AND_LINE("");
+
+			auto mat = target.model->calculator().calculateExpression(params.at("vel"));
+			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			std::copy(mat.begin(), mat.end(), param.vel);
+
+			mat = target.model->calculator().calculateExpression(params.at("acc"));
+			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			std::copy(mat.begin(), mat.end(), param.acc);
+
+			mat = target.model->calculator().calculateExpression(params.at("dec"));
+			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			std::copy(mat.begin(), mat.end(), param.dec);
+
+			param.increase_status[param.moving_type] = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
+		}
+
+		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentTarget();
+
+		//当前有指令在执行//
+		if (planptr && planptr->plan->name() != "jx")throw std::runtime_error("Other command is running");
+
+		if (param.jz_count.exchange(param.increase_count))
+		{
+			target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION;
+		}
+		else
+		{
+			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
+		}
+		target.param = param;
+
+	}
+	auto JZ::executeRT(PlanTarget &target)->int
+	{
+		//获取驱动//
+		auto controller = target.controller;
+		auto &param = std::any_cast<JCParam&>(target.param);
+		char eu_type[4]{ '1', '2', '3', '\0' };
+
+		// 前三维为xyz，后三维是w的积分，注意没有物理含义
+		static double target_p[6];
+
+		// get current pe //
+		static double p_now[6], v_now[6], a_now[6];
+		if (target.count == 1)
+		{
+			target.model->generalMotionPool()[0].getMpe(target_p);
+			std::fill_n(target_p + 3, 3, 0.0);
+
+			target.model->generalMotionPool()[0].getMpe(p_now, eu_type);
+			std::fill_n(p_now + 3, 3, 0.0);
+
+			target.model->generalMotionPool()[0].getMve(v_now, eu_type);
+			target.model->generalMotionPool()[0].getMae(a_now, eu_type);
+		}
+
+		// init status //
+		double max_vel[6]{ 0,0,0,0,0,0 };
+
+		// calculate target pos and max vel //
+		for (int i = 0; i < 6; i++)
+		{
+			max_vel[i] = param.vel[i] * 1.0 * param.vel_percent / 100.0;
+			target_p[i] += aris::dynamic::s_sgn(param.increase_status[i]) * max_vel[i] * 1e-3;
+		}
+		// 梯形轨迹规划 calculate real value //
+		double p_next[6]{ 0,0,0,0,0,0 }, v_next[6]{ 0,0,0,0,0,0 }, a_next[6]{ 0,0,0,0,0,0 };
+		int finished[6]{ 0,0,0,0,0,0 };
+		for (int i = 0; i < 6; i++)
+		{
+			aris::Size t;
+			finished[i] = aris::plan::moveAbsolute2(p_now[i], v_now[i], a_now[i]
+				, target_p[i], 0.0, 0.0
+				, max_vel[i], param.acc[i], param.dec[i]
+				, 1e-3, 1e-10, p_next[i], v_next[i], a_next[i], t);
+		}
+
+		//当计数器jz_count等于0时，increase_status=0，即目标位置不再变更//
+		if (param.jz_count == 0)
+		{
+			param.increase_status[param.moving_type] = 0;
+		}
+		else
+		{
+			--param.jz_count;
+		}
+
+		//将欧拉角转换成四元数，求绕任意旋转轴转动的旋转矩阵//
+		double w[3], pm[16];
+		aris::dynamic::s_vc(3, v_next + 3, w);
+		auto normv = aris::dynamic::s_norm(3, w);
+		if (std::abs(normv) > 1e-10)aris::dynamic::s_nv(3, 1 / normv, w); //数乘
+		auto theta = normv * 1e-3;
+		double pq[7]{ p_next[0] - p_now[0], p_next[1] - p_now[1], p_next[2] - p_now[2], w[0] * sin(theta / 2.0), w[1] * sin(theta / 2.0), w[2] * sin(theta / 2.0), cos(theta / 2.0) };
+		s_pq2pm(pq, pm);
+
+		// 获取当前位姿矩阵 //
+		double pm_now[16];
+		target.model->generalMotionPool()[0].getMpm(pm_now);
+
+		// 保存下个周期的copy //
+		s_vc(6, p_next, p_now);
+		s_vc(6, v_next, v_now);
+		s_vc(6, a_next, a_now);
+
+		//绝对坐标系
+		if (param.cor_system == 0)
+		{
+			s_pm_dot_pm(pm, pm_now, param.pm_target.data());
+		}
+		//工具坐标系
+		else if (param.cor_system == 1)
+		{
+			s_pm_dot_pm(pm_now, pm, param.pm_target.data());
+		}
+
+		target.model->generalMotionPool().at(0).setMpm(param.pm_target.data());
+
+		// 运动学反解 //
+		if (target.model->solverPool().at(0).kinPos())return -1;
+
+		// 打印 //
+		auto &cout = controller->mout();
+		if (target.count % 10 == 0)
+		{
+			cout << "jz_count:" << std::endl;
+			cout << param.jz_count << "  ";
+			cout << std::endl;
+			cout << "increase_status:" << std::endl;
+			cout << param.increase_status[param.moving_type] << "  ";
+			cout << std::endl;
+			cout << "p_next:" << std::endl;
+			cout << p_next[param.moving_type] << "  ";
+			cout << std::endl;
+			cout << "v_next:" << std::endl;
+			cout << v_next[param.moving_type] << "  ";
+			cout << std::endl;
+		}
+
+		// log //
+		auto &lout = controller->lout();
+		for (int i = 0; i < 6; i++)
+		{
+			lout << target_p[i] << " ";
+			lout << p_now[i] << " ";
+			lout << v_now[i] << " ";
+			lout << a_now[i] << " ";
+			lout << controller->motionAtAbs(i).actualPos() << " ";
+			lout << controller->motionAtAbs(i).actualVel() << " ";
+		}
+		lout << std::endl;
+
+		return finished[param.moving_type];
+	}
+	auto JZ::collectNrt(PlanTarget &target)->void {}
+	JZ::~JZ() = default;
+	JZ::JZ(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"jz\">"
+			"	<GroupParam>"
+			"		<Param name=\"increase_count\" default=\"100\"/>"
+			"		<Param name=\"vel\" default=\"{0.05,0.05,0.05,0.25,0.25,0.25}\"/>"
+			"		<Param name=\"acc\" default=\"{0.2,0.2,0.2,1,1,1}\"/>"
+			"		<Param name=\"dec\" default=\"{0.2,0.2,0.2,1,1,1}\"/>"
+			"		<Param name=\"cor\" default=\"0\"/>"
+			"		<Param name=\"vel_percent\" default=\"20\"/>"
+			"		<Param name=\"direction\" default=\"1\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
+
+
+	// 示教运动--jogrx //
+	std::atomic_int32_t JCParam::jrx_count = 0;
+	auto JRX::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		auto&cs = aris::server::ControlServer::instance();
+		auto c = target.controller;
+		JCParam param;
+
+		param.pm_target.resize(16, 0.0);
+		param.moving_type = 3;//0,1,2,3,4,5分别表示沿x,y,z,Rx,Ry,Rz动作//
+
+		std::vector<std::pair<std::string, std::any>> ret;
+		target.ret = ret;
+
+		for (auto &p : params)
+		{
+			param.increase_count = std::stoi(params.at("increase_count"));
+			param.cor_system = std::stoi(params.at("cor"));
+			auto velocity = std::stoi(params.at("vel_percent"));
+			velocity = std::max(std::min(100, velocity), -100);
+			param.vel_percent = velocity;
+
+			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_AND_LINE("");
+
+			auto mat = target.model->calculator().calculateExpression(params.at("vel"));
+			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			std::copy(mat.begin(), mat.end(), param.vel);
+
+			mat = target.model->calculator().calculateExpression(params.at("acc"));
+			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			std::copy(mat.begin(), mat.end(), param.acc);
+
+			mat = target.model->calculator().calculateExpression(params.at("dec"));
+			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			std::copy(mat.begin(), mat.end(), param.dec);
+
+			param.increase_status[param.moving_type] = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
+		}
+
+		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentTarget();
+
+		//当前有指令在执行//
+		if (planptr && planptr->plan->name() != "jx")throw std::runtime_error("Other command is running");
+
+		if (param.jrx_count.exchange(param.increase_count))
+		{
+			target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION;
+		}
+		else
+		{
+			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
+		}
+		target.param = param;
+
+	}
+	auto JRX::executeRT(PlanTarget &target)->int
+	{
+		//获取驱动//
+		auto controller = target.controller;
+		auto &param = std::any_cast<JCParam&>(target.param);
+		char eu_type[4]{ '1', '2', '3', '\0' };
+
+		// 前三维为xyz，后三维是w的积分，注意没有物理含义
+		static double target_p[6];
+
+		// get current pe //
+		static double p_now[6], v_now[6], a_now[6];
+		if (target.count == 1)
+		{
+			target.model->generalMotionPool()[0].getMpe(target_p);
+			std::fill_n(target_p + 3, 3, 0.0);
+
+			target.model->generalMotionPool()[0].getMpe(p_now, eu_type);
+			std::fill_n(p_now + 3, 3, 0.0);
+
+			target.model->generalMotionPool()[0].getMve(v_now, eu_type);
+			target.model->generalMotionPool()[0].getMae(a_now, eu_type);
+		}
+
+		// init status //
+		double max_vel[6]{ 0,0,0,0,0,0 };
+
+		// calculate target pos and max vel //
+		for (int i = 0; i < 6; i++)
+		{
+			max_vel[i] = param.vel[i] * 1.0 * param.vel_percent / 100.0;
+			target_p[i] += aris::dynamic::s_sgn(param.increase_status[i]) * max_vel[i] * 1e-3;
+		}
+		// 梯形轨迹规划 calculate real value //
+		double p_next[6]{ 0,0,0,0,0,0 }, v_next[6]{ 0,0,0,0,0,0 }, a_next[6]{ 0,0,0,0,0,0 };
+		int finished[6]{ 0,0,0,0,0,0 };
+		for (int i = 0; i < 6; i++)
+		{
+			aris::Size t;
+			finished[i] = aris::plan::moveAbsolute2(p_now[i], v_now[i], a_now[i]
+				, target_p[i], 0.0, 0.0
+				, max_vel[i], param.acc[i], param.dec[i]
+				, 1e-3, 1e-10, p_next[i], v_next[i], a_next[i], t);
+		}
+
+		//当计数器jrx_count等于0时，increase_status=0，即目标位置不再变更//
+		if (param.jrx_count == 0)
+		{
+			param.increase_status[param.moving_type] = 0;
+		}
+		else
+		{
+			--param.jrx_count;
+		}
+
+		//将欧拉角转换成四元数，求绕任意旋转轴转动的旋转矩阵//
+		double w[3], pm[16];
+		aris::dynamic::s_vc(3, v_next + 3, w);
+		auto normv = aris::dynamic::s_norm(3, w);
+		if (std::abs(normv) > 1e-10)aris::dynamic::s_nv(3, 1 / normv, w); //数乘
+		auto theta = normv * 1e-3;
+		double pq[7]{ p_next[0] - p_now[0], p_next[1] - p_now[1], p_next[2] - p_now[2], w[0] * sin(theta / 2.0), w[1] * sin(theta / 2.0), w[2] * sin(theta / 2.0), cos(theta / 2.0) };
+		s_pq2pm(pq, pm);
+
+		// 获取当前位姿矩阵 //
+		double pm_now[16];
+		target.model->generalMotionPool()[0].getMpm(pm_now);
+
+		// 保存下个周期的copy //
+		s_vc(6, p_next, p_now);
+		s_vc(6, v_next, v_now);
+		s_vc(6, a_next, a_now);
+
+		//绝对坐标系
+		if (param.cor_system == 0)
+		{
+			s_pm_dot_pm(pm, pm_now, param.pm_target.data());
+		}
+		//工具坐标系
+		else if (param.cor_system == 1)
+		{
+			s_pm_dot_pm(pm_now, pm, param.pm_target.data());
+		}
+
+		target.model->generalMotionPool().at(0).setMpm(param.pm_target.data());
+
+		// 运动学反解 //
+		if (target.model->solverPool().at(0).kinPos())return -1;
+
+		// 打印 //
+		auto &cout = controller->mout();
+		if (target.count % 10 == 0)
+		{
+			cout << "jrx_count:" << std::endl;
+			cout << param.jrx_count << "  ";
+			cout << std::endl;
+			cout << "increase_status:" << std::endl;
+			cout << param.increase_status[param.moving_type] << "  ";
+			cout << std::endl;
+			cout << "p_next:" << std::endl;
+			cout << p_next[param.moving_type] << "  ";
+			cout << std::endl;
+			cout << "v_next:" << std::endl;
+			cout << v_next[param.moving_type] << "  ";
+			cout << std::endl;
+		}
+
+		// log //
+		auto &lout = controller->lout();
+		for (int i = 0; i < 6; i++)
+		{
+			lout << target_p[i] << " ";
+			lout << p_now[i] << " ";
+			lout << v_now[i] << " ";
+			lout << a_now[i] << " ";
+			lout << controller->motionAtAbs(i).actualPos() << " ";
+			lout << controller->motionAtAbs(i).actualVel() << " ";
+		}
+		lout << std::endl;
+
+		return finished[param.moving_type];
+	}
+	auto JRX::collectNrt(PlanTarget &target)->void {}
+	JRX::~JRX() = default;
+	JRX::JRX(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"jrx\">"
+			"	<GroupParam>"
+			"		<Param name=\"increase_count\" default=\"100\"/>"
+			"		<Param name=\"vel\" default=\"{0.05,0.05,0.05,0.25,0.25,0.25}\"/>"
+			"		<Param name=\"acc\" default=\"{0.2,0.2,0.2,1,1,1}\"/>"
+			"		<Param name=\"dec\" default=\"{0.2,0.2,0.2,1,1,1}\"/>"
+			"		<Param name=\"cor\" default=\"0\"/>"
+			"		<Param name=\"vel_percent\" default=\"20\"/>"
+			"		<Param name=\"direction\" default=\"1\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
+
+
+	// 示教运动--jogry //
+	std::atomic_int32_t JCParam::jry_count = 0;
+	auto JRY::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		auto&cs = aris::server::ControlServer::instance();
+		auto c = target.controller;
+		JCParam param;
+
+		param.pm_target.resize(16, 0.0);
+		param.moving_type = 4;//0,1,2,3,4,5分别表示沿x,y,z,Rx,Ry,Rz动作//
+
+		std::vector<std::pair<std::string, std::any>> ret;
+		target.ret = ret;
+
+		for (auto &p : params)
+		{
+			param.increase_count = std::stoi(params.at("increase_count"));
+			param.cor_system = std::stoi(params.at("cor"));
+			auto velocity = std::stoi(params.at("vel_percent"));
+			velocity = std::max(std::min(100, velocity), -100);
+			param.vel_percent = velocity;
+
+			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_AND_LINE("");
+
+			auto mat = target.model->calculator().calculateExpression(params.at("vel"));
+			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			std::copy(mat.begin(), mat.end(), param.vel);
+
+			mat = target.model->calculator().calculateExpression(params.at("acc"));
+			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			std::copy(mat.begin(), mat.end(), param.acc);
+
+			mat = target.model->calculator().calculateExpression(params.at("dec"));
+			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			std::copy(mat.begin(), mat.end(), param.dec);
+
+			param.increase_status[param.moving_type] = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
+		}
+
+		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentTarget();
+
+		//当前有指令在执行//
+		if (planptr && planptr->plan->name() != "jx")throw std::runtime_error("Other command is running");
+
+		if (param.jry_count.exchange(param.increase_count))
+		{
+			target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION;
+		}
+		else
+		{
+			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
+		}
+		target.param = param;
+
+	}
+	auto JRY::executeRT(PlanTarget &target)->int
+	{
+		//获取驱动//
+		auto controller = target.controller;
+		auto &param = std::any_cast<JCParam&>(target.param);
+		char eu_type[4]{ '1', '2', '3', '\0' };
+
+		// 前三维为xyz，后三维是w的积分，注意没有物理含义
+		static double target_p[6];
+
+		// get current pe //
+		static double p_now[6], v_now[6], a_now[6];
+		if (target.count == 1)
+		{
+			target.model->generalMotionPool()[0].getMpe(target_p);
+			std::fill_n(target_p + 3, 3, 0.0);
+
+			target.model->generalMotionPool()[0].getMpe(p_now, eu_type);
+			std::fill_n(p_now + 3, 3, 0.0);
+
+			target.model->generalMotionPool()[0].getMve(v_now, eu_type);
+			target.model->generalMotionPool()[0].getMae(a_now, eu_type);
+		}
+
+		// init status //
+		double max_vel[6]{ 0,0,0,0,0,0 };
+
+		// calculate target pos and max vel //
+		for (int i = 0; i < 6; i++)
+		{
+			max_vel[i] = param.vel[i] * 1.0 * param.vel_percent / 100.0;
+			target_p[i] += aris::dynamic::s_sgn(param.increase_status[i]) * max_vel[i] * 1e-3;
+		}
+		// 梯形轨迹规划 calculate real value //
+		double p_next[6]{ 0,0,0,0,0,0 }, v_next[6]{ 0,0,0,0,0,0 }, a_next[6]{ 0,0,0,0,0,0 };
+		int finished[6]{ 0,0,0,0,0,0 };
+		for (int i = 0; i < 6; i++)
+		{
+			aris::Size t;
+			finished[i] = aris::plan::moveAbsolute2(p_now[i], v_now[i], a_now[i]
+				, target_p[i], 0.0, 0.0
+				, max_vel[i], param.acc[i], param.dec[i]
+				, 1e-3, 1e-10, p_next[i], v_next[i], a_next[i], t);
+		}
+
+		//当计数器jry_count等于0时，increase_status=0，即目标位置不再变更//
+		if (param.jry_count == 0)
+		{
+			param.increase_status[param.moving_type] = 0;
+		}
+		else
+		{
+			--param.jry_count;
+		}
+
+		//将欧拉角转换成四元数，求绕任意旋转轴转动的旋转矩阵//
+		double w[3], pm[16];
+		aris::dynamic::s_vc(3, v_next + 3, w);
+		auto normv = aris::dynamic::s_norm(3, w);
+		if (std::abs(normv) > 1e-10)aris::dynamic::s_nv(3, 1 / normv, w); //数乘
+		auto theta = normv * 1e-3;
+		double pq[7]{ p_next[0] - p_now[0], p_next[1] - p_now[1], p_next[2] - p_now[2], w[0] * sin(theta / 2.0), w[1] * sin(theta / 2.0), w[2] * sin(theta / 2.0), cos(theta / 2.0) };
+		s_pq2pm(pq, pm);
+
+		// 获取当前位姿矩阵 //
+		double pm_now[16];
+		target.model->generalMotionPool()[0].getMpm(pm_now);
+
+		// 保存下个周期的copy //
+		s_vc(6, p_next, p_now);
+		s_vc(6, v_next, v_now);
+		s_vc(6, a_next, a_now);
+
+		//绝对坐标系
+		if (param.cor_system == 0)
+		{
+			s_pm_dot_pm(pm, pm_now, param.pm_target.data());
+		}
+		//工具坐标系
+		else if (param.cor_system == 1)
+		{
+			s_pm_dot_pm(pm_now, pm, param.pm_target.data());
+		}
+
+		target.model->generalMotionPool().at(0).setMpm(param.pm_target.data());
+
+		// 运动学反解 //
+		if (target.model->solverPool().at(0).kinPos())return -1;
+
+		// 打印 //
+		auto &cout = controller->mout();
+		if (target.count % 10 == 0)
+		{
+			cout << "jry_count:" << std::endl;
+			cout << param.jry_count << "  ";
+			cout << std::endl;
+			cout << "increase_status:" << std::endl;
+			cout << param.increase_status[param.moving_type] << "  ";
+			cout << std::endl;
+			cout << "p_next:" << std::endl;
+			cout << p_next[param.moving_type] << "  ";
+			cout << std::endl;
+			cout << "v_next:" << std::endl;
+			cout << v_next[param.moving_type] << "  ";
+			cout << std::endl;
+		}
+
+		// log //
+		auto &lout = controller->lout();
+		for (int i = 0; i < 6; i++)
+		{
+			lout << target_p[i] << " ";
+			lout << p_now[i] << " ";
+			lout << v_now[i] << " ";
+			lout << a_now[i] << " ";
+			lout << controller->motionAtAbs(i).actualPos() << " ";
+			lout << controller->motionAtAbs(i).actualVel() << " ";
+		}
+		lout << std::endl;
+
+		return finished[param.moving_type];
+	}
+	auto JRY::collectNrt(PlanTarget &target)->void {}
+	JRY::~JRY() = default;
+	JRY::JRY(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"jry\">"
+			"	<GroupParam>"
+			"		<Param name=\"increase_count\" default=\"100\"/>"
+			"		<Param name=\"vel\" default=\"{0.05,0.05,0.05,0.25,0.25,0.25}\"/>"
+			"		<Param name=\"acc\" default=\"{0.2,0.2,0.2,1,1,1}\"/>"
+			"		<Param name=\"dec\" default=\"{0.2,0.2,0.2,1,1,1}\"/>"
+			"		<Param name=\"cor\" default=\"0\"/>"
+			"		<Param name=\"vel_percent\" default=\"20\"/>"
+			"		<Param name=\"direction\" default=\"1\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
+
+
+	// 示教运动--jogrz //
+	std::atomic_int32_t JCParam::jrz_count = 0;
+	auto JRZ::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		auto&cs = aris::server::ControlServer::instance();
+		auto c = target.controller;
+		JCParam param;
+
+		param.pm_target.resize(16, 0.0);
+		param.moving_type = 5;//0,1,2,3,4,5分别表示沿x,y,z,Rx,Ry,Rz动作//
+
+		std::vector<std::pair<std::string, std::any>> ret;
+		target.ret = ret;
+
+		for (auto &p : params)
+		{
+			param.increase_count = std::stoi(params.at("increase_count"));
+			param.cor_system = std::stoi(params.at("cor"));
+			auto velocity = std::stoi(params.at("vel_percent"));
+			velocity = std::max(std::min(100, velocity), -100);
+			param.vel_percent = velocity;
+
+			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_AND_LINE("");
+
+			auto mat = target.model->calculator().calculateExpression(params.at("vel"));
+			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			std::copy(mat.begin(), mat.end(), param.vel);
+
+			mat = target.model->calculator().calculateExpression(params.at("acc"));
+			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			std::copy(mat.begin(), mat.end(), param.acc);
+
+			mat = target.model->calculator().calculateExpression(params.at("dec"));
+			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			std::copy(mat.begin(), mat.end(), param.dec);
+
+			param.increase_status[param.moving_type] = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
+		}
+
+		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentTarget();
+
+		//当前有指令在执行//
+		if (planptr && planptr->plan->name() != "jx")throw std::runtime_error("Other command is running");
+
+		if (param.jrz_count.exchange(param.increase_count))
+		{
+			target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION;
+		}
+		else
+		{
+			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
+		}
+		target.param = param;
+
+	}
+	auto JRZ::executeRT(PlanTarget &target)->int
+	{
+		//获取驱动//
+		auto controller = target.controller;
+		auto &param = std::any_cast<JCParam&>(target.param);
+		char eu_type[4]{ '1', '2', '3', '\0' };
+
+		// 前三维为xyz，后三维是w的积分，注意没有物理含义
+		static double target_p[6];
+
+		// get current pe //
+		static double p_now[6], v_now[6], a_now[6];
+		if (target.count == 1)
+		{
+			target.model->generalMotionPool()[0].getMpe(target_p);
+			std::fill_n(target_p + 3, 3, 0.0);
+
+			target.model->generalMotionPool()[0].getMpe(p_now, eu_type);
+			std::fill_n(p_now + 3, 3, 0.0);
+
+			target.model->generalMotionPool()[0].getMve(v_now, eu_type);
+			target.model->generalMotionPool()[0].getMae(a_now, eu_type);
+		}
+
+		// init status //
+		double max_vel[6]{ 0,0,0,0,0,0 };
+
+		// calculate target pos and max vel //
+		for (int i = 0; i < 6; i++)
+		{
+			max_vel[i] = param.vel[i] * 1.0 * param.vel_percent / 100.0;
+			target_p[i] += aris::dynamic::s_sgn(param.increase_status[i]) * max_vel[i] * 1e-3;
+		}
+		// 梯形轨迹规划 calculate real value //
+		double p_next[6]{ 0,0,0,0,0,0 }, v_next[6]{ 0,0,0,0,0,0 }, a_next[6]{ 0,0,0,0,0,0 };
+		int finished[6]{ 0,0,0,0,0,0 };
+		for (int i = 0; i < 6; i++)
+		{
+			aris::Size t;
+			finished[i] = aris::plan::moveAbsolute2(p_now[i], v_now[i], a_now[i]
+				, target_p[i], 0.0, 0.0
+				, max_vel[i], param.acc[i], param.dec[i]
+				, 1e-3, 1e-10, p_next[i], v_next[i], a_next[i], t);
+		}
+
+		//当计数器jrz_count等于0时，increase_status=0，即目标位置不再变更//
+		if (param.jrz_count == 0)
+		{
+			param.increase_status[param.moving_type] = 0;
+		}
+		else
+		{
+			--param.jrz_count;
+		}
+
+		//将欧拉角转换成四元数，求绕任意旋转轴转动的旋转矩阵//
+		double w[3], pm[16];
+		aris::dynamic::s_vc(3, v_next + 3, w);
+		auto normv = aris::dynamic::s_norm(3, w);
+		if (std::abs(normv) > 1e-10)aris::dynamic::s_nv(3, 1 / normv, w); //数乘
+		auto theta = normv * 1e-3;
+		double pq[7]{ p_next[0] - p_now[0], p_next[1] - p_now[1], p_next[2] - p_now[2], w[0] * sin(theta / 2.0), w[1] * sin(theta / 2.0), w[2] * sin(theta / 2.0), cos(theta / 2.0) };
+		s_pq2pm(pq, pm);
+
+		// 获取当前位姿矩阵 //
+		double pm_now[16];
+		target.model->generalMotionPool()[0].getMpm(pm_now);
+
+		// 保存下个周期的copy //
+		s_vc(6, p_next, p_now);
+		s_vc(6, v_next, v_now);
+		s_vc(6, a_next, a_now);
+
+		//绝对坐标系
+		if (param.cor_system == 0)
+		{
+			s_pm_dot_pm(pm, pm_now, param.pm_target.data());
+		}
+		//工具坐标系
+		else if (param.cor_system == 1)
+		{
+			s_pm_dot_pm(pm_now, pm, param.pm_target.data());
+		}
+
+		target.model->generalMotionPool().at(0).setMpm(param.pm_target.data());
+
+		// 运动学反解 //
+		if (target.model->solverPool().at(0).kinPos())return -1;
+
+		// 打印 //
+		auto &cout = controller->mout();
+		if (target.count % 10 == 0)
+		{
+			cout << "jrz_count:" << std::endl;
+			cout << param.jrz_count << "  ";
+			cout << std::endl;
+			cout << "increase_status:" << std::endl;
+			cout << param.increase_status[param.moving_type] << "  ";
+			cout << std::endl;
+			cout << "p_next:" << std::endl;
+			cout << p_next[param.moving_type] << "  ";
+			cout << std::endl;
+			cout << "v_next:" << std::endl;
+			cout << v_next[param.moving_type] << "  ";
+			cout << std::endl;
+		}
+
+		// log //
+		auto &lout = controller->lout();
+		for (int i = 0; i < 6; i++)
+		{
+			lout << target_p[i] << " ";
+			lout << p_now[i] << " ";
+			lout << v_now[i] << " ";
+			lout << a_now[i] << " ";
+			lout << controller->motionAtAbs(i).actualPos() << " ";
+			lout << controller->motionAtAbs(i).actualVel() << " ";
+		}
+		lout << std::endl;
+
+		return finished[param.moving_type];
+	}
+	auto JRZ::collectNrt(PlanTarget &target)->void {}
+	JRZ::~JRZ() = default;
+	JRZ::JRZ(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"jrz\">"
+			"	<GroupParam>"
+			"		<Param name=\"increase_count\" default=\"100\"/>"
+			"		<Param name=\"vel\" default=\"{0.05,0.05,0.05,0.25,0.25,0.25}\"/>"
+			"		<Param name=\"acc\" default=\"{0.2,0.2,0.2,1,1,1}\"/>"
+			"		<Param name=\"dec\" default=\"{0.2,0.2,0.2,1,1,1}\"/>"
+			"		<Param name=\"cor\" default=\"0\"/>"
+			"		<Param name=\"vel_percent\" default=\"20\"/>"
+			"		<Param name=\"direction\" default=\"1\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
 
 
 	// 夹爪控制 //
@@ -4583,6 +6504,17 @@ namespace kaanh
 		plan_root->planPool().add<kaanh::JogC>();
 		plan_root->planPool().add<kaanh::JogJ>();
 		plan_root->planPool().add<kaanh::JogJ1>();
+		plan_root->planPool().add<kaanh::JogJ2>();
+		plan_root->planPool().add<kaanh::JogJ3>();
+		plan_root->planPool().add<kaanh::JogJ4>();
+		plan_root->planPool().add<kaanh::JogJ5>();
+		plan_root->planPool().add<kaanh::JogJ6>();
+		plan_root->planPool().add<kaanh::JX>();
+		plan_root->planPool().add<kaanh::JY>();
+		plan_root->planPool().add<kaanh::JZ>();
+		plan_root->planPool().add<kaanh::JRX>();
+		plan_root->planPool().add<kaanh::JRY>();
+		plan_root->planPool().add<kaanh::JRZ>();
 		plan_root->planPool().add<kaanh::Grasp>();
 		plan_root->planPool().add<kaanh::ListenDI>();
 		plan_root->planPool().add<kaanh::MoveEA>();
