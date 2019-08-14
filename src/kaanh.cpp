@@ -3264,7 +3264,13 @@ namespace kaanh
 
 		return finished;
 	}
-	auto JogJ1::collectNrt(PlanTarget &target)->void {}
+	auto JogJ1::collectNrt(PlanTarget &target)->void 
+	{
+		if (target.ret_code < 0)
+		{
+			JogJParam::j1_count.store(0);
+		}
+	}
 	JogJ1::~JogJ1() = default;
 	JogJ1::JogJ1(const std::string &name) :Plan(name)
 	{
@@ -3412,7 +3418,13 @@ namespace kaanh
 
 		return finished;
 	}
-	auto JogJ2::collectNrt(PlanTarget &target)->void {}
+	auto JogJ2::collectNrt(PlanTarget &target)->void 
+	{
+		if (target.ret_code < 0)
+		{
+			JogJParam::j2_count.store(0);
+		}
+	}
 	JogJ2::~JogJ2() = default;
 	JogJ2::JogJ2(const std::string &name) :Plan(name)
 	{
@@ -3560,7 +3572,12 @@ namespace kaanh
 
 		return finished;
 	}
-	auto JogJ3::collectNrt(PlanTarget &target)->void {}
+	auto JogJ3::collectNrt(PlanTarget &target)->void {
+		if (target.ret_code < 0)
+		{
+			JogJParam::j3_count.store(0);
+		}
+	}
 	JogJ3::~JogJ3() = default;
 	JogJ3::JogJ3(const std::string &name) :Plan(name)
 	{
@@ -3708,7 +3725,12 @@ namespace kaanh
 
 		return finished;
 	}
-	auto JogJ4::collectNrt(PlanTarget &target)->void {}
+	auto JogJ4::collectNrt(PlanTarget &target)->void {
+		if (target.ret_code < 0)
+		{
+			JogJParam::j4_count.store(0);
+		}
+	}
 	JogJ4::~JogJ4() = default;
 	JogJ4::JogJ4(const std::string &name) :Plan(name)
 	{
@@ -3856,7 +3878,12 @@ namespace kaanh
 
 		return finished;
 	}
-	auto JogJ5::collectNrt(PlanTarget &target)->void {}
+	auto JogJ5::collectNrt(PlanTarget &target)->void {
+		if (target.ret_code < 0)
+		{
+			JogJParam::j5_count.store(0);
+		}
+	}
 	JogJ5::~JogJ5() = default;
 	JogJ5::JogJ5(const std::string &name) :Plan(name)
 	{
@@ -4004,7 +4031,12 @@ namespace kaanh
 
 		return finished;
 	}
-	auto JogJ6::collectNrt(PlanTarget &target)->void {}
+	auto JogJ6::collectNrt(PlanTarget &target)->void {
+		if (target.ret_code < 0)
+		{
+			JogJParam::j6_count.store(0);
+		}
+	}
 	JogJ6::~JogJ6() = default;
 	JogJ6::JogJ6(const std::string &name) :Plan(name)
 	{
@@ -4210,7 +4242,12 @@ namespace kaanh
 
 		return finished[param.moving_type];
 	}
-	auto JX::collectNrt(PlanTarget &target)->void {}
+	auto JX::collectNrt(PlanTarget &target)->void {
+		if (target.ret_code < 0)
+		{
+			JCParam::jx_count.store(0);
+		}
+	}
 	JX::~JX() = default;
 	JX::JX(const std::string &name) :Plan(name)
 	{
@@ -4406,7 +4443,12 @@ namespace kaanh
 
 		return finished[param.moving_type];
 	}
-	auto JY::collectNrt(PlanTarget &target)->void {}
+	auto JY::collectNrt(PlanTarget &target)->void {
+		if (target.ret_code < 0)
+		{
+			JCParam::jy_count.store(0);
+		}
+	}
 	JY::~JY() = default;
 	JY::JY(const std::string &name) :Plan(name)
 	{
@@ -4602,7 +4644,12 @@ namespace kaanh
 
 		return finished[param.moving_type];
 	}
-	auto JZ::collectNrt(PlanTarget &target)->void {}
+	auto JZ::collectNrt(PlanTarget &target)->void {
+		if (target.ret_code < 0)
+		{
+			JCParam::jz_count.store(0);
+		}
+	}
 	JZ::~JZ() = default;
 	JZ::JZ(const std::string &name) :Plan(name)
 	{
@@ -4798,7 +4845,12 @@ namespace kaanh
 
 		return finished[param.moving_type];
 	}
-	auto JRX::collectNrt(PlanTarget &target)->void {}
+	auto JRX::collectNrt(PlanTarget &target)->void {
+		if (target.ret_code < 0)
+		{
+			JCParam::jrx_count.store(0);
+		}
+	}
 	JRX::~JRX() = default;
 	JRX::JRX(const std::string &name) :Plan(name)
 	{
@@ -5001,7 +5053,12 @@ namespace kaanh
 
 		return finished[param.moving_type];
 	}
-	auto JRY::collectNrt(PlanTarget &target)->void {}
+	auto JRY::collectNrt(PlanTarget &target)->void {
+		if (target.ret_code < 0)
+		{
+			JCParam::jry_count.store(0);
+		}
+	}
 	JRY::~JRY() = default;
 	JRY::JRY(const std::string &name) :Plan(name)
 	{
@@ -5197,7 +5254,12 @@ namespace kaanh
 
 		return finished[param.moving_type];
 	}
-	auto JRZ::collectNrt(PlanTarget &target)->void {}
+	auto JRZ::collectNrt(PlanTarget &target)->void {
+		if (target.ret_code < 0)
+		{
+			JCParam::jrz_count.store(0);
+		}
+	}
 	JRZ::~JRZ() = default;
 	JRZ::JRZ(const std::string &name) :Plan(name)
 	{
