@@ -509,12 +509,12 @@ namespace kaanh
 #ifdef UNIX
 			double pos_offset[6]
 			{
-				-0.438460099997905,   -1.01948430935116,   -1.00835441988747,   0.0315385382644258,   0.0943992339950059,   -3.4310965015334
+                -0.438460099997905,   1.01949192131931,   -1.00835441988747,   0.0315385382644258,   0.0943992339950059,   3.4310965015334
 			};
 #endif
 			double pos_factor[6]
 			{
-				8388608.0 * 166 / 2 / PI, 8388608.0 * 166 / 2 / PI, 8388608.0 * 88 / 2 / PI, 8388608.0 * 80 / 2 / PI, 8388608.0 * 80 / 2 / PI, 8388608.0 * 80 / 2 / PI
+                8388608.0 * 166 / 2 / PI, -8388608.0 * 166 / 2 / PI, 8388608.0 * 88 / 2 / PI, 8388608.0 * 80 / 2 / PI, 8388608.0 * 80 / 2 / PI, -8388608.0 * 80 / 2 / PI
 			};
 			double max_pos[6]
 			{
@@ -6770,10 +6770,10 @@ namespace kaanh
         plan_root->planPool().add<aris::plan::Sleep>();
         plan_root->planPool().add<aris::plan::Recover>();
         auto &rs = plan_root->planPool().add<aris::plan::Reset>();
-        rs.command().findParam("pos")->setDefaultValue("{0.5,0.3925,0.7899,0.5,0.5,0.5}");
+        //rs.command().findParam("pos")->setDefaultValue("{0.5,0.3925,0.7899,0.5,0.5,0.5}");
 		
-		//qifan//
-		//rs.command().findParam("pos")->setDefaultValue("{0.5,0.353,0.5,0.5,0.5,0.5}");
+        //qifan//
+        rs.command().findParam("pos")->setDefaultValue("{0.5,0.353,0.5,0.5,0.5,0.5}");
 
         plan_root->planPool().add<aris::plan::MoveAbsJ>();
 

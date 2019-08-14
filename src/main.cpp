@@ -19,7 +19,7 @@ auto uixmlpath = std::filesystem::absolute(".");
 auto modelxmlpath = std::filesystem::absolute(".");
 const std::string xmlfile = "kaanh.xml";
 const std::string uixmlfile = "interface_kaanh.xml";
-const std::string modelxmlfile = "model_rokae.xml";
+const std::string modelxmlfile = "model_qifan.xml";
 
 int main(int argc, char *argv[])
 {
@@ -33,7 +33,7 @@ int main(int argc, char *argv[])
 
   
 	//生成kaanh.xml文档
-	
+    /*
     //-------for rokae robot begin//
     cs.resetController(kaanh::createControllerRokaeXB4().release());
     //cs.resetModel(aris::robot::createModelRokaeXB4().release());
@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
     cs.resetSensorRoot(new aris::sensor::SensorRoot);
     cs.saveXmlFile(xmlpath.string().c_str());
     //-------for rokae robot end// 
-	
+    */
 
     /*
     //-------for sanxiang robot begin//
@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
     //-------for daye robot end//
 	*/
 
-	/*
+
 	//-------for qifan robot begin//
 	cs.resetController(kaanh::createControllerQifan().release());
 	cs.resetModel(kaanh::createModelQifan().release());
@@ -76,11 +76,11 @@ int main(int argc, char *argv[])
 	cs.resetSensorRoot(new aris::sensor::SensorRoot);
 	cs.saveXmlFile(xmlpath.string().c_str());
 	//-------for qifan robot end// 
-	*/
+
 
 	cs.loadXmlFile(xmlpath.string().c_str());
 	cs.interfaceRoot().loadXmlFile(uixmlpath.string().c_str());
-	cs.model().loadXmlFile(modelxmlpath.string().c_str());
+    //cs.model().loadXmlFile(modelxmlpath.string().c_str());
 	cs.saveXmlFile(xmlpath.string().c_str());
 
 	cs.start();
