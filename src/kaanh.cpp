@@ -3171,7 +3171,7 @@ namespace kaanh
 
 		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
 		//当前有指令在执行//
-		if (planptr && planptr->plan->name() != "j1")throw std::runtime_error("Other command is running");
+        if (planptr && planptr->plan != this)throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + "Other command is running");
 
 		if (param.j1_count.exchange(param.increase_count))
 		{
@@ -3179,7 +3179,8 @@ namespace kaanh
 		}
 		else
 		{
-			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
+            std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
+            target.mot_options[0] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
 		}
 		target.param = param;
 	}
@@ -3270,7 +3271,7 @@ namespace kaanh
 		command().loadXmlStr(
 			"<Command name=\"j1\">"
 			"	<GroupParam>"
-			"		<Param name=\"increase_count\" default=\"100\"/>"
+            "		<Param name=\"increase_count\" default=\"100\"/>"
 			"		<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
 			"		<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"
 			"		<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"
@@ -3318,7 +3319,7 @@ namespace kaanh
 
 		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
 		//当前有指令在执行//
-		if (planptr && planptr->plan->name() != "j2")throw std::runtime_error("Other command is running");
+        if (planptr && planptr->plan != this)throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + "Other command is running");
 
 		if (param.j2_count.exchange(param.increase_count))
 		{
@@ -3327,6 +3328,7 @@ namespace kaanh
 		else
 		{
 			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
+            target.mot_options[1] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
 		}
 		target.param = param;
 	}
@@ -3417,7 +3419,7 @@ namespace kaanh
 		command().loadXmlStr(
 			"<Command name=\"j2\">"
 			"	<GroupParam>"
-			"		<Param name=\"increase_count\" default=\"100\"/>"
+            "		<Param name=\"increase_count\" default=\"100\"/>"
 			"		<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
 			"		<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"
 			"		<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"
@@ -3465,7 +3467,7 @@ namespace kaanh
 
 		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
 		//当前有指令在执行//
-		if (planptr && planptr->plan->name() != "j3")throw std::runtime_error("Other command is running");
+        if (planptr && planptr->plan != this)throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + "Other command is running");
 
 		if (param.j3_count.exchange(param.increase_count))
 		{
@@ -3474,6 +3476,7 @@ namespace kaanh
 		else
 		{
 			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
+            target.mot_options[2] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
 		}
 		target.param = param;
 	}
@@ -3564,7 +3567,7 @@ namespace kaanh
 		command().loadXmlStr(
 			"<Command name=\"j3\">"
 			"	<GroupParam>"
-			"		<Param name=\"increase_count\" default=\"100\"/>"
+            "		<Param name=\"increase_count\" default=\"100\"/>"
 			"		<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
 			"		<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"
 			"		<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"
@@ -3612,7 +3615,7 @@ namespace kaanh
 
 		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
 		//当前有指令在执行//
-		if (planptr && planptr->plan->name() != "j4")throw std::runtime_error("Other command is running");
+        if (planptr && planptr->plan != this)throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + "Other command is running");
 
 		if (param.j4_count.exchange(param.increase_count))
 		{
@@ -3621,6 +3624,7 @@ namespace kaanh
 		else
 		{
 			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
+            target.mot_options[3] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
 		}
 		target.param = param;
 	}
@@ -3711,7 +3715,7 @@ namespace kaanh
 		command().loadXmlStr(
 			"<Command name=\"j4\">"
 			"	<GroupParam>"
-			"		<Param name=\"increase_count\" default=\"100\"/>"
+            "		<Param name=\"increase_count\" default=\"100\"/>"
 			"		<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
 			"		<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"
 			"		<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"
@@ -3759,7 +3763,7 @@ namespace kaanh
 
 		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
 		//当前有指令在执行//
-		if (planptr && planptr->plan->name() != "j5")throw std::runtime_error("Other command is running");
+        if (planptr && planptr->plan != this)throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + "Other command is running");
 
 		if (param.j5_count.exchange(param.increase_count))
 		{
@@ -3768,6 +3772,7 @@ namespace kaanh
 		else
 		{
 			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
+            target.mot_options[4] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
 		}
 		target.param = param;
 	}
@@ -3858,7 +3863,7 @@ namespace kaanh
 		command().loadXmlStr(
 			"<Command name=\"j5\">"
 			"	<GroupParam>"
-			"		<Param name=\"increase_count\" default=\"100\"/>"
+            "		<Param name=\"increase_count\" default=\"100\"/>"
 			"		<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
 			"		<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"
 			"		<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"
@@ -3906,7 +3911,7 @@ namespace kaanh
 
 		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
 		//当前有指令在执行//
-		if (planptr && planptr->plan->name() != "j6")throw std::runtime_error("Other command is running");
+        if (planptr && planptr->plan != this)throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + "Other command is running");
 
 		if (param.j6_count.exchange(param.increase_count))
 		{
@@ -3915,6 +3920,7 @@ namespace kaanh
 		else
 		{
 			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
+            target.mot_options[5] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
 		}
 		target.param = param;
 	}
@@ -4005,7 +4011,7 @@ namespace kaanh
 		command().loadXmlStr(
 			"<Command name=\"j6\">"
 			"	<GroupParam>"
-			"		<Param name=\"increase_count\" default=\"100\"/>"
+            "		<Param name=\"increase_count\" default=\"100\"/>"
 			"		<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
 			"		<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"
 			"		<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"
@@ -4069,7 +4075,7 @@ namespace kaanh
 		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
 		
 		//当前有指令在执行//
-		if (planptr && planptr->plan->name() != "jx")throw std::runtime_error("Other command is running");
+        if (planptr && planptr->plan != this)throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + "Other command is running");
 
 		if (param.jx_count.exchange(param.increase_count))
 		{
@@ -4077,7 +4083,7 @@ namespace kaanh
 		}
 		else
 		{
-			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
+            std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS);
 		}
 		target.param = param;
 
@@ -4265,7 +4271,7 @@ namespace kaanh
 		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
 
 		//当前有指令在执行//
-		if (planptr && planptr->plan->name() != "jy")throw std::runtime_error("Other command is running");
+        if (planptr && planptr->plan != this)throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + "Other command is running");
 
 		if (param.jy_count.exchange(param.increase_count))
 		{
@@ -4273,7 +4279,7 @@ namespace kaanh
 		}
 		else
 		{
-			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
+            std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS);
 		}
 		target.param = param;
 
@@ -4461,7 +4467,7 @@ namespace kaanh
 		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
 
 		//当前有指令在执行//
-		if (planptr && planptr->plan->name() != "jz")throw std::runtime_error("Other command is running");
+        if (planptr && planptr->plan != this)throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + "Other command is running");
 
 		if (param.jz_count.exchange(param.increase_count))
 		{
@@ -4469,7 +4475,7 @@ namespace kaanh
 		}
 		else
 		{
-			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
+            std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS);
 		}
 		target.param = param;
 
@@ -4657,7 +4663,7 @@ namespace kaanh
 		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
 
 		//当前有指令在执行//
-		if (planptr && planptr->plan->name() != "jrx")throw std::runtime_error("Other command is running");
+        if (planptr && planptr->plan != this)throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + "Other command is running");
 
 		if (param.jrx_count.exchange(param.increase_count))
 		{
@@ -4665,7 +4671,7 @@ namespace kaanh
 		}
 		else
 		{
-			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
+            std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS);
 		}
 		target.param = param;
 
@@ -4860,7 +4866,7 @@ namespace kaanh
 		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
 
 		//当前有指令在执行//
-		if (planptr && planptr->plan->name() != "jry")throw std::runtime_error("Other command is running");
+        if (planptr && planptr->plan != this)throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + "Other command is running");
 
 		if (param.jry_count.exchange(param.increase_count))
 		{
@@ -4868,7 +4874,7 @@ namespace kaanh
 		}
 		else
 		{
-			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
+            std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS);
 		}
 		target.param = param;
 
@@ -5056,7 +5062,7 @@ namespace kaanh
 		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
 
 		//当前有指令在执行//
-		if (planptr && planptr->plan->name() != "jrz")throw std::runtime_error("Other command is running");
+        if (planptr && planptr->plan != this)throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + "Other command is running");
 
 		if (param.jrz_count.exchange(param.increase_count))
 		{
@@ -5064,7 +5070,7 @@ namespace kaanh
 		}
 		else
 		{
-			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
+            std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS);
 		}
 		target.param = param;
 
