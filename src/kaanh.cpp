@@ -3171,7 +3171,7 @@ namespace kaanh
 
 		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
 		//当前有指令在执行//
-		if (planptr && planptr->plan->name() != "jj1")throw std::runtime_error("Other command is running");
+		if (planptr && planptr->plan->name() != "j1")throw std::runtime_error("Other command is running");
 
 		if (param.j1_count.exchange(param.increase_count))
 		{
@@ -3318,7 +3318,7 @@ namespace kaanh
 
 		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
 		//当前有指令在执行//
-		if (planptr && planptr->plan->name() != "jj2")throw std::runtime_error("Other command is running");
+		if (planptr && planptr->plan->name() != "j2")throw std::runtime_error("Other command is running");
 
 		if (param.j2_count.exchange(param.increase_count))
 		{
@@ -3465,7 +3465,7 @@ namespace kaanh
 
 		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
 		//当前有指令在执行//
-		if (planptr && planptr->plan->name() != "jj3")throw std::runtime_error("Other command is running");
+		if (planptr && planptr->plan->name() != "j3")throw std::runtime_error("Other command is running");
 
 		if (param.j3_count.exchange(param.increase_count))
 		{
@@ -3612,7 +3612,7 @@ namespace kaanh
 
 		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
 		//当前有指令在执行//
-		if (planptr && planptr->plan->name() != "jj4")throw std::runtime_error("Other command is running");
+		if (planptr && planptr->plan->name() != "j4")throw std::runtime_error("Other command is running");
 
 		if (param.j4_count.exchange(param.increase_count))
 		{
@@ -3759,7 +3759,7 @@ namespace kaanh
 
 		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
 		//当前有指令在执行//
-		if (planptr && planptr->plan->name() != "jj5")throw std::runtime_error("Other command is running");
+		if (planptr && planptr->plan->name() != "j5")throw std::runtime_error("Other command is running");
 
 		if (param.j5_count.exchange(param.increase_count))
 		{
@@ -3906,7 +3906,7 @@ namespace kaanh
 
 		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
 		//当前有指令在执行//
-		if (planptr && planptr->plan->name() != "jj6")throw std::runtime_error("Other command is running");
+		if (planptr && planptr->plan->name() != "j6")throw std::runtime_error("Other command is running");
 
 		if (param.j6_count.exchange(param.increase_count))
 		{
