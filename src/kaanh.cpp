@@ -725,6 +725,7 @@ namespace kaanh
 		aris::control::EthercatController::SlaveLinkState sls[6];
 		aris::control::EthercatController::MasterLinkState mls{};
 		std::vector<int> motion_state;
+		std::string currentplan;
 	};
 	auto Get::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
@@ -742,7 +743,7 @@ namespace kaanh
 		std::any param = par;
 		//std::any param = std::make_any<GetParam>();
 		
-		target.server->getRtData([&](aris::server::ControlServer& cs, std::any& data)->void
+		target.server->getRtData([&](aris::server::ControlServer& cs, const aris::plan::PlanTarget *target, std::any& data)->void
 		{
 			for (aris::Size i(-1); ++i < cs.model().partPool().size();)
 			{
@@ -769,6 +770,7 @@ namespace kaanh
 			auto ec = dynamic_cast<aris::control::EthercatController*>(&cs.controller());
 			ec->getLinkState(&std::any_cast<GetParam &>(data).mls, std::any_cast<GetParam &>(data).sls);
 
+			//获取motion的使能状态，0表示去使能状态，1表示使能状态//
 			for (aris::Size i = 0; i < 6; i++)
 			{
 				auto cm = dynamic_cast<aris::control::EthercatMotion*>(&cs.controller().motionPool()[i]);
@@ -780,6 +782,15 @@ namespace kaanh
 				{
 					std::any_cast<GetParam &>(data).motion_state[i] = 1;
 				}
+			}
+
+			if (target == nullptr)
+			{
+				std::any_cast<GetParam &>(data).currentplan = "none";
+			}
+			else
+			{
+				std::any_cast<GetParam &>(data).currentplan = target->plan->command().name();
 			}
 
 		}, param);
@@ -807,6 +818,7 @@ namespace kaanh
 		out_param.push_back(std::make_pair<std::string, std::any>("slave_online_state", slave_online));
 		out_param.push_back(std::make_pair<std::string, std::any>("slave_al_state", slave_al_state));
 		out_param.push_back(std::make_pair<std::string, std::any>("motion_state", out_data.motion_state));
+		out_param.push_back(std::make_pair<std::string, std::any>("current_plan", out_data.currentplan));
 
 		target.ret = out_param;
 		target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_PRINT_CMD_INFO | NOT_PRINT_CMD_INFO;

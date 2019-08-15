@@ -2934,7 +2934,7 @@ auto GetForce::prepairNrt(const std::map<std::string, std::string> &params, Plan
 	double FT[2] = { 0,0 };
 
 	std::any cur_a = double(0);
-	target.server->getRtData([&](aris::server::ControlServer& cs, std::any &data)->void
+	target.server->getRtData([&](aris::server::ControlServer& cs, const aris::plan::PlanTarget *target, std::any& data)->void
 	{
 		FT[0] = TimeToMeng;
 		FT[1] = ForceToMeng;
