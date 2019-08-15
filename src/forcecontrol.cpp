@@ -91,10 +91,8 @@ namespace forcecontrol
 
 		std::fill(target.mot_options.begin(), target.mot_options.end(),
 			Plan::USE_TARGET_POS |
-            Plan::USE_VEL_OFFSET |
             Plan::NOT_CHECK_ENABLE|
-            Plan::NOT_CHECK_VEL_CONTINUOUS|
-            Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START);
+            Plan::NOT_CHECK_VEL_CONTINUOUS);
 
 	}
 	auto MoveJRC::executeRT(PlanTarget &target)->int
@@ -252,7 +250,7 @@ namespace forcecontrol
 					ft_offset = std::min(500.0, ft_offset);
 
                     double weight[6] = {1,1,1.1,1,1,1};
-                    controller->motionAtAbs(i).setTargetCur(ft_offset + weight[i]*target.model->motionPool()[i].mfDyn()*f2c_index[i]);
+                    controller->motionAtAbs(i).setTargetToq(ft_offset + weight[i]*target.model->motionPool()[i].mfDyn()*f2c_index[i]);
 
 
 					//打印PID控制结果
@@ -284,7 +282,7 @@ namespace forcecontrol
 				{
                     //cout << "pos" << i + 1 << ":" << std::setw(6) << controller->motionAtAbs(i).actualPos() << ",";
                     //cout << "vel" << i + 1 << ":" << std::setw(6) << controller->motionAtAbs(i).actualVel() << ",";
-                    cout << "cur" << i + 1 << ":" << std::setw(6) << controller->motionAtAbs(i).targetCur() << ",";
+                    cout << "cur" << i + 1 << ":" << std::setw(6) << controller->motionAtAbs(i).targetToq() << ",";
                     cout << "cur" << i + 1 << ":" << std::setw(6) << controller->motionAtAbs(i).actualCur() << ",";
 				}
 			}
@@ -503,8 +501,6 @@ namespace forcecontrol
 			}
 			target.param = param;
 
-			std::fill(target.mot_options.begin(), target.mot_options.end(),
-				Plan::USE_VEL_OFFSET);
 
 		}
 	auto MovePQCrash::executeRT(PlanTarget &target)->int
@@ -662,7 +658,7 @@ namespace forcecontrol
 					//ft_pid = 0.0;
 
 					ft_offset[i] = (ft_friction[i] + ft_dynamic[i] + ft_pid[i])*f2c_index[i];
-					controller->motionAtAbs(i).setTargetCur(ft_offset[i]);
+                    controller->motionAtAbs(i).setTargetToq(ft_offset[i]);
 
 				}
 			}
@@ -1115,7 +1111,7 @@ namespace forcecontrol
 			//电机输入电流=力*力到电流的系数
 			param.f_input[i] = (param.f_friction[i] + param.f_dynamic[i] + param.ft_pid[i])*f2c_index[i];
 
-			controller->motionAtAbs(i).setTargetCur(param.f_input[i]);
+            controller->motionAtAbs(i).setTargetToq(param.f_input[i]);
         }
 
 		//print//
@@ -1313,7 +1309,7 @@ namespace forcecontrol
 			//电机输入电流=力*力到电流的系数
 			param.f_input[i] = (param.f_friction[i] + param.f_dynamic[i] + param.ft_pid[i])*f2c_index[i];
 
-			controller->motionAtAbs(i).setTargetCur(param.f_input[i]);
+            controller->motionAtAbs(i).setTargetToq(param.f_input[i]);
 		}
 
 		//print//
@@ -1526,8 +1522,6 @@ namespace forcecontrol
 		}
 		target.param = param;
 
-		std::fill(target.mot_options.begin(), target.mot_options.end(),
-			Plan::USE_VEL_OFFSET);
 
 	}
 	auto MovePQB::executeRT(PlanTarget &target)->int
@@ -1813,8 +1807,7 @@ namespace forcecontrol
 			}
 			target.param = param;
 
-			std::fill(target.mot_options.begin(), target.mot_options.end(),
-				Plan::USE_VEL_OFFSET);
+
 
 		}
 	auto MoveJCrash::executeRT(PlanTarget &target)->int
@@ -1996,7 +1989,7 @@ namespace forcecontrol
 					ft_dynamic[i] = target.model->motionPool()[i].mfDyn();
 
 					ft_offset[i] = (ft_friction[i] + ft_dynamic[i] + param.ft[i])*f2c_index[i];
-					controller->motionAtAbs(i).setTargetCur(ft_offset[i]);
+                    controller->motionAtAbs(i).setTargetToq(ft_offset[i]);
 				}
 			}
 
@@ -2254,8 +2247,7 @@ namespace forcecontrol
 		}
 		target.param = param;
 
-		std::fill(target.mot_options.begin(), target.mot_options.end(),
-			Plan::USE_VEL_OFFSET);
+
 
 	}
 	auto MoveJF::executeRT(PlanTarget &target)->int
@@ -2398,7 +2390,7 @@ namespace forcecontrol
 				ft_dynamic[i] = target.model->motionPool()[i].mfDyn();
 
 				ft_offset[i] = (ft_friction[i] + ft_dynamic[i] + param.ft[i])*f2c_index[i];
-				controller->motionAtAbs(i).setTargetCur(ft_offset[i]);
+                controller->motionAtAbs(i).setTargetToq(ft_offset[i]);
 			}
 		}
 
@@ -2652,8 +2644,6 @@ namespace forcecontrol
 		}
 		target.param = param;
 
-		std::fill(target.mot_options.begin(), target.mot_options.end(),
-			Plan::USE_VEL_OFFSET);
 
 	}
 	auto MoveJFB::executeRT(PlanTarget &target)->int
@@ -2809,7 +2799,7 @@ namespace forcecontrol
 				ft_dynamic[i] = target.model->motionPool()[i].mfDyn();
 
 				ft_offset[i] = (ft_friction[i] + ft_dynamic[i] + param.ft[i])*f2c_index[i];
-				controller->motionAtAbs(i).setTargetCur(ft_offset[i]);
+                controller->motionAtAbs(i).setTargetToq(ft_offset[i]);
 			}
 		}
 
@@ -3110,8 +3100,7 @@ namespace forcecontrol
 			}
 			target.param = param;
 
-			std::fill(target.mot_options.begin(), target.mot_options.end(),
-				Plan::USE_VEL_OFFSET);
+
 
 		}
 	auto MoveJPID::executeRT(PlanTarget &target)->int
@@ -3264,7 +3253,7 @@ namespace forcecontrol
 						ft_dynamic[i] = target.model->motionPool()[i].mfDyn();
 
 						ft_offset[i] = (ft_friction[i] + ft_dynamic[i] + param.ft[i])*f2c_index[i];
-						controller->motionAtAbs(i).setTargetCur(ft_offset[i]);
+                        controller->motionAtAbs(i).setTargetToq(ft_offset[i]);
 					}
 				}
 			}

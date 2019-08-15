@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
 
 	
 	//Start Web Socket//
-	cs.startWebSock("5866");
+    //cs.startWebSock("5866");
 
 	//Receive Command//
 	cs.runCmdLine();

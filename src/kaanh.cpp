@@ -1956,8 +1956,6 @@ double p, v, a;
 			}
 			target.param = param;
 
-			std::fill(target.mot_options.begin(), target.mot_options.end(),
-				Plan::USE_VEL_OFFSET);
 
 		}
 	auto MoveJI::executeRT(PlanTarget &target)->int
@@ -2985,9 +2983,6 @@ double p, v, a;
 			}
 			target.param = param;
 
-			std::fill(target.mot_options.begin(), target.mot_options.end(),
-				Plan::USE_TARGET_POS |
-				Plan::USE_VEL_OFFSET);
 
 		}
 	auto MoveEAP::executeRT(PlanTarget &target)->int
@@ -3075,7 +3070,7 @@ double p, v, a;
 			}
 
 			//电流前馈//
-			controller->motionAtAbs(6).setOffsetCur(fore_cur);
+            controller->motionAtAbs(6).setOffsetToq(fore_cur);
 
 			//对速度进行均值滤波, 对摩擦力进行滤波//
 			double mean_vel, fe, filteredforce;
@@ -4030,7 +4025,7 @@ double p, v, a;
         plan_root->planPool().add<aris::plan::MoveL>();
         plan_root->planPool().add<aris::plan::MoveJ>();
 
-        plan_root->planPool().add<aris::plan::GetPartPq>();
+
         plan_root->planPool().add<aris::plan::GetXml>();
         plan_root->planPool().add<aris::plan::SetXml>();
         plan_root->planPool().add<aris::plan::Start>();

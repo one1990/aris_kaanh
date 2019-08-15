@@ -48,15 +48,12 @@ auto SevenJointDyna::prepairNrt(const std::map<std::string, std::string> &params
 		Plan::NOT_CHECK_POS_MIN |
 		Plan::NOT_CHECK_POS_MAX |
 		Plan::NOT_CHECK_POS_CONTINUOUS |
-		Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
 		Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
 		//#endif
 		Plan::NOT_CHECK_VEL_MIN |
 		Plan::NOT_CHECK_VEL_MAX |
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
-		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 
 	/*
@@ -349,15 +346,12 @@ auto SevenJointTest::prepairNrt(const std::map<std::string, std::string> &params
 		Plan::NOT_CHECK_POS_MIN |
 		Plan::NOT_CHECK_POS_MAX |
 		Plan::NOT_CHECK_POS_CONTINUOUS |
-		Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
 		Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
 		//#endif
 		Plan::NOT_CHECK_VEL_MIN |
 		Plan::NOT_CHECK_VEL_MAX |
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
-		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 
 	//读取动力学参数
@@ -498,15 +492,12 @@ auto SevenDragTeach::prepairNrt(const std::map<std::string, std::string> &params
 		Plan::NOT_CHECK_POS_MIN |
 		Plan::NOT_CHECK_POS_MAX |
 		Plan::NOT_CHECK_POS_CONTINUOUS |
-		Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
 		Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
 		//#endif
 		Plan::NOT_CHECK_VEL_MIN |
 		Plan::NOT_CHECK_VEL_MAX |
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
-		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 
 	//读取动力学参数
@@ -559,7 +550,7 @@ auto SevenDragTeach::executeRT(PlanTarget &target)->int
 			switch (status[i])
 			{
 			case MODING:
-				target.controller->motionPool()[i].setTargetCur(0.0);
+                target.controller->motionPool()[i].setTargetToq(0.0);
 				status[i] = target.controller->motionPool()[i].mode(10) ? status[i] : ENABLING;
 				break;
 			case ENABLING:
@@ -574,7 +565,7 @@ auto SevenDragTeach::executeRT(PlanTarget &target)->int
 
 
 			{
-				target.controller->motionPool()[i].setTargetCur(0.0);
+                target.controller->motionPool()[i].setTargetToq(0.0);
 				begin_pjs[i] = target.model->motionPool()[i].mp();
 				controller->motionPool().at(i).setModeOfOperation(10);	//切换到电流控制
 			}
@@ -615,7 +606,7 @@ auto SevenDragTeach::executeRT(PlanTarget &target)->int
 		ft_offset = std::max(-Limit[i], ft_offset);
 		ft_offset = std::min(Limit[i], ft_offset);
 
-		controller->motionAtAbs(i).setTargetCur(ft_offset);
+        controller->motionAtAbs(i).setTargetToq(ft_offset);
 		cout << ft_offset << "***";
 	}
 	cout << std::endl;
@@ -710,15 +701,12 @@ auto SevenLoadDyna::prepairNrt(const std::map<std::string, std::string> &params,
 		Plan::NOT_CHECK_POS_MIN |
 		Plan::NOT_CHECK_POS_MAX |
 		Plan::NOT_CHECK_POS_CONTINUOUS |
-		Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
 		Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
 		//#endif
 		Plan::NOT_CHECK_VEL_MIN |
 		Plan::NOT_CHECK_VEL_MAX |
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
-		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 
 	/*

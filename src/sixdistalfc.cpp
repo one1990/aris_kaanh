@@ -143,11 +143,9 @@ auto MoveXYZ::prepairNrt(const std::map<std::string, std::string> &params, PlanT
 		Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
 #endif
 		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
 		Plan::NOT_CHECK_VEL_MIN |
 		Plan::NOT_CHECK_VEL_MAX |
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
-		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 
 
@@ -531,15 +529,12 @@ auto MoveDistal::prepairNrt(const std::map<std::string, std::string> &params, Pl
 		Plan::NOT_CHECK_POS_MIN |
 		Plan::NOT_CHECK_POS_MAX |
 		Plan::NOT_CHECK_POS_CONTINUOUS |
-		Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
 		Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
 		//#endif
 		Plan::NOT_CHECK_VEL_MIN |
 		Plan::NOT_CHECK_VEL_MAX |
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
-		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
         Plan::NOT_CHECK_VEL_FOLLOWING_ERROR|
         Plan::NOT_CHECK_ENABLE;
 
@@ -766,15 +761,12 @@ auto DistalTest::prepairNrt(const std::map<std::string, std::string> &params, Pl
         Plan::NOT_CHECK_POS_MIN |
         Plan::NOT_CHECK_POS_MAX |
         Plan::NOT_CHECK_POS_CONTINUOUS |
-        Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
         Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-        Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
         Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
         //#endif
         Plan::NOT_CHECK_VEL_MIN |
         Plan::NOT_CHECK_VEL_MAX |
         Plan::NOT_CHECK_VEL_CONTINUOUS |
-        Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
         Plan::NOT_CHECK_VEL_FOLLOWING_ERROR|
         Plan::NOT_CHECK_ENABLE;
 
@@ -977,15 +969,12 @@ auto MovePressure::prepairNrt(const std::map<std::string, std::string> &params, 
 		Plan::NOT_CHECK_POS_MIN |
 		Plan::NOT_CHECK_POS_MAX |
 		Plan::NOT_CHECK_POS_CONTINUOUS |
-		Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
 		Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
 		//#endif
 		Plan::NOT_CHECK_VEL_MIN |
 		Plan::NOT_CHECK_VEL_MAX |
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
-		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 
 
@@ -1355,7 +1344,6 @@ auto MovePressureToolYZ::prepairNrt(const std::map<std::string, std::string> &pa
     for(auto &option:target.mot_options) option|=
 		Plan::USE_TARGET_POS |
         Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-        Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START|
         Plan::NOT_CHECK_ENABLE;
 
     //读取动力学参数
@@ -2135,15 +2123,12 @@ auto MovePressureToolXY::prepairNrt(const std::map<std::string, std::string> &pa
 		Plan::NOT_CHECK_POS_MIN |
 		Plan::NOT_CHECK_POS_MAX |
 		Plan::NOT_CHECK_POS_CONTINUOUS |
-		Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
 		Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
 		//#endif
 		Plan::NOT_CHECK_VEL_MIN |
 		Plan::NOT_CHECK_VEL_MAX |
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
-		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
         Plan::NOT_CHECK_VEL_FOLLOWING_ERROR|
         Plan::NOT_CHECK_ENABLE;
 
@@ -2808,15 +2793,12 @@ auto MoveFeed::prepairNrt(const std::map<std::string, std::string> &params, Plan
 		Plan::NOT_CHECK_POS_MIN |
 		Plan::NOT_CHECK_POS_MAX |
 		Plan::NOT_CHECK_POS_CONTINUOUS |
-		Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
 		Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
 		//#endif
 		Plan::NOT_CHECK_VEL_MIN |
 		Plan::NOT_CHECK_VEL_MAX |
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
-		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 
 
@@ -3199,15 +3181,10 @@ auto ForceDirect::prepairNrt(const std::map<std::string, std::string> &params, P
 		Plan::NOT_CHECK_POS_MIN |
 		Plan::NOT_CHECK_POS_MAX |
 		Plan::NOT_CHECK_POS_CONTINUOUS |
-		Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
 		Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
 		//#endif
-		Plan::NOT_CHECK_VEL_MIN |
-		Plan::NOT_CHECK_VEL_MAX |
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
-		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR |
 		Plan::NOT_CHECK_ENABLE;
 
@@ -3249,8 +3226,9 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
         for (int i = 0; i < 7; ++i)
             PqEnd0[i] = PqEnd[i];
 
-		PqEnd0[0] = 0.398;PqEnd0[1] = 0;PqEnd0[2] = 0.6295;PqEnd0[3] = 0;PqEnd0[4] = 0.7071;PqEnd0[5] = 0;PqEnd0[6] = 0.7071;
-		aris::dynamic::s_pq2pm(PqEnd0, begin_pm);
+        //PqEnd0[0] = 0.398;PqEnd0[1] = 0;PqEnd0[2] = 0.6295;PqEnd0[3] = 0;PqEnd0[4] = 0.7071;PqEnd0[5] = 0;PqEnd0[6] = 0.7071;
+
+        aris::dynamic::s_pq2pm(PqEnd0, begin_pm);
 		target.model->generalMotionPool()[0].getMpm(begin_pm);
 	}	
 		double TransMatrix[4][4];
@@ -3274,8 +3252,9 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 	double PmTrans[9] = { 0 };
 	s_mm(3, 3, 3, Pm0, Pm, PmTrans);*/
 
-	PqEnd[0] = 0.398;PqEnd[1] = 0;PqEnd[2] = 0.6295;PqEnd[3] = 0;PqEnd[4] =0;PqEnd[5] = 0;PqEnd[6] = 1;
-	aris::dynamic::s_pq2pm(PqEnd, end_pm);
+    //PqEnd[0] = 0.398;PqEnd[1] = 0;PqEnd[2] = 0.6295;PqEnd[3] = 0;PqEnd[4] =0;PqEnd[5] = 0;PqEnd[6] = 1;
+
+    aris::dynamic::s_pq2pm(PqEnd, end_pm);
 	//target.model->generalMotionPool()[0].getMpm(end_pm);
 	aris::dynamic::s_inv_pm_dot_pm(begin_pm, end_pm, relative_pm);
 	// relative_pa //
@@ -3284,13 +3263,13 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 
 
 	double ft[6] = { 0 }, ftemp[6] = { 0 };
-    double KP[7] = {650,650,0,-110,-110,-110,0};
-    double KI[7] = {350,350,0,-0,-0,-0,0};
+    double KP[7] = {450,450,0,-50,-150,-50,0};
+    double KI[7] = {150,150,0,-0,-0,-0,0};
     static double ErrSum[7]={0};
 	for (int i = 0; i < 3; ++i)
 	{
-        ErrSum[i]=ErrSum[i]+(PqEnd[i] - PqEnd0[i])*0.001;
-        ft[i] = KP[i] * (PqEnd[i]- PqEnd0[i])+KI[i]*ErrSum[i];
+        ErrSum[i]=ErrSum[i]+(PqEnd0[i] - PqEnd[i])*0.001;
+        ft[i] = KP[i] * (PqEnd0[i]- PqEnd[i])+KI[i]*ErrSum[i];
 	}
 
 
@@ -3307,9 +3286,15 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 	ft[5] = a[0] * ftemp[3] + a[1] * ftemp[4] + a[2] * ftemp[5];
 	*/
 
-	
+
+
+    double dq[4] = { 0 };
 	//姿态误差2
 	double cos_theta = PqEnd[3] * PqEnd0[3] + PqEnd[4] * PqEnd0[4] + PqEnd[5] * PqEnd0[5] + PqEnd[6] * PqEnd0[6];
+
+    auto &lout = controller->lout();
+    lout <<cos_theta<<",";
+
 	if (cos_theta < 0)
 	{
 		PqEnd[3] = -PqEnd[3];
@@ -3320,9 +3305,9 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 	cos_theta = PqEnd[3] * PqEnd0[3] + PqEnd[4] * PqEnd0[4] + PqEnd[5] * PqEnd0[5] + PqEnd[6] * PqEnd0[6];
 	double theta = acos(cos_theta);
 	double sin_theta = sin(theta);
-	double dq[4] = { 0 };
 
-	if (theta < 0.1)
+
+    if (theta < 0.03)
 	{
 		dq[0] = -PqEnd0[3] + PqEnd[3];
 		dq[1] = -PqEnd0[4] + PqEnd[4];
@@ -3342,27 +3327,24 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 		ErrSum[i] = ErrSum[i] + (pq[i])*0.001;
 		ft[i] = KP[i] * (dq[i-3]) + KI[i] * ErrSum[i];
 	}
-	
+    lout <<dq[0]<<","; lout <<dq[1]<<","; lout <<dq[2]<<","; lout <<dq[3]<<",";
 
 
 
 	double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
-	double f_static[6] = { 9,9,5,3,2,2 };
+
+    double f_static[6] = { 9,9,5,3,2,2 };
 	double f_vel_JRC[6] = { 0,0,0,0,0,0 };
 	auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(target.model->solverPool()[1]);
 	fwd.cptJacobiWrtEE();
 	double JoinTau[6] = { 0 };
 	s_mm(6, 1, 6, fwd.Jf(), T(6), ft, 1, JoinTau, 1);
 
+    if (target.count % 300 == 0)
+    {
+        cout<<ft[3]<<"****"<<ft[4]<<"****"<<ft[5]<<"****"<<JoinTau[1]<<"****"<<JoinTau[2]<<std::endl;
+    }
 
-    auto &lout = controller->lout();
-    lout << PqEnd[0] << ",";lout << PqEnd[1] << ",";
-    lout << PqEnd[2] << ",";lout << PqEnd[3] << ",";
-    lout << PqEnd[4] << ",";lout << PqEnd[5] << ",";lout << PqEnd[6] << ",";
-
-    lout << JoinTau[0] << ",";lout << JoinTau[1] << ",";
-    lout << JoinTau[2] << ",";lout << JoinTau[3] << ",";
-    lout << JoinTau[4] << ",";lout << JoinTau[5] << ",";lout << std::endl;
 
 
 
@@ -3389,41 +3371,34 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 
 	for (int i = 0; i < 6; i++)
 	{
-        JoinTau[i] = JoinTau[i] + target.model->motionPool()[i].mfDyn() + f_vel_JRC[i] * va[i] + 1 * f_static[i] * signV(va[i]);
-		JoinTau[i] = JoinTau[i] * f2c_index[i];
+        JoinTau[i] = JoinTau[i] + target.model->motionPool()[i].mfDyn() + f_vel_JRC[i] * va[i] + 0 * f_static[i] * signV(va[i]);
+        JoinTau[i] = JoinTau[i] * f2c_index[i];
 	}
 
+
+    lout << PqEnd[0] << ",";lout << PqEnd[1] << ",";
+    lout << PqEnd[2] << ",";lout << PqEnd[3] << ",";
+    lout << PqEnd[4] << ",";lout << PqEnd[5] << ",";lout << PqEnd[6] << ",";
+
+    lout <<theta<<",";
+
+    lout << JoinTau[0] << ",";lout << JoinTau[1] << ",";
+    lout << JoinTau[2] << ",";lout << JoinTau[3] << ",";
+    lout << JoinTau[4] << ",";lout << JoinTau[5] << ",";lout << std::endl;
 
 	for (int i = 0; i < 6; i++)
 	{
-        JoinTau[i] = std::max(-400.0, JoinTau[i]);
-        JoinTau[i] = std::min(400.0, JoinTau[i]);
+        JoinTau[i] = std::max(-300.0, JoinTau[i]);
+        JoinTau[i] = std::min(300.0, JoinTau[i]);
 
-		controller->motionAtAbs(i).setTargetCur(JoinTau[i]);
+        controller->motionAtAbs(i).setTargetToq(JoinTau[i]);
 	}
 
 
-    if (target.count % 300 == 0)
-    {
-        cout<<ft[0]<<"****"<<ft[1]<<"****"<<JoinTau[0]<<"****"<<JoinTau[1]<<"****"<<JoinTau[2]<<std::endl;
-    }
 
 
 
-
-
-	for (int i = 0; i < 6; i++)
-	{
-
-		stateTor0[i][0] = stateTor1[i][0];
-		stateTor0[i][1] = stateTor1[i][1];
-		stateTor0[i][2] = stateTor1[i][2];
-
-
-	}
-
-
-	return 150000000 - target.count;
+    return 1500000 - target.count;
 
 }
 
@@ -3472,15 +3447,12 @@ auto MoveJoint::prepairNrt(const std::map<std::string, std::string> &params, Pla
 		Plan::NOT_CHECK_POS_MIN |
 		Plan::NOT_CHECK_POS_MAX |
 		Plan::NOT_CHECK_POS_CONTINUOUS |
-		Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
 		Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
 		//#endif
 		Plan::NOT_CHECK_VEL_MIN |
 		Plan::NOT_CHECK_VEL_MAX |
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
-		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
         Plan::NOT_CHECK_VEL_FOLLOWING_ERROR|
         Plan::NOT_CHECK_ENABLE;
 

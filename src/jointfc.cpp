@@ -48,15 +48,12 @@ auto JointDyna::prepairNrt(const std::map<std::string, std::string> &params, Pla
 		Plan::NOT_CHECK_POS_MIN |
 		Plan::NOT_CHECK_POS_MAX |
 		Plan::NOT_CHECK_POS_CONTINUOUS |
-		Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
 		Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
 		//#endif
 		Plan::NOT_CHECK_VEL_MIN |
 		Plan::NOT_CHECK_VEL_MAX |
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
-		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 		
 }
@@ -305,15 +302,12 @@ auto JointTest::prepairNrt(const std::map<std::string, std::string> &params, Pla
 		Plan::NOT_CHECK_POS_MIN |
 		Plan::NOT_CHECK_POS_MAX |
 		Plan::NOT_CHECK_POS_CONTINUOUS |
-		Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
 		Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
 		//#endif
 		Plan::NOT_CHECK_VEL_MIN |
 		Plan::NOT_CHECK_VEL_MAX |
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
-		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 
 	//读取动力学参数
@@ -529,15 +523,12 @@ auto DragTeach::prepairNrt(const std::map<std::string, std::string> &params, Pla
 		Plan::NOT_CHECK_POS_MIN |
 		Plan::NOT_CHECK_POS_MAX |
 		Plan::NOT_CHECK_POS_CONTINUOUS |
-		Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
 		Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
 		//#endif
 		Plan::NOT_CHECK_VEL_MIN |
 		Plan::NOT_CHECK_VEL_MAX |
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
-		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
         Plan::NOT_CHECK_VEL_FOLLOWING_ERROR|
         Plan::NOT_CHECK_ENABLE;
 
@@ -650,7 +641,7 @@ auto DragTeach::executeRT(PlanTarget &target)->int
         if(ft_offset<-500)
            ft_offset = -500.0;
 
-        controller->motionAtAbs(i).setTargetCur(ft_offset);
+        controller->motionAtAbs(i).setTargetToq(ft_offset);
 	}
 
     if (target.model->solverPool().at(1).kinPos())return -1;
@@ -745,15 +736,12 @@ auto LoadDyna::prepairNrt(const std::map<std::string, std::string> &params, Plan
 		Plan::NOT_CHECK_POS_MIN |
 		Plan::NOT_CHECK_POS_MAX |
 		Plan::NOT_CHECK_POS_CONTINUOUS |
-		Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
 		Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
 		//#endif
 		Plan::NOT_CHECK_VEL_MIN |
 		Plan::NOT_CHECK_VEL_MAX |
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
-		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 
 
