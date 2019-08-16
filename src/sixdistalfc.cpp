@@ -137,9 +137,7 @@ auto MoveXYZ::prepairNrt(const std::map<std::string, std::string> &params, PlanT
 		Plan::NOT_CHECK_POS_MIN |
 		Plan::NOT_CHECK_POS_MAX |
 		Plan::NOT_CHECK_POS_CONTINUOUS |
-		Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
 		Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
 #endif
 		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
@@ -2740,6 +2738,7 @@ auto GetForce::prepairNrt(const std::map<std::string, std::string> &params, Plan
 
 	std::any cur_a = double(0);
     /*target.server->getRtData([&](aris::server::ControlServer& cs, std::any &data)->void
+
 	{
 		FT[0] = TimeToMeng;
 		FT[1] = ForceToMeng;
@@ -3810,6 +3809,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
     ft_offset[i] = std::max(-500.0, ft_offset[i]);
     ft_offset[i] = std::min(500.0, ft_offset[i]);
     //if(abs(pa[i])<1)
+
         //controller->motionAtAbs(i).setTargetCur(ft_offset[i]);
     }
 

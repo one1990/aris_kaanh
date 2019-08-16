@@ -10,6 +10,9 @@
 
 namespace forcecontrol
 {
+	//电缸力检测参数声明
+	constexpr double ea_a = 3765.8, ea_b = 1334.8, ea_c = 45.624, ea_gra = 24, ea_index = -6, ea_gra_index = 36;  //电缸电流换算压力的系数，ea_k表示比例系数，ea_b表示截距，ea_offset表示重力影响量，ea_index表示电流扭矩系数=额定扭矩*6.28*减速比/导程/1000//
+
 	//机器人力控参数声明
 	constexpr double f_static[6] = { 9.349947583,11.64080253,4.770140543,3.631416685,2.58310847,1.783739862 };
     constexpr double f_vel_JRC[6] = { 7,11,6,2.5,0.5,0.319206404 };
@@ -114,6 +117,18 @@ namespace forcecontrol
 
 		explicit MoveJPID(const std::string &name = "MoveJPID_plan");
 		ARIS_REGISTER_TYPE(MoveJPID);
+	};
+
+	class MoveEAC : public aris::plan::Plan
+	{
+	public:
+		double tempforce;
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+
+		explicit MoveEAC(const std::string &name = "MoveEAC_plan");
+		ARIS_REGISTER_TYPE(MoveEAC);
 	};
 
 	class MoveStop : public aris::plan::Plan

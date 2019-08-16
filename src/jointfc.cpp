@@ -218,7 +218,7 @@ auto JointDyna::collectNrt(aris::plan::PlanTarget &target)->void
 		cout << JointMatrix.estParasJoint[i] << ",";
 
 	aris::core::Matrix mat0(1,JointReduceDim + 12, JointMatrix.estParasJoint);
-	if (target.model->variablePool().findByName("estParasJoint") !=
+	if (target.model->variablePool().findByName(".") !=
 		target.model->variablePool().end())
 	{
 		dynamic_cast<aris::dynamic::MatrixVariable*>(
@@ -769,6 +769,10 @@ auto LoadDyna::prepairNrt(const std::map<std::string, std::string> &params, Plan
 
 	target.param = param;
 
+	std::fill(target.mot_options.begin(), target.mot_options.end(),
+		//用于使用模型轨迹驱动电机//
+		Plan::USE_TARGET_POS);
+/*
     for(auto &option:target.mot_options) option|=
 		Plan::USE_TARGET_POS |
 		//#ifdef WIN32
@@ -782,7 +786,7 @@ auto LoadDyna::prepairNrt(const std::map<std::string, std::string> &params, Plan
 		Plan::NOT_CHECK_VEL_MAX |
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
 		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
-
+*/
 
 	/*
 	int nn = 12; // n代表txt文档中数据的列数
