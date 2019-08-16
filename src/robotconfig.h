@@ -21,7 +21,7 @@ namespace CONFIG
 
 	};
 
-        const int SampleNum = 6000;
+        const int SampleNum = 1600;
 	    const double ConRad = PII / 180;
         const double ConAng = 180 / PII;
 

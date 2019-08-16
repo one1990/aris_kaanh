@@ -3332,6 +3332,10 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 		PqEnd[6] = -PqEnd[6];
 	}
 	cos_theta = PqEnd[3] * PqEnd0[3] + PqEnd[4] * PqEnd0[4] + PqEnd[5] * PqEnd0[5] + PqEnd[6] * PqEnd0[6];
+	
+	cos_theta = std::max(-1.0, cos_theta);
+	cos_theta = std::min(1.0, cos_theta);
+	
 	double theta = acos(cos_theta);
 	double sin_theta = sin(theta);
 
