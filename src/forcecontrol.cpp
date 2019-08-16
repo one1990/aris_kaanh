@@ -3,11 +3,10 @@
 #include <array>
 
 
-
 using namespace aris::dynamic;
 using namespace aris::plan;
 
-//extern std::vector<std::vector<double>> pq;
+
 namespace forcecontrol
 {
 	// 力控拖动——单关节或者6个轨迹相对运动轨迹--输入单个关节，角度位置；关节按照梯形速度轨迹执行；速度前馈；电流控制 //
@@ -91,8 +90,8 @@ namespace forcecontrol
 
 		std::fill(target.mot_options.begin(), target.mot_options.end(),
 			Plan::USE_TARGET_POS |
-            Plan::NOT_CHECK_ENABLE|
-            Plan::NOT_CHECK_VEL_CONTINUOUS);
+            Plan::USE_OFFSET_VEL |
+            Plan::NOT_CHECK_ENABLE);
 
 	}
 	auto MoveJRC::executeRT(PlanTarget &target)->int
@@ -258,8 +257,8 @@ namespace forcecontrol
 					auto &cout = controller->mout();
                     if (target.count % 1 == 0)
 					{
-                            cout << "targetCur" << i << ":" <<std::setw(10) << controller->motionAtAbs(i).targetCur()
-                                 << "acturaCur" << i << ":" << std::setw(10) << controller->motionAtAbs(i).actualCur()
+                            cout << "targetToq" << i << ":" <<std::setw(10) << controller->motionAtAbs(i).targetToq()
+                                 << "acturaCur" << i << ":" << std::setw(10) << controller->motionAtAbs(i).actualToq()
                                  << std::endl;
 					}
                     */
@@ -283,7 +282,8 @@ namespace forcecontrol
                     //cout << "pos" << i + 1 << ":" << std::setw(6) << controller->motionAtAbs(i).actualPos() << ",";
                     //cout << "vel" << i + 1 << ":" << std::setw(6) << controller->motionAtAbs(i).actualVel() << ",";
                     cout << "cur" << i + 1 << ":" << std::setw(6) << controller->motionAtAbs(i).targetToq() << ",";
-                    cout << "cur" << i + 1 << ":" << std::setw(6) << controller->motionAtAbs(i).actualCur() << ",";
+                    cout << "cur" << i + 1 << ":" << std::setw(6) << controller->motionAtAbs(i).actualToq() << ",";
+
 				}
 			}
             /*
@@ -300,14 +300,14 @@ namespace forcecontrol
 		auto &lout = controller->lout();
 		for (Size i = 0; i < param.joint_active_vec.size(); i++)
 		{
-            //lout << std::setw(10) << controller->motionAtAbs(i).targetCur() << ",";
+            //lout << std::setw(10) << controller->motionAtAbs(i).targetToq() << ",";
             //lout << std::setw(10) << controller->motionAtAbs(i).actualPos() << ",";
             //lout << std::setw(10) << controller->motionAtAbs(i).actualVel() << ",";
-            //lout << std::setw(10) << controller->motionAtAbs(i).actualCur() << " | ";
+            //lout << std::setw(10) << controller->motionAtAbs(i).actualToq() << " | ";
 
             lout << controller->motionAtAbs(i).actualPos() << " ";
             lout << controller->motionAtAbs(i).actualVel() << " ";
-            lout << controller->motionAtAbs(i).actualCur() << " ";	
+            lout << controller->motionAtAbs(i).actualToq() << " ";
 		}
 		
 		// log 末端pq值 //
@@ -501,6 +501,8 @@ namespace forcecontrol
 			}
 			target.param = param;
 
+			std::fill(target.mot_options.begin(), target.mot_options.end(),
+                Plan::USE_OFFSET_VEL);
 
 		}
 	auto MovePQCrash::executeRT(PlanTarget &target)->int
@@ -614,11 +616,13 @@ namespace forcecontrol
 				auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(target.model->solverPool()[1]);
 
 				fwd.cptJacobi();
-				/*		double U[36], tau[6], tau2[6], J_fce[36];
-						Size p[6], rank;
+				/*		
+					double U[36], tau[6], tau2[6], J_fce[36];
+					Size p[6], rank;
 
-						s_householder_utp(6, 6, inv.Jf(), U, tau, p, rank);
-						s_householder_utp2pinv(6, 6, rank, U, tau, p, J_fce, tau2);*/
+					s_householder_utp(6, 6, inv.Jf(), U, tau, p, rank);
+					s_householder_utp2pinv(6, 6, rank, U, tau, p, J_fce, tau2);
+				*/
 	
 				s_mm(6, 1, 6, fwd.Jf(), aris::dynamic::ColMajor{ 6 }, param.ft.data(), 1, param.ft_pid.data(), 1);
 
@@ -753,7 +757,7 @@ namespace forcecontrol
 				lout << ft_offset[i] << " ";
 				lout << controller->motionAtAbs(i).actualPos() << " ";
 				lout << controller->motionAtAbs(i).actualVel() << " ";
-				lout << controller->motionAtAbs(i).actualCur();
+                lout << controller->motionAtAbs(i).actualToq();
 			}
 			lout << std::endl;
 
@@ -1522,6 +1526,8 @@ namespace forcecontrol
 		}
 		target.param = param;
 
+		std::fill(target.mot_options.begin(), target.mot_options.end(),
+            Plan::USE_OFFSET_VEL);
 
 	}
 	auto MovePQB::executeRT(PlanTarget &target)->int
@@ -1613,7 +1619,7 @@ namespace forcecontrol
 		{
 			lout << controller->motionAtAbs(i).actualPos() << " ";
 			lout << controller->motionAtAbs(i).actualVel() << " ";
-			lout << controller->motionAtAbs(i).actualCur() << " ";
+            lout << controller->motionAtAbs(i).actualToq() << " ";
 		}
 		//log--记录当前PQ值//
 		for (Size i = 0; i < param.pqb.size(); i++)
@@ -1807,6 +1813,8 @@ namespace forcecontrol
 			}
 			target.param = param;
 
+			std::fill(target.mot_options.begin(), target.mot_options.end(),
+                Plan::USE_OFFSET_VEL);
 
 
 		}
@@ -2081,7 +2089,7 @@ namespace forcecontrol
 				lout << param.vt[i] << ",";
 				lout << controller->motionAtAbs(i).actualVel() << ",";
 				lout << ft_offset[i] << ",";
-				lout << controller->motionAtAbs(i).actualCur() << ",";
+                lout << controller->motionAtAbs(i).actualToq() << ",";
 				lout << vproportion[i] << ",";
 				lout << vinteg[i] << ",";
 				lout << param.ft[i] << ",";
@@ -2247,7 +2255,8 @@ namespace forcecontrol
 		}
 		target.param = param;
 
-
+		std::fill(target.mot_options.begin(), target.mot_options.end(),
+            Plan::USE_OFFSET_VEL);
 
 	}
 	auto MoveJF::executeRT(PlanTarget &target)->int
@@ -2482,7 +2491,7 @@ namespace forcecontrol
 			lout << param.vt[i] << ",";
 			lout << controller->motionAtAbs(i).actualVel() << ",";
 			lout << ft_offset[i] << ",";
-			lout << controller->motionAtAbs(i).actualCur() << ",";
+            lout << controller->motionAtAbs(i).actualToq() << ",";
 			lout << vproportion[i] << ",";
 			lout << vinteg[i] << ",";
 			lout << param.ft[i] << ",";
@@ -2643,6 +2652,9 @@ namespace forcecontrol
 
 		}
 		target.param = param;
+
+		std::fill(target.mot_options.begin(), target.mot_options.end(),
+            Plan::USE_OFFSET_VEL);
 
 
 	}
@@ -2891,7 +2903,7 @@ namespace forcecontrol
 			lout << param.vt[i] << ",";
 			lout << controller->motionAtAbs(i).actualVel() << ",";
 			lout << ft_offset[i] << ",";
-			lout << controller->motionAtAbs(i).actualCur() << ",";
+            lout << controller->motionAtAbs(i).actualToq() << ",";
 			lout << vproportion[i] << ",";
 			lout << vinteg[i] << ",";
 			lout << param.ft[i] << ",";
@@ -3100,6 +3112,8 @@ namespace forcecontrol
 			}
 			target.param = param;
 
+			std::fill(target.mot_options.begin(), target.mot_options.end(),
+                Plan::USE_OFFSET_VEL);
 
 
 		}
@@ -3392,7 +3406,7 @@ namespace forcecontrol
 				lout << param.vt[i] << ",";
 				lout << controller->motionAtAbs(i).actualVel() << ",";
 				lout << ft_offset[i] << ",";
-				lout << controller->motionAtAbs(i).actualCur() << ",";
+                lout << controller->motionAtAbs(i).actualToq() << ",";
 				lout << vproportion[i] << ",";
 				lout << vinteg[i] << ",";
 				lout << vdiff[i] << ",";
@@ -3427,6 +3441,231 @@ namespace forcecontrol
 		}
 	
 
+	// 电缸运动轨迹；速度前馈 //
+	struct MoveEACParam
+	{
+		double begin_pos, pos, static_vel, kp_p, kp_v, ki_v;
+		bool ab;
+	};
+	static std::atomic_bool enable_moveEAC = true;
+	auto MoveEAC::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		MoveEACParam param;
+		for (auto &p : params)
+		{
+			if (p.first == "pos")
+			{
+				param.pos = std::stod(p.second);
+			}
+			else if (p.first == "static_vel")
+			{
+				param.static_vel = std::stod(p.second);
+			}
+			else if (p.first == "ab")
+			{
+				param.ab = std::stod(p.second);
+			}
+			else if (p.first == "kp_p")
+			{
+				param.kp_p = std::stod(p.second);
+			}
+			else if (p.first == "kp_v")
+			{
+				param.kp_v = std::stod(p.second);
+			}
+			else if (p.first == "ki_v")
+			{
+				param.ki_v = std::stod(p.second);
+			}
+		}
+		target.param = param;
+
+		std::fill(target.mot_options.begin(), target.mot_options.end(),
+			Plan::USE_TARGET_POS |
+            Plan::USE_OFFSET_VEL);
+
+	}
+	auto MoveEAC::executeRT(PlanTarget &target)->int
+	{
+		auto &param = std::any_cast<MoveEACParam&>(target.param);
+		// 访问主站 //
+		auto controller = target.controller;
+		bool is_running{ true };
+		bool ds_is_all_finished{ true };
+		bool md_is_all_finished{ true };
+
+		//第一个周期，将目标电机的控制模式切换到电流控制模式
+		if (target.count == 1)
+		{
+			is_running = true;
+			controller->motionPool().at(0).setModeOfOperation(10);	//切换到电流控制
+		}
+
+		//最后一个周期将目标电机去使能
+		if (!enable_moveEAC)
+		{
+			is_running = false;
+		}
+		if (!is_running)
+		{
+			auto ret = controller->motionPool().at(0).disable();
+			if (ret)
+			{
+				ds_is_all_finished = false;
+			}
+		}
+
+		//将目标电机由电流模式切换到位置模式
+		if (!is_running&&ds_is_all_finished)
+		{
+			auto &cm = controller->motionPool().at(0);
+			controller->motionPool().at(0).setModeOfOperation(8);
+			auto ret = cm.mode(8);
+			cm.setTargetPos(cm.actualPos());
+			if (ret)
+			{
+				md_is_all_finished = false;
+			}
+		}
+		
+		//标记采用那一段公式计算压力值//
+		int phase;	
+		double fore_cur = 0, force = 0, ft_pid;
+
+		//力控算法//
+		if (is_running)
+		{
+			//参数定义//		
+			double pt, pa, vt, va, voff, ft, foff;
+			static double v_integral = 0.0;
+			pa = controller->motionAtAbs(0).actualPos();
+			va = controller->motionAtAbs(0).actualVel();
+			pt = param.pos;
+			vt = 0.0;
+			voff = vt * 1000;
+			foff = 0.0;	
+
+			//位置环//
+			{
+				vt = param.kp_p*(pt - pa) + voff;
+				//限制速度的范围在-0.01~0.01之间
+				vt = std::max(-0.01, vt);
+				vt = std::min(0.01, vt);
+			}
+
+			//速度环//
+			{
+				v_integral = v_integral + vt - va;
+				ft = param.kp_v*(vt - va) + param.ki_v * v_integral + foff;
+				//限制电流的范围在-100~100(千分数：额定电流是1000)之间
+				ft = std::max(-100.0, ft);
+				ft = std::min(100.0, ft);
+				ft_pid = ft;
+			}
+
+			//根据电流值换算压力值//
+			{
+				double ff = 0, fc, fg, fs;
+                fc = controller->motionAtAbs(0).actualToq() * ea_index;
+				fg = ea_gra;
+				fs = std::abs(ea_c * ea_index);
+				if (std::abs(controller->motionAtAbs(0).actualVel()) > param.static_vel)
+				{
+					if (controller->motionAtAbs(0).actualVel() > 0)
+					{
+						ff = (-ea_a * controller->motionAtAbs(0).actualVel()*controller->motionAtAbs(0).actualVel() + ea_b * controller->motionAtAbs(0).actualVel() + ea_c) * ea_index;
+						force = ff + fg + fc;
+						phase = 1;
+						fore_cur = (-ff - fg) / ea_index;
+						//fore_cur = (1810 * a * 1000 * 1000 - ff - fg) / ea_index;
+					}
+					else
+					{
+						ff = (ea_a * controller->motionAtAbs(0).actualVel()*controller->motionAtAbs(0).actualVel() + ea_b * controller->motionAtAbs(0).actualVel() - ea_c) * ea_index;
+						force = ff + fg + fc;
+						phase = 2;
+						fore_cur = (-ff - fg) / ea_index;
+					}
+				}
+				else
+				{
+					if (std::abs(fc + fg) <= fs)
+					{
+						force = 0;
+						phase = 3;
+						fore_cur = 0.0;
+					}
+					else
+					{
+						if (fc + fg < -fs)
+						{
+							force = fc + fg + fs;
+							phase = 4;
+							fore_cur = (-fg - fs) / ea_index;
+						}
+						else
+						{
+							force = fc + fg - fs;;
+							phase = 5;
+							fore_cur = (-fg + fs) / ea_index;;
+						}
+					}
+				}
+				fore_cur = std::max(-100.0, fore_cur);
+				fore_cur = std::min(100.0, fore_cur);
+
+			}
+	
+			double weight = 1;
+            controller->motionAtAbs(0).setTargetToq(ft_pid + weight * fore_cur);
+		}
+
+		// print //
+		auto &cout = controller->mout();
+		if (target.count % 100 == 0)
+		{
+			cout << phase << "  "
+				<< force << "  "
+				<< fore_cur << "  "
+				<< ft_pid << "  "
+				<< controller->motionAtAbs(0).actualPos() << "  "
+				<< controller->motionAtAbs(0).actualVel() << "  "
+                << controller->motionAtAbs(0).actualToq() << "  "
+				<< std::endl;
+		}
+		
+		// log //
+		auto &lout = controller->lout();
+		{
+			lout << phase << "  "
+				<< force << "  "
+				<< fore_cur << "  "
+				<< ft_pid << "  "
+				<< controller->motionAtAbs(0).actualPos() << "  "
+				<< controller->motionAtAbs(0).actualVel() << "  "
+                << controller->motionAtAbs(0).actualToq() << "  "
+				<< std::endl;
+		}
+
+		return (!is_running&&ds_is_all_finished&&md_is_all_finished) ? 0 : 1;
+	}
+	auto MoveEAC::collectNrt(PlanTarget &target)->void {}
+	MoveEAC::MoveEAC(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"moveEAC\">"
+			"	<GroupParam>"
+			"		<Param name=\"pos\" default=\"0.01\"/>"
+			"		<Param name=\"static_vel\" default=\"0.001\"/>"
+			"		<Param name=\"ab\" default=\"0\"/>"
+			"		<Param name=\"kp_p\" default=\"0.1\"/>"
+			"		<Param name=\"kp_v\" default=\"5\"/>"
+			"		<Param name=\"ki_v\" default=\"0.1\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
+
+
 	// 力控停止指令——停止MoveStop，去使能电机 //
 	auto MoveStop::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 		{
@@ -3437,6 +3676,7 @@ namespace forcecontrol
 			enable_moveJF = false;
 			enable_moveJFB = false;
 			enable_moveJPID = false;
+			enable_moveEAC = false;
 			target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
 
 		}
