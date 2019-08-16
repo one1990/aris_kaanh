@@ -251,6 +251,7 @@ namespace forcecontrol
                     double weight[6] = {1,1,1.1,1,1,1};
                     controller->motionAtAbs(i).setTargetToq(ft_offset + weight[i]*target.model->motionPool()[i].mfDyn()*f2c_index[i]);
 
+
 					//打印PID控制结果
                     /*
 					auto &cout = controller->mout();
@@ -282,6 +283,7 @@ namespace forcecontrol
                     //cout << "vel" << i + 1 << ":" << std::setw(6) << controller->motionAtAbs(i).actualVel() << ",";
                     cout << "cur" << i + 1 << ":" << std::setw(6) << controller->motionAtAbs(i).targetToq() << ",";
                     cout << "cur" << i + 1 << ":" << std::setw(6) << controller->motionAtAbs(i).actualToq() << ",";
+
 				}
 			}
             /*
@@ -661,6 +663,7 @@ namespace forcecontrol
 
 					ft_offset[i] = (ft_friction[i] + ft_dynamic[i] + ft_pid[i])*f2c_index[i];
                     controller->motionAtAbs(i).setTargetToq(ft_offset[i]);
+
 				}
 			}
 
@@ -1813,6 +1816,7 @@ namespace forcecontrol
 			std::fill(target.mot_options.begin(), target.mot_options.end(),
                 Plan::USE_OFFSET_VEL);
 
+
 		}
 	auto MoveJCrash::executeRT(PlanTarget &target)->int
 		{
@@ -2652,6 +2656,7 @@ namespace forcecontrol
 		std::fill(target.mot_options.begin(), target.mot_options.end(),
             Plan::USE_OFFSET_VEL);
 
+
 	}
 	auto MoveJFB::executeRT(PlanTarget &target)->int
 	{
@@ -3109,6 +3114,7 @@ namespace forcecontrol
 
 			std::fill(target.mot_options.begin(), target.mot_options.end(),
                 Plan::USE_OFFSET_VEL);
+
 
 		}
 	auto MoveJPID::executeRT(PlanTarget &target)->int

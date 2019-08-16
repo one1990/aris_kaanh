@@ -30,7 +30,7 @@ namespace CONFIG
 		const double EndPoint[3] = { 0, 0, 0.078};//The Position of End Plate
         const double EndSensor[3] = { 0, 0, 0.1955};//The Position of Torque Sensor
 
-
+		//aris::plan::PlanTarget
 
 		//六轴工业
         const int RobotAxis = 6;

@@ -6,6 +6,7 @@
 #include <array>
 #include <stdlib.h>
 #include"move_series.h"
+#include"kinematics.h"
 
 
 using namespace aris::dynamic;
@@ -101,13 +102,13 @@ namespace kaanh
         //dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanInfoForCurrentSlave();
         //dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanPdoForCurrentSlave();
 
+
         controller->slavePool().add<aris::control::EthercatSlave>();
         controller->slavePool().back().setPhyId(6);
         dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanInfoForCurrentSlave();
         dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanPdoForCurrentSlave();
         dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).setDcAssignActivate(0x00);
 #endif
-
 		return controller;
 	};
 	auto createModelRokaeXB4(const double *robot_pm)->std::unique_ptr<aris::dynamic::Model>
@@ -742,6 +743,7 @@ namespace kaanh
 		par.motion_state.resize(6, 0);
 		std::any param = par;
 		//std::any param = std::make_any<GetParam>();
+
 		
 		target.server->getRtData([&](aris::server::ControlServer& cs, const aris::plan::PlanTarget *target, std::any& data)->void
 		{
@@ -1461,15 +1463,15 @@ namespace kaanh
 				}
 			}
 		}
-
+double p, v, a;
 		aris::Size total_count{ 1 };
 		for (Size i = 0; i < param.joint_active_vec.size(); ++i)
 		{
 			if (param.joint_active_vec[i])
 			{
-				double p, v, a;
+				
 				aris::Size t_count;
-				aris::plan::moveAbsolute(target.count, param.begin_joint_pos_vec[i], param.begin_joint_pos_vec[i]+param.joint_pos_vec[i], param.vel / 1000, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
+				aris::plan::moveAbsolute(target.count/1, param.begin_joint_pos_vec[i], param.begin_joint_pos_vec[i]+param.joint_pos_vec[i], param.vel / 1000, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
 				controller->motionAtAbs(i).setTargetPos(p);
 				controller->motionAtAbs(i).setTargetVel(v);
 				target.model->motionPool().at(i).setMp(p);
@@ -6851,13 +6853,13 @@ namespace kaanh
 		plan_root->planPool().add<MoveJoint>();
 		plan_root->planPool().add<MoveDistal>();
         plan_root->planPool().add<DistalTest>();
-		plan_root->planPool().add<SetTool>();
 		plan_root->planPool().add<MovePressure>();
 		plan_root->planPool().add<MoveFeed>();
 		plan_root->planPool().add<MovePressureToolYZ>();
 		plan_root->planPool().add<MovePressureToolXY>();
 		plan_root->planPool().add<GetForce>();
         plan_root->planPool().add<MoveSeriesGK>();
+        plan_root->planPool().add<ForceDirect>();
 
 		//plan_root->planPool().add<GetError>();
 		plan_root->planPool().add<JointDyna>();
@@ -6866,6 +6868,10 @@ namespace kaanh
 		plan_root->planPool().add<LoadDyna>();
 		plan_root->planPool().add<SaveYYbase>();
 		plan_root->planPool().add<SaveFile>();
+
+		plan_root->planPool().add<FourPoints>();
+		plan_root->planPool().add<SetTool>();
+
 
 		plan_root->planPool().add<SevenJointDyna>();
 		plan_root->planPool().add<SevenJointTest>();
