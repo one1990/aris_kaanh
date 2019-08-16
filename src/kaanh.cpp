@@ -5,6 +5,7 @@
 #include "sevenjointfc.h"
 #include <array>
 #include"move_series.h"
+#include"kinematics.h"
 
 using namespace aris::dynamic;
 using namespace aris::plan;
@@ -59,14 +60,14 @@ namespace kaanh
        // controller->slavePool().back().setPhyId(7);
         //dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanInfoForCurrentSlave();
         //dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanPdoForCurrentSlave();
-#endif
+
 
         controller->slavePool().add<aris::control::EthercatSlave>();
         controller->slavePool().back().setPhyId(6);
         dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanInfoForCurrentSlave();
         dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).scanPdoForCurrentSlave();
         dynamic_cast<aris::control::EthercatSlave&>(controller->slavePool().back()).setDcAssignActivate(0x00);
-
+#endif
 		return controller;
 	};
 	auto createModelRokaeXB4(const double *robot_pm)->std::unique_ptr<aris::dynamic::Model>
@@ -542,10 +543,10 @@ namespace kaanh
 	auto Get_ee_pq::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
 		auto ee_pq_vec = std::make_any<std::vector<double> >(7);
-		target.server->getRtData([](aris::server::ControlServer& cs, std::any& data)
+        /*target.server->getRtData([](aris::server::ControlServer& cs, std::any& data)
 		{
 			cs.model().generalMotionPool().at(0).getMpq(std::any_cast<std::vector<double>&>(data).data());
-		}, ee_pq_vec);
+        }, ee_pq_vec);*/
 		auto pq = std::any_cast<std::vector<double>&>(ee_pq_vec);
 		
 		//取小数点后三位//
@@ -571,10 +572,10 @@ namespace kaanh
 	auto Get_ee_pe::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
 		auto ee_pe_vec = std::make_any<std::vector<double> >(6);
-		target.server->getRtData([](aris::server::ControlServer& cs, std::any& data)
+        /*target.server->getRtData([](aris::server::ControlServer& cs, std::any& data)
 		{
 			cs.model().generalMotionPool().at(0).getMpe(std::any_cast<std::vector<double>&>(data).data());
-		}, ee_pe_vec);
+        }, ee_pe_vec);*/
 		auto pe = std::any_cast<std::vector<double>&>(ee_pe_vec);
 		
 		//取小数点后三位//
@@ -600,13 +601,13 @@ namespace kaanh
 	auto Get_joint_pos::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
 		auto joint_pos = std::make_any<std::vector<double> >(target.model->motionPool().size(), 0.0);
-		target.server->getRtData([&](aris::server::ControlServer& cs, std::any &data)->void
+        /*target.server->getRtData([&](aris::server::ControlServer& cs, std::any &data)->void
 		{
 			for (aris::Size i = 0; i < cs.model().motionPool().size(); i++)
 			{
 				std::any_cast<std::vector<double>&>(data)[i] = cs.model().motionPool()[i].mp();
 			}		
-		}, joint_pos);
+        }, joint_pos);*/
 
 		auto pos = std::any_cast<std::vector<double>&>(joint_pos);
 		
@@ -1250,15 +1251,15 @@ namespace kaanh
 				}
 			}
 		}
-
+double p, v, a;
 		aris::Size total_count{ 1 };
 		for (Size i = 0; i < param.joint_active_vec.size(); ++i)
 		{
 			if (param.joint_active_vec[i])
 			{
-				double p, v, a;
+				
 				aris::Size t_count;
-				aris::plan::moveAbsolute(target.count, param.begin_joint_pos_vec[i], param.begin_joint_pos_vec[i]+param.joint_pos_vec[i], param.vel / 1000, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
+				aris::plan::moveAbsolute(target.count/1, param.begin_joint_pos_vec[i], param.begin_joint_pos_vec[i]+param.joint_pos_vec[i], param.vel / 1000, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
 				controller->motionAtAbs(i).setTargetPos(p);
 				target.model->motionPool().at(i).setMp(p);
 				total_count = std::max(total_count, t_count);
@@ -1284,9 +1285,9 @@ namespace kaanh
 		auto &lout = controller->lout();
 		for (Size i = 0; i < param.joint_active_vec.size(); i++)
 		{
-			lout << controller->motionAtAbs(i).targetPos() << ",";
-			lout << controller->motionAtAbs(i).actualPos() << ",";
-			lout << controller->motionAtAbs(i).actualVel() << ",";
+			lout << p << ",";
+			lout << v << ",";
+			lout << a << ",";
 		}
 		lout << std::endl;
 
@@ -1955,8 +1956,6 @@ namespace kaanh
 			}
 			target.param = param;
 
-			std::fill(target.mot_options.begin(), target.mot_options.end(),
-				Plan::USE_VEL_OFFSET);
 
 		}
 	auto MoveJI::executeRT(PlanTarget &target)->int
@@ -2984,9 +2983,6 @@ namespace kaanh
 			}
 			target.param = param;
 
-			std::fill(target.mot_options.begin(), target.mot_options.end(),
-				Plan::USE_TARGET_POS |
-				Plan::USE_VEL_OFFSET);
 
 		}
 	auto MoveEAP::executeRT(PlanTarget &target)->int
@@ -3074,7 +3070,7 @@ namespace kaanh
 			}
 
 			//电流前馈//
-			controller->motionAtAbs(6).setOffsetCur(fore_cur);
+            controller->motionAtAbs(6).setOffsetToq(fore_cur);
 
 			//对速度进行均值滤波, 对摩擦力进行滤波//
 			double mean_vel, fe, filteredforce;
@@ -4029,7 +4025,7 @@ namespace kaanh
         plan_root->planPool().add<aris::plan::MoveL>();
         plan_root->planPool().add<aris::plan::MoveJ>();
 
-        plan_root->planPool().add<aris::plan::GetPartPq>();
+
         plan_root->planPool().add<aris::plan::GetXml>();
         plan_root->planPool().add<aris::plan::SetXml>();
         plan_root->planPool().add<aris::plan::Start>();
@@ -4080,13 +4076,13 @@ namespace kaanh
 		plan_root->planPool().add<MoveJoint>();
 		plan_root->planPool().add<MoveDistal>();
         plan_root->planPool().add<DistalTest>();
-		plan_root->planPool().add<SetTool>();
 		plan_root->planPool().add<MovePressure>();
 		plan_root->planPool().add<MoveFeed>();
 		plan_root->planPool().add<MovePressureToolYZ>();
 		plan_root->planPool().add<MovePressureToolXY>();
 		plan_root->planPool().add<GetForce>();
         plan_root->planPool().add<MoveSeriesGK>();
+        plan_root->planPool().add<ForceDirect>();
 
 		//plan_root->planPool().add<GetError>();
 		plan_root->planPool().add<JointDyna>();
@@ -4095,6 +4091,10 @@ namespace kaanh
 		plan_root->planPool().add<LoadDyna>();
 		plan_root->planPool().add<SaveYYbase>();
 		plan_root->planPool().add<SaveFile>();
+
+		plan_root->planPool().add<FourPoints>();
+		plan_root->planPool().add<SetTool>();
+
 
 		plan_root->planPool().add<SevenJointDyna>();
 		plan_root->planPool().add<SevenJointTest>();

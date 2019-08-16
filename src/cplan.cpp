@@ -32,7 +32,6 @@ namespace cplan
 			//用这段话可以不用将model的轨迹赋值到controller里面，系统直接调用model中的反解计算结果
 			aris::plan::Plan::USE_TARGET_POS |
 			aris::plan::Plan::NOT_CHECK_VEL_FOLLOWING_ERROR |
-			aris::plan::Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
 			aris::plan::Plan::NOT_CHECK_VEL_CONTINUOUS;
 	}
 	auto MoveCircle::executeRT(PlanTarget &target)->int
@@ -100,8 +99,7 @@ namespace cplan
 			//用这段话可以不用将model的轨迹赋值到controller里面，系统直接调用model中的反解计算结果，如果
 			//不用这个命令，那么需要用for循环将model中的反解计算结果赋值到controller里面
 			aris::plan::Plan::USE_TARGET_POS |
-			aris::plan::Plan::NOT_CHECK_VEL_FOLLOWING_ERROR |
-			aris::plan::Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START | //开始不检查速度连续
+			aris::plan::Plan::NOT_CHECK_VEL_FOLLOWING_ERROR |//开始不检查速度连续
 			aris::plan::Plan::NOT_CHECK_VEL_CONTINUOUS;
 	}
 	auto MoveTroute::executeRT(PlanTarget &target)->int
@@ -354,9 +352,7 @@ namespace cplan
 			aris::plan::Plan::NOT_CHECK_VEL_MIN |
 			aris::plan::Plan::NOT_CHECK_VEL_MAX |
 			aris::plan::Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-			aris::plan::Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
-			aris::plan::Plan::NOT_CHECK_VEL_FOLLOWING_ERROR |
-			aris::plan::Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START | // 开始不检查速度连续
+			aris::plan::Plan::NOT_CHECK_VEL_FOLLOWING_ERROR |// 开始不检查速度连续
 			aris::plan::Plan::NOT_CHECK_VEL_CONTINUOUS;
 			NOT_RUN_EXECUTE_FUNCTION;
 	}
@@ -510,9 +506,7 @@ namespace cplan
 			aris::plan::Plan::NOT_CHECK_VEL_MIN |
 			aris::plan::Plan::NOT_CHECK_VEL_MAX |
 			aris::plan::Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-			aris::plan::Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
-			aris::plan::Plan::NOT_CHECK_VEL_FOLLOWING_ERROR |
-			aris::plan::Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START | // 开始不检查速度连续
+			aris::plan::Plan::NOT_CHECK_VEL_FOLLOWING_ERROR | // 开始不检查速度连续
 			aris::plan::Plan::NOT_CHECK_VEL_CONTINUOUS |
 			NOT_RUN_EXECUTE_FUNCTION;
 	}
@@ -1711,9 +1705,7 @@ namespace cplan
 			aris::plan::Plan::NOT_CHECK_VEL_MIN |
 			aris::plan::Plan::NOT_CHECK_VEL_MAX |
 			aris::plan::Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-			aris::plan::Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
-			aris::plan::Plan::NOT_CHECK_VEL_FOLLOWING_ERROR |
-			aris::plan::Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START | // 开始不检查速度连续
+			aris::plan::Plan::NOT_CHECK_VEL_FOLLOWING_ERROR | // 开始不检查速度连续
 			aris::plan::Plan::NOT_CHECK_VEL_CONTINUOUS;
 			//NOT_RUN_EXECUTE_FUNCTION;
 	}
@@ -2035,7 +2027,6 @@ namespace cplan
 			//用这段话可以不用将model的轨迹赋值到controller里面，系统直接调用model中的反解计算结果
 			aris::plan::Plan::USE_TARGET_POS |
 			aris::plan::Plan::NOT_CHECK_VEL_FOLLOWING_ERROR |
-			aris::plan::Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
 			aris::plan::Plan::NOT_CHECK_VEL_CONTINUOUS;
 	}
 	MoveLPolish::MoveLPolish(const std::string &name) :Plan(name)

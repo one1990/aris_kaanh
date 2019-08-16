@@ -5,7 +5,7 @@
 #include"robotconfig.h"
 #include"sixdistaldynamics.h"
 #include <vector>
-using namespace std;
+//using namespace std;
 using namespace aris::plan;
 using namespace aris::dynamic;
 using namespace CONFIG;
@@ -143,11 +143,9 @@ auto MoveXYZ::prepairNrt(const std::map<std::string, std::string> &params, PlanT
 		Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
 #endif
 		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
 		Plan::NOT_CHECK_VEL_MIN |
 		Plan::NOT_CHECK_VEL_MAX |
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
-		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 
 
@@ -531,15 +529,12 @@ auto MoveDistal::prepairNrt(const std::map<std::string, std::string> &params, Pl
 		Plan::NOT_CHECK_POS_MIN |
 		Plan::NOT_CHECK_POS_MAX |
 		Plan::NOT_CHECK_POS_CONTINUOUS |
-		Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
 		Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
 		//#endif
 		Plan::NOT_CHECK_VEL_MIN |
 		Plan::NOT_CHECK_VEL_MAX |
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
-		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
         Plan::NOT_CHECK_VEL_FOLLOWING_ERROR|
         Plan::NOT_CHECK_ENABLE;
 
@@ -689,7 +684,8 @@ auto MoveDistal::collectNrt(aris::plan::PlanTarget &target)->void
 
     double estParas[GroupDim] = { 0 };
     double StatisError[6] = { 0,0,0,0,0,0 };
-	//  auto controller = target.controller;
+    auto controller = target.controller;
+    auto &cout = controller->mout();
 	 // auto &lout = controller->lout();
 	std::cout << "collect" << std::endl;
 
@@ -717,7 +713,7 @@ auto MoveDistal::collectNrt(aris::plan::PlanTarget &target)->void
 
 	std::cout << "*****************************Statictic Model Error*****************************************" << std::endl;
 	for (int i = 0;i < 6;i++)
-		cout << StatisError[i] << endl;
+        cout << StatisError[i] << std::endl;
     //double a = 3;
 }
 
@@ -765,15 +761,12 @@ auto DistalTest::prepairNrt(const std::map<std::string, std::string> &params, Pl
         Plan::NOT_CHECK_POS_MIN |
         Plan::NOT_CHECK_POS_MAX |
         Plan::NOT_CHECK_POS_CONTINUOUS |
-        Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
         Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-        Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
         Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
         //#endif
         Plan::NOT_CHECK_VEL_MIN |
         Plan::NOT_CHECK_VEL_MAX |
         Plan::NOT_CHECK_VEL_CONTINUOUS |
-        Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
         Plan::NOT_CHECK_VEL_FOLLOWING_ERROR|
         Plan::NOT_CHECK_ENABLE;
 
@@ -951,197 +944,6 @@ DistalTest::DistalTest(const std::string &name) :Plan(name)
 
 
 
-
-
-
-
-struct SetToolParam
-{
-	double period;
-	double amplitude;
-
-};
-auto SetTool::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
-{
-	SetToolParam param;
-
-	for (auto &p : params)
-	{
-		if (p.first == "period")
-			param.period = std::stod(p.second);
-		if (p.first == "amplitude")
-			param.amplitude = std::stod(p.second);
-
-	}
-
-	target.param = param;
-
-	target.option |=
-		Plan::USE_TARGET_POS |
-		//#ifdef WIN32
-		Plan::NOT_CHECK_POS_MIN |
-		Plan::NOT_CHECK_POS_MAX |
-		Plan::NOT_CHECK_POS_CONTINUOUS |
-		Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
-		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
-		Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
-		//#endif
-		Plan::NOT_CHECK_VEL_MIN |
-		Plan::NOT_CHECK_VEL_MAX |
-		Plan::NOT_CHECK_VEL_CONTINUOUS |
-		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
-		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
-
-
-
-}
-auto SetTool::executeRT(PlanTarget &target)->int
-{
-	auto &param = std::any_cast<SetToolParam&>(target.param);
-
-
-	double TransMatrix[6][12] = { { -0.6492,0.2770,0.7084,-0.2863,0.7738,-0.5650,-0.7046,-0.5697,-0.4231,1028.29,233.29,1432.98},
-	{-0.8469, 0.1182, 0.5184, 0.4204, 0.7458, 0.5168, -0.3256, 0.6556, -0.6813,1118.69,-231.99,1478.85},
-	{-0.8680, -0.0425, 0.4947, -0.0744, 0.9962, -0.0451, -0.4909, -0.0759, -0.8679,1129.45,25,1564},
-	{-0.5835, 0.0035, 0.8121, 0.0020, 1.0000, -0.0028, -0.8121, 0.0000, -0.5835,983.98,0.39,1502.31},
-	{ -0.5835, 0.0035, 0.8121, 0.0020, 1.0000, -0.0028, -0.8121, 0.0000, -0.5835,605.47,0.39,1502.31},
-	{ -0.5835, 0.0035, 0.8121, 0.0020, 1.0000, -0.0028, -0.8121, 0.0000, -0.5835,983.98,0.39,1122.24} };
-	double Atemp[5][9], Btemp[5][3];
-
-	//target.model->generalMotionPool().at(0).getMpm(TransVector);
-	for (int i = 0;i < 5;i++)
-		for (int j = 0;j < 9;j++)
-			Atemp[i][j] = TransMatrix[i][j] - TransMatrix[i + 1][j];
-
-	double L[3][3] = { 0 };
-	for (int i = 0;i < 5;i++)
-	{
-		for (int m = 0;m < 3;m++)
-			for (int n = 0;n < 3;n++)
-				for (int j = 0;j < 3;j++)
-					L[m][n] = L[m][n] + Atemp[i][j + 3 * m] * Atemp[i][j * 3 + n];
-	}
-
-	for (int i = 0;i < 5;i++)
-		for (int j = 0;j < 3;j++)
-			Btemp[i][j] = TransMatrix[i + 1][j + 9] - TransMatrix[i][j + 9];
-
-	double R[3] = { 0 };
-	for (int i = 0;i < 5;i++)
-	{
-		for (int m = 0;m < 3;m++)
-			for (int j = 0;j < 3;j++)
-				R[m] = R[m] + Atemp[i][j + 3 * m] * Btemp[i][j];
-	}
-
-	// Pinv(L)*R,求取位置偏移Epos
-	double Lvec[9];
-	for (int i = 0;i < 3;i++)
-		for (int j = 0;j < 3;j++)
-			Lvec[i * 3 + j] = L[i][j];
-
-	double U[9], tau[3], pinv[9], Epos[3];
-	aris::Size p[3];
-	aris::Size rank;
-
-	// 根据 A 求出中间变量，相当于做 QR 分解 //
-	// 请对 U 的对角线元素做处理
-	s_householder_utp(3, 3, Lvec, U, tau, p, rank, 1e-10);
-
-	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A) //
-	double tau2[3];
-	s_householder_utp2pinv(3, 3, rank, U, tau, p, pinv, tau2, 1e-10);
-
-	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A)*b //
-	s_mm(3, 1, 3, pinv, R, Epos);
-
-	// 求取姿态偏移矩阵Epos
-	double Trans4[9] = { -0.5835, 0.0035, 0.8121, 0.0020, 1.0000, -0.0028, -0.8121, 0.0000, -0.5835 };
-	double Dis4[3] = { 983.98,0.39,1502.31 };
-	double Dis5[3] = { 605.47,0.39,1502.31 };
-	double Dis6[3] = { 983.98,0.39,1122.24 };
-	double x1[3], x2[3], x12[3];
-	s_mm(3, 1, 3, Trans4, Epos, x1);
-	for (int i = 0;i < 3;i++)
-		x1[i] = x1[i] + Dis4[i];
-	s_mm(3, 1, 3, Trans4, Epos, x2);
-	for (int i = 0;i < 3;i++)
-		x2[i] = x2[i] + Dis5[i];
-
-	//计算X方向的方向余弦
-	double norm_x12 = 0, n_TE[3];
-	for (int i = 0;i < 3;i++)
-	{
-		x12[i] = x2[i] - x1[i];
-		norm_x12 = norm_x12 + x12[i] * x12[i];
-	}
-	norm_x12 = sqrt(norm_x12);
-	for (int i = 0;i < 3;i++)
-	{
-		x12[i] = x12[i] / norm_x12;
-	}
-	// 根据 A 求出中间变量，相当于做 QR 分解 //
-	s_householder_utp(3, 3, Trans4, U, tau, p, rank, 1e-10);
-
-	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A) //
-	s_householder_utp2pinv(3, 3, rank, U, tau, p, pinv, tau2, 1e-10);
-
-	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A)*b //
-	s_mm(3, 1, 3, pinv, x12, n_TE);
-
-	//计算Z方向的方向余弦
-	s_mm(3, 1, 3, Trans4, Epos, x2);
-	for (int i = 0;i < 3;i++)
-		x2[i] = x2[i] + Dis6[i];
-	double a_TE[3];
-	for (int i = 0;i < 3;i++)
-	{
-		x12[i] = x2[i] - x1[i];
-		norm_x12 = norm_x12 + x12[i] * x12[i];
-	}
-	norm_x12 = sqrt(norm_x12);
-	for (int i = 0;i < 3;i++)
-	{
-		x12[i] = x12[i] / norm_x12;
-	}
-	// 根据 A 求出中间变量，相当于做 QR 分解 //
-	s_householder_utp(3, 3, Trans4, U, tau, p, rank, 1e-10);
-
-	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A) //
-	s_householder_utp2pinv(3, 3, rank, U, tau, p, pinv, tau2, 1e-10);
-
-	// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A)*b //
-	s_mm(3, 1, 3, pinv, x12, a_TE);
-
-	//计算Y方向的方向余弦
-	double o_TE[3];
-	crossVector(a_TE, n_TE, o_TE);
-	return 10 - target.count;
-}
-
-auto SetTool::collectNrt(aris::plan::PlanTarget &target)->void
-{
-
-	//sixDistalMatrix.RLS(PositionList, SensorList, estParas);
-	double a = 3;
-}
-
-
-SetTool::SetTool(const std::string &name) :Plan(name)
-{
-
-	command().loadXmlStr(
-		"<Command name=\"STool\">"
-		"	<GroupParam>"
-		"		<Param name=\"period\"default=\"1.0\"/>"
-		"		<Param name=\"amplitude\"default=\"0.2\"/>"
-		"	</GroupParam>"
-		"</Command>");
-
-
-}
-
 struct MovePressureParam
 {
 	double PressF;
@@ -1167,15 +969,12 @@ auto MovePressure::prepairNrt(const std::map<std::string, std::string> &params, 
 		Plan::NOT_CHECK_POS_MIN |
 		Plan::NOT_CHECK_POS_MAX |
 		Plan::NOT_CHECK_POS_CONTINUOUS |
-		Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
 		Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
 		//#endif
 		Plan::NOT_CHECK_VEL_MIN |
 		Plan::NOT_CHECK_VEL_MAX |
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
-		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 
 
@@ -1200,7 +999,7 @@ auto MovePressure::executeRT(PlanTarget &target)->int
 	static double SumFtErr[6];
 	// 访问主站 //
 	auto controller = target.controller;
-
+    auto &cout = controller->mout();
 	// 获取当前起始点位置 //
 	if (target.count == 1)
 	{
@@ -1367,7 +1166,7 @@ auto MovePressure::executeRT(PlanTarget &target)->int
 	if (target.count % 100 == 0)
 	{
 
-		cout << FmInWorld[2] << "***" << SumFtErr[2] << "***" << dX[4] << "***" << dX[5] << "***" << FT0[2] << endl;
+        cout << FmInWorld[2] << "***" << SumFtErr[2] << "***" << dX[4] << "***" << dX[5] << "***" << FT0[2] << std::endl;
 
 		//cout <<  FT_KAI[0]<<"***"<<FmInWorld[2]<<endl;
 
@@ -1384,9 +1183,6 @@ auto MovePressure::executeRT(PlanTarget &target)->int
 			dX[j] = -0.00025;
 	}
 
-
-	// 打印电流 //
-	auto &cout = controller->mout();
 
 	// log 电流 //
 	auto &lout = controller->lout();
@@ -1548,7 +1344,6 @@ auto MovePressureToolYZ::prepairNrt(const std::map<std::string, std::string> &pa
     for(auto &option:target.mot_options) option|=
 		Plan::USE_TARGET_POS |
         Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-        Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START|
         Plan::NOT_CHECK_ENABLE;
 
     //读取动力学参数
@@ -1578,7 +1373,7 @@ auto MovePressureToolYZ::executeRT(PlanTarget &target)->int
 
 	// 访问主站 //
 	auto controller = target.controller;
-
+    auto &cout = controller->mout();
 	// 获取当前起始点位置 //
 	if (target.count == 1)
 	{
@@ -2140,10 +1935,6 @@ CountFmax=4;
 
 
 
-
-	// 打印电流 //
-	auto &cout = controller->mout();
-
 	// log 电流 //
 	auto &lout = controller->lout();
 
@@ -2258,7 +2049,7 @@ CountFmax=4;
 
         //cout <<FT_KAI[2] << "****"<<TangentArc[0] << "****" << TangentArc[1] << "****" <<TangentArc[2]<< endl;
 
-        cout << FT_KAI[2] << "*" <<FT[2] << "*" << FTReal[2] <<"*"<<dX[0]<< "*"<<dX[1]<<"*"<<PqEnd[2]<<endl;
+        cout << FT_KAI[2] << "*" <<FT[2] << "*" << FTReal[2] <<"*"<<dX[0]<< "*"<<dX[1]<<"*"<<PqEnd[2]<<std::endl;
 
 
                 //cout <<  FT_KAI[0]<<"***"<<FmInWorld[2]<<endl;
@@ -2332,15 +2123,12 @@ auto MovePressureToolXY::prepairNrt(const std::map<std::string, std::string> &pa
 		Plan::NOT_CHECK_POS_MIN |
 		Plan::NOT_CHECK_POS_MAX |
 		Plan::NOT_CHECK_POS_CONTINUOUS |
-		Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
 		Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
 		//#endif
 		Plan::NOT_CHECK_VEL_MIN |
 		Plan::NOT_CHECK_VEL_MAX |
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
-		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
         Plan::NOT_CHECK_VEL_FOLLOWING_ERROR|
         Plan::NOT_CHECK_ENABLE;
 
@@ -2367,7 +2155,7 @@ auto MovePressureToolXY::executeRT(PlanTarget &target)->int
 
 	// 访问主站 //
 	auto controller = target.controller;
-
+    auto &cout = controller->mout();
 	// 获取当前起始点位置 //
 	if (target.count == 1)
 	{
@@ -2784,7 +2572,7 @@ auto MovePressureToolXY::executeRT(PlanTarget &target)->int
 	if (target.count % 300 == 0)
 	{
 
-        cout << FT_KAI[2] << "*" << TangentArc[0] <<"*"<<TangentArc[1] << "*" << TangentArc[2] << "*" << FT0[2] << endl;
+        cout << FT_KAI[2] << "*" << TangentArc[0] <<"*"<<TangentArc[1] << "*" << TangentArc[2] << "*" << FT0[2] << std::endl;
 
 		//cout << FT_KAI[2] << "*" << NormalAng << "*" << TransVector[0] << "*" << TransVector[1] << "*" << TransVector[2] << "*" << FT0[2] << endl;
 		//cout << FT_KAI[2] << "*" << NormalAng << "*" << TransVector[4] << "*" << TransVector[5] << "*" << TransVector[6] << "*" << FT0[2] << endl;
@@ -2805,9 +2593,6 @@ auto MovePressureToolXY::executeRT(PlanTarget &target)->int
             dX[j] = -0.00025;
 	}
 
-
-	// 打印电流 //
-	auto &cout = controller->mout();
 
 	// log 电流 //
 	auto &lout = controller->lout();
@@ -2954,12 +2739,12 @@ auto GetForce::prepairNrt(const std::map<std::string, std::string> &params, Plan
 	double FT[2] = { 0,0 };
 
 	std::any cur_a = double(0);
-	target.server->getRtData([&](aris::server::ControlServer& cs, std::any &data)->void
+    /*target.server->getRtData([&](aris::server::ControlServer& cs, std::any &data)->void
 	{
 		FT[0] = TimeToMeng;
 		FT[1] = ForceToMeng;
 		//std::any_cast<double&>(data) = cs.controller().motionPool().at(i).actualCur();
-	}, cur_a);
+    }, cur_a);*/
 
 
 	std::string ret(reinterpret_cast<char*>(&FT), 2 * sizeof(double));
@@ -3008,15 +2793,12 @@ auto MoveFeed::prepairNrt(const std::map<std::string, std::string> &params, Plan
 		Plan::NOT_CHECK_POS_MIN |
 		Plan::NOT_CHECK_POS_MAX |
 		Plan::NOT_CHECK_POS_CONTINUOUS |
-		Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
 		Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
 		//#endif
 		Plan::NOT_CHECK_VEL_MIN |
 		Plan::NOT_CHECK_VEL_MAX |
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
-		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 
 
@@ -3041,7 +2823,7 @@ auto MoveFeed::executeRT(PlanTarget &target)->int
 	static double SumFtErr[6];
 	// 访问主站 //
 	auto controller = target.controller;
-
+    auto &cout = controller->mout();
 	// 获取当前起始点位置 //
 	if (target.count == 1)
 	{
@@ -3219,8 +3001,8 @@ auto MoveFeed::executeRT(PlanTarget &target)->int
 	*/
 	if (target.count % 100 == 0)
 	{
-		cout << "******" << endl;
-		cout << FmInWorld[1] << "***" << ThetaXY << "***" << dX[0] << "***" << dX[1] << "***" << FT0[2] << endl;
+        cout << "******" << std::endl;
+        cout << FmInWorld[1] << "***" << ThetaXY << "***" << dX[0] << "***" << dX[1] << "***" << FT0[2] << std::endl;
 
 		//cout <<  FT_KAI[0]<<"***"<<FmInWorld[2]<<endl;
 
@@ -3236,10 +3018,6 @@ auto MoveFeed::executeRT(PlanTarget &target)->int
 		if (dX[j] < -0.00025)
 			dX[j] = -0.00025;
 	}
-
-
-	// 打印电流 //
-	auto &cout = controller->mout();
 
 	// log 电流 //
 	auto &lout = controller->lout();
@@ -3374,14 +3152,303 @@ MoveFeed::MoveFeed(const std::string &name) :Plan(name)
 
 
 
-
 int signV(double x)
 {
-    double margin=0.01;
-    if (x > margin) return 1;
-    if (abs(x) < margin||abs(x) == margin) return 0;
-    if (x < -margin) return -1;
+    double margin = 0.01;
+	if (x > margin) return 1;
+	if (abs(x) < margin || abs(x) == margin) return 0;
+	if (x < -margin) return -1;
 }
+
+//系统传递函数H(s)=a/s
+void PIDcalOne(double a, double *KP)
+{
+	double ts = 0.1;
+	double T = ts / 3.0;
+	KP[0] = 1 / a / T;
+}
+
+//系统传递函数H(s)=a/s
+void PIDcalTeo(double a, double *KP, double *KI)
+{
+	double ts = 0.1;
+	double overshoot = 0.1;
+	double temp = log(overshoot);
+	double kesi = 1 / sqrt(1 + aris::PI*aris::PI / temp / temp);
+	double omega = 4 / kesi / ts;
+
+	KI[0] = omega * omega / a;
+	KP[0] = KI[0] / 2 / kesi / sqrt(a*KI[0]);
+}
+
+struct ForceDirectParam
+{
+	double PressF;
+	double SensorType;
+
+};
+
+
+auto ForceDirect::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+{
+	ForceDirectParam param;
+
+	target.param = param;
+
+	for (auto &option : target.mot_options) option |=
+		Plan::USE_TARGET_POS |
+		//#ifdef WIN32
+		Plan::NOT_CHECK_POS_MIN |
+		Plan::NOT_CHECK_POS_MAX |
+		Plan::NOT_CHECK_POS_CONTINUOUS |
+		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
+		Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
+		//#endif
+		Plan::NOT_CHECK_VEL_CONTINUOUS |
+		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR |
+		Plan::NOT_CHECK_ENABLE;
+
+
+}
+auto ForceDirect::executeRT(PlanTarget &target)->int
+{
+	auto &param = std::any_cast<ForceDirectParam&>(target.param);
+
+	double RobotPosition[6];
+	double RobotPositionJ[6];
+	double RobotVelocity[6];
+	double RobotAcceleration[6];
+	double TorqueSensor[6];
+	double X1[3];
+	double X2[3];
+	static double begin_pjs[6];
+	static double step_pjs[6];
+	static double stateTor0[6][3], stateTor1[6][3], EndP0[3];
+	static double sT0[6][3], sT1[6][3];
+	static float FT0[6], FT_be[6];
+
+	// 访问主站 //
+	auto controller = target.controller;
+    auto &cout = controller->mout();
+
+	static double PqEnd0[7] = { 0 }, PqEnd[7] = { 0 };
+	static double begin_pm[16], relative_pm[16], relative_pa[6], pos_ratio, ori_ratio, norm_pos, norm_ori;
+	double end_pm[16];
+    target.model->generalMotionPool().at(0).getMpq(PqEnd);
+	// 获取当前起始点位置 //
+	if (target.count == 1)
+	{
+		for (int i = 0; i < 6; ++i)
+		{
+			step_pjs[i] = target.model->motionPool()[i].mp();
+            controller->motionPool().at(i).setModeOfOperation(10);	//切换到电流控制
+		}
+        for (int i = 0; i < 7; ++i)
+            PqEnd0[i] = PqEnd[i];
+
+        //PqEnd0[0] = 0.398;PqEnd0[1] = 0;PqEnd0[2] = 0.6295;PqEnd0[3] = 0;PqEnd0[4] = 0.7071;PqEnd0[5] = 0;PqEnd0[6] = 0.7071;
+
+        aris::dynamic::s_pq2pm(PqEnd0, begin_pm);
+		target.model->generalMotionPool()[0].getMpm(begin_pm);
+	}	
+		double TransMatrix[4][4];
+		for (int i = 0;i < 4;i++)
+			for (int j = 0;j < 4;j++)
+				TransMatrix[i][j] = begin_pm[4 * i + j];
+
+		double n[3] = { TransMatrix[0][0], TransMatrix[0][1], TransMatrix[0][2] };
+		double o[3] = { TransMatrix[1][0], TransMatrix[1][1], TransMatrix[1][2] };
+		double a[3] = { TransMatrix[2][0], TransMatrix[2][1], TransMatrix[2][2] };
+	
+
+
+	if (target.model->solverPool().at(1).kinPos())return -1;
+
+	auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(target.model->solverPool()[1]);
+	fwd.cptJacobiWrtEE();
+	double va[6] = { 0 }, dX[6] = { 0 };
+	for (int i = 0;i < 6;i++)
+	{
+		va[i] = controller->motionAtAbs(i).actualVel();
+	}
+	s_mm(6, 1, 6, fwd.Jf(), va, dX);
+
+	/*
+	target.model->generalMotionPool()[0].getMpm(pmtemp);
+	Pm[0] = pmtemp[0];Pm[1] = pmtemp[1];Pm[2] = pmtemp[2];
+	Pm[3] = pmtemp[4];Pm[4] = pmtemp[5];Pm[5] = pmtemp[6];
+	Pm[6] = pmtemp[8];Pm[7] = pmtemp[9];Pm[8] = pmtemp[10];
+	double PmTrans[9] = { 0 };
+	s_mm(3, 3, 3, Pm0, Pm, PmTrans);*/
+
+    //PqEnd[0] = 0.398;PqEnd[1] = 0;PqEnd[2] = 0.6295;PqEnd[3] = 0;PqEnd[4] =0;PqEnd[5] = 0;PqEnd[6] = 1;
+
+    aris::dynamic::s_pq2pm(PqEnd, end_pm);
+	//target.model->generalMotionPool()[0].getMpm(end_pm);
+	aris::dynamic::s_inv_pm_dot_pm(begin_pm, end_pm, relative_pm);
+	// relative_pa //
+	double pq[7];
+	aris::dynamic::s_pm2pq(relative_pm, pq);
+
+
+	double vt[6] = { 0 }, ftemp[6] = { 0 };
+    double KPP[7] = {200,200,0,-15,-15,-15,0};
+    double KPV[7] = {100,100,0,4,4,4,0};
+    double KIV[7] = {50,50,  0,1,1,1,0};
+    static double ErrSum[7]={0};
+	for (int i = 0; i < 3; ++i)
+	{
+        ErrSum[i]=ErrSum[i]+(PqEnd0[i] - PqEnd[i])*0.001;
+        vt[i] = KPP[i] * (PqEnd0[i]- PqEnd[i]);
+	}
+
+
+	/*
+	//姿态误差1
+	double omega = 2*acos(pq[6]);
+	for (int i = 3; i < 6; ++i)
+	{
+		ErrSum[i] = ErrSum[i] + (pq[i])*0.001;
+		ftemp[i] = KP[i] * (pq[i]) + KI[i] * ErrSum[i];
+	}
+	ft[3] = n[0] * ftemp[3] + n[1] * ftemp[4] + n[2] * ftemp[5];
+	ft[4] = o[0] * ftemp[3] + o[1] * ftemp[4] + o[2] * ftemp[5];
+	ft[5] = a[0] * ftemp[3] + a[1] * ftemp[4] + a[2] * ftemp[5];
+	*/
+
+
+
+    double dq[4] = { 0 };
+	//姿态误差2
+	double cos_theta = PqEnd[3] * PqEnd0[3] + PqEnd[4] * PqEnd0[4] + PqEnd[5] * PqEnd0[5] + PqEnd[6] * PqEnd0[6];
+
+    auto &lout = controller->lout();
+    lout <<cos_theta<<",";
+
+	if (cos_theta < 0)
+	{
+		PqEnd[3] = -PqEnd[3];
+		PqEnd[4] = -PqEnd[4];
+		PqEnd[5] = -PqEnd[5];
+		PqEnd[6] = -PqEnd[6];
+	}
+	cos_theta = PqEnd[3] * PqEnd0[3] + PqEnd[4] * PqEnd0[4] + PqEnd[5] * PqEnd0[5] + PqEnd[6] * PqEnd0[6];
+	double theta = acos(cos_theta);
+	double sin_theta = sin(theta);
+
+
+    if (theta < 0.03)
+	{
+		dq[0] = -PqEnd0[3] + PqEnd[3];
+		dq[1] = -PqEnd0[4] + PqEnd[4];
+		dq[2] = -PqEnd0[5] + PqEnd[5];
+		dq[3] = -PqEnd0[6] + PqEnd[6];
+	}
+	else
+	{ 
+		dq[0] = (PqEnd0[3] * cos_theta*(-theta) + theta * PqEnd[3]) / sin_theta;
+		dq[1] = (PqEnd0[4] * cos_theta*(-theta) + theta * PqEnd[4]) / sin_theta;
+		dq[2] = (PqEnd0[5] * cos_theta*(-theta) + theta * PqEnd[5]) / sin_theta;
+		dq[3] = (PqEnd0[6] * cos_theta*(-theta) + theta * PqEnd[6]) / sin_theta;
+	}
+	
+	for (int i = 3; i < 6; ++i)
+	{
+		ErrSum[i] = ErrSum[i] + (pq[i])*0.001;
+		vt[i] = KPP[i] * (dq[i-3]);
+	}
+
+	static double ErrSumVt[7] = { 0 };
+	double ft[6] = { 0 };
+	for (int i = 0; i < 6; ++i)
+	{
+		ErrSumVt[i] = ErrSumVt[i] + (vt[i]-dX[i])*0.001;
+		ft[i] = KPV[i] * (vt[i]-dX[i])+KIV[i]*ErrSumVt[i];
+	}
+
+    lout <<dq[0]<<","; lout <<dq[1]<<","; lout <<dq[2]<<","; lout <<dq[3]<<",";
+
+	double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
+
+    double f_static[6] = { 9,9,5,3,2,2 };
+	double f_vel_JRC[6] = { 0,0,0,0,0,0 };
+
+	double JoinTau[6] = { 0 };
+	s_mm(6, 1, 6, fwd.Jf(), T(6), ft, 1, JoinTau, 1);
+
+    if (target.count % 300 == 0)
+    {
+        cout<<ft[3]<<"****"<<ft[4]<<"****"<<ft[5]<<"****"<<JoinTau[1]<<"****"<<JoinTau[2]<<std::endl;
+    }
+
+
+
+	double pa[6] = { 0 }, ta[6] = { 0 };
+	for (int i = 0; i < 6; i++)
+	{
+		pa[i] = controller->motionAtAbs(i).actualPos();
+		va[i] = controller->motionAtAbs(i).actualVel();
+		ta[i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
+	}
+	//动力学
+	for (int i = 0; i < 6; ++i)
+	{
+		target.model->motionPool()[i].setMp(controller->motionPool()[i].actualPos());
+		target.model->motionPool().at(i).setMv(controller->motionAtAbs(i).actualVel());
+		target.model->motionPool().at(i).setMa(0.0);
+	}
+
+	target.model->solverPool()[1].kinPos();
+	target.model->solverPool()[1].kinVel();
+	target.model->solverPool()[2].dynAccAndFce();
+
+
+	for (int i = 0; i < 6; i++)
+	{
+        JoinTau[i] = JoinTau[i] + target.model->motionPool()[i].mfDyn() + f_vel_JRC[i] * va[i] + 0 * f_static[i] * signV(va[i]);
+        JoinTau[i] = JoinTau[i] * f2c_index[i];
+	}
+
+
+    lout << PqEnd[0] << ",";lout << PqEnd[1] << ",";
+    lout << PqEnd[2] << ",";lout << PqEnd[3] << ",";
+    lout << PqEnd[4] << ",";lout << PqEnd[5] << ",";lout << PqEnd[6] << ",";
+
+    lout <<theta<<",";
+
+    lout << JoinTau[0] << ",";lout << JoinTau[1] << ",";
+    lout << JoinTau[2] << ",";lout << JoinTau[3] << ",";
+    lout << JoinTau[4] << ",";lout << JoinTau[5] << ",";lout << std::endl;
+
+	for (int i = 0; i < 6; i++)
+	{
+        JoinTau[i] = std::max(-300.0, JoinTau[i]);
+        JoinTau[i] = std::min(300.0, JoinTau[i]);
+
+        controller->motionAtAbs(i).setTargetToq(JoinTau[i]);
+	}
+
+
+
+
+
+    return 1500000 - target.count;
+
+}
+
+ForceDirect::ForceDirect(const std::string &name) :Plan(name)
+{
+
+	command().loadXmlStr(
+        "<Command name=\"ForceDir\">"
+		"	<GroupParam>"
+		"       <Param name=\"PressF\" default=\"0\"/>"
+		"		<Param name=\"SensorType\"default=\"20.0\"/>"
+		"   </GroupParam>"
+		"</Command>");
+
+}
+
 
 
 
@@ -3414,15 +3481,12 @@ auto MoveJoint::prepairNrt(const std::map<std::string, std::string> &params, Pla
 		Plan::NOT_CHECK_POS_MIN |
 		Plan::NOT_CHECK_POS_MAX |
 		Plan::NOT_CHECK_POS_CONTINUOUS |
-		Plan::NOT_CHECK_POS_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
 		Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
 		//#endif
 		Plan::NOT_CHECK_VEL_MIN |
 		Plan::NOT_CHECK_VEL_MAX |
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
-		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
         Plan::NOT_CHECK_VEL_FOLLOWING_ERROR|
         Plan::NOT_CHECK_ENABLE;
 
@@ -3451,7 +3515,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 		{
 			step_pjs[i] = target.model->motionPool()[i].mp();
             begin_pjs[i] = target.model->motionPool()[i].mp();
-            controller->motionPool().at(i).setModeOfOperation(10);	//切换到电流控制
+            //controller->motionPool().at(i).setModeOfOperation(10);	//切换到电流控制
 		}
 
 	}
@@ -3477,11 +3541,13 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 
 
 
-    double FT[6];
+    double FT[6],FTemp[6];
     if(param.SensorType>0)
         GetATI(target,FT);
     else
         GetYuLi(target,FT);
+
+
 
     double q[6],dq[6],ddq[6],CollisionFT[6];
     for (int i = 0; i < 6; i++)
@@ -3489,6 +3555,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
         q[i]= controller->motionPool()[i].actualPos();
         dq[i] =0;
         ddq[i] =0;
+        FTemp[i]=FT[i];
     }
 
     sixDistalMatrix.sixDistalCollision(q, dq, ddq, FT, sixDistalMatrix.estParasFT, CollisionFT);
@@ -3522,7 +3589,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
     // /*Second-Order Filter
     for (int j = 0; j < 6; j++)
     {
-        double A[2][2], B[2], CutFreq = 600;//SHANGHAI DIANQI EXP
+        double A[2][2], B[2], CutFreq = 100;//SHANGHAI DIANQI EXP
         //CutFreq = 85;
         A[0][0] = 0; A[0][1] = 1;
         A[1][0] = -CutFreq*CutFreq; A[1][1] = -sqrt(2)*CutFreq;
@@ -3550,17 +3617,9 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
     }
 
 
-    if (target.count == 500)
-    {
-        for (int j = 0; j < 6; j++)
-        {
-            FT0[j] = FT[j];
-        }
-    }
-
 
 	double FT_KAI[6];
-	for (int i = 0; i < 6; i++)
+    for (int i = 0; i < 6; i++)
 	{
         FT_KAI[i] = FT[i] - FT0[i];//In KAI Coordinate
 	}
@@ -3628,39 +3687,54 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 	///* Using Jacobian, TransMatrix from ARIS
 	auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(target.model->solverPool()[1]);
 
-
-    /*
-    robotJacobianEnd(q,JacobEnd);
-	double JacobEndTrans[36] = { 0 };
-	double temp[6][6] = { 0 };
-	double temp1[6][6] = { 0 };
-	for (int i = 0;i < 6;i++)
-		for (int j = 0;j < 6;j++)
-			temp[i][j] = JacobEnd[i * 6 + j];
-	for (int i = 0;i < 6;i++)
-		for (int j = 0;j < 6;j++)
-			temp1[i][j] = temp[j][i];
-	for (int i = 0;i < 6;i++)
-		for (int j = 0;j < 6;j++)
-			JacobEndTrans[6 * i + j] = temp1[i][j];
-    */
-
-
-   fwd.cptJacobiWrtEE();
-    //FmInWorld[0] = 0; FmInWorld[1] = 0; FmInWorld[2] = 1; FmInWorld[3] = 0; FmInWorld[4] = 0; FmInWorld[5] = 0;
+    fwd.cptJacobiWrtEE();
+    //FmInWorld[2] = 0; FmInWorld[3] = 0; FmInWorld[4] = 0; FmInWorld[5] = 0;
 	double JoinTau[6] = { 0 };
     s_mm(6, 1, 6,fwd.Jf() , T(6), FmInWorld, 1, JoinTau, 1);
 
-	//for (int i = 0;i < 6;i++)
-	   // dTheta[i] = JoinTau[i] / 10000;
+	
+
+
+	double pa[6] = { 0 }, va[6] = { 0 }, ta[6] = { 0 };
+	double ft_offset[6] = { 0 };
+	double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
+    double f_static[6] = { 9,9,5,3,2,2 };
+    double f_vel_JRC[6] = { 10,10,10,10,10,10 };
+	double ExternTau[6] = { 0 };
+
+	for (int i = 0; i < 6; i++)
+	{
+		pa[i] = controller->motionAtAbs(i).actualPos();
+		va[i] = controller->motionAtAbs(i).actualVel();
+		ta[i] = controller->motionAtAbs(i).actualCur()/ f2c_index[i];
+	}
+	//动力学
+	for (int i = 0; i < 6; ++i)
+	{
+		target.model->motionPool()[i].setMp(controller->motionPool()[i].actualPos());
+		target.model->motionPool().at(i).setMv(controller->motionAtAbs(i).actualVel());
+		target.model->motionPool().at(i).setMa(0.0);
+	}
+
+	target.model->solverPool()[1].kinPos();
+	target.model->solverPool()[1].kinVel();
+	target.model->solverPool()[2].dynAccAndFce();
+
+
+	for (int i = 0; i < 6; i++)
+	{
+        ExternTau[i] = ta[i] -JoinTau[i]- target.model->motionPool()[i].mfDyn() - f_vel_JRC[i] * va[i] - 1 * f_static[i] * signV(va[i]);
+        ExternTau[i] = -ExternTau[i];
+    }
+
 
     double rate=6.0;
-    dTheta[0] = JoinTau[0] / 500/rate;
-    dTheta[1] = JoinTau[1] / 500/rate;
-    dTheta[2] = JoinTau[2] / 500/rate;
-    dTheta[3] = JoinTau[3] / 500/rate;
-    dTheta[4] = JoinTau[4] / 500/rate;
-    dTheta[5] = JoinTau[5] / 500/rate;
+    dTheta[0] = JoinTau[0] / 500/rate+ ExternTau[0] / 1000/rate;
+    dTheta[1] = JoinTau[1] / 500/rate+ ExternTau[1] / 1000/rate;
+    dTheta[2] = JoinTau[2] / 500/rate+ ExternTau[2] / 1000/rate;
+    dTheta[3] = JoinTau[3] / 100/rate+ ExternTau[3] / 1000/rate;
+    dTheta[4] = JoinTau[4] / 500/rate+ ExternTau[4] / 1000/rate;
+    dTheta[5] = JoinTau[5] / 100/rate+ ExternTau[5] / 1000/rate;
 
 	for (int i = 0; i < 6; i++)
 	{
@@ -3720,26 +3794,10 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 
 
 
-    double pa[6]={0},va[6]={0};
-    double ft_offset[6] = {0};
-    double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
-    double f_static[6] = { 0,0,0,0,0,0 };
-    double f_vel_JRC[6] = { 0,0,0,0,0,0};
 
+    double KP[6]={8,8,8,1,8,1};
 
-    double KP[6]={10,10,10,10,10,10};
-
-    //动力学
-    for (int i = 0; i < 6; ++i)
-    {
-        target.model->motionPool()[i].setMp(controller->motionPool()[i].actualPos());
-        target.model->motionPool().at(i).setMv(controller->motionAtAbs(i).actualVel());
-        target.model->motionPool().at(i).setMa(0.0);
-    }
-
-    target.model->solverPool()[1].kinPos();
-    target.model->solverPool()[1].kinVel();
-    target.model->solverPool()[2].dynAccAndFce();
+   
 
 
 
@@ -3747,21 +3805,33 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
     {
     pa[i] = controller->motionAtAbs(i).actualPos();
     va[i] = controller->motionAtAbs(i).actualVel();
-    ft_offset[i]=(15*KP[i]*(step_pjs[i]-pa[i])+target.model->motionPool()[i].mfDyn()+f_vel_JRC[i]*va[i] + f_static[i]*signV(va[i]))*f2c_index[i];
+    //ta[i] = controller->motionAtAbs(i).actualTor();
+    ft_offset[i]=(10*KP[i]*(step_pjs[i]-pa[i])+target.model->motionPool()[i].mfDyn()+0*f_vel_JRC[i]*va[i] + 0*f_static[i]*signV(va[i]))*f2c_index[i];
     ft_offset[i] = std::max(-500.0, ft_offset[i]);
     ft_offset[i] = std::min(500.0, ft_offset[i]);
     //if(abs(pa[i])<1)
-        controller->motionAtAbs(i).setTargetCur(ft_offset[i]);
+        //controller->motionAtAbs(i).setTargetCur(ft_offset[i]);
     }
 
+    lout << FTemp[0] << ",";lout << FTemp[1] << ",";
+    lout << FTemp[2] << ",";lout << FTemp[3] << ",";
+    lout << FTemp[4] << ",";lout << FTemp[5] << ",";
+/*
+    lout << FT_YANG[0] << ",";lout << FT_YANG[1] << ",";
+    lout << FT_YANG[2] << ",";lout << FT_YANG[3] << ",";
+    lout << FT_YANG[4] << ",";lout << FT_YANG[5] << ",";
 
     lout << dTheta[0] << ",";lout << dTheta[1] << ",";
     lout << dTheta[2] << ",";lout << dTheta[3] << ",";
     lout << dTheta[4] << ",";lout << dTheta[5] << ",";
 
+    lout << step_pjs[0] << ",";lout << step_pjs[1] << ",";
+    lout << step_pjs[2] << ",";lout << step_pjs[3] << ",";
+    lout << step_pjs[4] << ",";lout << step_pjs[5] << ",";
+
     lout << va[0] << ",";lout << va[1] << ",";
     lout << va[2] << ",";lout << va[3] << ",";
-    lout << va[4] << ",";lout << va[5] << ",";
+    lout << va[4] << ",";lout << va[5] << ",";*/
     lout << std::endl;
 
 
@@ -3770,8 +3840,8 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 
         //cout << step_pjs[2] << "***" << ft_offset[2] << "***" << step_pjs[2] << endl;
 
-        cout <<FT_KAI[0]<<"***"<<FT_KAI[1]<<"***"<<FT_KAI[2]<<endl;
-       // cout <<FT[0]<<"***"<<FT[1]<<"***"<<FT[2]<<endl;
+        //cout <<FT_KAI[0]<<"***"<<FT_KAI[1]<<"***"<<FT_KAI[2]<<endl;
+        cout <<ta[0]<<"***"<<ExternTau[0]<<"***"<<JoinTau[0]<<"***"<<FmInWorld[1]<<"***"<<va[0]<<std::endl;
     }
 
 

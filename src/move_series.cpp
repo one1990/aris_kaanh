@@ -4,7 +4,7 @@
 
 #include"move_series.h"
 
-using namespace std;
+//using namespace std;
 using namespace aris::plan;
 using namespace aris::dynamic;
 
@@ -94,11 +94,9 @@ auto MoveSeriesGK::prepairNrt(const std::map<std::string, std::string> &params, 
 		Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
 #endif
 		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER_AT_START |
 		Plan::NOT_CHECK_VEL_MIN |
 		Plan::NOT_CHECK_VEL_MAX |
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
-		Plan::NOT_CHECK_VEL_CONTINUOUS_AT_START |
 		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR |
 		Plan::NOT_CHECK_ENABLE;
 
@@ -316,7 +314,7 @@ auto MoveSeriesGK::executeRT(PlanTarget &target)->int
 
 
 	if (target.count % 300 == 0)
-		cout << FmInWorld[2] << "***" << Ftotal << endl;
+		cout << FmInWorld[2] << "***" << Ftotal << std::endl;
 	// log 电流 //
 	auto &lout = controller->lout();
 
@@ -331,7 +329,7 @@ auto MoveSeriesGK::executeRT(PlanTarget &target)->int
 
 
 	lout << dX[0] << "," << dX[1] << ",";
-	lout << endl;
+	lout << std::endl;
 
 
 

@@ -23,6 +23,18 @@
 		ARIS_REGISTER_TYPE(JointDyna);
 	};
 
+
+	class JointDynaSave : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+
+		explicit JointDynaSave(const std::string &name = "JointDynaSave");
+		ARIS_REGISTER_TYPE(JointDynaSave);
+	};
+
+
+
 	class JointTest : public aris::plan::Plan
 	{
 	public:
@@ -55,6 +67,24 @@
 
 		explicit LoadDyna(const std::string &name = "LoadDyna");
 		ARIS_REGISTER_TYPE(LoadDyna);
+	};
+
+	class LoadDynaSave0 : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+
+		explicit LoadDynaSave0(const std::string &name = "LoadDynaSave0");
+		ARIS_REGISTER_TYPE(LoadDynaSave0);
+	};
+
+	class LoadDynaSave1 : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+
+		explicit LoadDynaSave1(const std::string &name = "LoadDynaSave1");
+		ARIS_REGISTER_TYPE(LoadDynaSave1);
 	};
 
 	class SaveYYbase : public aris::plan::Plan
