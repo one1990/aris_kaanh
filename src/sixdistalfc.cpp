@@ -3160,6 +3160,26 @@ int signV(double x)
 	if (x < -margin) return -1;
 }
 
+//系统传递函数H(s)=a/s
+void PIDcalOne(double a, double *KP)
+{
+	double ts = 0.1;
+	double T = ts / 3.0;
+	KP[0] = 1 / a / T;
+}
+
+//系统传递函数H(s)=a/s
+void PIDcalTeo(double a, double *KP, double *KI)
+{
+	double ts = 0.1;
+	double overshoot = 0.1;
+	double temp = log(overshoot);
+	double kesi = 1 / sqrt(1 + aris::PI*aris::PI / temp / temp);
+	double omega = 4 / kesi / ts;
+
+	KI[0] = omega * omega / a;
+	KP[0] = KI[0] / 2 / kesi / sqrt(a*KI[0]);
+}
 
 struct ForceDirectParam
 {
@@ -3244,6 +3264,15 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 
 	if (target.model->solverPool().at(1).kinPos())return -1;
 
+	auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(target.model->solverPool()[1]);
+	fwd.cptJacobiWrtEE();
+	double va[6] = { 0 }, dX[6] = { 0 };
+	for (int i = 0;i < 6;i++)
+	{
+		va[i] = controller->motionAtAbs(i).actualVel();
+	}
+	s_mm(6, 1, 6, fwd.Jf(), va, dX);
+
 	/*
 	target.model->generalMotionPool()[0].getMpm(pmtemp);
 	Pm[0] = pmtemp[0];Pm[1] = pmtemp[1];Pm[2] = pmtemp[2];
@@ -3262,14 +3291,15 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 	aris::dynamic::s_pm2pq(relative_pm, pq);
 
 
-	double ft[6] = { 0 }, ftemp[6] = { 0 };
-    double KP[7] = {450,450,0,-50,-150,-50,0};
-    double KI[7] = {150,150,0,-0,-0,-0,0};
+	double vt[6] = { 0 }, ftemp[6] = { 0 };
+    double KPP[7] = {450,450,0,-50,-150,-50,0};
+	double KPV[7] = { 150,150,0,-0,-0,-0,0 };
+	double KIV[7] = {150,150,0,-0,-0,-0,0};
     static double ErrSum[7]={0};
 	for (int i = 0; i < 3; ++i)
 	{
         ErrSum[i]=ErrSum[i]+(PqEnd0[i] - PqEnd[i])*0.001;
-        ft[i] = KP[i] * (PqEnd0[i]- PqEnd[i])+KI[i]*ErrSum[i];
+        vt[i] = KPP[i] * (PqEnd0[i]- PqEnd[i]);
 	}
 
 
@@ -3325,18 +3355,24 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 	for (int i = 3; i < 6; ++i)
 	{
 		ErrSum[i] = ErrSum[i] + (pq[i])*0.001;
-		ft[i] = KP[i] * (dq[i-3]) + KI[i] * ErrSum[i];
+		vt[i] = KPP[i] * (dq[i-3]);
 	}
+
+	static double ErrSumVt[7] = { 0 };
+	double ft[6] = { 0 };
+	for (int i = 0; i < 6; ++i)
+	{
+		ErrSumVt[i] = ErrSumVt[i] + (vt[i]-dX[i])*0.001;
+		ft[i] = KPV[i] * (vt[i]-dX[i])+KIV[i]*ErrSumVt[i];
+	}
+
     lout <<dq[0]<<","; lout <<dq[1]<<","; lout <<dq[2]<<","; lout <<dq[3]<<",";
-
-
 
 	double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
 
     double f_static[6] = { 9,9,5,3,2,2 };
 	double f_vel_JRC[6] = { 0,0,0,0,0,0 };
-	auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(target.model->solverPool()[1]);
-	fwd.cptJacobiWrtEE();
+
 	double JoinTau[6] = { 0 };
 	s_mm(6, 1, 6, fwd.Jf(), T(6), ft, 1, JoinTau, 1);
 
@@ -3347,9 +3383,7 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 
 
 
-
-
-	double pa[6] = { 0 }, va[6] = { 0 }, ta[6] = { 0 };
+	double pa[6] = { 0 }, ta[6] = { 0 };
 	for (int i = 0; i < 6; i++)
 	{
 		pa[i] = controller->motionAtAbs(i).actualPos();
