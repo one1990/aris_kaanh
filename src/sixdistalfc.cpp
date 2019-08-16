@@ -3191,7 +3191,14 @@ struct ForceDirectParam
 auto ForceDirect::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 {
 	ForceDirectParam param;
+    for (auto &p : params)
+    {
+        if (p.first == "PressF")
+            param.PressF = std::stod(p.second);
+        if (p.first == "SensorType")
+            param.SensorType = std::stod(p.second);
 
+    }
 	target.param = param;
 
 	for (auto &option : target.mot_options) option |=
@@ -3235,6 +3242,62 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 	double end_pm[16];
     target.model->generalMotionPool().at(0).getMpq(PqEnd);
 	// 获取当前起始点位置 //
+
+    double FT[6],FTemp[6];
+    if(param.SensorType>0)
+        GetATI(target,FT);
+    else
+        GetYuLi(target,FT);
+
+
+
+    double q[6],dq[6],ddq[6],CollisionFT[6];
+    for (int i = 0; i < 6; i++)
+    {
+        q[i]= controller->motionPool()[i].actualPos();
+        dq[i] =0;
+        ddq[i] =0;
+        FTemp[i]=FT[i];
+    }
+
+   // sixDistalMatrix.sixDistalCollision(q, dq, ddq, FT, sixDistalMatrix.estParasFT, CollisionFT);
+    //for (int j = 0; j < 6; j++)
+        //FT[j]=FT[j]-CollisionFT[j];
+
+
+    if (target.count == 1)
+    {
+        for (int j = 0; j < 6; j++)
+        {
+            FT0[j]=FT[j];
+        }
+    }
+
+    for (int j = 0; j < 6; j++)
+    {
+        FT[j]=FT[j]-FT0[j];
+    }
+
+    if (target.count == 1)
+    {
+        for (int j = 0; j < 6; j++)
+        {
+            stateTor0[j][0] = FT[j];
+        }
+    }
+
+   // /* One-Order Filter
+    for (int j = 0; j < 6; j++)
+    {
+        double CutFreq = 20;
+        double intDT = 0.001;
+        stateTor1[j][0] = stateTor0[j][0] + intDT * (FT[j]-stateTor0[j][0])*CutFreq;
+
+    }
+
+
+
+
 	if (target.count == 1)
 	{
 		for (int i = 0; i < 6; ++i)
@@ -3250,6 +3313,9 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
         aris::dynamic::s_pq2pm(PqEnd0, begin_pm);
 		target.model->generalMotionPool()[0].getMpm(begin_pm);
 	}	
+
+
+
 		double TransMatrix[4][4];
 		for (int i = 0;i < 4;i++)
 			for (int j = 0;j < 4;j++)
@@ -3317,7 +3383,7 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 
 
 
-    double dq[4] = { 0 };
+    double dQuar[4] = { 0 };
 	//姿态误差2
 	double cos_theta = PqEnd[3] * PqEnd0[3] + PqEnd[4] * PqEnd0[4] + PqEnd[5] * PqEnd0[5] + PqEnd[6] * PqEnd0[6];
 
@@ -3342,23 +3408,23 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 
     if (theta < 0.03)
 	{
-		dq[0] = -PqEnd0[3] + PqEnd[3];
-		dq[1] = -PqEnd0[4] + PqEnd[4];
-		dq[2] = -PqEnd0[5] + PqEnd[5];
-		dq[3] = -PqEnd0[6] + PqEnd[6];
+        dQuar[0] = -PqEnd0[3] + PqEnd[3];
+        dQuar[1] = -PqEnd0[4] + PqEnd[4];
+        dQuar[2] = -PqEnd0[5] + PqEnd[5];
+        dQuar[3] = -PqEnd0[6] + PqEnd[6];
 	}
 	else
 	{ 
-		dq[0] = (PqEnd0[3] * cos_theta*(-theta) + theta * PqEnd[3]) / sin_theta;
-		dq[1] = (PqEnd0[4] * cos_theta*(-theta) + theta * PqEnd[4]) / sin_theta;
-		dq[2] = (PqEnd0[5] * cos_theta*(-theta) + theta * PqEnd[5]) / sin_theta;
-		dq[3] = (PqEnd0[6] * cos_theta*(-theta) + theta * PqEnd[6]) / sin_theta;
+        dQuar[0] = (PqEnd0[3] * cos_theta*(-theta) + theta * PqEnd[3]) / sin_theta;
+        dQuar[1] = (PqEnd0[4] * cos_theta*(-theta) + theta * PqEnd[4]) / sin_theta;
+        dQuar[2] = (PqEnd0[5] * cos_theta*(-theta) + theta * PqEnd[5]) / sin_theta;
+        dQuar[3] = (PqEnd0[6] * cos_theta*(-theta) + theta * PqEnd[6]) / sin_theta;
 	}
 	
 	for (int i = 3; i < 6; ++i)
 	{
 		ErrSum[i] = ErrSum[i] + (pq[i])*0.001;
-		vt[i] = KPP[i] * (dq[i-3]);
+        vt[i] = KPP[i] * (dQuar[i-3]);
 	}
 
 	static double ErrSumVt[7] = { 0 };
@@ -3369,7 +3435,7 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 		ft[i] = KPV[i] * (vt[i]-dX[i])+KIV[i]*ErrSumVt[i];
 	}
 
-    lout <<dq[0]<<","; lout <<dq[1]<<","; lout <<dq[2]<<","; lout <<dq[3]<<",";
+    lout <<dQuar[0]<<","; lout <<dQuar[1]<<","; lout <<dQuar[2]<<","; lout <<dQuar[3]<<",";
 
 	double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
 
@@ -3381,7 +3447,7 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 
     if (target.count % 300 == 0)
     {
-        cout<<ft[3]<<"****"<<ft[4]<<"****"<<ft[5]<<"****"<<JoinTau[1]<<"****"<<JoinTau[2]<<std::endl;
+        cout<<ft[3]<<"****"<<ft[4]<<"****"<<ft[5]<<"****"<<JoinTau[1]<<"****"<<stateTor1[2][0]<<std::endl;
     }
 
 
@@ -3391,7 +3457,7 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 	{
 		pa[i] = controller->motionAtAbs(i).actualPos();
 		va[i] = controller->motionAtAbs(i).actualVel();
-		ta[i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
+        //ta[i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
 	}
 	//动力学
 	for (int i = 0; i < 6; ++i)
@@ -3433,6 +3499,13 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 
 
 
+    for (int i = 0; i < 6; i++)
+    {
+
+        stateTor0[i][0] = stateTor1[i][0];
+        stateTor0[i][1] = stateTor1[i][1];
+
+    }
 
 
     return 1500000 - target.count;
@@ -3495,9 +3568,9 @@ auto MoveJoint::prepairNrt(const std::map<std::string, std::string> &params, Pla
 
 
     //读取动力学参数
-    auto mat0 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("estParasFT"));
-    for (int i = 0;i < GroupDim;i++)
-        sixDistalMatrix.estParasFT[i] = mat0->data().data()[i];
+    //auto mat0 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("estParasFT"));
+    //for (int i = 0;i < GroupDim;i++)
+        //sixDistalMatrix.estParasFT[i] = mat0->data().data()[i];
 
 }
 auto MoveJoint::executeRT(PlanTarget &target)->int
