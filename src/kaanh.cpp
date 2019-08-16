@@ -543,10 +543,10 @@ namespace kaanh
 	auto Get_ee_pq::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
 		auto ee_pq_vec = std::make_any<std::vector<double> >(7);
-		target.server->getRtData([](aris::server::ControlServer& cs, std::any& data)
+        /*target.server->getRtData([](aris::server::ControlServer& cs, std::any& data)
 		{
 			cs.model().generalMotionPool().at(0).getMpq(std::any_cast<std::vector<double>&>(data).data());
-		}, ee_pq_vec);
+        }, ee_pq_vec);*/
 		auto pq = std::any_cast<std::vector<double>&>(ee_pq_vec);
 		
 		//取小数点后三位//
@@ -572,10 +572,10 @@ namespace kaanh
 	auto Get_ee_pe::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
 		auto ee_pe_vec = std::make_any<std::vector<double> >(6);
-		target.server->getRtData([](aris::server::ControlServer& cs, std::any& data)
+        /*target.server->getRtData([](aris::server::ControlServer& cs, std::any& data)
 		{
 			cs.model().generalMotionPool().at(0).getMpe(std::any_cast<std::vector<double>&>(data).data());
-		}, ee_pe_vec);
+        }, ee_pe_vec);*/
 		auto pe = std::any_cast<std::vector<double>&>(ee_pe_vec);
 		
 		//取小数点后三位//
@@ -601,13 +601,13 @@ namespace kaanh
 	auto Get_joint_pos::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
 		auto joint_pos = std::make_any<std::vector<double> >(target.model->motionPool().size(), 0.0);
-		target.server->getRtData([&](aris::server::ControlServer& cs, std::any &data)->void
+        /*target.server->getRtData([&](aris::server::ControlServer& cs, std::any &data)->void
 		{
 			for (aris::Size i = 0; i < cs.model().motionPool().size(); i++)
 			{
 				std::any_cast<std::vector<double>&>(data)[i] = cs.model().motionPool()[i].mp();
 			}		
-		}, joint_pos);
+        }, joint_pos);*/
 
 		auto pos = std::any_cast<std::vector<double>&>(joint_pos);
 		

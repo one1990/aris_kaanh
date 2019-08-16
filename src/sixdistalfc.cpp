@@ -2739,12 +2739,12 @@ auto GetForce::prepairNrt(const std::map<std::string, std::string> &params, Plan
 	double FT[2] = { 0,0 };
 
 	std::any cur_a = double(0);
-	target.server->getRtData([&](aris::server::ControlServer& cs, std::any &data)->void
+    /*target.server->getRtData([&](aris::server::ControlServer& cs, std::any &data)->void
 	{
 		FT[0] = TimeToMeng;
 		FT[1] = ForceToMeng;
 		//std::any_cast<double&>(data) = cs.controller().motionPool().at(i).actualCur();
-	}, cur_a);
+    }, cur_a);*/
 
 
 	std::string ret(reinterpret_cast<char*>(&FT), 2 * sizeof(double));
@@ -3292,9 +3292,9 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 
 
 	double vt[6] = { 0 }, ftemp[6] = { 0 };
-    double KPP[7] = {450,450,0,-50,-150,-50,0};
-	double KPV[7] = { 150,150,0,-0,-0,-0,0 };
-	double KIV[7] = {150,150,0,-0,-0,-0,0};
+    double KPP[7] = {200,200,0,-15,-15,-15,0};
+    double KPV[7] = {100,100,0,4,4,4,0};
+    double KIV[7] = {50,50,  0,1,1,1,0};
     static double ErrSum[7]={0};
 	for (int i = 0; i < 3; ++i)
 	{
