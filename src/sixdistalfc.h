@@ -24,6 +24,15 @@ public:
 	ARIS_REGISTER_TYPE(MoveDistal);
 };
 
+class MoveDistalSave : public aris::plan::Plan
+{
+public:
+	auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+
+	explicit MoveDistalSave(const std::string &name = "MoveDistalSave");
+	ARIS_REGISTER_TYPE(MoveDistalSave);
+};
+
 class DistalTest : public aris::plan::Plan
 {
 public:

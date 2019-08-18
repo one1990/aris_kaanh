@@ -22,9 +22,10 @@ auto TorqueList = TorqueList_vec.data();
 
 struct JointDynaParam
 {
-	double period;
-	double amplitude;
-
+	double A1P, A2P, A3P, A4P, A5P, A6P;
+	double A1N, A2N, A3N, A4N, A5N, A6N, VEL;
+	
+	
 };
 std::vector<std::vector<double>> POSRLS(13);
 auto JointDyna::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
@@ -33,10 +34,32 @@ auto JointDyna::prepairNrt(const std::map<std::string, std::string> &params, Pla
 
 	for (auto &p : params)
 	{
-		if (p.first == "period")
-			param.period = std::stod(p.second);
-		if (p.first == "amplitude")
-			param.amplitude = std::stod(p.second);
+		if (p.first == "A1P")
+			param.A1P = std::stod(p.second);
+		if (p.first == "A1N")
+			param.A1N = std::stod(p.second);
+		if (p.first == "A2P")
+			param.A2P = std::stod(p.second);
+		if (p.first == "A2N")
+			param.A2N = std::stod(p.second);
+		if (p.first == "A3P")
+			param.A3P = std::stod(p.second);
+		if (p.first == "A3N")
+			param.A3N = std::stod(p.second);
+		if (p.first == "A4P")
+			param.A4P = std::stod(p.second);
+		if (p.first == "A4N")
+			param.A4N = std::stod(p.second);
+		if (p.first == "A5P")
+			param.A5P = std::stod(p.second);
+		if (p.first == "A5N")
+			param.A5N = std::stod(p.second);
+		if (p.first == "A6P")
+			param.A6P = std::stod(p.second);
+		if (p.first == "A6N")
+			param.A6N = std::stod(p.second);
+		if (p.first == "VEL")
+			param.VEL = std::stod(p.second);
 
 	}
 	
@@ -66,10 +89,7 @@ auto JointDyna::executeRT(PlanTarget &target)->int
 	static double perVar = 0;
 	static double ampVar = 0;
 
-	if (target.count < 1000)
-	{
-		ampVar = ampVar + param.amplitude / 1000;
-	}
+
 	// 获取当前起始点位置 //
 	if (target.count == 1)
 	{
@@ -79,14 +99,13 @@ auto JointDyna::executeRT(PlanTarget &target)->int
 			step_pjs[i] = target.model->motionPool()[i].mp();
 		}
 	}
-	param.period = 60;
 
 
     static bool flag[6] = {true,true,true,true,true,true};
-    double PosLimit[6] = { 1,0.51,0.5,1,1,1 };
-    double NegLimit[6] = { -1,-0.5,-0.5,-1,-1,-1 };
+    double PosLimit[6] = { param.A1P,param.A2P,param.A3P,param.A4P,param.A5P,param.A6P };
+    double NegLimit[6] = { param.A1N,param.A2N,param.A3N,param.A4N,param.A5N,param.A6N };
     double dTheta = 0.00001;
-	static double pArc[6], vArc[6], aArc[6], vArcMax[6] = { 0.15,0.15,0.15,0.15,0.15,0.15 };
+	static double pArc[6], vArc[6], aArc[6], vArcMax[6] = { param.VEL,param.VEL,param.VEL,param.VEL,param.VEL,param.VEL };
 	static aris::Size t_count[6] = { 0 };
 
 	static int CountOffsetPos[6] = { 1,1,1,1,1,1 }, CountOffsetNeg[6] = { 1,1,1,1,1,1 };
@@ -243,12 +262,15 @@ auto JointDyna::executeRT(PlanTarget &target)->int
 
 auto JointDyna::collectNrt(aris::plan::PlanTarget &target)->void
 {
-	
+	std::vector<double> link_params, torque_error;
+	link_params.resize(72, 0.0);
+	torque_error.resize(6, 0.0);
+
 	double StatisError[6] = { 0,0,0,0,0,0 };
 	auto controller = target.controller;
 	 // auto &lout = controller->lout();
 	auto &cout = controller->mout();
-	cout << "collect" << std::endl;
+	//cout << "collect" << std::endl;
 
    /*RLS Kai
 	auto mat1 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("CoefParasJoint"));
@@ -289,10 +311,18 @@ auto JointDyna::collectNrt(aris::plan::PlanTarget &target)->void
 	for (int i = 0;i < RobotAxis;i++)
 		cout << StatisError[i] << std::endl;
 
+	for (int i = 0;i < JointGroupDim + 12;i++)
+		link_params[i]= JointMatrix.estParasJointYang[i];
 
+	for (int i = 0;i < RobotAxis;i++)
+		torque_error[i] = StatisError[i];
+
+
+	std::string CalibrationInfo = "Calibration Is Completed";
 	std::vector<std::pair<std::string, std::any>> out_param;
-	out_param.push_back(std::make_pair<std::string, std::any>("link_param", JointMatrix.estParasJointYang));
-	out_param.push_back(std::make_pair<std::string, std::any>("torque_error", StatisError));
+	out_param.push_back(std::make_pair<std::string, std::any>("CalibrationInfo", CalibrationInfo));
+	out_param.push_back(std::make_pair<std::string, std::any>("link_param", link_params));
+	out_param.push_back(std::make_pair<std::string, std::any>("torque_error", torque_error));
 	target.ret = out_param;
 
 
@@ -305,8 +335,19 @@ JointDyna::JointDyna(const std::string &name) :Plan(name)
 	command().loadXmlStr(
 		"<Command name=\"JointDyna\">"
 		"	<GroupParam>"
-		"		<Param name=\"period\"default=\"20.0\"/>"
-		"		<Param name=\"amplitude\" default=\"0.2\"/>"
+		"		<Param name=\"A1P\"default=\"0.0\"/>"
+		"		<Param name=\"A1N\" default=\"0.0\"/>"
+		"		<Param name=\"A2P\"default=\"0.0\"/>"
+		"		<Param name=\"A2N\" default=\"0.0\"/>"
+		"		<Param name=\"A3P\"default=\"0.0\"/>"
+		"		<Param name=\"A3N\" default=\"0.0\"/>"
+		"		<Param name=\"A4P\"default=\"0.0\"/>"
+		"		<Param name=\"A4N\" default=\"0.0\"/>"
+		"		<Param name=\"A5P\"default=\"0.0\"/>"
+		"		<Param name=\"A5N\" default=\"0.0\"/>"
+		"		<Param name=\"A6P\"default=\"0.0\"/>"
+		"		<Param name=\"A6N\" default=\"0.0\"/>"
+		"		<Param name=\"VEL\" default=\"0.15\"/>"
 		"	</GroupParam>"
 		"</Command>");
 
@@ -314,9 +355,13 @@ JointDyna::JointDyna(const std::string &name) :Plan(name)
 
 struct JointDynaSaveParam
 {
-	double period;
-	double amplitude;
-
+	double P1, P2, P3, P4, P5, P6, P7, P8, P9, P10;
+	double P11, P12, P13, P14, P15, P16, P17, P18, P19, P20;
+	double P21, P22, P23, P24, P25, P26, P27, P28, P29, P30;
+	double P31, P32, P33, P34, P35, P36, P37, P38, P39, P40;
+	double P41, P42, P43, P44, P45, P46, P47, P48, P49, P50;
+	double P51, P52, P53, P54, P55, P56, P57, P58, P59, P60;
+	double P61, P62, P63, P64, P65, P66, P67, P68, P69, P70, P71, P72;
 };
 auto JointDynaSave::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 {
@@ -324,16 +369,227 @@ auto JointDynaSave::prepairNrt(const std::map<std::string, std::string> &params,
 
 	for (auto &p : params)
 	{
-		if (p.first == "period")
-			param.period = std::stod(p.second);
-		if (p.first == "amplitude")
-			param.amplitude = std::stod(p.second);
-
+		if (p.first == "P1")
+			param.P1 = std::stod(p.second);
+		if (p.first == "P2")
+			param.P2 = std::stod(p.second);
+		if (p.first == "P3")
+			param.P3 = std::stod(p.second);
+		if (p.first == "P4")
+			param.P4 = std::stod(p.second);
+		if (p.first == "P5")
+			param.P5 = std::stod(p.second);
+		if (p.first == "P6")
+			param.P6 = std::stod(p.second);
+		if (p.first == "P7")
+			param.P7 = std::stod(p.second);
+		if (p.first == "P8")
+			param.P8 = std::stod(p.second);
+		if (p.first == "P9")
+			param.P9 = std::stod(p.second);
+		if (p.first == "P10")
+			param.P10 = std::stod(p.second);
+		if (p.first == "P11")
+			param.P11 = std::stod(p.second);
+		if (p.first == "P12")
+			param.P12 = std::stod(p.second);
+		if (p.first == "P13")
+			param.P13 = std::stod(p.second);
+		if (p.first == "P14")
+			param.P14 = std::stod(p.second);
+		if (p.first == "P15")
+			param.P15 = std::stod(p.second);
+		if (p.first == "P16")
+			param.P16 = std::stod(p.second);
+		if (p.first == "P17")
+			param.P17 = std::stod(p.second);
+		if (p.first == "P18")
+			param.P18 = std::stod(p.second);
+		if (p.first == "P19")
+			param.P19 = std::stod(p.second);
+		if (p.first == "P20")
+			param.P20 = std::stod(p.second);
+		if (p.first == "P21")
+			param.P21 = std::stod(p.second);
+		if (p.first == "P22")
+			param.P22 = std::stod(p.second);
+		if (p.first == "P23")
+			param.P23 = std::stod(p.second);
+		if (p.first == "P24")
+			param.P24 = std::stod(p.second);
+		if (p.first == "P25")
+			param.P25 = std::stod(p.second);
+		if (p.first == "P26")
+			param.P26 = std::stod(p.second);
+		if (p.first == "P27")
+			param.P27 = std::stod(p.second);
+		if (p.first == "P28")
+			param.P28 = std::stod(p.second);
+		if (p.first == "P29")
+			param.P29 = std::stod(p.second);
+		if (p.first == "P30")
+			param.P30 = std::stod(p.second);
+		if (p.first == "P31")
+			param.P31 = std::stod(p.second);
+		if (p.first == "P32")
+			param.P32 = std::stod(p.second);
+		if (p.first == "P33")
+			param.P33 = std::stod(p.second);
+		if (p.first == "P34")
+			param.P34 = std::stod(p.second);
+		if (p.first == "P35")
+			param.P35 = std::stod(p.second);
+		if (p.first == "P36")
+			param.P36 = std::stod(p.second);
+		if (p.first == "P37")
+			param.P37 = std::stod(p.second);
+		if (p.first == "P38")
+			param.P38 = std::stod(p.second);
+		if (p.first == "P39")
+			param.P39 = std::stod(p.second);
+		if (p.first == "P40")
+			param.P40 = std::stod(p.second);
+		if (p.first == "P41")
+			param.P41 = std::stod(p.second);
+		if (p.first == "P42")
+			param.P42 = std::stod(p.second);
+		if (p.first == "P43")
+			param.P43 = std::stod(p.second);
+		if (p.first == "P44")
+			param.P44 = std::stod(p.second);
+		if (p.first == "P45")
+			param.P45 = std::stod(p.second);
+		if (p.first == "P46")
+			param.P46 = std::stod(p.second);
+		if (p.first == "P47")
+			param.P47 = std::stod(p.second);
+		if (p.first == "P48")
+			param.P48 = std::stod(p.second);
+		if (p.first == "P49")
+			param.P49 = std::stod(p.second);
+		if (p.first == "P50")
+			param.P50 = std::stod(p.second);
+		if (p.first == "P51")
+			param.P51 = std::stod(p.second);
+		if (p.first == "P52")
+			param.P52 = std::stod(p.second);
+		if (p.first == "P53")
+			param.P53 = std::stod(p.second);
+		if (p.first == "P54")
+			param.P54 = std::stod(p.second);
+		if (p.first == "P55")
+			param.P55 = std::stod(p.second);
+		if (p.first == "P56")
+			param.P56 = std::stod(p.second);
+		if (p.first == "P57")
+			param.P57 = std::stod(p.second);
+		if (p.first == "P58")
+			param.P58 = std::stod(p.second);
+		if (p.first == "P59")
+			param.P59 = std::stod(p.second);
+		if (p.first == "P60")
+			param.P60 = std::stod(p.second);
+		if (p.first == "P61")
+			param.P61 = std::stod(p.second);
+		if (p.first == "P62")
+			param.P62 = std::stod(p.second);
+		if (p.first == "P63")
+			param.P63 = std::stod(p.second);
+		if (p.first == "P64")
+			param.P64 = std::stod(p.second);
+		if (p.first == "P65")
+			param.P65 = std::stod(p.second);
+		if (p.first == "P66")
+			param.P66 = std::stod(p.second);
+		if (p.first == "P67")
+			param.P67 = std::stod(p.second);
+		if (p.first == "P68")
+			param.P68 = std::stod(p.second);
+		if (p.first == "P69")
+			param.P69 = std::stod(p.second);
+		if (p.first == "P70")
+			param.P70 = std::stod(p.second);
+		if (p.first == "P71")
+			param.P71 = std::stod(p.second);
+		if (p.first == "P72")
+			param.P72 = std::stod(p.second);
 	}
+	
+	double link_params[72] = { 0 };
+	link_params[0] = param.P1;
+	link_params[1] = param.P2;
+	link_params[2] = param.P3;
+	link_params[3] = param.P4;
+	link_params[4] = param.P5;
+	link_params[5] = param.P6;
+	link_params[6] = param.P7;
+	link_params[7] = param.P8;
+	link_params[8] = param.P9;
+	link_params[9] = param.P10;
+	link_params[10] = param.P11;
+	link_params[11] = param.P12;
+	link_params[12] = param.P13;
+	link_params[13] = param.P14;
+	link_params[14] = param.P15;
+	link_params[15] = param.P16;
+	link_params[16] = param.P17;
+	link_params[17] = param.P18;
+	link_params[18] = param.P19;
+	link_params[19] = param.P20;
+	link_params[20] = param.P21;
+	link_params[21] = param.P22;
+	link_params[22] = param.P23;
+	link_params[23] = param.P24;
+	link_params[24] = param.P25;
+	link_params[25] = param.P26;
+	link_params[26] = param.P27;
+	link_params[27] = param.P28;
+	link_params[28] = param.P29;
+	link_params[29] = param.P30;
+	link_params[30] = param.P31;
+	link_params[31] = param.P32;
+	link_params[32] = param.P33;
+	link_params[33] = param.P34;
+	link_params[34] = param.P35;
+	link_params[35] = param.P36;
+	link_params[36] = param.P37;
+	link_params[37] = param.P38;
+	link_params[38] = param.P39;
+	link_params[39] = param.P40;
+	link_params[40] = param.P41;
+	link_params[41] = param.P42;
+	link_params[42] = param.P43;
+	link_params[43] = param.P44;
+	link_params[44] = param.P45;
+	link_params[45] = param.P46;
+	link_params[46] = param.P47;
+	link_params[47] = param.P48;
+	link_params[48] = param.P49;
+	link_params[49] = param.P50;
+	link_params[50] = param.P51;
+	link_params[51] = param.P52;
+	link_params[52] = param.P53;
+	link_params[53] = param.P54;
+	link_params[54] = param.P55;
+	link_params[55] = param.P56;
+	link_params[56] = param.P57;
+	link_params[57] = param.P58;
+	link_params[58] = param.P59;
+	link_params[59] = param.P60;
+	link_params[60] = param.P61;
+	link_params[61] = param.P62;
+	link_params[62] = param.P63;
+	link_params[63] = param.P64;
+	link_params[64] = param.P65;
+	link_params[65] = param.P66;
+	link_params[66] = param.P67;
+	link_params[67] = param.P68;
+	link_params[68] = param.P69;
+	link_params[69] = param.P70;
+	link_params[70] = param.P71;
+	link_params[71] = param.P72;
 
-	target.param = param;
-
-	aris::core::Matrix mat0(1, JointGroupDim + 12, JointMatrix.estParasJointYang);
+	aris::core::Matrix mat0(1, JointGroupDim + 12, link_params);
 	if (target.model->variablePool().findByName("estParasJoint") !=
 		target.model->variablePool().end())
 	{
@@ -345,6 +601,13 @@ auto JointDynaSave::prepairNrt(const std::map<std::string, std::string> &params,
 		target.model->variablePool().add<aris::dynamic::MatrixVariable>("estParasJoint", mat0);
 	}
 
+	std::string CalibrationInfo = "Calibration Is Completed";
+
+	std::vector<std::pair<std::string, std::any>> out_param;
+	out_param.push_back(std::make_pair<std::string, std::any>("CalibrationInfo", CalibrationInfo));
+	target.ret = out_param;
+
+
 }
 JointDynaSave::JointDynaSave(const std::string &name) :Plan(name)
 {
@@ -352,8 +615,78 @@ JointDynaSave::JointDynaSave(const std::string &name) :Plan(name)
 	command().loadXmlStr(
 		"<Command name=\"JointDynaSave\">"
 		"	<GroupParam>"
-		"		<Param name=\"period\"default=\"20.0\"/>"
-		"		<Param name=\"amplitude\" default=\"0.2\"/>"
+		"		<Param name=\"P1\"default=\"0.0\"/>"
+		"		<Param name=\"P2\" default=\"0.0\"/>"
+		"		<Param name=\"P3\"default=\"0.0\"/>"
+		"		<Param name=\"P4\" default=\"0.0\"/>"
+		"		<Param name=\"P5\"default=\"0.0\"/>"
+		"		<Param name=\"P6\" default=\"0.0\"/>"
+		"		<Param name=\"P7\"default=\"0.0\"/>"
+		"		<Param name=\"P8\" default=\"0.0\"/>"
+		"		<Param name=\"P9\"default=\"0.0\"/>"
+		"		<Param name=\"P10\" default=\"0.0\"/>"
+		"		<Param name=\"P11\"default=\"0.0\"/>"
+		"		<Param name=\"P12\" default=\"0.0\"/>"
+		"		<Param name=\"P13\"default=\"0.0\"/>"
+		"		<Param name=\"P14\" default=\"0.0\"/>"
+		"		<Param name=\"P15\"default=\"0.0\"/>"
+		"		<Param name=\"P16\" default=\"0.0\"/>"
+		"		<Param name=\"P17\"default=\"0.0\"/>"
+		"		<Param name=\"P18\" default=\"0.0\"/>"
+		"		<Param name=\"P19\"default=\"0.0\"/>"
+		"		<Param name=\"P20\" default=\"0.0\"/>"
+		"		<Param name=\"P21\"default=\"0.0\"/>"
+		"		<Param name=\"P22\" default=\"0.0\"/>"
+		"		<Param name=\"P23\"default=\"0.0\"/>"
+		"		<Param name=\"P24\" default=\"0.0\"/>"
+		"		<Param name=\"P25\"default=\"0.0\"/>"
+		"		<Param name=\"P26\" default=\"0.0\"/>"
+		"		<Param name=\"P27\"default=\"0.0\"/>"
+		"		<Param name=\"P28\" default=\"0.0\"/>"
+		"		<Param name=\"P29\"default=\"0.0\"/>"
+		"		<Param name=\"P30\" default=\"0.0\"/>"
+		"		<Param name=\"P31\"default=\"0.0\"/>"
+		"		<Param name=\"P32\" default=\"0.0\"/>"
+		"		<Param name=\"P33\"default=\"0.0\"/>"
+		"		<Param name=\"P34\" default=\"0.0\"/>"
+		"		<Param name=\"P35\"default=\"0.0\"/>"
+		"		<Param name=\"P36\" default=\"0.0\"/>"
+		"		<Param name=\"P37\"default=\"0.0\"/>"
+		"		<Param name=\"P38\" default=\"0.0\"/>"
+		"		<Param name=\"P39\"default=\"0.0\"/>"
+		"		<Param name=\"P40\" default=\"0.0\"/>"
+		"		<Param name=\"P41\"default=\"0.0\"/>"
+		"		<Param name=\"P42\" default=\"0.0\"/>"
+		"		<Param name=\"P43\"default=\"0.0\"/>"
+		"		<Param name=\"P44\" default=\"0.0\"/>"
+		"		<Param name=\"P45\"default=\"0.0\"/>"
+		"		<Param name=\"P46\" default=\"0.0\"/>"
+		"		<Param name=\"P47\"default=\"0.0\"/>"
+		"		<Param name=\"P48\" default=\"0.0\"/>"
+		"		<Param name=\"P49\"default=\"0.0\"/>"
+		"		<Param name=\"P50\" default=\"0.0\"/>"
+		"		<Param name=\"P51\"default=\"0.0\"/>"
+		"		<Param name=\"P52\" default=\"0.0\"/>"
+		"		<Param name=\"P53\"default=\"0.0\"/>"
+		"		<Param name=\"P54\" default=\"0.0\"/>"
+		"		<Param name=\"P55\"default=\"0.0\"/>"
+		"		<Param name=\"P56\" default=\"0.0\"/>"
+		"		<Param name=\"P57\"default=\"0.0\"/>"
+		"		<Param name=\"P58\" default=\"0.0\"/>"
+		"		<Param name=\"P59\"default=\"0.0\"/>"
+		"		<Param name=\"P60\" default=\"0.0\"/>"
+		"		<Param name=\"P61\"default=\"0.0\"/>"
+		"		<Param name=\"P62\" default=\"0.0\"/>"
+		"		<Param name=\"P63\"default=\"0.0\"/>"
+		"		<Param name=\"P64\" default=\"0.0\"/>"
+		"		<Param name=\"P65\"default=\"0.0\"/>"
+		"		<Param name=\"P66\" default=\"0.0\"/>"
+		"		<Param name=\"P67\"default=\"0.0\"/>"
+		"		<Param name=\"P68\" default=\"0.0\"/>"
+		"		<Param name=\"P69\"default=\"0.0\"/>"
+		"		<Param name=\"P70\" default=\"0.0\"/>"
+		"		<Param name=\"P71\"default=\"0.0\"/>"
+		"		<Param name=\"P72\" default=\"0.0\"/>"
 		"	</GroupParam>"
 		"</Command>");
 
@@ -794,9 +1127,8 @@ DragTeach::DragTeach(const std::string &name) :Plan(name)
 
 struct LoadDynaParam
 {
-	double period;
-	double amplitude;
-	bool InitEst;
+	double A3P, A5P, A6P;
+	double A3N, A5N, A6N, VEL, TYPE;
 
 };
 
@@ -806,13 +1138,22 @@ auto LoadDyna::prepairNrt(const std::map<std::string, std::string> &params, Plan
 
 	for (auto &p : params)
 	{
-		if (p.first == "period")
-			param.period = std::stod(p.second);
-		if (p.first == "amplitude")
-			param.amplitude = std::stod(p.second);
-		if (p.first == "InitEst")
-			param.InitEst = std::stod(p.second);
-
+		if (p.first == "A3P")
+			param.A3P = std::stod(p.second);
+		if (p.first == "A3N")
+			param.A3N = std::stod(p.second);
+		if (p.first == "A5P")
+			param.A5P = std::stod(p.second);
+		if (p.first == "A5N")
+			param.A5N = std::stod(p.second);
+		if (p.first == "A6P")
+			param.A6P = std::stod(p.second);
+		if (p.first == "A6N")
+			param.A6N = std::stod(p.second);
+		if (p.first == "VEL")
+			param.VEL = std::stod(p.second);
+		if (p.first == "TYPE")
+			param.TYPE = std::stod(p.second);
 	}
 
 	target.param = param;
@@ -835,66 +1176,6 @@ auto LoadDyna::prepairNrt(const std::map<std::string, std::string> &params, Plan
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
 		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
 */
-
-	/*
-	int nn = 12; // n代表txt文档中数据的列数
-
-
-	for (int j = 0; j < nn; j++)
-	{
-		POSRLS[j].clear();
-	}
-	string filePath = "C:/Users/gk/Desktop/build_kaanh_gk/test1.txt";
-
-	ifstream oplog;
-	oplog.open(filePath);
-	if (!oplog)
-	{
-		cout << "fail to open the file" << endl;
-		throw std::runtime_error("fail to open the file");
-		//return -1;//或者抛出异常。
-	}
-	while (!oplog.eof())
-	{
-		for (int j = 0; j < nn; j++)
-		{
-			double data;
-			oplog >> data;
-			POSRLS[j].push_back(data);
-		}
-	}
-	oplog.close();
-	oplog.clear();
-	for (int j = 0; j < nn; j++)
-	{
-		POSRLS[j].pop_back();
-	}
-
-	
-
-	// 所需的中间变量，请对U的对角线元素做处理
-	double TestQR[6] = {1.1,2.1,3.31,4.121,5.81,9.31};
-	
-	double U[6] = {0};
-	double TestQ[9] = { 0 };
-	double TestR[6] = { 0 };
-	double tau[3];
-	aris::Size p[3];
-	aris::Size rank;
-
-
-	// 根据 A 求出中间变量，相当于做 QR 分解 //
-// 请对 U 的对角线元素做处理
-	s_householder_utp(3, 2, TestQR, U, tau, p, rank, 1e-10);
-	s_householder_ut2q(3, 2, U, tau, TestQ);
-	s_householder_ut2r(3, 2, U, tau, TestR);
-
-
-	//s_permutate_inv(2, 3,  p, TestR, T(2));
-	//s_permutate(2, rhs,  p, x,x_t);
-	//s_householder_ut2qmn(3, 3, U, tau, TestQ);
-	s_mm(3, 2, 3, TestQ, TestR, U);
-	int s = 4;*/
 }
 
 
@@ -907,11 +1188,6 @@ auto LoadDyna::executeRT(PlanTarget &target)->int
     static int CollectNum=1;
 	static double ampVar = 0;
 
-
-	if (target.count < 1000)
-	{
-		ampVar = ampVar + param.amplitude / 1000;
-	}
 	// 获取当前起始点位置 //
 	if (target.count == 1)
 	{
@@ -923,10 +1199,10 @@ auto LoadDyna::executeRT(PlanTarget &target)->int
 	}
 
 	static bool flag[6] = {true,true,true,true,true,true};
-    double PosLimit[6] = { 1,1,0.2,1,1.5,2.5 };
-    double NegLimit[6] = { -1,-1,-0.2,-1,-1.5,-2.5 };
+    double PosLimit[6] = { 1,1,param.A3P,1,param.A5P,param.A6P };
+    double NegLimit[6] = { -1,-1,param.A3N,-1,param.A5N,param.A6N };
 	double dTheta = 0.0001;
-	static double pArc[6], vArc[6], aArc[6], vArcMax[6] = { 0.15,0.15,0.15,0.15,0.15,0.15 };
+	static double pArc[6], vArc[6], aArc[6], vArcMax[6] = { param.VEL,param.VEL,param.VEL,param.VEL,param.VEL,param.VEL };
 	static aris::Size t_count[6] = { 0 };
 	
 	static int CountOffsetPos[6] = { 1,1,1,1,1,1 }, CountOffsetNeg[6] = { 1,1,1,1,1,1};
@@ -1063,16 +1339,6 @@ auto LoadDyna::executeRT(PlanTarget &target)->int
 	if (target.count % 8 == 0 && CollectNum > SampleNum-1)
 	{
 		CollectNum = CollectNum + 1;
-
-		lout << target.count << ",";lout << vArc[2] << ",";
-		lout << AngleList[RobotAxis * (CollectNum - 1) + 0] << ",";lout << AngleList[RobotAxis * (CollectNum - 1) + 1] << ",";
-		lout << AngleList[RobotAxis * (CollectNum - 1) + 2] << ",";lout << AngleList[RobotAxis * (CollectNum - 1) + 3] << ",";
-		lout << AngleList[RobotAxis * (CollectNum - 1) + 4] << ",";lout << AngleList[RobotAxis * (CollectNum - 1) + 5] << ",";
-		lout << TorqueList[RobotAxis * (CollectNum - 1) + 0] << ",";lout << TorqueList[RobotAxis * (CollectNum - 1) + 1] << ",";
-		lout << TorqueList[RobotAxis * (CollectNum - 1) + 2] << ",";lout << TorqueList[RobotAxis * (CollectNum - 1) + 3] << ",";
-		lout << TorqueList[RobotAxis * (CollectNum - 1) + 4] << ",";lout << TorqueList[RobotAxis * (CollectNum - 1) + 5] << ",";
-
-		lout << std::endl;
 	}
 
 
@@ -1089,7 +1355,7 @@ auto LoadDyna::collectNrt(aris::plan::PlanTarget &target)->void
     auto controller = target.controller;
 	auto &cout = controller->mout();
 	 // auto &lout = controller->lout();
-    cout << "param.InitEst" << std::endl;
+   // cout << "param.InitEst" << std::endl;
 	
 	/*LoadRLSKai
 	auto mat0 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("CoefParasLoad"));
@@ -1161,7 +1427,7 @@ cout << std::endl;
 
 	//*LoadRLSYang
 	
-	if (param.amplitude > 0)
+	if (param.TYPE > 0)
 	{
 		JointMatrix.LoadRLSYang(AngleList, TorqueList, JointMatrix.estParasL0Yang, StatisError);
 		for (int i = 0;i < LoadTotalParas + 6;i++)
@@ -1171,9 +1437,22 @@ cout << std::endl;
 		for (int i = 0;i < 3;i++)
 			cout << StatisError[i] << std::endl;
 
+		std::vector<double> link_param, torque_error;
+		link_param.resize(46, 0.0);
+		torque_error.resize(3, 0.0);
+
+		for (int i = 0;i < LoadTotalParas + 6;i++)
+			link_param[i]=JointMatrix.estParasL0Yang[i];
+		for (int i = 0;i < 3;i++)
+			torque_error [i]=StatisError[i] ;
+
+
+		std::string CalibrationInfo = "Calibration Is Completed";
+
 		std::vector<std::pair<std::string, std::any>> out_param;
-		out_param.push_back(std::make_pair<std::string, std::any>("estParasL0", JointMatrix.estParasL0Yang));
-		out_param.push_back(std::make_pair<std::string, std::any>("torque_error", StatisError));
+		out_param.push_back(std::make_pair<std::string, std::any>("CalibrationInfo", CalibrationInfo));
+		out_param.push_back(std::make_pair<std::string, std::any>("link_param", link_param));
+		out_param.push_back(std::make_pair<std::string, std::any>("torque_error", torque_error));
 		target.ret = out_param;
 		
 	}
@@ -1193,9 +1472,22 @@ cout << std::endl;
 		for (int i = 0;i < 3;i++)
 			cout << StatisError[i] << std::endl;
 
+
+		std::vector<double> link_param, torque_error;
+		link_param.resize(10, 0.0);
+		torque_error.resize(3, 0.0);
+
+		for (int i = 0;i < 10;i++)
+			link_param[i] = JointMatrix.LoadParas[i];
+		for (int i = 0;i < 3;i++)
+			torque_error[i] = StatisError[i];
+
+		std::string CalibrationInfo = "Calibration Is Completed";
+
 		std::vector<std::pair<std::string, std::any>> out_param;
-		out_param.push_back(std::make_pair<std::string, std::any>("load_params", JointMatrix.LoadParas));
-		out_param.push_back(std::make_pair<std::string, std::any>("torque_error", StatisError));
+		out_param.push_back(std::make_pair<std::string, std::any>("CalibrationInfo", CalibrationInfo));
+		out_param.push_back(std::make_pair<std::string, std::any>("link_param", link_param));
+		out_param.push_back(std::make_pair<std::string, std::any>("torque_error", torque_error));
 		target.ret = out_param;
 
 	}
@@ -1210,9 +1502,15 @@ LoadDyna::LoadDyna(const std::string &name) :Plan(name)
 
 	command().loadXmlStr(
 		"<Command name=\"LoadDyna\">"
-		"	<GroupParam>"
-		"		<Param name=\"period\"default=\"20.0\"/>"
-		"		<Param name=\"amplitude\" default=\"0.2\"/>"
+		"	<GroupParam>"		
+		"		<Param name=\"A3P\"default=\"0.0\"/>"
+		"		<Param name=\"A3N\" default=\"0.0\"/>"
+		"		<Param name=\"A5P\"default=\"0.0\"/>"
+		"		<Param name=\"A5N\" default=\"0.0\"/>"
+		"		<Param name=\"A6P\"default=\"0.0\"/>"
+		"		<Param name=\"A6N\" default=\"0.0\"/>"
+		"		<Param name=\"VEL\" default=\"0.15\"/>"
+		"		<Param name=\"TYPE\" default=\"1\"/>"
 		"	</GroupParam>"
 		"</Command>");
 
@@ -1220,27 +1518,164 @@ LoadDyna::LoadDyna(const std::string &name) :Plan(name)
 
 struct LoadDynaSave0Param
 {
-	double period;
-	double amplitude;
+	double P1, P2, P3, P4, P5, P6, P7, P8, P9, P10;
+	double P11, P12, P13, P14, P15, P16, P17, P18, P19, P20;
+	double P21, P22, P23, P24, P25, P26, P27, P28, P29, P30;
+	double P31, P32, P33, P34, P35, P36, P37, P38, P39, P40;
+	double P41, P42, P43, P44, P45, P46;
 
 };
 auto LoadDynaSave0::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 {
 	LoadDynaSave0Param param;
-
 	for (auto &p : params)
 	{
-		if (p.first == "period")
-			param.period = std::stod(p.second);
-		if (p.first == "amplitude")
-			param.amplitude = std::stod(p.second);
-
+		if (p.first == "P1")
+			param.P1 = std::stod(p.second);
+		if (p.first == "P2")
+			param.P2 = std::stod(p.second);
+		if (p.first == "P3")
+			param.P3 = std::stod(p.second);
+		if (p.first == "P4")
+			param.P4 = std::stod(p.second);
+		if (p.first == "P5")
+			param.P5 = std::stod(p.second);
+		if (p.first == "P6")
+			param.P6 = std::stod(p.second);
+		if (p.first == "P7")
+			param.P7 = std::stod(p.second);
+		if (p.first == "P8")
+			param.P8 = std::stod(p.second);
+		if (p.first == "P9")
+			param.P9 = std::stod(p.second);
+		if (p.first == "P10")
+			param.P10 = std::stod(p.second);
+		if (p.first == "P11")
+			param.P11 = std::stod(p.second);
+		if (p.first == "P12")
+			param.P12 = std::stod(p.second);
+		if (p.first == "P13")
+			param.P13 = std::stod(p.second);
+		if (p.first == "P14")
+			param.P14 = std::stod(p.second);
+		if (p.first == "P15")
+			param.P15 = std::stod(p.second);
+		if (p.first == "P16")
+			param.P16 = std::stod(p.second);
+		if (p.first == "P17")
+			param.P17 = std::stod(p.second);
+		if (p.first == "P18")
+			param.P18 = std::stod(p.second);
+		if (p.first == "P19")
+			param.P19 = std::stod(p.second);
+		if (p.first == "P20")
+			param.P20 = std::stod(p.second);
+		if (p.first == "P21")
+			param.P21 = std::stod(p.second);
+		if (p.first == "P22")
+			param.P22 = std::stod(p.second);
+		if (p.first == "P23")
+			param.P23 = std::stod(p.second);
+		if (p.first == "P24")
+			param.P24 = std::stod(p.second);
+		if (p.first == "P25")
+			param.P25 = std::stod(p.second);
+		if (p.first == "P26")
+			param.P26 = std::stod(p.second);
+		if (p.first == "P27")
+			param.P27 = std::stod(p.second);
+		if (p.first == "P28")
+			param.P28 = std::stod(p.second);
+		if (p.first == "P29")
+			param.P29 = std::stod(p.second);
+		if (p.first == "P30")
+			param.P30 = std::stod(p.second);
+		if (p.first == "P31")
+			param.P31 = std::stod(p.second);
+		if (p.first == "P32")
+			param.P32 = std::stod(p.second);
+		if (p.first == "P33")
+			param.P33 = std::stod(p.second);
+		if (p.first == "P34")
+			param.P34 = std::stod(p.second);
+		if (p.first == "P35")
+			param.P35 = std::stod(p.second);
+		if (p.first == "P36")
+			param.P36 = std::stod(p.second);
+		if (p.first == "P37")
+			param.P37 = std::stod(p.second);
+		if (p.first == "P38")
+			param.P38 = std::stod(p.second);
+		if (p.first == "P39")
+			param.P39 = std::stod(p.second);
+		if (p.first == "P40")
+			param.P40 = std::stod(p.second);
+		if (p.first == "P41")
+			param.P41 = std::stod(p.second);
+		if (p.first == "P42")
+			param.P42 = std::stod(p.second);
+		if (p.first == "P43")
+			param.P43 = std::stod(p.second);
+		if (p.first == "P44")
+			param.P44 = std::stod(p.second);
+		if (p.first == "P45")
+			param.P45 = std::stod(p.second);
+		if (p.first == "P46")
+			param.P46 = std::stod(p.second);
 	}
 
 	target.param = param;
 
+	double link_params[46] = { 0 };
+	link_params[0] = param.P1;
+	link_params[1] = param.P2;
+	link_params[2] = param.P3;
+	link_params[3] = param.P4;
+	link_params[4] = param.P5;
+	link_params[5] = param.P6;
+	link_params[6] = param.P7;
+	link_params[7] = param.P8;
+	link_params[8] = param.P9;
+	link_params[9] = param.P10;
+	link_params[10] = param.P11;
+	link_params[11] = param.P12;
+	link_params[12] = param.P13;
+	link_params[13] = param.P14;
+	link_params[14] = param.P15;
+	link_params[15] = param.P16;
+	link_params[16] = param.P17;
+	link_params[17] = param.P18;
+	link_params[18] = param.P19;
+	link_params[19] = param.P20;
+	link_params[20] = param.P21;
+	link_params[21] = param.P22;
+	link_params[22] = param.P23;
+	link_params[23] = param.P24;
+	link_params[24] = param.P25;
+	link_params[25] = param.P26;
+	link_params[26] = param.P27;
+	link_params[27] = param.P28;
+	link_params[28] = param.P29;
+	link_params[29] = param.P30;
+	link_params[30] = param.P31;
+	link_params[31] = param.P32;
+	link_params[32] = param.P33;
+	link_params[33] = param.P34;
+	link_params[34] = param.P35;
+	link_params[35] = param.P36;
+	link_params[36] = param.P37;
+	link_params[37] = param.P38;
+	link_params[38] = param.P39;
+	link_params[39] = param.P40;
+	link_params[40] = param.P41;
+	link_params[41] = param.P42;
+	link_params[42] = param.P43;
+	link_params[43] = param.P44;
+	link_params[44] = param.P45;
+	link_params[45] = param.P46;
 
-		aris::core::Matrix mat0(1, LoadTotalParas + 6, JointMatrix.estParasL0Yang);
+
+		aris::core::Matrix mat0(1, LoadTotalParas + 6, link_params);
 		if (target.model->variablePool().findByName("estParasL0") !=
 			target.model->variablePool().end())
 		{
@@ -1252,6 +1687,12 @@ auto LoadDynaSave0::prepairNrt(const std::map<std::string, std::string> &params,
 			target.model->variablePool().add<aris::dynamic::MatrixVariable>("estParasL0", mat0);
 		}
 
+
+		std::string CalibrationInfo = "No-load Identification Is Completed";
+
+		std::vector<std::pair<std::string, std::any>> out_param;
+		out_param.push_back(std::make_pair<std::string, std::any>("CalibrationInfo", CalibrationInfo));
+		target.ret = out_param;
 }
 LoadDynaSave0::LoadDynaSave0(const std::string &name) :Plan(name)
 {
@@ -1259,8 +1700,52 @@ LoadDynaSave0::LoadDynaSave0(const std::string &name) :Plan(name)
 	command().loadXmlStr(
 		"<Command name=\"LoadDynaSave0\">"
 		"	<GroupParam>"
-		"		<Param name=\"period\"default=\"20.0\"/>"
-		"		<Param name=\"amplitude\" default=\"0.2\"/>"
+		"		<Param name=\"P1\"default=\"0.0\"/>"
+		"		<Param name=\"P2\" default=\"0.0\"/>"
+		"		<Param name=\"P3\"default=\"0.0\"/>"
+		"		<Param name=\"P4\" default=\"0.0\"/>"
+		"		<Param name=\"P5\"default=\"0.0\"/>"
+		"		<Param name=\"P6\" default=\"0.0\"/>"
+		"		<Param name=\"P7\"default=\"0.0\"/>"
+		"		<Param name=\"P8\" default=\"0.0\"/>"
+		"		<Param name=\"P9\"default=\"0.0\"/>"
+		"		<Param name=\"P10\" default=\"0.0\"/>"
+		"		<Param name=\"P11\"default=\"0.0\"/>"
+		"		<Param name=\"P12\" default=\"0.0\"/>"
+		"		<Param name=\"P13\"default=\"0.0\"/>"
+		"		<Param name=\"P14\" default=\"0.0\"/>"
+		"		<Param name=\"P15\"default=\"0.0\"/>"
+		"		<Param name=\"P16\" default=\"0.0\"/>"
+		"		<Param name=\"P17\"default=\"0.0\"/>"
+		"		<Param name=\"P18\" default=\"0.0\"/>"
+		"		<Param name=\"P19\"default=\"0.0\"/>"
+		"		<Param name=\"P20\" default=\"0.0\"/>"
+		"		<Param name=\"P21\"default=\"0.0\"/>"
+		"		<Param name=\"P22\" default=\"0.0\"/>"
+		"		<Param name=\"P23\"default=\"0.0\"/>"
+		"		<Param name=\"P24\" default=\"0.0\"/>"
+		"		<Param name=\"P25\"default=\"0.0\"/>"
+		"		<Param name=\"P26\" default=\"0.0\"/>"
+		"		<Param name=\"P27\"default=\"0.0\"/>"
+		"		<Param name=\"P28\" default=\"0.0\"/>"
+		"		<Param name=\"P29\"default=\"0.0\"/>"
+		"		<Param name=\"P30\" default=\"0.0\"/>"
+		"		<Param name=\"P31\"default=\"0.0\"/>"
+		"		<Param name=\"P32\" default=\"0.0\"/>"
+		"		<Param name=\"P33\"default=\"0.0\"/>"
+		"		<Param name=\"P34\" default=\"0.0\"/>"
+		"		<Param name=\"P35\"default=\"0.0\"/>"
+		"		<Param name=\"P36\" default=\"0.0\"/>"
+		"		<Param name=\"P37\"default=\"0.0\"/>"
+		"		<Param name=\"P38\" default=\"0.0\"/>"
+		"		<Param name=\"P39\"default=\"0.0\"/>"
+		"		<Param name=\"P40\" default=\"0.0\"/>"
+		"		<Param name=\"P41\"default=\"0.0\"/>"
+		"		<Param name=\"P42\" default=\"0.0\"/>"
+		"		<Param name=\"P43\"default=\"0.0\"/>"
+		"		<Param name=\"P44\" default=\"0.0\"/>"
+		"		<Param name=\"P45\"default=\"0.0\"/>"
+		"		<Param name=\"P46\" default=\"0.0\"/>"
 		"	</GroupParam>"
 		"</Command>");
 
@@ -1271,8 +1756,7 @@ LoadDynaSave0::LoadDynaSave0(const std::string &name) :Plan(name)
 
 struct LoadDynaSave1Param
 {
-	double period;
-	double amplitude;
+	double P1, P2, P3, P4, P5, P6, P7, P8, P9, P10;
 
 };
 auto LoadDynaSave1::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
@@ -1281,17 +1765,43 @@ auto LoadDynaSave1::prepairNrt(const std::map<std::string, std::string> &params,
 
 	for (auto &p : params)
 	{
-		if (p.first == "period")
-			param.period = std::stod(p.second);
-		if (p.first == "amplitude")
-			param.amplitude = std::stod(p.second);
-
+		if (p.first == "P1")
+			param.P1 = std::stod(p.second);
+		if (p.first == "P2")
+			param.P2 = std::stod(p.second);
+		if (p.first == "P3")
+			param.P3 = std::stod(p.second);
+		if (p.first == "P4")
+			param.P4 = std::stod(p.second);
+		if (p.first == "P5")
+			param.P5 = std::stod(p.second);
+		if (p.first == "P6")
+			param.P6 = std::stod(p.second);
+		if (p.first == "P7")
+			param.P7 = std::stod(p.second);
+		if (p.first == "P8")
+			param.P8 = std::stod(p.second);
+		if (p.first == "P9")
+			param.P9 = std::stod(p.second);
+		if (p.first == "P10")
+			param.P10 = std::stod(p.second);
 	}
 
 	target.param = param;
 
+	double link_params[10] = { 0 };
+	link_params[0] = param.P1;
+	link_params[1] = param.P2;
+	link_params[2] = param.P3;
+	link_params[3] = param.P4;
+	link_params[4] = param.P5;
+	link_params[5] = param.P6;
+	link_params[6] = param.P7;
+	link_params[7] = param.P8;
+	link_params[8] = param.P9;
+	link_params[9] = param.P10;
 	
-			aris::core::Matrix mat2(1, 10, JointMatrix.LoadParas);
+			aris::core::Matrix mat2(1, 10, link_params);
 			if (target.model->variablePool().findByName("LoadParas") !=
 				target.model->variablePool().end())
 			{
@@ -1304,7 +1814,11 @@ auto LoadDynaSave1::prepairNrt(const std::map<std::string, std::string> &params,
 
 		    }
 
+			std::string info = "Payload Identification Is Completed";
 
+			std::vector<std::pair<std::string, std::any>> out_param;
+			out_param.push_back(std::make_pair<std::string, std::any>("info", info));
+			target.ret = out_param;
 }
 LoadDynaSave1::LoadDynaSave1(const std::string &name) :Plan(name)
 {
@@ -1312,8 +1826,16 @@ LoadDynaSave1::LoadDynaSave1(const std::string &name) :Plan(name)
 	command().loadXmlStr(
 		"<Command name=\"LoadDynaSave1\">"
 		"	<GroupParam>"
-		"		<Param name=\"period\"default=\"20.0\"/>"
-		"		<Param name=\"amplitude\" default=\"0.2\"/>"
+		"		<Param name=\"P1\"default=\"0.0\"/>"
+		"		<Param name=\"P2\" default=\"0.0\"/>"
+		"		<Param name=\"P3\"default=\"0.0\"/>"
+		"		<Param name=\"P4\" default=\"0.0\"/>"
+		"		<Param name=\"P5\"default=\"0.0\"/>"
+		"		<Param name=\"P6\" default=\"0.0\"/>"
+		"		<Param name=\"P7\"default=\"0.0\"/>"
+		"		<Param name=\"P8\" default=\"0.0\"/>"
+		"		<Param name=\"P9\"default=\"0.0\"/>"
+		"		<Param name=\"P10\" default=\"0.0\"/>"
 		"	</GroupParam>"
 		"</Command>");
 
@@ -1443,16 +1965,16 @@ auto SaveFile::prepairNrt(const std::map<std::string, std::string> &params, Plan
     auto xmlpath = std::filesystem::absolute(".");//获取当前工程所在的路径
     const std::string xmlfile = "kaanh.xml";
     xmlpath = xmlpath / xmlfile;
-	auto&cs = aris::server::ControlServer::instance();
-	SaveFileParam p;
-	p.gk_path = params.at("gk_path");
-
+	auto&cs = aris::server::ControlServer::instance();	
+	
     cs.saveXmlFile(xmlpath.string().c_str());
+
+	std::vector<std::pair<std::string, std::any>> ret;
+	target.ret = ret;
 	//target.server->stop();
 	//target.server->saveXmlFile("C:/Users/qianch_kaanh_cn/Desktop/build_qianch/rokae.xml");		
 	//doc.SaveFile("C:/Users/qianch_kaanh_cn/Desktop/build_qianch/rokae.xml");
-	target.option |= NOT_RUN_COLLECT_FUNCTION;
-	target.option |= NOT_RUN_EXECUTE_FUNCTION;
+	
 }
 
 SaveFile::SaveFile(const std::string &name) :Plan(name)

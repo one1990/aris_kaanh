@@ -502,8 +502,8 @@ MoveXYZ::MoveXYZ(const std::string &name) :Plan(name)
 
 struct MoveDistalParam
 {
-    double SensorType;
-	double amplitude;
+	double A5P, A6P;
+	double A5N, A6N, VEL, SensorType;
 
 };
 auto MoveDistal::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
@@ -514,8 +514,16 @@ auto MoveDistal::prepairNrt(const std::map<std::string, std::string> &params, Pl
 	{
         if (p.first == "SensorType")
             param.SensorType = std::stod(p.second);
-		if (p.first == "amplitude")
-			param.amplitude = std::stod(p.second);
+		if (p.first == "A5P")
+			param.A5P = std::stod(p.second);
+		if (p.first == "A5N")
+			param.A5N = std::stod(p.second);
+		if (p.first == "A6P")
+			param.A6P = std::stod(p.second);
+		if (p.first == "A6N")
+			param.A6N = std::stod(p.second);
+		if (p.first == "VEL")
+			param.VEL = std::stod(p.second);
 
 	}
 
@@ -546,11 +554,8 @@ auto MoveDistal::executeRT(PlanTarget &target)->int
 	static double step_pjs[6];
 	static double perVar = 0;
 	static double ampVar = 0;
-   static int CollectNum = 1;
-	if (target.count < 1000)
-	{
-		ampVar = ampVar + param.amplitude / 1000;
-	}
+    static int CollectNum = 1;
+
 	// 获取当前起始点位置 //
 	if (target.count == 1)
 	{
@@ -561,58 +566,86 @@ auto MoveDistal::executeRT(PlanTarget &target)->int
 		}
 	}
 
-
     static bool flag[6] = {true,true,true,true,true,true};
-    double PosLimit[6] = { 1,0.5,0.5,1,1,2 };
-    double NegLimit[6] = { -1,-0.5,-0.5,-1,-1,-2 };
+    double PosLimit[6] = { 1,0.5,0.5,param.A5P,param.A6P};
+    double NegLimit[6] = { -1,-0.5,-0.5,-1,param.A5N,param.A6N};
     double dTheta = 0.00001;
-    static double pArc[6], vArc[6], aArc[6], vArcMax[6] = { 0.15,0.15,0.15,0.15,0.05,0.05 };
+    static double pArc[6], vArc[6], aArc[6], vArcMax[6] = { param.VEL,param.VEL,param.VEL,param.VEL,param.VEL,param.VEL };
     static aris::Size t_count[6] = { 0 };
 
     static int CountOffsetPos[6] = { 1,1,1,1,1,1 }, CountOffsetNeg[6] = { 1,1,1,1,1,1 };
 
+	if (CollectNum < SampleNum)
+	{
+		for (int i = 0;i < 6;i++)
+		{
 
-    for (int i = 0;i < 6;i++)
-    {
+			if (flag[i])
+			{
+				if (step_pjs[i] < PosLimit[i])
+				{
+					aris::plan::moveAbsolute(target.count - CountOffsetNeg[i] + 1, 0, PosLimit[i] - begin_pjs[i], vArcMax[i] / 1000, 0.05 / 1000 / 1000, 0.05 / 1000 / 1000, pArc[i], vArc[i], aArc[i], t_count[i]);
 
-        if (flag[i])
-        {
-            if (step_pjs[i] < PosLimit[i])
-            {
-                aris::plan::moveAbsolute(target.count - CountOffsetNeg[i] + 1, 0, PosLimit[i] - begin_pjs[i], vArcMax[i] / 1000, 0.05 / 1000 / 1000, 0.05 / 1000 / 1000, pArc[i], vArc[i], aArc[i], t_count[i]);
-
-                step_pjs[i] = step_pjs[i] + vArc[i];
-            }
-            //std::cout << vArc << "  ";
-            if ((t_count[i] - (target.count - CountOffsetNeg[i] + 1)) < 0.5 && (t_count[i] - (target.count - CountOffsetNeg[i] + 1)) > -0.5)
-            {
-                CountOffsetPos[i] = target.count;
-                flag[i] = false;
-                begin_pjs[i] = target.model->motionPool()[i].mp();
-            }
+					step_pjs[i] = step_pjs[i] + vArc[i];
+				}
+				//std::cout << vArc << "  ";
+				if ((t_count[i] - (target.count - CountOffsetNeg[i] + 1)) < 0.5 && (t_count[i] - (target.count - CountOffsetNeg[i] + 1)) > -0.5)
+				{
+					CountOffsetPos[i] = target.count;
+					flag[i] = false;
+					begin_pjs[i] = target.model->motionPool()[i].mp();
+				}
 
 
-        }
-        if (flag[i] == false)
-        {
-            if (step_pjs[i] > NegLimit[i])
-            {
-                aris::plan::moveAbsolute(target.count - CountOffsetPos[i] + 1, 0, begin_pjs[i] - NegLimit[i], vArcMax[i] / 1000, 0.05 / 1000 / 1000, 0.05 / 1000 / 1000, pArc[i], vArc[i], aArc[i], t_count[i]);
+			}
+			if (flag[i] == false)
+			{
+				if (step_pjs[i] > NegLimit[i])
+				{
+					aris::plan::moveAbsolute(target.count - CountOffsetPos[i] + 1, 0, begin_pjs[i] - NegLimit[i], vArcMax[i] / 1000, 0.05 / 1000 / 1000, 0.05 / 1000 / 1000, pArc[i], vArc[i], aArc[i], t_count[i]);
 
-                step_pjs[i] = step_pjs[i] - vArc[i];
-            }
+					step_pjs[i] = step_pjs[i] - vArc[i];
+				}
 
-            if ((t_count[i] - (target.count - CountOffsetPos[i] + 1)) < 0.5 && (t_count[i] - (target.count - CountOffsetPos[i] + 1)) > -0.5)
-            {
-                CountOffsetNeg[i] = target.count;
-                flag[i] = true;
-                begin_pjs[i] = target.model->motionPool()[i].mp();
-            }
+				if ((t_count[i] - (target.count - CountOffsetPos[i] + 1)) < 0.5 && (t_count[i] - (target.count - CountOffsetPos[i] + 1)) > -0.5)
+				{
+					CountOffsetNeg[i] = target.count;
+					flag[i] = true;
+					begin_pjs[i] = target.model->motionPool()[i].mp();
+				}
 
-        }
-        if(i==4||i==5)
-            target.model->motionPool().at(i).setMp(step_pjs[i]);
-    }
+			}
+			if (i == 4 || i == 5)
+				target.model->motionPool().at(i).setMp(step_pjs[i]);
+		}
+	}
+	else
+	{
+		for (int i = 0;i < 6;i++)
+		{
+
+			if (flag[i])
+			{
+				if (vArc[i] > 0.0001*1e-4)
+				{
+					vArc[i] = vArc[i] - 0.001*1e-4;
+					step_pjs[i] = step_pjs[i] + vArc[i];
+				}
+
+			}
+			if (flag[i] == false)
+			{
+
+				if (vArc[i] > 0.0001*1e-4)
+				{
+					vArc[i] = vArc[i] - 0.001*1e-4;
+					step_pjs[i] = step_pjs[i] - vArc[i];
+				}
+			}
+			if (i == 4 || i == 5)
+				target.model->motionPool().at(i).setMp(step_pjs[i]);
+		}
+	}
 
 
 
@@ -645,16 +678,13 @@ auto MoveDistal::executeRT(PlanTarget &target)->int
 
 	auto &lout = controller->lout();
 
-    if (target.count % 8 == 0)
+	if (target.count % 8 == 0 && CollectNum < SampleNum)
     {
         for (int i = 0; i < 6; i++)
         {
             PositionList[6 * (CollectNum - 1) + i] = target.model->motionPool()[i].mp();
             SensorList[6 * (CollectNum - 1) + i] = FT[i];
         }
-
-
-
 
         lout << target.count << ",";
         lout << PositionList[6 * (CollectNum - 1) + 0] << ",";lout << PositionList[6 * (CollectNum - 1) + 1] << ",";
@@ -668,13 +698,14 @@ auto MoveDistal::executeRT(PlanTarget &target)->int
         CollectNum = CollectNum + 1;
     }
 
+	if (target.count % 8 == 0 && CollectNum > SampleNum - 1)
+	{
+		CollectNum = CollectNum + 1;
 
-    return SampleNum - CollectNum;
+	}
+
+    return (150+SampleNum) - CollectNum;
 }
-
-
-
-
 
 
 auto MoveDistal::collectNrt(aris::plan::PlanTarget &target)->void
@@ -692,27 +723,24 @@ auto MoveDistal::collectNrt(aris::plan::PlanTarget &target)->void
 	for (int i = 0;i < GroupDim;i++)
         cout << sixDistalMatrix.estParasFT[i] << ",";
 
-	//Save Estimated Paras
-    aris::core::Matrix mat0(1,GroupDim, sixDistalMatrix.estParasFT);
-    if (target.model->variablePool().findByName("estParasFT") !=
-        target.model->variablePool().end())
-    {
-        dynamic_cast<aris::dynamic::MatrixVariable*>(
-            &*target.model->variablePool().findByName("estParasFT"))->data() = mat0;
-    }
-    else
-    {
-        target.model->variablePool().add<aris::dynamic::MatrixVariable>("estParasFT", mat0);
-    }
-
-
-
-
-
 	std::cout << "*****************************Statictic Model Error*****************************************" << std::endl;
 	for (int i = 0;i < 6;i++)
         cout << StatisError[i] << std::endl;
-    //double a = 3;
+
+	std::vector<double> load_params, torque_error;
+	load_params.resize(16, 0.0);
+	torque_error.resize(6, 0.0);
+
+	for (int i = 0;i < 16;i++)
+		load_params[i] = sixDistalMatrix.estParasFT[i];
+	for (int i = 0;i < 6;i++)
+		torque_error[i] = StatisError[i];
+
+	std::vector<std::pair<std::string, std::any>> out_param;
+	out_param.push_back(std::make_pair<std::string, std::any>("load_params", load_params));
+	out_param.push_back(std::make_pair<std::string, std::any>("torque_error", torque_error));
+	target.ret = out_param;
+ 
 }
 
 
@@ -723,12 +751,121 @@ MoveDistal::MoveDistal(const std::string &name) :Plan(name)
 		"<Command name=\"mvDistal\">"
 		"	<GroupParam>"
         "		<Param name=\"SensorType\"default=\"1.0\"/>"
-		"		<Param name=\"amplitude\" default=\"0.2\"/>"
+		"		<Param name=\"A5P\"default=\"0.0\"/>"
+		"		<Param name=\"A5N\" default=\"0.0\"/>"
+		"		<Param name=\"A6P\"default=\"0.0\"/>"
+		"		<Param name=\"A6N\" default=\"0.0\"/>"
+		"		<Param name=\"VEL\" default=\"0.15\"/>"
 		"	</GroupParam>"
 		"</Command>");
 
 }
 
+
+struct MoveDistalSaveParam
+{
+	double P1, P2, P3, P4, P5, P6, P7, P8, P9, P10;
+	double P11, P12, P13, P14, P15, P16;
+};
+auto MoveDistalSave::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+{
+	MoveDistalSaveParam param;
+
+	for (auto &p : params)
+	{
+		if (p.first == "P1")
+			param.P1 = std::stod(p.second);
+		if (p.first == "P2")
+			param.P2 = std::stod(p.second);
+		if (p.first == "P3")
+			param.P3 = std::stod(p.second);
+		if (p.first == "P4")
+			param.P4 = std::stod(p.second);
+		if (p.first == "P5")
+			param.P5 = std::stod(p.second);
+		if (p.first == "P6")
+			param.P6 = std::stod(p.second);
+		if (p.first == "P7")
+			param.P7 = std::stod(p.second);
+		if (p.first == "P8")
+			param.P8 = std::stod(p.second);
+		if (p.first == "P9")
+			param.P9 = std::stod(p.second);
+		if (p.first == "P10")
+			param.P10 = std::stod(p.second);
+		if (p.first == "P11")
+			param.P11 = std::stod(p.second);
+		if (p.first == "P12")
+			param.P12 = std::stod(p.second);
+		if (p.first == "P13")
+			param.P13 = std::stod(p.second);
+		if (p.first == "P14")
+			param.P14 = std::stod(p.second);
+		if (p.first == "P15")
+			param.P15 = std::stod(p.second);
+		if (p.first == "P16")
+			param.P16 = std::stod(p.second);
+
+	}
+
+	target.param = param;
+	double link_params[16] = { 0 };
+	link_params[0] = param.P1;
+	link_params[1] = param.P2;
+	link_params[2] = param.P3;
+	link_params[3] = param.P4;
+	link_params[4] = param.P5;
+	link_params[5] = param.P6;
+	link_params[6] = param.P7;
+	link_params[7] = param.P8;
+	link_params[8] = param.P9;
+	link_params[9] = param.P10;
+	link_params[10] = param.P11;
+	link_params[11] = param.P12;
+	link_params[12] = param.P13;
+	link_params[13] = param.P14;
+	link_params[14] = param.P15;
+	link_params[15] = param.P16;
+
+	aris::core::Matrix mat0(1, GroupDim, link_params);
+	if (target.model->variablePool().findByName("estParasFT") !=
+		target.model->variablePool().end())
+	{
+		dynamic_cast<aris::dynamic::MatrixVariable*>(
+			&*target.model->variablePool().findByName("estParasFT"))->data() = mat0;
+	}
+	else
+	{
+		target.model->variablePool().add<aris::dynamic::MatrixVariable>("estParasFT", mat0);
+	}
+
+}
+MoveDistalSave::MoveDistalSave(const std::string &name) :Plan(name)
+{
+
+	command().loadXmlStr(
+		"<Command name=\"MoveDistalSave\">"
+		"	<GroupParam>"
+		"		<Param name=\"P1\"default=\"0.0\"/>"
+		"		<Param name=\"P2\" default=\"0.0\"/>"
+		"		<Param name=\"P3\"default=\"0.0\"/>"
+		"		<Param name=\"P4\" default=\"0.0\"/>"
+		"		<Param name=\"P5\"default=\"0.0\"/>"
+		"		<Param name=\"P6\" default=\"0.0\"/>"
+		"		<Param name=\"P7\"default=\"0.0\"/>"
+		"		<Param name=\"P8\" default=\"0.0\"/>"
+		"		<Param name=\"P9\"default=\"0.0\"/>"
+		"		<Param name=\"P10\" default=\"0.0\"/>"
+		"		<Param name=\"P11\"default=\"0.0\"/>"
+		"		<Param name=\"P12\" default=\"0.0\"/>"
+		"		<Param name=\"P13\"default=\"0.0\"/>"
+		"		<Param name=\"P14\" default=\"0.0\"/>"
+		"		<Param name=\"P15\"default=\"0.0\"/>"
+		"		<Param name=\"P16\" default=\"0.0\"/>"
+		"	</GroupParam>"
+		"</Command>");
+
+}
 
 
 
@@ -3308,6 +3445,7 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
         for (int i = 0; i < 7; ++i)
             PqEnd0[i] = PqEnd[i];
 
+		PqEnd0[2] = -5;
         //PqEnd0[0] = 0.398;PqEnd0[1] = 0;PqEnd0[2] = 0.6295;PqEnd0[3] = 0;PqEnd0[4] = 0.7071;PqEnd0[5] = 0;PqEnd0[6] = 0.7071;
 
         aris::dynamic::s_pq2pm(PqEnd0, begin_pm);
@@ -3367,6 +3505,7 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
         vt[i] = KPP[i] * (PqEnd0[i]- PqEnd[i]);
 	}
 
+	vt[2] = KPP[2] * (PqEnd0[2] - FT[2]);
 
 	/*
 	//姿态误差1

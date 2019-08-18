@@ -6863,9 +6863,12 @@ double p, v, a;
 
 		//plan_root->planPool().add<GetError>();
 		plan_root->planPool().add<JointDyna>();
+		plan_root->planPool().add<JointDynaSave>();
 		plan_root->planPool().add<JointTest>();
 		plan_root->planPool().add<DragTeach>();
 		plan_root->planPool().add<LoadDyna>();
+		plan_root->planPool().add<LoadDynaSave0>();
+		plan_root->planPool().add<LoadDynaSave1>();
 		plan_root->planPool().add<SaveYYbase>();
 		plan_root->planPool().add<SaveFile>();
 
