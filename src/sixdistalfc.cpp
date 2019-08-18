@@ -3446,7 +3446,7 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 			PqEnd0[i] = PqEnd[i];
 		}
 		for (int i = 0; i < 6; ++i)
-		{;
+        {
 			step_pjs[i] = PqEnd[i];
 		}
 
@@ -3459,9 +3459,9 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 	}	
 
 	static bool flag[6] = { true,true,true,true,true,true };
-	double PosLimit[6] = {  0,0.010,0,0,0,0};
-	double NegLimit[6] = { 0,-0.010,0,0,0,0};
-	static double pArc[6], vArc[6], aArc[6], vArcMax[6] = { 0.0001,0.0001,0.0001,0.0001,0.0001,0.0001 };
+    double PosLimit[6] = {  0,0.030,0,0,0,0};
+    double NegLimit[6] = { 0,-0.030,0,0,0,0};
+    static double pArc[6], vArc[6], aArc[6], vArcMax[6] = { 0.001,0.005,0.001,0.001,0.001,0.001 };
 	static aris::Size t_count[6] = { 0 };
 	static int CountOffsetPos[6] = { 1,1,1,1,1,1 }, CountOffsetNeg[6] = { 1,1,1,1,1,1 };
 
@@ -3470,7 +3470,7 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 
 		if (flag[i])
 		{
-			if (step_pjs[i] < PosLimit[i])
+            if (step_pjs[i] < (PosLimit[i]+0.001))
 			{
 				aris::plan::moveAbsolute(target.count - CountOffsetNeg[i] + 1, 0, PosLimit[i] - begin_pjs[i], vArcMax[i] / 1000, 0.05 / 1000 / 1000, 0.05 / 1000 / 1000, pArc[i], vArc[i], aArc[i], t_count[i]);
 
@@ -3488,7 +3488,7 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 		}
 		if (flag[i] == false)
 		{
-			if (step_pjs[i] > NegLimit[i])
+            if (step_pjs[i] > (NegLimit[i]-0.001))
 			{
 				aris::plan::moveAbsolute(target.count - CountOffsetPos[i] + 1, 0, begin_pjs[i] - NegLimit[i], vArcMax[i] / 1000, 0.05 / 1000 / 1000, 0.05 / 1000 / 1000, pArc[i], vArc[i], aArc[i], t_count[i]);
 
@@ -3504,6 +3504,13 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 
 		}
 	}
+
+
+    for (int i = 0; i < 6; ++i)
+    {
+        PqEnd0[i] = step_pjs[i];
+    }
+    PqEnd0[2]=-5;
 
 
 
@@ -3626,7 +3633,8 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 		ft[i] = KPV[i] * (vt[i]-dX[i])+KIV[i]*ErrSumVt[i];
 	}
 
-    ft[2]=KPP[2] * (PqEnd0[2] - FT[2]);
+    ErrSumVt[2] = ErrSumVt[2]+(PqEnd0[2] - FT[2])*0.001;
+    ft[2]=KPP[2] * (PqEnd0[2] - FT[2])+KIV[2]*ErrSumVt[2];
 
 
 
@@ -3640,7 +3648,7 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 
     if (target.count % 300 == 0)
     {
-        cout<<ft[2]<<"****"<<FT[2]<<"****"<<step_pjs[1]<<"****"<<JoinTau[1]<<"****"<<stateTor1[2][0]<<std::endl;
+        cout<<ft[2]<<"****"<<FT[2]<<"****"<<step_pjs[1]<<"****"<<PqEnd0[1]<<"****"<<stateTor1[2][0]<<std::endl;
     }
 
     lout << ft[2] << ",";lout << FT[2] << ",";lout<<step_pjs[1] << ",";
