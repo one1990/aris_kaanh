@@ -3280,6 +3280,7 @@ double p, v, a;
 	}
 	auto JogJ1::collectNrt(PlanTarget &target)->void 
 	{
+		JogJParam::j1_count = 0;
 		if (target.ret_code < 0)
 		{
 			JogJParam::j1_count.store(0);
@@ -3434,6 +3435,7 @@ double p, v, a;
 	}
 	auto JogJ2::collectNrt(PlanTarget &target)->void 
 	{
+		JogJParam::j2_count = 0;
 		if (target.ret_code < 0)
 		{
 			JogJParam::j2_count.store(0);
@@ -3586,7 +3588,9 @@ double p, v, a;
 
 		return finished;
 	}
-	auto JogJ3::collectNrt(PlanTarget &target)->void {
+	auto JogJ3::collectNrt(PlanTarget &target)->void 
+	{
+		JogJParam::j3_count = 0;
 		if (target.ret_code < 0)
 		{
 			JogJParam::j3_count.store(0);
@@ -3739,7 +3743,9 @@ double p, v, a;
 
 		return finished;
 	}
-	auto JogJ4::collectNrt(PlanTarget &target)->void {
+	auto JogJ4::collectNrt(PlanTarget &target)->void 
+	{
+		JogJParam::j4_count = 0;
 		if (target.ret_code < 0)
 		{
 			JogJParam::j4_count.store(0);
@@ -3892,7 +3898,9 @@ double p, v, a;
 
 		return finished;
 	}
-	auto JogJ5::collectNrt(PlanTarget &target)->void {
+	auto JogJ5::collectNrt(PlanTarget &target)->void 
+	{
+		JogJParam::j5_count = 0;
 		if (target.ret_code < 0)
 		{
 			JogJParam::j5_count.store(0);
@@ -4045,7 +4053,9 @@ double p, v, a;
 
 		return finished;
 	}
-	auto JogJ6::collectNrt(PlanTarget &target)->void {
+	auto JogJ6::collectNrt(PlanTarget &target)->void 
+	{
+		JogJParam::j6_count = 0;
 		if (target.ret_code < 0)
 		{
 			JogJParam::j6_count.store(0);
@@ -4256,7 +4266,9 @@ double p, v, a;
 
 		return finished[param.moving_type];
 	}
-	auto JX::collectNrt(PlanTarget &target)->void {
+	auto JX::collectNrt(PlanTarget &target)->void 
+	{
+		JCParam::jx_count = 0;
 		if (target.ret_code < 0)
 		{
 			JCParam::jx_count.store(0);
@@ -4457,7 +4469,9 @@ double p, v, a;
 
 		return finished[param.moving_type];
 	}
-	auto JY::collectNrt(PlanTarget &target)->void {
+	auto JY::collectNrt(PlanTarget &target)->void 
+	{
+		JCParam::jy_count = 0;
 		if (target.ret_code < 0)
 		{
 			JCParam::jy_count.store(0);
@@ -4658,7 +4672,9 @@ double p, v, a;
 
 		return finished[param.moving_type];
 	}
-	auto JZ::collectNrt(PlanTarget &target)->void {
+	auto JZ::collectNrt(PlanTarget &target)->void 
+	{
+		JCParam::jz_count = 0;
 		if (target.ret_code < 0)
 		{
 			JCParam::jz_count.store(0);
@@ -4859,7 +4875,9 @@ double p, v, a;
 
 		return finished[param.moving_type];
 	}
-	auto JRX::collectNrt(PlanTarget &target)->void {
+	auto JRX::collectNrt(PlanTarget &target)->void 
+	{
+		JCParam::jrx_count = 0;
 		if (target.ret_code < 0)
 		{
 			JCParam::jrx_count.store(0);
@@ -5067,7 +5085,9 @@ double p, v, a;
 
 		return finished[param.moving_type];
 	}
-	auto JRY::collectNrt(PlanTarget &target)->void {
+	auto JRY::collectNrt(PlanTarget &target)->void 
+	{
+		JCParam::jry_count = 0;
 		if (target.ret_code < 0)
 		{
 			JCParam::jry_count.store(0);
@@ -5268,7 +5288,9 @@ double p, v, a;
 
 		return finished[param.moving_type];
 	}
-	auto JRZ::collectNrt(PlanTarget &target)->void {
+	auto JRZ::collectNrt(PlanTarget &target)->void 
+	{
+		JCParam::jrz_count = 0;
 		if (target.ret_code < 0)
 		{
 			JCParam::jrz_count.store(0);
