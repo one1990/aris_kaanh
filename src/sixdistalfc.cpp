@@ -3495,7 +3495,7 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 
 
 	double vt[6] = { 0 }, ftemp[6] = { 0 };
-    double KPP[7] = {200,200,0,-15,-15,-15,0};
+    double KPP[7] = {200,200,8,-15,-15,-15,0};
     double KPV[7] = {100,100,0,4,4,4,0};
     double KIV[7] = {50,50,  0,1,1,1,0};
     static double ErrSum[7]={0};
@@ -3505,7 +3505,6 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
         vt[i] = KPP[i] * (PqEnd0[i]- PqEnd[i]);
 	}
 
-	vt[2] = KPP[2] * (PqEnd0[2] - FT[2]);
 
 	/*
 	//姿态误差1
@@ -3527,7 +3526,7 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 	double cos_theta = PqEnd[3] * PqEnd0[3] + PqEnd[4] * PqEnd0[4] + PqEnd[5] * PqEnd0[5] + PqEnd[6] * PqEnd0[6];
 
     auto &lout = controller->lout();
-    lout <<cos_theta<<",";
+
 
 	if (cos_theta < 0)
 	{
@@ -3574,7 +3573,9 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 		ft[i] = KPV[i] * (vt[i]-dX[i])+KIV[i]*ErrSumVt[i];
 	}
 
-    lout <<dQuar[0]<<","; lout <<dQuar[1]<<","; lout <<dQuar[2]<<","; lout <<dQuar[3]<<",";
+    ft[2]=KPP[2] * (PqEnd0[2] - FT[2]);
+
+
 
 	double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
 
@@ -3586,10 +3587,10 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 
     if (target.count % 300 == 0)
     {
-        cout<<ft[3]<<"****"<<ft[4]<<"****"<<ft[5]<<"****"<<JoinTau[1]<<"****"<<stateTor1[2][0]<<std::endl;
+        cout<<ft[2]<<"****"<<FT[2]<<"****"<<ft[5]<<"****"<<JoinTau[1]<<"****"<<stateTor1[2][0]<<std::endl;
     }
 
-
+    lout << ft[2] << ",";lout << FT[2] << ",";
 
 	double pa[6] = { 0 }, ta[6] = { 0 };
 	for (int i = 0; i < 6; i++)
@@ -3622,7 +3623,6 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
     lout << PqEnd[2] << ",";lout << PqEnd[3] << ",";
     lout << PqEnd[4] << ",";lout << PqEnd[5] << ",";lout << PqEnd[6] << ",";
 
-    lout <<theta<<",";
 
     lout << JoinTau[0] << ",";lout << JoinTau[1] << ",";
     lout << JoinTau[2] << ",";lout << JoinTau[3] << ",";
@@ -3658,7 +3658,7 @@ ForceDirect::ForceDirect(const std::string &name) :Plan(name)
         "<Command name=\"ForceDir\">"
 		"	<GroupParam>"
 		"       <Param name=\"PressF\" default=\"0\"/>"
-		"		<Param name=\"SensorType\"default=\"20.0\"/>"
+        "		<Param name=\"SensorType\"default=\"-20.0\"/>"
 		"   </GroupParam>"
 		"</Command>");
 
