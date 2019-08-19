@@ -6,7 +6,7 @@
 #include <array>
 #include <stdlib.h>
 #include"move_series.h"
-#include"kinematics.h"
+
 
 
 using namespace aris::dynamic;
@@ -6869,9 +6869,7 @@ double p, v, a;
 		plan_root->planPool().add<SaveYYbase>();
 		plan_root->planPool().add<SaveFile>();
 
-		plan_root->planPool().add<FourPoints>();
-		plan_root->planPool().add<SetTool>();
-
+		
 
 		plan_root->planPool().add<SevenJointDyna>();
 		plan_root->planPool().add<SevenJointTest>();
@@ -6885,6 +6883,16 @@ double p, v, a;
 		plan_root->planPool().add<cplan::MoveinModel>();
 		plan_root->planPool().add<cplan::FMovePath>();
 		plan_root->planPool().add<cplan::OpenFile>();
+		
+		plan_root->planPool().add<CalibT4P>();
+		plan_root->planPool().add<CalibT5P>();
+		plan_root->planPool().add<CalibT6P>();
+		plan_root->planPool().add<SetTF>();
+		plan_root->planPool().add<RenameT>();
+		plan_root->planPool().add<CalibZF>();
+		plan_root->planPool().add<CalibZO>();
+		plan_root->planPool().add<CalibZL>();
+		plan_root->planPool().add<SaveTeachPt>();
 
 		return plan_root;
 	}
