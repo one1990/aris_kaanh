@@ -2272,14 +2272,14 @@ double p, v, a;
 		else if (pos_unit_found->second == "m")pos_unit = 1.0;
 		else if (pos_unit_found->second == "mm")pos_unit = 0.001;
 		else if (pos_unit_found->second == "cm")pos_unit = 0.01;
-		else THROW_FILE_AND_LINE("");
+		else THROW_FILE_LINE("");
 
 		for (auto cmd_param : params)
 		{
 			if (cmd_param.first == "mid_pq")
 			{
 				auto pq_mat = target.model->calculator().calculateExpression(cmd_param.second);
-				if (pq_mat.size() != 7)THROW_FILE_AND_LINE("");
+				if (pq_mat.size() != 7)THROW_FILE_LINE("");
 				aris::dynamic::s_vc(7, pq_mat.data(), mid_pq_out);
 				aris::dynamic::s_nv(3, pos_unit, mid_pq_out);
 				return true;
@@ -2287,7 +2287,7 @@ double p, v, a;
 			else if (cmd_param.first == "mid_pm")
 			{
 				auto pm_mat = target.model->calculator().calculateExpression(cmd_param.second);
-				if (pm_mat.size() != 16)THROW_FILE_AND_LINE("");
+				if (pm_mat.size() != 16)THROW_FILE_LINE("");
 				aris::dynamic::s_pm2pq(pm_mat.data(), mid_pq_out);
 				aris::dynamic::s_nv(3, pos_unit, mid_pq_out);
 				return true;
@@ -2299,16 +2299,16 @@ double p, v, a;
 				if (ori_unit_found == params.end()) ori_unit = 1.0;
 				else if (ori_unit_found->second == "rad")ori_unit = 1.0;
 				else if (ori_unit_found->second == "degree")ori_unit = PI / 180.0;
-				else THROW_FILE_AND_LINE("");
+				else THROW_FILE_LINE("");
 
 				std::string eul_type;
 				auto eul_type_found = params.find("mid_eul_type");
 				if (eul_type_found == params.end()) eul_type = "321";
 				else if (check_eul_validity(eul_type_found->second.data()))	eul_type = eul_type_found->second;
-				else THROW_FILE_AND_LINE("");
+				else THROW_FILE_LINE("");
 
 				auto pe_mat = target.model->calculator().calculateExpression(cmd_param.second);
-				if (pe_mat.size() != 6)THROW_FILE_AND_LINE("");
+				if (pe_mat.size() != 6)THROW_FILE_LINE("");
 				aris::dynamic::s_nv(3, ori_unit, pe_mat.data() + 3);
 				aris::dynamic::s_pe2pq(pe_mat.data(), mid_pq_out, eul_type.data());
 				aris::dynamic::s_nv(3, pos_unit, mid_pq_out);
@@ -2316,7 +2316,7 @@ double p, v, a;
 			}
 		}
 
-		THROW_FILE_AND_LINE("No mid pose input");
+		THROW_FILE_LINE("No mid pose input");
 	}
 	auto find_end_pq(const std::map<std::string, std::string> &params, PlanTarget &target, double *end_pq_out)->bool
 	{
@@ -2326,14 +2326,14 @@ double p, v, a;
 		else if (pos_unit_found->second == "m")pos_unit = 1.0;
 		else if (pos_unit_found->second == "mm")pos_unit = 0.001;
 		else if (pos_unit_found->second == "cm")pos_unit = 0.01;
-		else THROW_FILE_AND_LINE("");
+		else THROW_FILE_LINE("");
 
 		for (auto cmd_param : params)
 		{
 			if (cmd_param.first == "end_pq")
 			{
 				auto pq_mat = target.model->calculator().calculateExpression(cmd_param.second);
-				if (pq_mat.size() != 7)THROW_FILE_AND_LINE("");
+				if (pq_mat.size() != 7)THROW_FILE_LINE("");
 				aris::dynamic::s_vc(7, pq_mat.data(), end_pq_out);
 				aris::dynamic::s_nv(3, pos_unit, end_pq_out);
 				return true;
@@ -2341,7 +2341,7 @@ double p, v, a;
 			else if (cmd_param.first == "end_pm")
 			{
 				auto pm_mat = target.model->calculator().calculateExpression(cmd_param.second);
-				if (pm_mat.size() != 16)THROW_FILE_AND_LINE("");
+				if (pm_mat.size() != 16)THROW_FILE_LINE("");
 				aris::dynamic::s_pm2pq(pm_mat.data(), end_pq_out);
 				aris::dynamic::s_nv(3, pos_unit, end_pq_out);
 				return true;
@@ -2353,16 +2353,16 @@ double p, v, a;
 				if (ori_unit_found == params.end()) ori_unit = 1.0;
 				else if (ori_unit_found->second == "rad")ori_unit = 1.0;
 				else if (ori_unit_found->second == "degree")ori_unit = PI / 180.0;
-				else THROW_FILE_AND_LINE("");
+				else THROW_FILE_LINE("");
 
 				std::string eul_type;
 				auto eul_type_found = params.find("mid_eul_type");
 				if (eul_type_found == params.end()) eul_type = "321";
 				else if (check_eul_validity(eul_type_found->second.data()))	eul_type = eul_type_found->second;
-				else THROW_FILE_AND_LINE("");
+				else THROW_FILE_LINE("");
 
 				auto pe_mat = target.model->calculator().calculateExpression(cmd_param.second);
-				if (pe_mat.size() != 6)THROW_FILE_AND_LINE("");
+				if (pe_mat.size() != 6)THROW_FILE_LINE("");
 				aris::dynamic::s_nv(3, ori_unit, pe_mat.data() + 3);
 				aris::dynamic::s_pe2pq(pe_mat.data(), end_pq_out, eul_type.data());
 				aris::dynamic::s_nv(3, pos_unit, end_pq_out);
@@ -2370,7 +2370,7 @@ double p, v, a;
 			}
 		}
 
-		THROW_FILE_AND_LINE("No end pose input");
+		THROW_FILE_LINE("No end pose input");
 	}
 	void slerp(double starting[4], double ending[4], double result[4], double t)
 	{
@@ -2421,8 +2421,8 @@ double p, v, a;
 		mvc_param.ee_begin_pq.resize(7);
 		mvc_param.ee_mid_pq.resize(7);
 		mvc_param.ee_end_pq.resize(7);
-		if (!find_mid_pq(params, target, mvc_param.ee_mid_pq.data()))THROW_FILE_AND_LINE("");
-		if (!find_end_pq(params, target, mvc_param.ee_end_pq.data()))THROW_FILE_AND_LINE("");
+		if (!find_mid_pq(params, target, mvc_param.ee_mid_pq.data()))THROW_FILE_LINE("");
+		if (!find_end_pq(params, target, mvc_param.ee_end_pq.data()))THROW_FILE_LINE("");
 
 		for (auto cmd_param : params)
 		{
@@ -2582,7 +2582,6 @@ double p, v, a;
 				lout << controller->motionAtAbs(i).targetPos() << ",";
 				lout << controller->motionAtAbs(i).actualPos() << ",";
 				lout << controller->motionAtAbs(i).actualVel() << ",";
-				lout << controller->motionAtAbs(i).actualCur() << ",";
 			}
 			lout << std::endl;
 		}
@@ -2670,18 +2669,18 @@ double p, v, a;
 				imp_->s1_rt.vel_percent = 10;
 
 				imp_->increase_count = std::stoi(params.at("increase_count"));
-				if (imp_->increase_count < 0 || imp_->increase_count>1e5)THROW_FILE_AND_LINE("");
+				if (imp_->increase_count < 0 || imp_->increase_count>1e5)THROW_FILE_LINE("");
 
 				auto mat = target.model->calculator().calculateExpression(params.at("vel"));
-				if (mat.size() != 6)THROW_FILE_AND_LINE("");
+				if (mat.size() != 6)THROW_FILE_LINE("");
 				std::copy(mat.begin(), mat.end(), imp_->vel);
 
 				mat = target.model->calculator().calculateExpression(params.at("acc"));
-				if (mat.size() != 6)THROW_FILE_AND_LINE("");
+				if (mat.size() != 6)THROW_FILE_LINE("");
 				std::copy(mat.begin(), mat.end(), imp_->acc);
 
 				mat = target.model->calculator().calculateExpression(params.at("dec"));
-				if (mat.size() != 6)THROW_FILE_AND_LINE("");
+				if (mat.size() != 6)THROW_FILE_LINE("");
 				std::copy(mat.begin(), mat.end(), imp_->dec);
 
 				std::fill(target.mot_options.begin(), target.mot_options.end(), USE_TARGET_POS);
@@ -2964,7 +2963,7 @@ double p, v, a;
 				imp_->s1_rt.vel_percent = 10;
 
 				imp_->increase_count = std::stoi(params.at("increase_count"));
-				if (imp_->increase_count < 0 || imp_->increase_count>1e5)THROW_FILE_AND_LINE("");
+				if (imp_->increase_count < 0 || imp_->increase_count>1e5)THROW_FILE_LINE("");
 				imp_->vel = std::stod(params.at("vel"));
 				imp_->acc = std::stod(params.at("acc"));
 				imp_->dec = std::stod(params.at("dec"));
@@ -3167,7 +3166,7 @@ double p, v, a;
 		for (auto &p : params)
 		{
 			param.increase_count = std::stoi(params.at("increase_count"));
-			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_AND_LINE("");
+			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
 			/*
 			param.vel = std::stod(params.at("vel"));
 			param.acc = std::stod(params.at("acc"));
@@ -3326,7 +3325,7 @@ double p, v, a;
 		for (auto &p : params)
 		{
 			param.increase_count = std::stoi(params.at("increase_count"));
-			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_AND_LINE("");
+			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
 
 			param.vel = c->motionPool().at(1).maxVel();
 			param.acc = c->motionPool().at(1).maxAcc();
@@ -3481,7 +3480,7 @@ double p, v, a;
 		for (auto &p : params)
 		{
 			param.increase_count = std::stoi(params.at("increase_count"));
-			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_AND_LINE("");
+			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
 
 			param.vel = c->motionPool().at(2).maxVel();
 			param.acc = c->motionPool().at(2).maxAcc();
@@ -3636,7 +3635,7 @@ double p, v, a;
 		for (auto &p : params)
 		{
 			param.increase_count = std::stoi(params.at("increase_count"));
-			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_AND_LINE("");
+			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
 
 			param.vel = c->motionPool().at(3).maxVel();
 			param.acc = c->motionPool().at(3).maxAcc();
@@ -3791,7 +3790,7 @@ double p, v, a;
 		for (auto &p : params)
 		{
 			param.increase_count = std::stoi(params.at("increase_count"));
-			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_AND_LINE("");
+			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
 
 			param.vel = c->motionPool().at(4).maxVel();
 			param.acc = c->motionPool().at(4).maxAcc();
@@ -3946,7 +3945,7 @@ double p, v, a;
 		for (auto &p : params)
 		{
 			param.increase_count = std::stoi(params.at("increase_count"));
-			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_AND_LINE("");
+			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
 
 			param.vel = c->motionPool().at(5).maxVel();
 			param.acc = c->motionPool().at(5).maxAcc();
@@ -4111,18 +4110,18 @@ double p, v, a;
 			velocity = std::max(std::min(100, velocity), -100);
 			param.vel_percent = velocity;
 
-			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_AND_LINE("");
+			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
 
 			auto mat = target.model->calculator().calculateExpression(params.at("vel"));
-			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			if (mat.size() != 6)THROW_FILE_LINE("");
 			std::copy(mat.begin(), mat.end(), param.vel);
 
 			mat = target.model->calculator().calculateExpression(params.at("acc"));
-			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			if (mat.size() != 6)THROW_FILE_LINE("");
 			std::copy(mat.begin(), mat.end(), param.acc);
 
 			mat = target.model->calculator().calculateExpression(params.at("dec"));
-			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			if (mat.size() != 6)THROW_FILE_LINE("");
 			std::copy(mat.begin(), mat.end(), param.dec);
 
 			param.increase_status[param.moving_type] = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
@@ -4314,18 +4313,18 @@ double p, v, a;
 			velocity = std::max(std::min(100, velocity), -100);
 			param.vel_percent = velocity;
 
-			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_AND_LINE("");
+			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
 
 			auto mat = target.model->calculator().calculateExpression(params.at("vel"));
-			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			if (mat.size() != 6)THROW_FILE_LINE("");
 			std::copy(mat.begin(), mat.end(), param.vel);
 
 			mat = target.model->calculator().calculateExpression(params.at("acc"));
-			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			if (mat.size() != 6)THROW_FILE_LINE("");
 			std::copy(mat.begin(), mat.end(), param.acc);
 
 			mat = target.model->calculator().calculateExpression(params.at("dec"));
-			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			if (mat.size() != 6)THROW_FILE_LINE("");
 			std::copy(mat.begin(), mat.end(), param.dec);
 
 			param.increase_status[param.moving_type] = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
@@ -4517,18 +4516,18 @@ double p, v, a;
 			velocity = std::max(std::min(100, velocity), -100);
 			param.vel_percent = velocity;
 
-			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_AND_LINE("");
+			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
 
 			auto mat = target.model->calculator().calculateExpression(params.at("vel"));
-			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			if (mat.size() != 6)THROW_FILE_LINE("");
 			std::copy(mat.begin(), mat.end(), param.vel);
 
 			mat = target.model->calculator().calculateExpression(params.at("acc"));
-			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			if (mat.size() != 6)THROW_FILE_LINE("");
 			std::copy(mat.begin(), mat.end(), param.acc);
 
 			mat = target.model->calculator().calculateExpression(params.at("dec"));
-			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			if (mat.size() != 6)THROW_FILE_LINE("");
 			std::copy(mat.begin(), mat.end(), param.dec);
 
 			param.increase_status[param.moving_type] = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
@@ -4720,18 +4719,18 @@ double p, v, a;
 			velocity = std::max(std::min(100, velocity), -100);
 			param.vel_percent = velocity;
 
-			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_AND_LINE("");
+			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
 
 			auto mat = target.model->calculator().calculateExpression(params.at("vel"));
-			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			if (mat.size() != 6)THROW_FILE_LINE("");
 			std::copy(mat.begin(), mat.end(), param.vel);
 
 			mat = target.model->calculator().calculateExpression(params.at("acc"));
-			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			if (mat.size() != 6)THROW_FILE_LINE("");
 			std::copy(mat.begin(), mat.end(), param.acc);
 
 			mat = target.model->calculator().calculateExpression(params.at("dec"));
-			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			if (mat.size() != 6)THROW_FILE_LINE("");
 			std::copy(mat.begin(), mat.end(), param.dec);
 
 			param.increase_status[param.moving_type] = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
@@ -4930,18 +4929,18 @@ double p, v, a;
 			velocity = std::max(std::min(100, velocity), -100);
 			param.vel_percent = velocity;
 
-			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_AND_LINE("");
+			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
 
 			auto mat = target.model->calculator().calculateExpression(params.at("vel"));
-			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			if (mat.size() != 6)THROW_FILE_LINE("");
 			std::copy(mat.begin(), mat.end(), param.vel);
 
 			mat = target.model->calculator().calculateExpression(params.at("acc"));
-			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			if (mat.size() != 6)THROW_FILE_LINE("");
 			std::copy(mat.begin(), mat.end(), param.acc);
 
 			mat = target.model->calculator().calculateExpression(params.at("dec"));
-			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			if (mat.size() != 6)THROW_FILE_LINE("");
 			std::copy(mat.begin(), mat.end(), param.dec);
 
 			param.increase_status[param.moving_type] = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
@@ -5133,18 +5132,18 @@ double p, v, a;
 			velocity = std::max(std::min(100, velocity), -100);
 			param.vel_percent = velocity;
 
-			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_AND_LINE("");
+			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
 
 			auto mat = target.model->calculator().calculateExpression(params.at("vel"));
-			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			if (mat.size() != 6)THROW_FILE_LINE("");
 			std::copy(mat.begin(), mat.end(), param.vel);
 
 			mat = target.model->calculator().calculateExpression(params.at("acc"));
-			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			if (mat.size() != 6)THROW_FILE_LINE("");
 			std::copy(mat.begin(), mat.end(), param.acc);
 
 			mat = target.model->calculator().calculateExpression(params.at("dec"));
-			if (mat.size() != 6)THROW_FILE_AND_LINE("");
+			if (mat.size() != 6)THROW_FILE_LINE("");
 			std::copy(mat.begin(), mat.end(), param.dec);
 
 			param.increase_status[param.moving_type] = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
@@ -6408,7 +6407,7 @@ double p, v, a;
 	SetDH::SetDH(const std::string &name) :Plan(name)
 	{
 		command().loadXmlStr(
-			"<Command name=\"setDH\">"
+			"<Command name=\"setdh\">"
 			"	<GroupParam>"
 			"		<UniqueParam>"
 			"			<GroupParam name=\"start_group\">"
@@ -6489,7 +6488,7 @@ double p, v, a;
 	SetPG::SetPG(const std::string &name) :Plan(name)
 	{
 		command().loadXmlStr(
-			"<Command name=\"setPG\">"
+			"<Command name=\"setpgpath\">"
 			"	<GroupParam>"
 			"		<Param name=\"name\" default=\"test\"/>"
 			"		<Param name=\"pe\" default=\"{0, 0, 0, -0, 0, -0}\"/>"
@@ -6499,6 +6498,74 @@ double p, v, a;
 			"</Command>");
 	}
 	
+
+	// 配置PG参数 //
+	struct SetPPathParam
+	{
+		std::string name;
+		std::vector<double> pe;
+		std::vector<std::string> file_path;
+	};
+	auto SetPPath::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		auto&cs = aris::server::ControlServer::instance();
+		if (cs.running())throw std::runtime_error("cs is running, can not set DH parameters,please stop the cs!");
+
+		SetPPathParam param;
+		param.pe.clear();
+		param.pe.resize(6, 0.0);
+		param.file_path.clear();
+
+		for (auto &p : params)
+		{
+			if (p.first == "name")
+			{
+				param.name = p.second;
+			}
+			else if (p.first == "pe")
+			{
+				auto mat = target.model->calculator().calculateExpression(params.at("pe"));
+				if (mat.size() == param.pe.size())
+				{
+					param.pe.assign(mat.begin(), mat.end());
+				}
+				else
+				{
+					throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+				}
+			}
+			else if (p.first == "file_path")
+			{
+				auto s = target.model->calculator().calculateExpression(p.second);
+				param.file_path.resize(s.size());
+				param.file_path.assign(s.begin(), s.end());
+			}
+		}
+
+		for (int i = 0; i < param.file_path.size(); i++)
+		{
+			target.model->partPool().at(i).geometryPool().clear();
+			target.model->partPool().at(i).geometryPool().add<FileGeometry>(param.name, param.file_path[i], param.pe.data());
+		}
+		std::cout << param.file_path[0] << std::endl;
+
+		std::vector<std::pair<std::string, std::any>> ret;
+		target.ret = ret;
+		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
+
+	}
+	SetPPath::SetPPath(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"setppath\">"
+			"	<GroupParam>"
+			"		<Param name=\"name\" default=\"test\"/>"
+			"		<Param name=\"pe\" default=\"{0, 0, 0, -0, 0, -0}\"/>"
+			"		<Param name=\"file_path\" default=\"{/RobotGallery/Rokae/XB4/l0.data,/RobotGallery/Rokae/XB4/l1.data,/RobotGallery/Rokae/XB4/l2.data}\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
+
 
 	// 配置UI //
 	struct SetUIParam
@@ -6864,6 +6931,7 @@ double p, v, a;
 		plan_root->planPool().add<kaanh::SetCon>();
 		plan_root->planPool().add<kaanh::SetDH>();
 		plan_root->planPool().add<kaanh::SetPG>();
+		plan_root->planPool().add<kaanh::SetPPath>();
 		plan_root->planPool().add<kaanh::SetUI>();
 		plan_root->planPool().add<kaanh::SetDriver>();
 		plan_root->planPool().add<kaanh::SaveConfig>();
