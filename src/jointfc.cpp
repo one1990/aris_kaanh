@@ -128,7 +128,7 @@ auto JointDyna::executeRT(PlanTarget &target)->int
 				{
 					CountOffsetPos[i] = target.count;
 					flag[i] = false;
-					begin_pjs[i] = target.model->motionPool()[i].mp();
+					begin_pjs[i] = step_pjs[i];
 				}
 
 
@@ -146,7 +146,7 @@ auto JointDyna::executeRT(PlanTarget &target)->int
 				{
 					CountOffsetNeg[i] = target.count;
 					flag[i] = true;
-					begin_pjs[i] = target.model->motionPool()[i].mp();
+					begin_pjs[i] = step_pjs[i];
 				}
 
 			}
@@ -318,9 +318,9 @@ auto JointDyna::collectNrt(aris::plan::PlanTarget &target)->void
 		torque_error[i] = StatisError[i];
 
 
-	std::string CalibrationInfo = "Calibration Is Completed";
+	std::string calib_info = "Calibration Is Completed";
 	std::vector<std::pair<std::string, std::any>> out_param;
-	out_param.push_back(std::make_pair<std::string, std::any>("CalibrationInfo", CalibrationInfo));
+	out_param.push_back(std::make_pair<std::string, std::any>("calib_info", calib_info));
 	out_param.push_back(std::make_pair<std::string, std::any>("link_param", link_params));
 	out_param.push_back(std::make_pair<std::string, std::any>("torque_error", torque_error));
 	target.ret = out_param;
@@ -601,10 +601,10 @@ auto JointDynaSave::prepairNrt(const std::map<std::string, std::string> &params,
 		target.model->variablePool().add<aris::dynamic::MatrixVariable>("estParasJoint", mat0);
 	}
 
-	std::string CalibrationInfo = "Calibration Is Completed";
+	std::string calib_info = "Calibration Is Completed";
 
 	std::vector<std::pair<std::string, std::any>> out_param;
-	out_param.push_back(std::make_pair<std::string, std::any>("CalibrationInfo", CalibrationInfo));
+	out_param.push_back(std::make_pair<std::string, std::any>("calib_info", calib_info));
 	target.ret = out_param;
 
 
@@ -1225,7 +1225,7 @@ auto LoadDyna::executeRT(PlanTarget &target)->int
 				{
 					CountOffsetPos[i] = target.count;
 					flag[i] = false;
-					begin_pjs[i] = target.model->motionPool()[i].mp();
+					begin_pjs[i] = step_pjs[i];
 				}
 				
 			
@@ -1243,7 +1243,7 @@ auto LoadDyna::executeRT(PlanTarget &target)->int
 			{
 				CountOffsetNeg[i] = target.count;
 				flag[i] = true;
-				begin_pjs[i] = target.model->motionPool()[i].mp();
+				begin_pjs[i] = step_pjs[i];
 			}
 			
 		}
@@ -1447,10 +1447,10 @@ cout << std::endl;
 			torque_error [i]=StatisError[i] ;
 
 
-		std::string CalibrationInfo = "Calibration Is Completed";
+		std::string calib_info = "Calibration Is Completed";
 
 		std::vector<std::pair<std::string, std::any>> out_param;
-		out_param.push_back(std::make_pair<std::string, std::any>("CalibrationInfo", CalibrationInfo));
+		out_param.push_back(std::make_pair<std::string, std::any>("calib_info", calib_info));
 		out_param.push_back(std::make_pair<std::string, std::any>("link_param", link_param));
 		out_param.push_back(std::make_pair<std::string, std::any>("torque_error", torque_error));
 		target.ret = out_param;
@@ -1482,10 +1482,10 @@ cout << std::endl;
 		for (int i = 0;i < 3;i++)
 			torque_error[i] = StatisError[i];
 
-		std::string CalibrationInfo = "Calibration Is Completed";
+		std::string calib_info = "Calibration Is Completed";
 
 		std::vector<std::pair<std::string, std::any>> out_param;
-		out_param.push_back(std::make_pair<std::string, std::any>("CalibrationInfo", CalibrationInfo));
+		out_param.push_back(std::make_pair<std::string, std::any>("calib_info", calib_info));
 		out_param.push_back(std::make_pair<std::string, std::any>("link_param", link_param));
 		out_param.push_back(std::make_pair<std::string, std::any>("torque_error", torque_error));
 		target.ret = out_param;
@@ -1688,10 +1688,10 @@ auto LoadDynaSave0::prepairNrt(const std::map<std::string, std::string> &params,
 		}
 
 
-		std::string CalibrationInfo = "No-load Identification Is Completed";
+		std::string calib_info = "No-load Identification Is Completed";
 
 		std::vector<std::pair<std::string, std::any>> out_param;
-		out_param.push_back(std::make_pair<std::string, std::any>("CalibrationInfo", CalibrationInfo));
+		out_param.push_back(std::make_pair<std::string, std::any>("calib_info", calib_info));
 		target.ret = out_param;
 }
 LoadDynaSave0::LoadDynaSave0(const std::string &name) :Plan(name)
@@ -1814,10 +1814,10 @@ auto LoadDynaSave1::prepairNrt(const std::map<std::string, std::string> &params,
 
 		    }
 
-			std::string info = "Payload Identification Is Completed";
+			std::string calib_info = "Payload Identification Is Completed";
 
 			std::vector<std::pair<std::string, std::any>> out_param;
-			out_param.push_back(std::make_pair<std::string, std::any>("info", info));
+			out_param.push_back(std::make_pair<std::string, std::any>("calib_info", calib_info));
 			target.ret = out_param;
 }
 LoadDynaSave1::LoadDynaSave1(const std::string &name) :Plan(name)
