@@ -1,6 +1,11 @@
 <ControlServer>
     <InterfacePoolObject name="object_pool">
-        <WebInterface port="5866"/>
+        <WebInterface>
+            <Socket name="socket" connect_type="WEB" port="5866"/>
+        </WebInterface>
+        <WebInterface>
+            <Socket name="socket" connect_type="TCP" port="5867"/>
+        </WebInterface>
     </InterfacePoolObject>
     <InterfaceRoot lang="eng">
         <UiIdPoolObject>
@@ -571,7 +576,7 @@
     </InterfaceRoot>
     <EthercatController name="ethercat_controller" esi_dirs="">
         <SlavePoolObject name="slave_pool">
-            <EthercatMotion phy_id="0" vendor_id="0x0000066f" product_code="0x60380008" revision_num="0x00010000" dc_assign_activate="0x00000300" max_pos="2.5307270000000002" min_pos="-2.5307270000000002" max_vel="1.2740899999999999" min_vel="-1.2740899999999999" max_acc="6.1086520000000002" min_acc="-6.1086520000000002" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="221624679.19079599" pos_offset="-0.43846000000000002" home_pos="0">
+            <EthercatMotion phy_id="0" vendor_id="0x00000000" product_code="0x00000000" revision_num="0x00000000" dc_assign_activate="0x00000300" max_pos="2.96706" min_pos="-2.96706" max_vel="5.4105210000000001" min_vel="-5.4105210000000001" max_acc="26.179939000000001" min_acc="-26.179939000000001" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1689721.292776" pos_offset="0" home_pos="0">
                 <SyncManagerPoolObject>
                     <SyncManager is_tx="false"/>
                     <SyncManager is_tx="true"/>
@@ -580,28 +585,23 @@
                             <PdoEntry name="control_word" index="0x6040" subindex="0x00" size="16"/>
                             <PdoEntry name="mode_of_operation" index="0x6060" subindex="0x00" size="8"/>
                             <PdoEntry name="target_pos" index="0x607a" subindex="0x00" size="32"/>
-                            <PdoEntry name="touch_probe" index="0x60b8" subindex="0x00" size="16"/>
-                            <PdoEntry name="targer_tor" index="0x6071" subindex="0x00" size="16"/>
-                            <PdoEntry name="offset_tor" index="0x60b2" subindex="0x00" size="16"/>
+                            <PdoEntry name="target_vel" index="0x60ff" subindex="0x00" size="32"/>
+                            <PdoEntry name="targer_toq" index="0x6071" subindex="0x00" size="16"/>
                             <PdoEntry name="offset_vel" index="0x60b1" subindex="0x00" size="32"/>
                         </Pdo>
                     </SyncManager>
                     <SyncManager is_tx="true">
-                        <Pdo index="0x1a01">
-                            <PdoEntry name="error_code" index="0x603f" subindex="0x00" size="16"/>
+                        <Pdo index="0x1a00">
                             <PdoEntry name="status_word" index="0x6041" subindex="0x00" size="16"/>
                             <PdoEntry name="mode_of_display" index="0x6061" subindex="0x00" size="8"/>
                             <PdoEntry name="pos_actual_value" index="0x6064" subindex="0x00" size="32"/>
                             <PdoEntry name="vel_actual_value" index="0x606c" subindex="0x00" size="32"/>
-                            <PdoEntry name="cur_actual_value" index="0x6077" subindex="0x00" size="16"/>
-                            <PdoEntry name="touch_probe_status" index="0x60b9" subindex="0x00" size="16"/>
-                            <PdoEntry name="touch_probe_pos1" index="0x60ba" subindex="0x00" size="32"/>
-                            <PdoEntry name="digital_input" index="0x60fd" subindex="0x00" size="32"/>
+                            <PdoEntry name="toq_actual_value" index="0x6077" subindex="0x00" size="16"/>
                         </Pdo>
                     </SyncManager>
                 </SyncManagerPoolObject>
             </EthercatMotion>
-            <EthercatMotion phy_id="1" vendor_id="0x0000066f" product_code="0x60380009" revision_num="0x00010000" dc_assign_activate="0x00000300" max_pos="1.919862" min_pos="-1.0471980000000001" max_vel="1.2740899999999999" min_vel="-1.2740899999999999" max_acc="6.1086520000000002" min_acc="-6.1086520000000002" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="-221624679.19079599" pos_offset="1.0194920000000001" home_pos="0">
+            <EthercatMotion phy_id="1" vendor_id="0x00000000" product_code="0x00000000" revision_num="0x00000000" dc_assign_activate="0x00000300" max_pos="2.2689279999999998" min_pos="-1.4660770000000001" max_vel="4.18879" min_vel="-4.18879" max_acc="26.179939000000001" min_acc="-26.179939000000001" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1689721.292776" pos_offset="0" home_pos="0">
                 <SyncManagerPoolObject>
                     <SyncManager is_tx="false"/>
                     <SyncManager is_tx="true"/>
@@ -610,28 +610,23 @@
                             <PdoEntry name="control_word" index="0x6040" subindex="0x00" size="16"/>
                             <PdoEntry name="mode_of_operation" index="0x6060" subindex="0x00" size="8"/>
                             <PdoEntry name="target_pos" index="0x607a" subindex="0x00" size="32"/>
-                            <PdoEntry name="touch_probe" index="0x60b8" subindex="0x00" size="16"/>
-                            <PdoEntry name="targer_tor" index="0x6071" subindex="0x00" size="16"/>
-                            <PdoEntry name="offset_tor" index="0x60b2" subindex="0x00" size="16"/>
+                            <PdoEntry name="target_vel" index="0x60ff" subindex="0x00" size="32"/>
+                            <PdoEntry name="targer_toq" index="0x6071" subindex="0x00" size="16"/>
                             <PdoEntry name="offset_vel" index="0x60b1" subindex="0x00" size="32"/>
                         </Pdo>
                     </SyncManager>
                     <SyncManager is_tx="true">
-                        <Pdo index="0x1a01">
-                            <PdoEntry name="error_code" index="0x603f" subindex="0x00" size="16"/>
+                        <Pdo index="0x1a00">
                             <PdoEntry name="status_word" index="0x6041" subindex="0x00" size="16"/>
                             <PdoEntry name="mode_of_display" index="0x6061" subindex="0x00" size="8"/>
                             <PdoEntry name="pos_actual_value" index="0x6064" subindex="0x00" size="32"/>
                             <PdoEntry name="vel_actual_value" index="0x606c" subindex="0x00" size="32"/>
-                            <PdoEntry name="cur_actual_value" index="0x6077" subindex="0x00" size="16"/>
-                            <PdoEntry name="touch_probe_status" index="0x60b9" subindex="0x00" size="16"/>
-                            <PdoEntry name="touch_probe_pos1" index="0x60ba" subindex="0x00" size="32"/>
-                            <PdoEntry name="digital_input" index="0x60fd" subindex="0x00" size="32"/>
+                            <PdoEntry name="toq_actual_value" index="0x6077" subindex="0x00" size="16"/>
                         </Pdo>
                     </SyncManager>
                 </SyncManagerPoolObject>
             </EthercatMotion>
-            <EthercatMotion phy_id="2" vendor_id="0x0000066f" product_code="0x60380008" revision_num="0x00010000" dc_assign_activate="0x00000300" max_pos="0.95993099999999998" min_pos="-0.95993099999999998" max_vel="2.3736480000000002" min_vel="-2.3736480000000002" max_acc="12.217305" min_acc="-12.217305" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="117487781.73969901" pos_offset="-1.008354" home_pos="0">
+            <EthercatMotion phy_id="2" vendor_id="0x00000000" product_code="0x00000000" revision_num="0x00000000" dc_assign_activate="0x00000300" max_pos="0.87266500000000002" min_pos="-3.2812190000000001" max_vel="5.4105210000000001" min_vel="-5.4105210000000001" max_acc="26.179939000000001" min_acc="-26.179939000000001" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1689721.292776" pos_offset="0" home_pos="0">
                 <SyncManagerPoolObject>
                     <SyncManager is_tx="false"/>
                     <SyncManager is_tx="true"/>
@@ -640,28 +635,23 @@
                             <PdoEntry name="control_word" index="0x6040" subindex="0x00" size="16"/>
                             <PdoEntry name="mode_of_operation" index="0x6060" subindex="0x00" size="8"/>
                             <PdoEntry name="target_pos" index="0x607a" subindex="0x00" size="32"/>
-                            <PdoEntry name="touch_probe" index="0x60b8" subindex="0x00" size="16"/>
-                            <PdoEntry name="targer_tor" index="0x6071" subindex="0x00" size="16"/>
-                            <PdoEntry name="offset_tor" index="0x60b2" subindex="0x00" size="16"/>
+                            <PdoEntry name="target_vel" index="0x60ff" subindex="0x00" size="32"/>
+                            <PdoEntry name="targer_toq" index="0x6071" subindex="0x00" size="16"/>
                             <PdoEntry name="offset_vel" index="0x60b1" subindex="0x00" size="32"/>
                         </Pdo>
                     </SyncManager>
                     <SyncManager is_tx="true">
-                        <Pdo index="0x1a01">
-                            <PdoEntry name="error_code" index="0x603f" subindex="0x00" size="16"/>
+                        <Pdo index="0x1a00">
                             <PdoEntry name="status_word" index="0x6041" subindex="0x00" size="16"/>
                             <PdoEntry name="mode_of_display" index="0x6061" subindex="0x00" size="8"/>
                             <PdoEntry name="pos_actual_value" index="0x6064" subindex="0x00" size="32"/>
                             <PdoEntry name="vel_actual_value" index="0x606c" subindex="0x00" size="32"/>
-                            <PdoEntry name="cur_actual_value" index="0x6077" subindex="0x00" size="16"/>
-                            <PdoEntry name="touch_probe_status" index="0x60b9" subindex="0x00" size="16"/>
-                            <PdoEntry name="touch_probe_pos1" index="0x60ba" subindex="0x00" size="32"/>
-                            <PdoEntry name="digital_input" index="0x60fd" subindex="0x00" size="32"/>
+                            <PdoEntry name="toq_actual_value" index="0x6077" subindex="0x00" size="16"/>
                         </Pdo>
                     </SyncManager>
                 </SyncManagerPoolObject>
             </EthercatMotion>
-            <EthercatMotion phy_id="3" vendor_id="0x0000066f" product_code="0x60380006" revision_num="0x00010000" dc_assign_activate="0x00000300" max_pos="2.129302" min_pos="-2.129302" max_vel="3.9269910000000001" min_vel="-3.9269910000000001" max_acc="19.198622" min_acc="-19.198622" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="106807074.308817" pos_offset="0.031538999999999998" home_pos="0">
+            <EthercatMotion phy_id="3" vendor_id="0x00000000" product_code="0x00000000" revision_num="0x00000000" dc_assign_activate="0x00000300" max_pos="2.96706" min_pos="-2.96706" max_vel="4.3633230000000003" min_vel="-4.3633230000000003" max_acc="30.543261999999999" min_acc="-30.543261999999999" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1519852.15096" pos_offset="0" home_pos="0">
                 <SyncManagerPoolObject>
                     <SyncManager is_tx="false"/>
                     <SyncManager is_tx="true"/>
@@ -670,28 +660,23 @@
                             <PdoEntry name="control_word" index="0x6040" subindex="0x00" size="16"/>
                             <PdoEntry name="mode_of_operation" index="0x6060" subindex="0x00" size="8"/>
                             <PdoEntry name="target_pos" index="0x607a" subindex="0x00" size="32"/>
-                            <PdoEntry name="touch_probe" index="0x60b8" subindex="0x00" size="16"/>
-                            <PdoEntry name="targer_tor" index="0x6071" subindex="0x00" size="16"/>
-                            <PdoEntry name="offset_tor" index="0x60b2" subindex="0x00" size="16"/>
+                            <PdoEntry name="target_vel" index="0x60ff" subindex="0x00" size="32"/>
+                            <PdoEntry name="targer_toq" index="0x6071" subindex="0x00" size="16"/>
                             <PdoEntry name="offset_vel" index="0x60b1" subindex="0x00" size="32"/>
                         </Pdo>
                     </SyncManager>
                     <SyncManager is_tx="true">
-                        <Pdo index="0x1a01">
-                            <PdoEntry name="error_code" index="0x603f" subindex="0x00" size="16"/>
+                        <Pdo index="0x1a00">
                             <PdoEntry name="status_word" index="0x6041" subindex="0x00" size="16"/>
                             <PdoEntry name="mode_of_display" index="0x6061" subindex="0x00" size="8"/>
                             <PdoEntry name="pos_actual_value" index="0x6064" subindex="0x00" size="32"/>
                             <PdoEntry name="vel_actual_value" index="0x606c" subindex="0x00" size="32"/>
-                            <PdoEntry name="cur_actual_value" index="0x6077" subindex="0x00" size="16"/>
-                            <PdoEntry name="touch_probe_status" index="0x60b9" subindex="0x00" size="16"/>
-                            <PdoEntry name="touch_probe_pos1" index="0x60ba" subindex="0x00" size="32"/>
-                            <PdoEntry name="digital_input" index="0x60fd" subindex="0x00" size="32"/>
+                            <PdoEntry name="toq_actual_value" index="0x6077" subindex="0x00" size="16"/>
                         </Pdo>
                     </SyncManager>
                 </SyncManagerPoolObject>
             </EthercatMotion>
-            <EthercatMotion phy_id="4" vendor_id="0x0000066f" product_code="0x60380006" revision_num="0x00010000" dc_assign_activate="0x00000300" max_pos="2.3561939999999999" min_pos="-2.3561939999999999" max_vel="3.9269910000000001" min_vel="-3.9269910000000001" max_acc="19.198622" min_acc="-19.198622" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="106807074.308817" pos_offset="0.094398999999999997" home_pos="0">
+            <EthercatMotion phy_id="4" vendor_id="0x00000000" product_code="0x00000000" revision_num="0x00000000" dc_assign_activate="0x00000300" max_pos="2.0420349999999998" min_pos="-2.0420349999999998" max_vel="5.1487210000000001" min_vel="-5.1487210000000001" max_acc="26.179939000000001" min_acc="-26.179939000000001" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1689721.292776" pos_offset="0" home_pos="0">
                 <SyncManagerPoolObject>
                     <SyncManager is_tx="false"/>
                     <SyncManager is_tx="true"/>
@@ -700,28 +685,23 @@
                             <PdoEntry name="control_word" index="0x6040" subindex="0x00" size="16"/>
                             <PdoEntry name="mode_of_operation" index="0x6060" subindex="0x00" size="8"/>
                             <PdoEntry name="target_pos" index="0x607a" subindex="0x00" size="32"/>
-                            <PdoEntry name="touch_probe" index="0x60b8" subindex="0x00" size="16"/>
-                            <PdoEntry name="targer_tor" index="0x6071" subindex="0x00" size="16"/>
-                            <PdoEntry name="offset_tor" index="0x60b2" subindex="0x00" size="16"/>
+                            <PdoEntry name="target_vel" index="0x60ff" subindex="0x00" size="32"/>
+                            <PdoEntry name="targer_toq" index="0x6071" subindex="0x00" size="16"/>
                             <PdoEntry name="offset_vel" index="0x60b1" subindex="0x00" size="32"/>
                         </Pdo>
                     </SyncManager>
                     <SyncManager is_tx="true">
-                        <Pdo index="0x1a01">
-                            <PdoEntry name="error_code" index="0x603f" subindex="0x00" size="16"/>
+                        <Pdo index="0x1a00">
                             <PdoEntry name="status_word" index="0x6041" subindex="0x00" size="16"/>
                             <PdoEntry name="mode_of_display" index="0x6061" subindex="0x00" size="8"/>
                             <PdoEntry name="pos_actual_value" index="0x6064" subindex="0x00" size="32"/>
                             <PdoEntry name="vel_actual_value" index="0x606c" subindex="0x00" size="32"/>
-                            <PdoEntry name="cur_actual_value" index="0x6077" subindex="0x00" size="16"/>
-                            <PdoEntry name="touch_probe_status" index="0x60b9" subindex="0x00" size="16"/>
-                            <PdoEntry name="touch_probe_pos1" index="0x60ba" subindex="0x00" size="32"/>
-                            <PdoEntry name="digital_input" index="0x60fd" subindex="0x00" size="32"/>
+                            <PdoEntry name="toq_actual_value" index="0x6077" subindex="0x00" size="16"/>
                         </Pdo>
                     </SyncManager>
                 </SyncManagerPoolObject>
             </EthercatMotion>
-            <EthercatMotion phy_id="5" vendor_id="0x0000066f" product_code="0x60380006" revision_num="0x00010000" dc_assign_activate="0x00000300" max_pos="6.2831849999999996" min_pos="-6.2831849999999996" max_vel="3.9269910000000001" min_vel="-3.9269910000000001" max_acc="19.198622" min_acc="-19.198622" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="-106807074.308817" pos_offset="3.4310969999999998" home_pos="0">
+            <EthercatMotion phy_id="5" vendor_id="0x00000000" product_code="0x00000000" revision_num="0x00000000" dc_assign_activate="0x00000300" max_pos="6.2831849999999996" min_pos="-6.2831849999999996" max_vel="8.7266460000000006" min_vel="-8.7266460000000006" max_acc="43.633231000000002" min_acc="-43.633231000000002" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1043037.835047" pos_offset="0" home_pos="0">
                 <SyncManagerPoolObject>
                     <SyncManager is_tx="false"/>
                     <SyncManager is_tx="true"/>
@@ -730,23 +710,18 @@
                             <PdoEntry name="control_word" index="0x6040" subindex="0x00" size="16"/>
                             <PdoEntry name="mode_of_operation" index="0x6060" subindex="0x00" size="8"/>
                             <PdoEntry name="target_pos" index="0x607a" subindex="0x00" size="32"/>
-                            <PdoEntry name="touch_probe" index="0x60b8" subindex="0x00" size="16"/>
-                            <PdoEntry name="targer_tor" index="0x6071" subindex="0x00" size="16"/>
-                            <PdoEntry name="offset_tor" index="0x60b2" subindex="0x00" size="16"/>
+                            <PdoEntry name="target_vel" index="0x60ff" subindex="0x00" size="32"/>
+                            <PdoEntry name="targer_toq" index="0x6071" subindex="0x00" size="16"/>
                             <PdoEntry name="offset_vel" index="0x60b1" subindex="0x00" size="32"/>
                         </Pdo>
                     </SyncManager>
                     <SyncManager is_tx="true">
-                        <Pdo index="0x1a01">
-                            <PdoEntry name="error_code" index="0x603f" subindex="0x00" size="16"/>
+                        <Pdo index="0x1a00">
                             <PdoEntry name="status_word" index="0x6041" subindex="0x00" size="16"/>
                             <PdoEntry name="mode_of_display" index="0x6061" subindex="0x00" size="8"/>
                             <PdoEntry name="pos_actual_value" index="0x6064" subindex="0x00" size="32"/>
                             <PdoEntry name="vel_actual_value" index="0x606c" subindex="0x00" size="32"/>
-                            <PdoEntry name="cur_actual_value" index="0x6077" subindex="0x00" size="16"/>
-                            <PdoEntry name="touch_probe_status" index="0x60b9" subindex="0x00" size="16"/>
-                            <PdoEntry name="touch_probe_pos1" index="0x60ba" subindex="0x00" size="32"/>
-                            <PdoEntry name="digital_input" index="0x60fd" subindex="0x00" size="32"/>
+                            <PdoEntry name="toq_actual_value" index="0x6077" subindex="0x00" size="16"/>
                         </Pdo>
                     </SyncManager>
                 </SyncManagerPoolObject>
@@ -757,56 +732,79 @@
     </EthercatController>
     <Model name="model" time="0">
         <Environment name="environment" gravity="{0,0,-9.8,0,0,0}"/>
-        <VariablePoolElement name="variable_pool"/>
+        <VariablePoolElement name="variable_pool">
+            <MatrixVariable name="Tool[0]_Pose">{0,0,0,0,0,0}</MatrixVariable>
+            <StringVariable name="Tool[0]_Name">Tool_ee</StringVariable>
+            <MatrixVariable name="Tool[1]_Pose">{119.5,0,352,89.8,0.16,144.3}</MatrixVariable>
+            <MatrixVariable name="Tool[2]_Pose">{100,0,200,0,90,0}</MatrixVariable>
+            <MatrixVariable name="AxisZeroValue">{-0.1,-0.1,5,5,20,20}</MatrixVariable>
+            <MatrixVariable name="Tool[1]_AxisOffset">{0.1,0.1,0.1,0.1,0.1,0.1}</MatrixVariable>
+            <MatrixVariable name="Tool[2]_AxisOffset">{0.1,0.2,0.3,0.4,0.5,0.6}</MatrixVariable>
+            
+        </VariablePoolElement>
         <PartPoolElement name="part_pool">
             <Part name="ground" active="true" pe="{0,0,0,-0,0,-0}" vel="{0,0,0,0,0,0}" acc="{0,0,0,0,0,0}" inertia="{1,0,0,0,1,1,1,0,0,0}">
                 <MarkerPoolElement name="marker_pool">
-                    <Marker name="joint_0_j" active="true" pe="{0,0,0.596,0.785398163397448,0,0.785398163397448}"/>
+                    <Marker name="joint_0_j" active="true" pe="{0,0,0.3295,0.785398163397448,0,0.785398163397448}"/>
                     <Marker name="ee_makJ" active="true" pe="{0,0,0,-0,0,-0}"/>
                 </MarkerPoolElement>
-                <GeometryPoolElement name="geometry_pool"/>
+                <GeometryPoolElement name="geometry_pool">
+                    <FileGeometry name="test" pe="{0,0,0,-0,0,-0}" graphic_file_path="/RobotGallery/Rokae/XB4/l0.data"/>
+                </GeometryPoolElement>
             </Part>
-            <Part name="L1" active="true" pe="{0,0,0,-0,0,-0}" vel="{0,0,0,0,0,0}" acc="{0,0,0,0,0,0}" inertia="{1,0,0,0,0,0,0,0,0,0}">
+            <Part name="L1" active="true" pe="{0,0,0,-0,0,-0}" vel="{0,0,0,0,0,0}" acc="{0,0,0,0,0,0}" inertia="{0,0,0,0,0,0,0.59026333537827,0,0,0}">
                 <MarkerPoolElement name="marker_pool">
-                    <Marker name="joint_0_i" active="true" pe="{0,0,0.596,0.785398163397448,0,0.785398163397448}"/>
-                    <Marker name="joint_1_j" active="true" pe="{0.22,0,0.596,3.14159265358979,1.5707963267949,4.71238898038469}"/>
+                    <Marker name="joint_0_i" active="true" pe="{0,0,0.3295,0.785398163397448,0,0.785398163397448}"/>
+                    <Marker name="joint_1_j" active="true" pe="{0.04,0,0.3295,3.14159265358979,1.5707963267949,4.71238898038469}"/>
                 </MarkerPoolElement>
-                <GeometryPoolElement name="geometry_pool"/>
+                <GeometryPoolElement name="geometry_pool">
+                    <FileGeometry name="test" pe="{0,0,0,-0,0,-0}" graphic_file_path="/RobotGallery/Rokae/XB4/l1.data"/>
+                </GeometryPoolElement>
             </Part>
-            <Part name="L2" active="true" pe="{0,0,0,-0,0,-0}" vel="{0,0,0,0,0,0}" acc="{0,0,0,0,0,0}" inertia="{1,0,0,0,0,0,0,0,0,0}">
+            <Part name="L2" active="true" pe="{0,0,0,-0,0,-0}" vel="{0,0,0,0,0,0}" acc="{0,0,0,0,0,0}" inertia="{0,-0.02551872200978,0,3.05660683326413,2.85905166943306,0,0,-0.00855352993039,-0.09946674483372,-0.00712210734359}">
                 <MarkerPoolElement name="marker_pool">
-                    <Marker name="joint_1_i" active="true" pe="{0.22,0,0.596,3.14159265358979,1.5707963267949,4.71238898038469}"/>
-                    <Marker name="joint_2_j" active="true" pe="{0.22,0,1.616,3.14159265358979,1.5707963267949,4.71238898038469}"/>
+                    <Marker name="joint_1_i" active="true" pe="{0.04,0,0.3295,3.14159265358979,1.5707963267949,4.71238898038469}"/>
+                    <Marker name="joint_2_j" active="true" pe="{0.04,0,0.6045,3.14159265358979,1.5707963267949,4.71238898038469}"/>
                 </MarkerPoolElement>
-                <GeometryPoolElement name="geometry_pool"/>
+                <GeometryPoolElement name="geometry_pool">
+                    <FileGeometry name="test" pe="{0,0,0,-0,0,-0}" graphic_file_path="/RobotGallery/Rokae/XB4/l2.data"/>
+                </GeometryPoolElement>
             </Part>
-            <Part name="L3" active="true" pe="{0,0,0,-0,0,-0}" vel="{0,0,0,0,0,0}" acc="{0,0,0,0,0,0}" inertia="{1,0,0,0,0,0,0,0,0,0}">
+            <Part name="L3" active="true" pe="{0,0,0,-0,0,-0}" vel="{0,0,0,0,0,0}" acc="{0,0,0,0,0,0}" inertia="{0,0,0,0.02733022277747,0,0.37382629693302,0,0.00312006493276,-0.00578410451516,0.0057060612854}">
                 <MarkerPoolElement name="marker_pool">
-                    <Marker name="joint_2_i" active="true" pe="{0.22,0,1.616,3.14159265358979,1.5707963267949,4.71238898038469}"/>
-                    <Marker name="joint_3_j" active="true" pe="{1.08,0,1.616,1.5707963267949,1.5707963267949,1.5707963267949}"/>
+                    <Marker name="joint_2_i" active="true" pe="{0.04,0,0.6045,3.14159265358979,1.5707963267949,4.71238898038469}"/>
+                    <Marker name="joint_3_j" active="true" pe="{0.32,0,0.6295,1.5707963267949,1.5707963267949,1.5707963267949}"/>
                 </MarkerPoolElement>
-                <GeometryPoolElement name="geometry_pool"/>
+                <GeometryPoolElement name="geometry_pool">
+                    <FileGeometry name="test" pe="{0,0,0,-0,0,-0}" graphic_file_path="/RobotGallery/Rokae/XB4/l3.data"/>
+                </GeometryPoolElement>
             </Part>
-            <Part name="L4" active="true" pe="{0,0,0,-0,0,-0}" vel="{0,0,0,0,0,0}" acc="{0,0,0,0,0,0}" inertia="{1,0,0,0,0,0,0,0,0,0}">
+            <Part name="L4" active="true" pe="{0,0,0,-0,0,-0}" vel="{0,0,0,0,0,0}" acc="{0,0,0,0,0,0}" inertia="{0,1.06223330086669,0,0.0031174824296,0,0.24420385558544,0.24970286555981,0.00305759215246,-0.66644096559686,0.00228253380852}">
                 <MarkerPoolElement name="marker_pool">
-                    <Marker name="joint_3_i" active="true" pe="{1.08,0,1.616,1.5707963267949,1.5707963267949,1.5707963267949}"/>
-                    <Marker name="joint_4_j" active="true" pe="{1.08,0,1.616,3.14159265358979,1.5707963267949,4.71238898038469}"/>
+                    <Marker name="joint_3_i" active="true" pe="{0.32,0,0.6295,1.5707963267949,1.5707963267949,1.5707963267949}"/>
+                    <Marker name="joint_4_j" active="true" pe="{0.32,0,0.6295,3.14159265358979,1.5707963267949,4.71238898038469}"/>
                 </MarkerPoolElement>
-                <GeometryPoolElement name="geometry_pool"/>
+                <GeometryPoolElement name="geometry_pool">
+                    <FileGeometry name="test" pe="{0,0,0,-0,0,-0}" graphic_file_path="/RobotGallery/Rokae/XB4/l4.data"/>
+                </GeometryPoolElement>
             </Part>
-            <Part name="L5" active="true" pe="{0,0,0,-0,0,-0}" vel="{0,0,0,0,0,0}" acc="{0,0,0,0,0,0}" inertia="{1,0,0,0,0,0,0,0,0,0}">
+            <Part name="L5" active="true" pe="{0,0,0,-0,0,-0}" vel="{0,0,0,0,0,0}" acc="{0,0,0,0,0,0}" inertia="{0,0.0536228689791,0.00528925153464,-0.00842588023014,0.00128498153337,-0.00389810210572,0,-0.00223677867576,-0.03365036368035,-0.00415647085627}">
                 <MarkerPoolElement name="marker_pool">
-                    <Marker name="joint_4_i" active="true" pe="{1.08,0,1.616,3.14159265358979,1.5707963267949,4.71238898038469}"/>
-                    <Marker name="joint_5_j" active="true" pe="{1.08,0,1.616,1.5707963267949,1.5707963267949,1.5707963267949}"/>
+                    <Marker name="joint_4_i" active="true" pe="{0.32,0,0.6295,3.14159265358979,1.5707963267949,4.71238898038469}"/>
+                    <Marker name="joint_5_j" active="true" pe="{0.32,0,0.6295,1.5707963267949,1.5707963267949,1.5707963267949}"/>
                 </MarkerPoolElement>
-                <GeometryPoolElement name="geometry_pool"/>
+                <GeometryPoolElement name="geometry_pool">
+                    <FileGeometry name="test" pe="{0,0,0,-0,0,-0}" graphic_file_path="/RobotGallery/Rokae/XB4/l5.data"/>
+                </GeometryPoolElement>
             </Part>
-            <Part name="L6" active="true" pe="{0,0,0,-0,0,-0}" vel="{0,0,0,0,0,0}" acc="{0,0,0,0,0,0}" inertia="{1,0,0,0,0,0,0,0,0,0}">
+            <Part name="L6" active="true" pe="{0,0,0,-0,0,-0}" vel="{0,0,0,0,0,0}" acc="{0,0,0,0,0,0}" inertia="{0,0,0.00066049870832,0.00012563800445,-0.00085124094833,0.04209529937135,0.04102481443654,-0.00067596644891,0.00017482449876,-0.00041025776053}">
                 <MarkerPoolElement name="marker_pool">
-                    <Marker name="joint_5_i" active="true" pe="{1.08,0,1.616,1.5707963267949,1.5707963267949,1.5707963267949}"/>
-                    <Marker name="ee_makI" active="true" pe="{1.233,0,1.616,1.5707963267949,1.5707963267949,4.71238898038469}"/>
+                    <Marker name="joint_5_i" active="true" pe="{0.32,0,0.6295,1.5707963267949,1.5707963267949,1.5707963267949}"/>
+                    <Marker name="ee_makI" active="true" pe="{0.398,0,0.6295,1.5707963267949,1.5707963267949,4.71238898038469}"/>
                 </MarkerPoolElement>
-                <GeometryPoolElement name="geometry_pool"/>
+                <GeometryPoolElement name="geometry_pool">
+                    <FileGeometry name="test" pe="{0,0,0,-0,0,-0}" graphic_file_path="/RobotGallery/Rokae/XB4/l6.data"/>
+                </GeometryPoolElement>
             </Part>
         </PartPoolElement>
         <JointPoolElement name="joint_pool">
@@ -818,12 +816,12 @@
             <RevoluteJoint name="joint_5" active="true" prt_m="L6" prt_n="L5" mak_i="joint_5_i" mak_j="joint_5_j" cf="{0,0,0,0,0}"/>
         </JointPoolElement>
         <MotionPoolElement name="motion_pool">
-            <Motion name="motion_0" active="true" prt_m="L1" prt_n="ground" mak_i="joint_0_i" mak_j="joint_0_j" cf="{0}" frc_coe="{0,0,0}" component="5" mp="0" mv="0" ma="0"/>
-            <Motion name="motion_1" active="true" prt_m="L2" prt_n="L1" mak_i="joint_1_i" mak_j="joint_1_j" cf="{0}" frc_coe="{0,0,0}" component="5" mp="0" mv="0" ma="0"/>
-            <Motion name="motion_2" active="true" prt_m="L3" prt_n="L2" mak_i="joint_2_i" mak_j="joint_2_j" cf="{0}" frc_coe="{0,0,0}" component="5" mp="0" mv="0" ma="0"/>
-            <Motion name="motion_3" active="true" prt_m="L4" prt_n="L3" mak_i="joint_3_i" mak_j="joint_3_j" cf="{0}" frc_coe="{0,0,0}" component="5" mp="0" mv="0" ma="0"/>
-            <Motion name="motion_4" active="true" prt_m="L5" prt_n="L4" mak_i="joint_4_i" mak_j="joint_4_j" cf="{0}" frc_coe="{0,0,0}" component="5" mp="0" mv="0" ma="0"/>
-            <Motion name="motion_5" active="true" prt_m="L6" prt_n="L5" mak_i="joint_5_i" mak_j="joint_5_j" cf="{0}" frc_coe="{0,0,0}" component="5" mp="0" mv="0" ma="0"/>
+            <Motion name="motion_0" active="true" prt_m="L1" prt_n="ground" mak_i="joint_0_i" mak_j="joint_0_j" cf="{0}" frc_coe="{9.34994758321915,7.80825641041495,0}" component="5" mp="0" mv="0" ma="0"/>
+            <Motion name="motion_1" active="true" prt_m="L2" prt_n="L1" mak_i="joint_1_i" mak_j="joint_1_j" cf="{0}" frc_coe="{11.6408025310644,13.2651852847251,3.5556793257682}" component="5" mp="0" mv="0" ma="0"/>
+            <Motion name="motion_2" active="true" prt_m="L3" prt_n="L2" mak_i="joint_2_i" mak_j="joint_2_j" cf="{0}" frc_coe="{4.77014054273075,7.85644357492508,0.34445460269183}" component="5" mp="0" mv="0" ma="0"/>
+            <Motion name="motion_3" active="true" prt_m="L4" prt_n="L3" mak_i="joint_3_i" mak_j="joint_3_j" cf="{0}" frc_coe="{3.63141668516122,3.35461524886318,0.14824771620542}" component="5" mp="0" mv="0" ma="0"/>
+            <Motion name="motion_4" active="true" prt_m="L5" prt_n="L4" mak_i="joint_4_i" mak_j="joint_4_j" cf="{0}" frc_coe="{2.5831084698202,1.41963212641879,0.0485526727377}" component="5" mp="0" mv="0" ma="0"/>
+            <Motion name="motion_5" active="true" prt_m="L6" prt_n="L5" mak_i="joint_5_i" mak_j="joint_5_j" cf="{0}" frc_coe="{1.78373986219597,0.31920640440152,0.03381545544099}" component="5" mp="0" mv="0" ma="0"/>
         </MotionPoolElement>
         <GeneralMotionPoolElement name="general_motion_pool">
             <GeneralMotion name="ee" active="false" prt_m="L6" prt_n="ground" mak_i="ee_makI" mak_j="ee_makJ" cf="{0,0,0,0,0,0}"/>
@@ -2068,14 +2066,6 @@
                     </GroupParam>
                 </Command>
             </DistalTest>
-            <SetTool name="SetTool">
-                <Command name="STool">
-                    <GroupParam>
-                        <Param name="period" default="1.0"/>
-                        <Param name="amplitude" default="0.2"/>
-                    </GroupParam>
-                </Command>
-            </SetTool>
             <MovePressure name="MovePressure">
                 <Command name="mvPre">
                     <GroupParam>
@@ -2118,6 +2108,14 @@
                     </GroupParam>
                 </Command>
             </MoveSeriesGK>
+            <ForceDirect name="ForceDirect">
+                <Command name="ForceDir">
+                    <GroupParam>
+                        <Param name="PressF" default="0"/>
+                        <Param name="SensorType" default="20.0"/>
+                    </GroupParam>
+                </Command>
+            </ForceDirect>
             <JointDyna name="JointDyna">
                 <Command name="JointDyna">
                     <GroupParam>
@@ -2264,6 +2262,74 @@
                     </GroupParam>
                 </Command>
             </OpenFile>
+            <CalibT4P name="CalibT4P">
+                <Command name="CalibT4P">
+                    <GroupParam>
+                        <Param name="pose" default="{0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0}"/>
+                    </GroupParam>
+                </Command>
+            </CalibT4P>
+            <CalibT5P name="CalibT5P">
+                <Command name="CalibT5P">
+                    <GroupParam>
+                        <Param name="pose" default="{0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0}"/>
+                    </GroupParam>
+                </Command>
+            </CalibT5P>
+            <CalibT6P name="CalibT6P">
+                <Command name="CalibT6P">
+                    <GroupParam>
+                        <Param name="pose" default="{0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0}"/>
+                    </GroupParam>
+                </Command>
+            </CalibT6P>
+            <SetTF name="SetTF">
+                <Command name="SetTF">
+                    <GroupParam>
+                        <Param name="tool_id" default="0"/>
+                        <Param name="tool_name" default="Tool0"/>
+                        <Param name="tool_pe" default="{0,0,0,0,0,0}"/>
+                    </GroupParam>
+                </Command>
+            </SetTF>
+            <RenameT name="RenameT">
+                <Command name="RenameT">
+                    <GroupParam>
+                        <Param name="tool_id" default="0"/>
+                        <Param name="tool_name" default="Tool"/>
+                    </GroupParam>
+                </Command>
+            </RenameT>
+            <CalibZF name="CalibZF">
+                <Command name="CalibZF">
+                    <GroupParam>
+                        <Param name="axis_id" default="0"/>
+                    </GroupParam>
+                </Command>
+            </CalibZF>
+            <CalibZO name="CalibZO">
+                <Command name="CalibZO">
+                    <GroupParam>
+                        <Param name="axis_id" default="0"/>
+                        <Param name="tool_id" default="0"/>
+                    </GroupParam>
+                </Command>
+            </CalibZO>
+            <CalibZL name="CalibZL">
+                <Command name="CalibZL">
+                    <GroupParam>
+                        <Param name="axis_id" default="0"/>
+                        <Param name="tool_id" default="0"/>
+                    </GroupParam>
+                </Command>
+            </CalibZL>
+            <SaveTeachPt name="SaveTeachPt">
+                <Command name="CalibZL">
+                    <GroupParam>
+                        <Param name="ptName" default="P1"/>
+                    </GroupParam>
+                </Command>
+            </SaveTeachPt>
         </PlanPoolObject>
     </PlanRoot>
     <SensorRoot name="sensor_root">
