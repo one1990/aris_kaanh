@@ -753,7 +753,7 @@ namespace kaanh
 			}
 
 			cs.model().generalMotionPool().at(0).getMpq(std::any_cast<GetParam &>(data).end_pq.data());
-			cs.model().generalMotionPool().at(0).getMpe(std::any_cast<GetParam &>(data).end_pe.data());
+			cs.model().generalMotionPool().at(0).getMpe(std::any_cast<GetParam &>(data).end_pe.data(), "321");
 
 			for (aris::Size i = 0; i < cs.controller().motionPool().size(); i++)
 			{
@@ -2496,7 +2496,7 @@ double p, v, a;
 			A[4] = 2 * (mvc_param.ee_mid_pq[1] - mvc_param.ee_end_pq[1]);
 			A[5] = 2 * (mvc_param.ee_mid_pq[2] - mvc_param.ee_end_pq[2]);
 			A[6] = (A[1] * A[5] - A[4] * A[2]) / 4;
-			A[7] = (A[0] * A[5] - A[3] * A[2]) / 4;
+			A[7] = -(A[0] * A[5] - A[3] * A[2]) / 4;
 			A[8] = (A[0] * A[4] - A[3] * A[1]) / 4;
 			b[0] = pow(mvc_param.ee_begin_pq[0], 2) + pow(mvc_param.ee_begin_pq[1], 2) + pow(mvc_param.ee_begin_pq[2], 2) - pow(mvc_param.ee_mid_pq[0], 2) - pow(mvc_param.ee_mid_pq[1], 2) - pow(mvc_param.ee_mid_pq[2], 2);
 			b[1] = pow(mvc_param.ee_mid_pq[0], 2) + pow(mvc_param.ee_mid_pq[1], 2) + pow(mvc_param.ee_mid_pq[2], 2) - pow(mvc_param.ee_end_pq[0], 2) - pow(mvc_param.ee_end_pq[1], 2) - pow(mvc_param.ee_end_pq[2], 2);
@@ -2568,6 +2568,20 @@ double p, v, a;
 		//姿态规划//
 		aris::plan::moveAbsolute(target.count, 0.0, 1.0, mvc_param.angular_vel / 1000 / ori_theta / 2.0 * ori_ratio, mvc_param.angular_acc / 1000 / 1000 / ori_theta / 2.0 * ori_ratio * ori_ratio, mvc_param.angular_dec / 1000 / 1000 / ori_theta / 2.0* ori_ratio * ori_ratio, p, v, a, ori_total_count);
 		slerp(mvc_param.ee_begin_pq.data() + 3, mvc_param.ee_end_pq.data() + 3, pqt + 3, p);
+		
+		//雅克比矩阵判断奇异点//
+		{
+			auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(target.model->solverPool()[1]);
+			fwd.cptJacobiWrtEE();
+			//QR分解求方程的解
+			double U[36], tau[6];
+			aris::Size p[6];
+			Size rank;
+			//auto inline s_householder_utp(Size m, Size n, const double *A, AType a_t, double *U, UType u_t, double *tau, TauType tau_t, Size *p, Size &rank, double zero_check = 1e-10)noexcept->void
+			//A为输入
+			s_householder_utp(6, 6, fwd.Jf(), U, tau, p, rank, 1e-3);
+			if(rank < 6)return -1002;
+		}
 
 		// set目标位置，并进行运动学反解 //
 		target.model->generalMotionPool().at(0).setMpq(pqt);
@@ -2577,12 +2591,14 @@ double p, v, a;
 		auto &lout = controller->lout();
 		{
 			lout << target.count << " " << pqt[0] << " " << pqt[1] << " " << pqt[2] << " " << pqt[3] << " " << pqt[4] << " " << pqt[5] << " " << pqt[6] << "  ";
+			/*
 			for (Size i = 0; i < 6; i++)
 			{
 				lout << controller->motionAtAbs(i).targetPos() << ",";
 				lout << controller->motionAtAbs(i).actualPos() << ",";
 				lout << controller->motionAtAbs(i).actualVel() << ",";
 			}
+			*/
 			lout << std::endl;
 		}
 		//////////////////////////////////////////////////////////////////////////////////
@@ -6509,7 +6525,7 @@ double p, v, a;
 	auto SetPPath::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
 		auto&cs = aris::server::ControlServer::instance();
-		if (cs.running())throw std::runtime_error("cs is running, can not set DH parameters,please stop the cs!");
+		//if (cs.running())throw std::runtime_error("cs is running, can not set DH parameters,please stop the cs!");
 
 		SetPPathParam param;
 		param.pe.clear();
@@ -6536,9 +6552,18 @@ double p, v, a;
 			}
 			else if (p.first == "file_path")
 			{
-				auto s = target.model->calculator().calculateExpression(p.second);
-				param.file_path.resize(s.size());
-				param.file_path.assign(s.begin(), s.end());
+				auto data = p.second;
+				char *s_input = (char *)data.c_str();
+				const char *split = ";";
+				// 以‘;’为分隔符拆分字符串
+				char *sp_input = strtok(s_input, split);
+				std::string s_data;
+				while (sp_input != NULL)
+				{
+					s_data = sp_input;
+					param.file_path.push_back(s_data);
+					sp_input = strtok(NULL, split);
+				}
 			}
 		}
 
@@ -6547,7 +6572,6 @@ double p, v, a;
 			target.model->partPool().at(i).geometryPool().clear();
 			target.model->partPool().at(i).geometryPool().add<FileGeometry>(param.name, param.file_path[i], param.pe.data());
 		}
-		std::cout << param.file_path[0] << std::endl;
 
 		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
@@ -6560,8 +6584,8 @@ double p, v, a;
 			"<Command name=\"setppath\">"
 			"	<GroupParam>"
 			"		<Param name=\"name\" default=\"test\"/>"
-			"		<Param name=\"pe\" default=\"{0, 0, 0, -0, 0, -0}\"/>"
-			"		<Param name=\"file_path\" default=\"{/RobotGallery/Rokae/XB4/l0.data,/RobotGallery/Rokae/XB4/l1.data,/RobotGallery/Rokae/XB4/l2.data}\"/>"
+			"		<Param name=\"pe\" default=\"{0.0, 0.0, 0.0, -0.0, 0.0, -0.0}\"/>"
+			"		<Param name=\"file_path\" default=\"/RobotGallery/Rokae/XB4/l0.data;/RobotGallery/Rokae/XB4/l1.data;/RobotGallery/Rokae/XB4/l2.data;/RobotGallery/Rokae/XB4/l3.data;/RobotGallery/Rokae/XB4/l4.data;/RobotGallery/Rokae/XB4/l5.data;/RobotGallery/Rokae/XB4/l6.data\"/>"
 			"	</GroupParam>"
 			"</Command>");
 	}
@@ -6873,10 +6897,10 @@ double p, v, a;
         plan_root->planPool().add<aris::plan::Sleep>();
         plan_root->planPool().add<aris::plan::Recover>();
         auto &rs = plan_root->planPool().add<aris::plan::Reset>();
-        //rs.command().findParam("pos")->setDefaultValue("{0.5,0.3925,0.7899,0.5,0.5,0.5}");
+        rs.command().findParam("pos")->setDefaultValue("{0.5,0.3925,0.7899,0.5,0.5,0.5}");
 		
         //qifan//
-        rs.command().findParam("pos")->setDefaultValue("{0.5,0.353,0.5,0.5,0.5,0.5}");
+        //rs.command().findParam("pos")->setDefaultValue("{0.5,0.353,0.5,0.5,0.5,0.5}");
 
         plan_root->planPool().add<aris::plan::MoveAbsJ>();
 
