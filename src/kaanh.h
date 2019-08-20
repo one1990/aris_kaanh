@@ -434,6 +434,14 @@ namespace kaanh
 		ARIS_REGISTER_TYPE(SetPG);
 	};
 
+	class SetPPath : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		explicit SetPPath(const std::string &name = "SetPPath_plan");
+		ARIS_REGISTER_TYPE(SetPPath);
+	};
+
 	class SetUI : public aris::plan::Plan
 	{
 	public:
