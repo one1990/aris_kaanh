@@ -6,6 +6,7 @@
 #include"forcecontrol.h"
 #include"iir.h"
 #include"CJsonObject.hpp"
+#include "kinematic.h"
 
 //statemachine//
 # define M_RUN 0	//手动单步执行
