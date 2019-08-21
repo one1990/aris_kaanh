@@ -757,10 +757,19 @@ namespace kaanh
 
 			for (aris::Size i = 0; i < cs.controller().motionPool().size(); i++)
 			{
+#ifdef WIN32
+				std::any_cast<GetParam &>(data).motion_pos[i] = cs.model().motionPool()[i].mp();
+				std::any_cast<GetParam &>(data).motion_vel[i] = cs.model().motionPool()[i].mv();
+				std::any_cast<GetParam &>(data).motion_acc[i] = cs.model().motionPool()[i].ma();
+				std::any_cast<GetParam &>(data).motion_toq[i] = cs.model().motionPool()[i].ma();
+#endif // WIN32
+
+#ifdef UNIX
 				std::any_cast<GetParam &>(data).motion_pos[i] = cs.controller().motionPool()[i].actualPos();
 				std::any_cast<GetParam &>(data).motion_vel[i] = cs.controller().motionPool()[i].actualVel();
 				std::any_cast<GetParam &>(data).motion_acc[i] = cs.model().motionPool()[i].ma();
 				std::any_cast<GetParam &>(data).motion_toq[i] = cs.controller().motionPool()[i].actualToq();
+#endif // UNIX
 			}
 			for (aris::Size i = 0; i < 100; i++)
 			{
@@ -785,7 +794,6 @@ namespace kaanh
 					std::any_cast<GetParam &>(data).motion_state[i] = 1;
 				}
 			}
-
 			if (target == nullptr)
 			{
 				std::any_cast<GetParam &>(data).currentplan = "none";
