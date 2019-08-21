@@ -8,14 +8,17 @@
 #include"move_series.h"
 
 
-
 using namespace aris::dynamic;
 using namespace aris::plan;
+
 
 extern double fce_data[buffer_length];
 extern int data_num, data_num_send;
 extern std::atomic_int which_di;
 extern std::atomic_bool is_automatic;
+
+extern kaanh::Speed g_vel;
+extern std::atomic_int g_vel_percent;
 
 
 namespace kaanh
@@ -2728,8 +2731,8 @@ double p, v, a;
 				if (!imp_->s1_rt.jogc_is_running)throw std::runtime_error("manual mode not started, when pe");
 
 				imp_->s2_nrt.cor_system = std::stoi(params.at("cor"));
-				auto velocity = std::stoi(params.at("vel_percent"));
-				velocity = std::max(std::min(100, velocity), -100);
+				auto velocity = g_vel_percent.load();
+				velocity = std::max(std::min(100, velocity), 0);
 				imp_->s2_nrt.vel_percent = velocity;
 				imp_->s2_nrt.is_increase[0] = std::max(std::min(1, std::stoi(params.at("x"))), -1) * imp_->increase_count;
 				imp_->s2_nrt.is_increase[1] = std::max(std::min(1, std::stoi(params.at("y"))), -1) * imp_->increase_count;
@@ -3011,8 +3014,8 @@ double p, v, a;
 			{
 				if (!imp_->s1_rt.jogj_is_running)throw std::runtime_error("manual mode not started, when pe");
 
-				auto velocity = std::stoi(params.at("vel_percent"));
-				velocity = std::max(std::min(100, velocity), -100);
+				auto velocity = g_vel_percent.load();
+				velocity = std::max(std::min(100, velocity), 0);
 				imp_->s2_nrt.vel_percent = velocity;
 
 				imp_->s2_nrt.is_increase.assign(imp_->s2_nrt.is_increase.size(), 0);
@@ -3198,12 +3201,13 @@ double p, v, a;
 			param.acc = std::stod(params.at("acc"));
 			param.dec = std::stod(params.at("dec"));
 			*/
-			param.vel = c->motionPool().at(0).maxVel();
+			
+			param.vel = c->motionPool().at(0).maxVel()*g_vel.v100().w_percent;
 			param.acc = c->motionPool().at(0).maxAcc();
 			param.dec = c->motionPool().at(0).maxAcc();
 
-			auto velocity = std::stoi(params.at("vel_percent"));
-			velocity = std::max(std::min(100, velocity), -100);
+			auto velocity = g_vel_percent.load();
+			velocity = std::max(std::min(100, velocity), 0);
 			param.vel_percent = velocity;
 			param.increase_status = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
 		}
@@ -3353,12 +3357,12 @@ double p, v, a;
 			param.increase_count = std::stoi(params.at("increase_count"));
 			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
 
-			param.vel = c->motionPool().at(1).maxVel();
+			param.vel = c->motionPool().at(1).maxVel()*g_vel.v100().w_percent;
 			param.acc = c->motionPool().at(1).maxAcc();
 			param.dec = c->motionPool().at(1).maxAcc();
 
-			auto velocity = std::stoi(params.at("vel_percent"));
-			velocity = std::max(std::min(100, velocity), -100);
+			auto velocity = g_vel_percent.load();
+			velocity = std::max(std::min(100, velocity), 0);
 			param.vel_percent = velocity;
 			param.increase_status = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
 		}
@@ -3508,12 +3512,12 @@ double p, v, a;
 			param.increase_count = std::stoi(params.at("increase_count"));
 			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
 
-			param.vel = c->motionPool().at(2).maxVel();
+			param.vel = c->motionPool().at(2).maxVel()*g_vel.v100().w_percent;
 			param.acc = c->motionPool().at(2).maxAcc();
 			param.dec = c->motionPool().at(2).maxAcc();
 
-			auto velocity = std::stoi(params.at("vel_percent"));
-			velocity = std::max(std::min(100, velocity), -100);
+			auto velocity = g_vel_percent.load();
+			velocity = std::max(std::min(100, velocity), 0);
 			param.vel_percent = velocity;
 			param.increase_status = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
 		}
@@ -3663,12 +3667,12 @@ double p, v, a;
 			param.increase_count = std::stoi(params.at("increase_count"));
 			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
 
-			param.vel = c->motionPool().at(3).maxVel();
+			param.vel = c->motionPool().at(3).maxVel()*g_vel.v100().w_percent;
 			param.acc = c->motionPool().at(3).maxAcc();
 			param.dec = c->motionPool().at(3).maxAcc();
 
-			auto velocity = std::stoi(params.at("vel_percent"));
-			velocity = std::max(std::min(100, velocity), -100);
+			auto velocity = g_vel_percent.load();
+			velocity = std::max(std::min(100, velocity), 0);
 			param.vel_percent = velocity;
 			param.increase_status = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
 		}
@@ -3818,12 +3822,12 @@ double p, v, a;
 			param.increase_count = std::stoi(params.at("increase_count"));
 			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
 
-			param.vel = c->motionPool().at(4).maxVel();
+			param.vel = c->motionPool().at(4).maxVel()*g_vel.v100().w_percent;
 			param.acc = c->motionPool().at(4).maxAcc();
 			param.dec = c->motionPool().at(4).maxAcc();
 
-			auto velocity = std::stoi(params.at("vel_percent"));
-			velocity = std::max(std::min(100, velocity), -100);
+			auto velocity = g_vel_percent.load();
+			velocity = std::max(std::min(100, velocity), 0);
 			param.vel_percent = velocity;
 			param.increase_status = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
 		}
@@ -3973,12 +3977,12 @@ double p, v, a;
 			param.increase_count = std::stoi(params.at("increase_count"));
 			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
 
-			param.vel = c->motionPool().at(5).maxVel();
+			param.vel = c->motionPool().at(5).maxVel()*g_vel.v100().w_percent;
 			param.acc = c->motionPool().at(5).maxAcc();
 			param.dec = c->motionPool().at(5).maxAcc();
 
-			auto velocity = std::stoi(params.at("vel_percent"));
-			velocity = std::max(std::min(100, velocity), -100);
+			auto velocity = g_vel_percent.load();
+			velocity = std::max(std::min(100, velocity), 0);
 			param.vel_percent = velocity;
 			param.increase_status = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
 		}
@@ -4132,8 +4136,8 @@ double p, v, a;
 		{
 			param.increase_count = std::stoi(params.at("increase_count"));
 			param.cor_system = std::stoi(params.at("cor"));
-			auto velocity = std::stoi(params.at("vel_percent"));
-			velocity = std::max(std::min(100, velocity), -100);
+			auto velocity = g_vel_percent.load();
+			velocity = std::max(std::min(100, velocity), 0);
 			param.vel_percent = velocity;
 
 			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
@@ -4141,6 +4145,8 @@ double p, v, a;
 			auto mat = target.model->calculator().calculateExpression(params.at("vel"));
 			if (mat.size() != 6)THROW_FILE_LINE("");
 			std::copy(mat.begin(), mat.end(), param.vel);
+			std::fill(param.vel, param.vel + 3, g_vel.v100().v_tcp);
+			std::fill(param.vel + 3, param.vel + 6, g_vel.v100().w_tcp);
 
 			mat = target.model->calculator().calculateExpression(params.at("acc"));
 			if (mat.size() != 6)THROW_FILE_LINE("");
@@ -4307,8 +4313,8 @@ double p, v, a;
 			"	<GroupParam>"
 			"		<Param name=\"increase_count\" default=\"100\"/>"
 			"		<Param name=\"vel\" default=\"{0.05,0.05,0.05,0.25,0.25,0.25}\"/>"
-			"		<Param name=\"acc\" default=\"{0.2,0.2,0.2,1,1,1}\"/>"
-			"		<Param name=\"dec\" default=\"{0.2,0.2,0.2,1,1,1}\"/>"
+			"		<Param name=\"acc\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
+			"		<Param name=\"dec\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
 			"		<Param name=\"cor\" default=\"0\"/>"
 			"		<Param name=\"vel_percent\" default=\"20\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
@@ -4335,8 +4341,8 @@ double p, v, a;
 		{
 			param.increase_count = std::stoi(params.at("increase_count"));
 			param.cor_system = std::stoi(params.at("cor"));
-			auto velocity = std::stoi(params.at("vel_percent"));
-			velocity = std::max(std::min(100, velocity), -100);
+			auto velocity = g_vel_percent.load();
+			velocity = std::max(std::min(100, velocity), 0);
 			param.vel_percent = velocity;
 
 			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
@@ -4344,6 +4350,8 @@ double p, v, a;
 			auto mat = target.model->calculator().calculateExpression(params.at("vel"));
 			if (mat.size() != 6)THROW_FILE_LINE("");
 			std::copy(mat.begin(), mat.end(), param.vel);
+			std::fill(param.vel, param.vel + 3, g_vel.v100().v_tcp);
+			std::fill(param.vel + 3, param.vel + 6, g_vel.v100().w_tcp);
 
 			mat = target.model->calculator().calculateExpression(params.at("acc"));
 			if (mat.size() != 6)THROW_FILE_LINE("");
@@ -4510,8 +4518,8 @@ double p, v, a;
 			"	<GroupParam>"
 			"		<Param name=\"increase_count\" default=\"100\"/>"
 			"		<Param name=\"vel\" default=\"{0.05,0.05,0.05,0.25,0.25,0.25}\"/>"
-			"		<Param name=\"acc\" default=\"{0.2,0.2,0.2,1,1,1}\"/>"
-			"		<Param name=\"dec\" default=\"{0.2,0.2,0.2,1,1,1}\"/>"
+			"		<Param name=\"acc\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
+			"		<Param name=\"dec\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
 			"		<Param name=\"cor\" default=\"0\"/>"
 			"		<Param name=\"vel_percent\" default=\"20\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
@@ -4538,8 +4546,8 @@ double p, v, a;
 		{
 			param.increase_count = std::stoi(params.at("increase_count"));
 			param.cor_system = std::stoi(params.at("cor"));
-			auto velocity = std::stoi(params.at("vel_percent"));
-			velocity = std::max(std::min(100, velocity), -100);
+			auto velocity = g_vel_percent.load();
+			velocity = std::max(std::min(100, velocity), 0);
 			param.vel_percent = velocity;
 
 			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
@@ -4547,6 +4555,8 @@ double p, v, a;
 			auto mat = target.model->calculator().calculateExpression(params.at("vel"));
 			if (mat.size() != 6)THROW_FILE_LINE("");
 			std::copy(mat.begin(), mat.end(), param.vel);
+			std::fill(param.vel, param.vel + 3, g_vel.v100().v_tcp);
+			std::fill(param.vel + 3, param.vel + 6, g_vel.v100().w_tcp);
 
 			mat = target.model->calculator().calculateExpression(params.at("acc"));
 			if (mat.size() != 6)THROW_FILE_LINE("");
@@ -4713,8 +4723,8 @@ double p, v, a;
 			"	<GroupParam>"
 			"		<Param name=\"increase_count\" default=\"100\"/>"
 			"		<Param name=\"vel\" default=\"{0.05,0.05,0.05,0.25,0.25,0.25}\"/>"
-			"		<Param name=\"acc\" default=\"{0.2,0.2,0.2,1,1,1}\"/>"
-			"		<Param name=\"dec\" default=\"{0.2,0.2,0.2,1,1,1}\"/>"
+			"		<Param name=\"acc\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
+			"		<Param name=\"dec\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
 			"		<Param name=\"cor\" default=\"0\"/>"
 			"		<Param name=\"vel_percent\" default=\"20\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
@@ -4741,8 +4751,8 @@ double p, v, a;
 		{
 			param.increase_count = std::stoi(params.at("increase_count"));
 			param.cor_system = std::stoi(params.at("cor"));
-			auto velocity = std::stoi(params.at("vel_percent"));
-			velocity = std::max(std::min(100, velocity), -100);
+			auto velocity = g_vel_percent.load();
+			velocity = std::max(std::min(100, velocity), 0);
 			param.vel_percent = velocity;
 
 			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
@@ -4750,6 +4760,8 @@ double p, v, a;
 			auto mat = target.model->calculator().calculateExpression(params.at("vel"));
 			if (mat.size() != 6)THROW_FILE_LINE("");
 			std::copy(mat.begin(), mat.end(), param.vel);
+			std::fill(param.vel, param.vel + 3, g_vel.v100().v_tcp);
+			std::fill(param.vel + 3, param.vel + 6, g_vel.v100().w_tcp);
 
 			mat = target.model->calculator().calculateExpression(params.at("acc"));
 			if (mat.size() != 6)THROW_FILE_LINE("");
@@ -4916,8 +4928,8 @@ double p, v, a;
 			"	<GroupParam>"
 			"		<Param name=\"increase_count\" default=\"100\"/>"
 			"		<Param name=\"vel\" default=\"{0.05,0.05,0.05,0.25,0.25,0.25}\"/>"
-			"		<Param name=\"acc\" default=\"{0.2,0.2,0.2,1,1,1}\"/>"
-			"		<Param name=\"dec\" default=\"{0.2,0.2,0.2,1,1,1}\"/>"
+			"		<Param name=\"acc\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
+			"		<Param name=\"dec\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
 			"		<Param name=\"cor\" default=\"0\"/>"
 			"		<Param name=\"vel_percent\" default=\"20\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
@@ -4951,8 +4963,8 @@ double p, v, a;
 		{
 			param.increase_count = std::stoi(params.at("increase_count"));
 			param.cor_system = std::stoi(params.at("cor"));
-			auto velocity = std::stoi(params.at("vel_percent"));
-			velocity = std::max(std::min(100, velocity), -100);
+			auto velocity = g_vel_percent.load();
+			velocity = std::max(std::min(100, velocity), 0);
 			param.vel_percent = velocity;
 
 			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
@@ -4960,6 +4972,8 @@ double p, v, a;
 			auto mat = target.model->calculator().calculateExpression(params.at("vel"));
 			if (mat.size() != 6)THROW_FILE_LINE("");
 			std::copy(mat.begin(), mat.end(), param.vel);
+			std::fill(param.vel, param.vel + 3, g_vel.v100().v_tcp);
+			std::fill(param.vel + 3, param.vel + 6, g_vel.v100().w_tcp);
 
 			mat = target.model->calculator().calculateExpression(params.at("acc"));
 			if (mat.size() != 6)THROW_FILE_LINE("");
@@ -5126,8 +5140,8 @@ double p, v, a;
 			"	<GroupParam>"
 			"		<Param name=\"increase_count\" default=\"100\"/>"
 			"		<Param name=\"vel\" default=\"{0.05,0.05,0.05,0.25,0.25,0.25}\"/>"
-			"		<Param name=\"acc\" default=\"{0.2,0.2,0.2,1,1,1}\"/>"
-			"		<Param name=\"dec\" default=\"{0.2,0.2,0.2,1,1,1}\"/>"
+			"		<Param name=\"acc\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
+			"		<Param name=\"dec\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
 			"		<Param name=\"cor\" default=\"0\"/>"
 			"		<Param name=\"vel_percent\" default=\"20\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
@@ -5154,8 +5168,8 @@ double p, v, a;
 		{
 			param.increase_count = std::stoi(params.at("increase_count"));
 			param.cor_system = std::stoi(params.at("cor"));
-			auto velocity = std::stoi(params.at("vel_percent"));
-			velocity = std::max(std::min(100, velocity), -100);
+			auto velocity = g_vel_percent.load();
+			velocity = std::max(std::min(100, velocity), 0);
 			param.vel_percent = velocity;
 
 			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
@@ -5163,6 +5177,8 @@ double p, v, a;
 			auto mat = target.model->calculator().calculateExpression(params.at("vel"));
 			if (mat.size() != 6)THROW_FILE_LINE("");
 			std::copy(mat.begin(), mat.end(), param.vel);
+			std::fill(param.vel, param.vel + 3, g_vel.v100().v_tcp);
+			std::fill(param.vel + 3, param.vel + 6, g_vel.v100().w_tcp);
 
 			mat = target.model->calculator().calculateExpression(params.at("acc"));
 			if (mat.size() != 6)THROW_FILE_LINE("");
@@ -5329,8 +5345,8 @@ double p, v, a;
 			"	<GroupParam>"
 			"		<Param name=\"increase_count\" default=\"100\"/>"
 			"		<Param name=\"vel\" default=\"{0.05,0.05,0.05,0.25,0.25,0.25}\"/>"
-			"		<Param name=\"acc\" default=\"{0.2,0.2,0.2,1,1,1}\"/>"
-			"		<Param name=\"dec\" default=\"{0.2,0.2,0.2,1,1,1}\"/>"
+			"		<Param name=\"acc\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
+			"		<Param name=\"dec\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
 			"		<Param name=\"cor\" default=\"0\"/>"
 			"		<Param name=\"vel_percent\" default=\"20\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
@@ -6894,6 +6910,36 @@ double p, v, a;
 			"</Command>");
 	}
 	
+
+	//设置全局速度//
+	struct SetVelParam
+	{
+		int vel_percent;
+	};
+	auto SetVel::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		SetVelParam param;
+		for (auto &p : params)
+		{
+			if (p.first == "vel_percent")
+			{
+				param.vel_percent = std::stoi(p.second);
+			}
+		}
+		g_vel_percent.store(param.vel_percent);
+
+		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
+	}
+	SetVel::SetVel(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"setvel\">"
+			"	<GroupParam>"
+			"		<Param name=\"vel_percent\" abbreviation=\"p\" default=\"0\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
+
 
     auto createPlanRootRokaeXB4()->std::unique_ptr<aris::plan::PlanRoot>
 	{

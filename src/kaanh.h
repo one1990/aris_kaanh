@@ -31,6 +31,16 @@ namespace kaanh
 	//其他参数和函数声明 
 	using Size = std::size_t;
 	constexpr double PI = 3.141592653589793;
+	
+	struct SpeedParam
+	{
+		double w_percent;	//关节速度百分比
+		double v_tcp;	//TCP线速度mm/s
+		double w_tcp;	//空间旋转速度°/s
+		double w_ext;	//外部轴角速度°/s
+		double v_ext;	//外部轴线速度mm/s
+	};
+
 	auto createInterface()->std::unique_ptr<aris::server::InterfaceRoot>;
 	auto createControllerEA()->std::unique_ptr<aris::control::Controller>;
 	auto createModelRokaeXB4(const double *robot_pm = nullptr)->std::unique_ptr<aris::dynamic::Model>;
@@ -48,6 +58,235 @@ namespace kaanh
     auto createModelDaye(const double *robot_pm = nullptr)->std::unique_ptr<aris::dynamic::Model>;
 
 	//auto registerPlan()->void;
+
+	class Speed
+	{
+	public:
+		auto virtual v5()->SpeedParam
+		{
+			s.w_percent = 0.01;
+			s.v_tcp = 0.005;
+			s.w_tcp = 200.0*PI/180.0;
+			s.w_ext = 0.0;
+			s.v_ext = 0.0;
+			return s;
+		};
+		auto virtual v10()->SpeedParam
+		{
+			s.w_percent = 0.03;
+			s.v_tcp = 0.01;
+			s.w_tcp = 200.0*PI / 180.0;
+			s.w_ext = 0.0;
+			s.v_ext = 0.0;
+			return s;
+		};
+		auto virtual v25()->SpeedParam
+		{
+			s.w_percent = 0.05;
+			s.v_tcp = 0.025;
+			s.w_tcp = 200.0*PI / 180.0;
+			s.w_ext = 0.0;
+			s.v_ext = 0.0;
+			return s;
+		};
+		auto virtual v30()->SpeedParam 
+		{
+			s.w_percent = 0.05;
+			s.v_tcp = 0.03;
+			s.w_tcp = 200.0*PI / 180.0;
+			s.w_ext = 0.0;
+			s.v_ext = 0.0;
+			return s;
+		};
+		auto virtual v40()->SpeedParam
+		{
+			s.w_percent = 0.05;
+			s.v_tcp = 0.04;
+			s.w_tcp = 200.0*PI / 180.0;
+			s.w_ext = 0.0;
+			s.v_ext = 0.0;
+			return s;
+		};
+		auto virtual v50()->SpeedParam
+		{
+			s.w_percent = 0.08;
+			s.v_tcp = 0.05;
+			s.w_tcp = 200.0*PI / 180.0;
+			s.w_ext = 0.0;
+			s.v_ext = 0.0;
+			return s;
+		};
+		auto virtual v60()->SpeedParam
+		{
+			s.w_percent = 0.08;
+			s.v_tcp = 0.06;
+			s.w_tcp = 200.0*PI / 180.0;
+			s.w_ext = 0.0;
+			s.v_ext = 0.0;
+			return s;
+		};
+		auto virtual v80()->SpeedParam
+		{
+			s.w_percent = 0.08;
+			s.v_tcp = 0.08;
+			s.w_tcp = 200.0*PI / 180.0;
+			s.w_ext = 0.0;
+			s.v_ext = 0.0;
+			return s;
+		};
+		auto virtual v100()->SpeedParam
+		{
+			s.w_percent = 0.1;
+			s.v_tcp = 0.1;
+			s.w_tcp = 200.0*PI / 180.0;
+			s.w_ext = 0.0;
+			s.v_ext = 0.0;
+			return s;
+		};
+		auto virtual v150()->SpeedParam
+		{
+			s.w_percent = 0.15;
+			s.v_tcp = 0.15;
+			s.w_tcp = 200.0*PI / 180.0;
+			s.w_ext = 0.0;
+			s.v_ext = 0.0;
+			return s;
+		};
+		auto virtual v200()->SpeedParam
+		{
+			s.w_percent = 0.2;
+			s.v_tcp = 0.2;
+			s.w_tcp = 200.0*PI / 180.0;
+			s.w_ext = 0.0;
+			s.v_ext = 0.0;
+			return s;
+		};
+		auto virtual v300()->SpeedParam
+		{
+			s.w_percent = 0.3;
+			s.v_tcp = 0.3;
+			s.w_tcp = 200.0*PI / 180.0;
+			s.w_ext = 0.0;
+			s.v_ext = 0.0;
+			return s;
+		};
+		auto virtual v400()->SpeedParam
+		{
+			s.w_percent = 0.4;
+			s.v_tcp = 0.4;
+			s.w_tcp = 200.0*PI / 180.0;
+			s.w_ext = 0.0;
+			s.v_ext = 0.0;
+			return s;
+		};
+		auto virtual v500()->SpeedParam
+		{
+			s.w_percent = 0.5;
+			s.v_tcp = 0.5;
+			s.w_tcp = 200.0*PI / 180.0;
+			s.w_ext = 0.0;
+			s.v_ext = 0.0;
+			return s;
+		};
+		auto virtual v600()->SpeedParam
+		{
+			s.w_percent = 0.6;
+			s.v_tcp = 0.6;
+			s.w_tcp = 200.0*PI / 180.0;
+			s.w_ext = 0.0;
+			s.v_ext = 0.0;
+			return s;
+		};
+		auto virtual v800()->SpeedParam
+		{
+			s.w_percent = 0.7;
+			s.v_tcp = 0.8;
+			s.w_tcp = 200.0*PI / 180.0;
+			s.w_ext = 0.0;
+			s.v_ext = 0.0;
+			return s;
+		};
+		auto virtual v1000()->SpeedParam
+		{
+			s.w_percent = 1.0;
+			s.v_tcp = 1.0;
+			s.w_tcp = 200.0*PI / 180.0;
+			s.w_ext = 0.0;
+			s.v_ext = 0.0;
+			return s;
+		};
+		auto virtual v1500()->SpeedParam
+		{
+			s.w_percent = 1.0;
+			s.v_tcp = 1.5;
+			s.w_tcp = 200.0*PI / 180.0;
+			s.w_ext = 0.0;
+			s.v_ext = 0.0;
+			return s;
+		};
+		auto virtual v2000()->SpeedParam
+		{
+			s.w_percent = 1.0;
+			s.v_tcp = 2.0;
+			s.w_tcp = 200.0*PI / 180.0;
+			s.w_ext = 0.0;
+			s.v_ext = 0.0;
+			return s;
+		};
+		auto virtual v3000()->SpeedParam
+		{
+			s.w_percent = 1.0;
+			s.v_tcp = 3.0;
+			s.w_tcp = 200.0*PI / 180.0;
+			s.w_ext = 0.0;
+			s.v_ext = 0.0;
+			return s;
+		};
+		auto virtual v4000()->SpeedParam
+		{
+			s.w_percent = 1.0;
+			s.v_tcp = 4.0;
+			s.w_tcp = 200.0*PI / 180.0;
+			s.w_ext = 0.0;
+			s.v_ext = 0.0;
+			return s;
+		};
+		auto virtual v5000()->SpeedParam
+		{
+			s.w_percent = 1.0;
+			s.v_tcp = 5.0;
+			s.w_tcp = 200.0*PI / 180.0;
+			s.w_ext = 0.0;
+			s.v_ext = 0.0;
+			return s;
+		};
+		auto virtual v6000()->SpeedParam
+		{
+			s.w_percent = 1.0;
+			s.v_tcp = 6.0;
+			s.w_tcp = 200.0*PI / 180.0;
+			s.w_ext = 0.0;
+			s.v_ext = 0.0;
+			return s;
+		};
+		auto virtual v7000()->SpeedParam
+		{
+			s.w_percent = 1.0;
+			s.v_tcp = 7.0;
+			s.w_tcp = 200.0*PI / 180.0;
+			s.w_ext = 0.0;
+			s.v_ext = 0.0;
+			return s;
+		};
+
+		Speed(SpeedParam speed = {0.0,0.0,0.0,0.0,0.0})
+		{
+			s = speed;
+		};
+	
+	private:
+		SpeedParam s;
+	};
 
 	class Get : public aris::plan::Plan
 	{
@@ -505,6 +744,15 @@ namespace kaanh
 		explicit SetCT(const std::string &name = "SetCT_plan");
 		ARIS_REGISTER_TYPE(SetCT);
 	};
+
+	class SetVel : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		explicit SetVel(const std::string &name = "SetVel_plan");
+		ARIS_REGISTER_TYPE(SetVel);
+	};
+
 }
 
 #endif
