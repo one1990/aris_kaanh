@@ -3305,25 +3305,22 @@ int signV(double x)
 	if (x < -margin) return -1;
 }
 
-//系统传递函数H(s)=a/s
-void PIDcalOne(double a, double *KP)
+//系统传递函数H(s)=1/(ms)
+void PIDcalOne(double m,double ts,double *KP)
 {
-	double ts = 0.1;
 	double T = ts / 3.0;
-	KP[0] = 1 / a / T;
+	KP[0] = m / T;
 }
 
-//系统传递函数H(s)=a/s
-void PIDcalTeo(double a, double *KP, double *KI)
+//系统传递函数H(s)=1/(ms+h)
+void PIDcalTeo(double m, double h, double ts, double overshoot,double *KP, double *KI)
 {
-	double ts = 0.1;
-	double overshoot = 0.1;
 	double temp = log(overshoot);
 	double kesi = 1 / sqrt(1 + aris::PI*aris::PI / temp / temp);
 	double omega = 4 / kesi / ts;
 
-	KI[0] = omega * omega / a;
-	KP[0] = KI[0] / 2 / kesi / sqrt(a*KI[0]);
+	KI[0] = omega * omega * m;
+	KP[0] = 2 * kesi *omega * m - h;
 }
 
 struct ForceDirectParam
