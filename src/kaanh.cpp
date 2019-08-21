@@ -1047,6 +1047,7 @@ namespace kaanh
 
 		std::fill(target.mot_options.begin(), target.mot_options.end(),
 			Plan::USE_TARGET_POS);
+
 		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
 
@@ -1074,6 +1075,7 @@ namespace kaanh
 			{
 				step_pjs[i] = begin_pjs[i] + param.j[i] * (1 - std::cos(2 * PI*target.count / time)) / 2;
 				target.model->motionPool().at(i).setMp(step_pjs[i]);
+				//target.controller->motionPool().at(i).setTargetPos(step_pjs[i]);
 			}
 		}
 		else if ((time / 2 < target.count) && (target.count <= totaltime - time/2))
@@ -1125,7 +1127,7 @@ namespace kaanh
 			{
 				cout << "pos" << i+1 << ":" << controller->motionAtAbs(i).actualPos() << "  " ;
 				cout << "vel" << i+1 << ":" << controller->motionAtAbs(i).actualVel() << "  ";
-				cout << "cur" << i+1 << ":" << controller->motionAtAbs(i).actualCur() << "  ";
+				cout << "cur" << i+1 << ":" << controller->motionAtAbs(i).actualToq() << "  ";
 			}		
 			cout << std::endl;
 		}
@@ -1137,7 +1139,7 @@ namespace kaanh
 			lout << controller->motionAtAbs(i).targetPos() << ",";
 			lout << controller->motionAtAbs(i).actualPos() << ",";
 			lout << controller->motionAtAbs(i).actualVel() << ",";
-			lout << controller->motionAtAbs(i).actualCur() << ",";
+			lout << controller->motionAtAbs(i).actualToq() << ",";
 		}
 		lout << std::endl;
 			
