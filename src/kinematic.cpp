@@ -25,6 +25,7 @@ auto crossVector(double *a, double *s, double *n)->int
 	return 0;
 }
 
+
 //将位置和欧拉角组成的位姿的单位由mm和°转换为m和rad
 auto mmdeg2mrad(std::string datastr, double *data, size_t data_size)->int
 {
@@ -467,8 +468,28 @@ auto CalibT5P::cal_TCP_Z(double transmatric[80], double tcp[3], double &tcp_erro
 	//末端Flange坐标系的Z轴（0，0，1）经过旋转后变为a_Tz,则Fz×a_Tz为它们所在平面的法向量
 	double Fz[3] = { 0,0,1 };
 	double s_Ty[3], n_Tx[3];
-	crossVector(Fz, a_Tz, s_Ty);
+	double prod_oy = 0;
+	double prod_ox = 0;
+	//叉乘获得Y轴方向向量及向量单位化
+	crossVector(a_Tz, Fz, s_Ty);
+	for (int i = 0; i < 3; i++)
+	{
+		prod_oy = prod_oy + s_Ty[i] * s_Ty[i];
+	}
+	for (int i = 0; i < 3; i++)
+	{
+		s_Ty[i] = s_Ty[i] / std::sqrt(prod_oy);
+	}
+	//叉乘获得X轴方向向量及向量单位化
 	crossVector(s_Ty, a_Tz, n_Tx);
+	for (int i = 0; i < 3; i++)
+	{
+		prod_ox = prod_ox + n_Tx[i] * n_Tx[i];
+	}
+	for (int i = 0; i < 3; i++)
+	{
+		n_Tx[i] = n_Tx[i] / std::sqrt(prod_ox);
+	}
 	for (int i = 0; i < 3; i++)
 	{
 		tcf[i * 3 + 0] = n_Tx[i];
@@ -723,7 +744,17 @@ auto CalibT6P::cal_TCP_TCF(double transmatric[96], double tcp[3], double &tcp_er
 		s_Ty[i] = s_Ty[i] / len_oy;
 	}
 	double n_Tx[3];
+	double prod_ox = 0;
+	//叉乘获得X轴方向向量及向量单位化
 	crossVector(s_Ty, a_Tz, n_Tx);
+	for (int i = 0; i < 3; i++)
+	{
+		prod_ox = prod_ox + n_Tx[i] * n_Tx[i];
+	}
+	for (int i = 0; i < 3; i++)
+	{
+		n_Tx[i] = n_Tx[i] / std::sqrt(prod_ox);
+	}
 	/*std::cout << a_Tz[0] << "," << a_Tz[1] << "," << a_Tz[2] << std::endl;
 	std::cout << s_Ty[0] << "," << s_Ty[1] << "," << s_Ty[2] << std::endl;
 	std::cout << n_Tx[0] << "," << n_Tx[1] << "," << n_Tx[2] << std::endl;*/
