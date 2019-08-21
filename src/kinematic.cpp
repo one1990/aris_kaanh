@@ -62,6 +62,35 @@ auto mmdeg2mrad(std::string datastr, double *data, size_t data_size)->int
 	}
 }
 
+//获取示教点位姿数据
+auto get_teachpt_data(std::string datastr, double *data, size_t data_size)->int
+{
+	std::string posestr = datastr.substr(datastr.find("{") + 1, datastr.find("}") - datastr.find("{") - 1);
+	std::string::size_type pos1 = 0;
+	std::string::size_type pos2 = posestr.find(",");
+	std::vector<std::string> tempvec;
+	while (pos2 != std::string::npos)
+	{
+		tempvec.push_back(posestr.substr(pos1, pos2 - pos1));
+		pos1 = pos2 + 1;
+		pos2 = posestr.find(",", pos1);
+	}
+	tempvec.push_back(posestr.substr(pos1, posestr.length() - 1));
+	if (tempvec.size() == data_size)
+	{
+		for (size_t i = 0; i < data_size; i++)
+		{
+			data[i] = std::stod(tempvec.at(i));
+		}
+		return 0;
+	}
+	else
+	{
+		throw std::runtime_error("The input data of teaching point's pose is wrong！");		//"输入的示教点位姿数据有误！"
+		return -1;
+	}
+}
+
 //4点标定法
 struct CalibT4PParam
 {
@@ -80,7 +109,7 @@ auto CalibT4P::prepairNrt(const std::map<std::string, std::string> &params, aris
 		if (p.first == "pose")
 		{
 			std::string tempstr = p.second;
-			int ret1 = mmdeg2mrad(tempstr, param.pe_4pt, 24);
+			int ret1 = get_teachpt_data(tempstr, param.pe_4pt, 24);
 			if (ret1 != 0) return;
 		}
 	}
@@ -107,7 +136,8 @@ auto CalibT4P::prepairNrt(const std::map<std::string, std::string> &params, aris
 	if (ret2 == 0)
 	{
 		//将标定结果转换为欧拉角形式
-		const double pose[6] = { tcp[0] *1000, tcp[1] * 1000, tcp[2] * 1000, 0, 0, 0 };
+		//const double pose[6] = { tcp[0] *1000, tcp[1] * 1000, tcp[2] * 1000, 0, 0, 0 };
+		const double pose[6] = { tcp[0], tcp[1], tcp[2], 0, 0, 0 };
 		for (int i = 0; i < 6; i++)
 		{
 			param.tool_pe.push_back(pose[i]);
@@ -265,7 +295,7 @@ auto CalibT5P::prepairNrt(const std::map<std::string, std::string> &params, aris
 		if (p.first == "pose")
 		{
 			std::string tempstr = p.second;
-			int ret1 = mmdeg2mrad(tempstr, param.pe_5pt, 30);
+			int ret1 = get_teachpt_data(tempstr, param.pe_5pt, 30);
 			if (ret1 != 0) return;
 		}
 	}
@@ -294,7 +324,8 @@ auto CalibT5P::prepairNrt(const std::map<std::string, std::string> &params, aris
 		//将标定结果转换为欧拉角形式
 		double re321[3];
 		s_rm2re(tcf, re321, "321");
-		const double pose[6] = { tcp[0] * 1000, tcp[1] * 1000, tcp[2] * 1000, re321[0] *180 / PI, re321[1] * 180 / PI, re321[2] * 180 / PI };
+		//const double pose[6] = { tcp[0] * 1000, tcp[1] * 1000, tcp[2] * 1000, re321[0] *180 / PI, re321[1] * 180 / PI, re321[2] * 180 / PI };
+		const double pose[6] = { tcp[0], tcp[1], tcp[2], re321[0], re321[1], re321[2] };
 		for (int i = 0; i < 6; i++)
 		{
 			param.tool_pe.push_back(pose[i]);
@@ -515,7 +546,7 @@ auto CalibT6P::prepairNrt(const std::map<std::string, std::string> &params, aris
 		if (p.first == "pose")
 		{
 			std::string tempstr = p.second;
-			int ret1 = mmdeg2mrad(tempstr, param.pe_6pt, 36);
+			int ret1 = get_teachpt_data(tempstr, param.pe_6pt, 36);
 			if (ret1 != 0) return;
 		}
 	}
@@ -544,7 +575,8 @@ auto CalibT6P::prepairNrt(const std::map<std::string, std::string> &params, aris
 		//将标定结果转换为欧拉角形式
 		double re321[3];
 		s_rm2re(tcf, re321, "321");
-		const double pose[6] = { tcp[0] * 1000, tcp[1] * 1000, tcp[2] * 1000, re321[0] * 180 / PI, re321[1] * 180 / PI, re321[2] * 180 / PI };
+		//const double pose[6] = { tcp[0] * 1000, tcp[1] * 1000, tcp[2] * 1000, re321[0] * 180 / PI, re321[1] * 180 / PI, re321[2] * 180 / PI };
+		const double pose[6] = { tcp[0], tcp[1], tcp[2], re321[0], re321[1], re321[2] };
 		for (int i = 0; i < 6; i++)
 		{
 			param.tool_pe.push_back(pose[i]);
