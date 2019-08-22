@@ -115,7 +115,8 @@ auto JointDyna::executeRT(PlanTarget &target)->int
     double PosLimit[6] = { param.A1P,param.A2P,param.A3P,param.A4P,param.A5P,param.A6P };
     double NegLimit[6] = { param.A1N,param.A2N,param.A3N,param.A4N,param.A5N,param.A6N };
     double dTheta = 0.00001;
-	static double pArc[6], vArc[6], aArc[6], vArcMax[6] = { param.VEL,param.VEL,param.VEL,param.VEL,param.VEL,param.VEL };
+	double vel_base = 0.15 / 100;
+	static double pArc[6], vArc[6], aArc[6], vArcMax[6] = { param.VEL*vel_base,param.VEL*vel_base,param.VEL*vel_base,param.VEL*vel_base,param.VEL*vel_base,param.VEL*vel_base };
 	static aris::Size t_count[6] = { 0 };
 
 	static int CountOffsetPos[6] = { 1,1,1,1,1,1 }, CountOffsetNeg[6] = { 1,1,1,1,1,1 };
@@ -1223,7 +1224,8 @@ auto LoadDyna::executeRT(PlanTarget &target)->int
     double PosLimit[6] = { 1,1,param.A3P,1,param.A5P,param.A6P };
     double NegLimit[6] = { -1,-1,param.A3N,-1,param.A5N,param.A6N };
 	double dTheta = 0.0001;
-	static double pArc[6], vArc[6], aArc[6], vArcMax[6] = { param.VEL,param.VEL,param.VEL,param.VEL,param.VEL,param.VEL };
+	double vel_base = 0.15/100;
+	static double pArc[6], vArc[6], aArc[6], vArcMax[6] = { param.VEL*vel_base,param.VEL*vel_base,param.VEL*vel_base,param.VEL*vel_base,param.VEL*vel_base,param.VEL*vel_base };
 	static aris::Size t_count[6] = { 0 };
 	
 	static int CountOffsetPos[6] = { 1,1,1,1,1,1 }, CountOffsetNeg[6] = { 1,1,1,1,1,1};
