@@ -62,223 +62,14 @@ namespace kaanh
 	class Speed
 	{
 	public:
-		auto virtual v5()->SpeedParam
+		auto setspeed(SpeedParam speed)->void
 		{
-			s.w_percent = 0.01;
-			s.v_tcp = 0.005;
-			s.w_tcp = 200.0*PI/180.0;
-			s.w_ext = 0.0;
-			s.v_ext = 0.0;
+			s = speed;
+		};
+		auto getspeed()->SpeedParam
+		{
 			return s;
 		};
-		auto virtual v10()->SpeedParam
-		{
-			s.w_percent = 0.03;
-			s.v_tcp = 0.01;
-			s.w_tcp = 200.0*PI / 180.0;
-			s.w_ext = 0.0;
-			s.v_ext = 0.0;
-			return s;
-		};
-		auto virtual v25()->SpeedParam
-		{
-			s.w_percent = 0.05;
-			s.v_tcp = 0.025;
-			s.w_tcp = 200.0*PI / 180.0;
-			s.w_ext = 0.0;
-			s.v_ext = 0.0;
-			return s;
-		};
-		auto virtual v30()->SpeedParam 
-		{
-			s.w_percent = 0.05;
-			s.v_tcp = 0.03;
-			s.w_tcp = 200.0*PI / 180.0;
-			s.w_ext = 0.0;
-			s.v_ext = 0.0;
-			return s;
-		};
-		auto virtual v40()->SpeedParam
-		{
-			s.w_percent = 0.05;
-			s.v_tcp = 0.04;
-			s.w_tcp = 200.0*PI / 180.0;
-			s.w_ext = 0.0;
-			s.v_ext = 0.0;
-			return s;
-		};
-		auto virtual v50()->SpeedParam
-		{
-			s.w_percent = 0.08;
-			s.v_tcp = 0.05;
-			s.w_tcp = 200.0*PI / 180.0;
-			s.w_ext = 0.0;
-			s.v_ext = 0.0;
-			return s;
-		};
-		auto virtual v60()->SpeedParam
-		{
-			s.w_percent = 0.08;
-			s.v_tcp = 0.06;
-			s.w_tcp = 200.0*PI / 180.0;
-			s.w_ext = 0.0;
-			s.v_ext = 0.0;
-			return s;
-		};
-		auto virtual v80()->SpeedParam
-		{
-			s.w_percent = 0.08;
-			s.v_tcp = 0.08;
-			s.w_tcp = 200.0*PI / 180.0;
-			s.w_ext = 0.0;
-			s.v_ext = 0.0;
-			return s;
-		};
-		auto virtual v100()->SpeedParam
-		{
-			s.w_percent = 0.1;
-			s.v_tcp = 0.1;
-			s.w_tcp = 200.0*PI / 180.0;
-			s.w_ext = 0.0;
-			s.v_ext = 0.0;
-			return s;
-		};
-		auto virtual v150()->SpeedParam
-		{
-			s.w_percent = 0.15;
-			s.v_tcp = 0.15;
-			s.w_tcp = 200.0*PI / 180.0;
-			s.w_ext = 0.0;
-			s.v_ext = 0.0;
-			return s;
-		};
-		auto virtual v200()->SpeedParam
-		{
-			s.w_percent = 0.2;
-			s.v_tcp = 0.2;
-			s.w_tcp = 200.0*PI / 180.0;
-			s.w_ext = 0.0;
-			s.v_ext = 0.0;
-			return s;
-		};
-		auto virtual v300()->SpeedParam
-		{
-			s.w_percent = 0.3;
-			s.v_tcp = 0.3;
-			s.w_tcp = 200.0*PI / 180.0;
-			s.w_ext = 0.0;
-			s.v_ext = 0.0;
-			return s;
-		};
-		auto virtual v400()->SpeedParam
-		{
-			s.w_percent = 0.4;
-			s.v_tcp = 0.4;
-			s.w_tcp = 200.0*PI / 180.0;
-			s.w_ext = 0.0;
-			s.v_ext = 0.0;
-			return s;
-		};
-		auto virtual v500()->SpeedParam
-		{
-			s.w_percent = 0.5;
-			s.v_tcp = 0.5;
-			s.w_tcp = 200.0*PI / 180.0;
-			s.w_ext = 0.0;
-			s.v_ext = 0.0;
-			return s;
-		};
-		auto virtual v600()->SpeedParam
-		{
-			s.w_percent = 0.6;
-			s.v_tcp = 0.6;
-			s.w_tcp = 200.0*PI / 180.0;
-			s.w_ext = 0.0;
-			s.v_ext = 0.0;
-			return s;
-		};
-		auto virtual v800()->SpeedParam
-		{
-			s.w_percent = 0.7;
-			s.v_tcp = 0.8;
-			s.w_tcp = 200.0*PI / 180.0;
-			s.w_ext = 0.0;
-			s.v_ext = 0.0;
-			return s;
-		};
-		auto virtual v1000()->SpeedParam
-		{
-			s.w_percent = 1.0;
-			s.v_tcp = 1.0;
-			s.w_tcp = 200.0*PI / 180.0;
-			s.w_ext = 0.0;
-			s.v_ext = 0.0;
-			return s;
-		};
-		auto virtual v1500()->SpeedParam
-		{
-			s.w_percent = 1.0;
-			s.v_tcp = 1.5;
-			s.w_tcp = 200.0*PI / 180.0;
-			s.w_ext = 0.0;
-			s.v_ext = 0.0;
-			return s;
-		};
-		auto virtual v2000()->SpeedParam
-		{
-			s.w_percent = 1.0;
-			s.v_tcp = 2.0;
-			s.w_tcp = 200.0*PI / 180.0;
-			s.w_ext = 0.0;
-			s.v_ext = 0.0;
-			return s;
-		};
-		auto virtual v3000()->SpeedParam
-		{
-			s.w_percent = 1.0;
-			s.v_tcp = 3.0;
-			s.w_tcp = 200.0*PI / 180.0;
-			s.w_ext = 0.0;
-			s.v_ext = 0.0;
-			return s;
-		};
-		auto virtual v4000()->SpeedParam
-		{
-			s.w_percent = 1.0;
-			s.v_tcp = 4.0;
-			s.w_tcp = 200.0*PI / 180.0;
-			s.w_ext = 0.0;
-			s.v_ext = 0.0;
-			return s;
-		};
-		auto virtual v5000()->SpeedParam
-		{
-			s.w_percent = 1.0;
-			s.v_tcp = 5.0;
-			s.w_tcp = 200.0*PI / 180.0;
-			s.w_ext = 0.0;
-			s.v_ext = 0.0;
-			return s;
-		};
-		auto virtual v6000()->SpeedParam
-		{
-			s.w_percent = 1.0;
-			s.v_tcp = 6.0;
-			s.w_tcp = 200.0*PI / 180.0;
-			s.w_ext = 0.0;
-			s.v_ext = 0.0;
-			return s;
-		};
-		auto virtual v7000()->SpeedParam
-		{
-			s.w_percent = 1.0;
-			s.v_tcp = 7.0;
-			s.w_tcp = 200.0*PI / 180.0;
-			s.w_ext = 0.0;
-			s.v_ext = 0.0;
-			return s;
-		};
-
 		Speed(SpeedParam speed = {0.0,0.0,0.0,0.0,0.0})
 		{
 			s = speed;
@@ -697,12 +488,36 @@ namespace kaanh
 		ARIS_REGISTER_TYPE(SetDriver);
 	};
 
-	class SaveConfig : public aris::plan::Plan
+	class SaveXml : public aris::plan::Plan
 	{
 	public:
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		explicit SaveConfig(const std::string &name = "SaveConfig_plan");
-		ARIS_REGISTER_TYPE(SaveConfig);
+		explicit SaveXml(const std::string &name = "SaveXml_plan");
+		ARIS_REGISTER_TYPE(SaveXml);
+	};
+
+	class ScanSlave : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		explicit ScanSlave(const std::string &name = "ScanSlave_plan");
+		ARIS_REGISTER_TYPE(ScanSlave);
+	};
+
+	class GetEsiPdoList : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		explicit GetEsiPdoList(const std::string &name = "GetEsiPdoList_plan");
+		ARIS_REGISTER_TYPE(GetEsiPdoList);
+	};
+
+	class SetEsiPath : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		explicit SetEsiPath(const std::string &name = "SetEsiPath_plan");
+		ARIS_REGISTER_TYPE(SetEsiPath);
 	};
 
 	class ClearCon : public aris::plan::Plan

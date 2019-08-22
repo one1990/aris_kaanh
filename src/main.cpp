@@ -91,10 +91,18 @@ int main(int argc, char *argv[])
 		std::cout << e.what() << std::endl;
 	}
 	cs.interfaceRoot().loadXmlFile(uixmlpath.string().c_str());
-    cs.model().loadXmlFile(modelxmlpath.string().c_str());
+    //cs.model().loadXmlFile(modelxmlpath.string().c_str());
 	cs.saveXmlFile(xmlpath.string().c_str());
 
 	cs.start();
+
+	//加载v100的速度值//
+	auto &getspeed = dynamic_cast<aris::dynamic::MatrixVariable &>(*cs.model().variablePool().findByName("v100"));
+	kaanh::SpeedParam speed;
+	std::copy(getspeed.data().begin(), getspeed.data().end(), &speed.w_percent);
+	g_vel.setspeed(speed);
+
+	std::cout << "w_percent:" << g_vel.getspeed().w_percent << std::endl;
 
 	//Start Web Socket//
     cs.open();
