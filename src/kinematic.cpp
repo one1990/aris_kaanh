@@ -618,6 +618,10 @@ auto CalibT6P::prepairNrt(const std::map<std::string, std::string> &params, aris
 	out_param.push_back(std::make_pair<std::string, std::any>("calib_info", param.calib_info));
 	out_param.push_back(std::make_pair<std::string, std::any>("tool_pe", param.tool_pe));
 	target.ret = out_param;
+
+
+
+
 	//target.option |= NOT_RUN_EXECUTE_FUNCTION;
 	//target.option |= NOT_RUN_COLLECT_FUNCTION;
 	target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION | NOT_PRINT_CMD_INFO | NOT_PRINT_CMD_INFO;
@@ -824,7 +828,7 @@ auto CalibT6P::deltaRP_6Pt(double R[54], double P[18], double * deltaR, double *
 //设定工具坐标系的标定结果
 struct SetTFParam
 {
-	size_t tool_id;
+	//size_t tool_id;
 	std::string tool_name;
 	double tool_pe[6];
 	std::string calib_info;
@@ -837,11 +841,11 @@ auto SetTF::prepairNrt(const std::map<std::string, std::string> &params, aris::p
 	std::vector<std::string> tempvec;
 	for (auto &p : params)
 	{
-		if (p.first == "tool_id")
+		/*if (p.first == "tool_id")
 		{
 			param.tool_id = std::stoi(p.second);
-		}
-		else if (p.first == "tool_name")
+		}*/
+		if (p.first == "tool_name")
 		{
 			param.tool_name = p.second;
 		}
@@ -868,30 +872,55 @@ auto SetTF::prepairNrt(const std::map<std::string, std::string> &params, aris::p
 	}
 	else
 	{
+		//获取工具坐标系相对于法兰坐标系的位姿
 		for (int i = 0; i < 6; i++)
 		{
 			param.tool_pe[i] = std::stod(tempvec.at(i));
 		}
-		aris::core::Matrix mat1(1, 6, param.tool_pe);
-		if (target.model->variablePool().findByName("Tool[" + std::to_string(param.tool_id) + "]_Pose") != target.model->variablePool().end())
+		double tool_pm_f[16];
+		s_pe2pm(param.tool_pe, tool_pm_f, "321");
+		//获取法兰坐标系相对于底座坐标系的位姿
+		double tool0_pm_g[16];
+		try
 		{
-			dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("Tool[" + std::to_string(param.tool_id) + "]_Pose"))->data() = mat1;
+			auto mat1 = target.model->partPool().findByName("L6")->markerPool().findByName("tool0")->prtPm();
+			for (size_t i = 0; i < 4; i++)
+			{
+				for (size_t j = 0; j < 4; j++)
+				{
+					tool0_pm_g[4 * i + j] = mat1[i][j];
+				}
+			}
 		}
-		else
+		catch (std::exception)
 		{
-			target.model->variablePool().add<aris::dynamic::MatrixVariable>("Tool[" + std::to_string(param.tool_id) + "]_Pose", mat1);
+			throw std::runtime_error("cann't find \"tool0\" node in partPool.");
 		}
-		if (target.model->variablePool().findByName("Tool[" + std::to_string(param.tool_id) + "]_Name") != target.model->variablePool().end())
+		/*//读取xml里相应节点的值
+		double tool0_pe_g[6] = { 0 };
+		auto mat1 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->partPool().findByName("L6")->markerPool().findByName("too10"));
+		for (size_t i = 0; i < 6; i++)
 		{
-			dynamic_cast<aris::dynamic::StringVariable*>(&*target.model->variablePool().findByName("Tool[" + std::to_string(param.tool_id) + "]_Name"))->data() = param.tool_name;
+			tool0_pe_g[i] = mat1->data().data()[i];
 		}
-		else
+		double tool0_pm_g[16];
+		s_pe2pm(tool0_pe_g, tool0_pm_g, "313");
+		*/
+		//计算工具坐标系相对于底座坐标系的位姿
+		double tool_pm_g[16];
+		double tool_pe_g[6];
+		s_mm(4, 4, 4, tool0_pm_g, tool_pm_f, tool_pm_g);
+		s_pm2pe(tool0_pm_g, tool_pe_g, "313");
+		try
 		{
-			target.model->variablePool().add<aris::dynamic::StringVariable>("Tool[" + std::to_string(param.tool_id) + "]_Name", param.tool_name);
+			target.model->partPool().findByName("L6")->markerPool().findByName(param.tool_name)->setPrtPe(tool_pe_g);
 		}
-
+		catch(std::exception)
+		{
+			throw std::runtime_error("cann't find \"" + param.tool_name + "\" node in partPool.");
+		}
 		//param.calib_info = "工具坐标系位姿的配置节点已生成。";
-		const std::string calib_info = "The configuration node of tool's pose is created or updated.";
+		const std::string calib_info = "The configuration node of " + param.tool_name +"'s pose is created or updated.";
 		param.calib_info = calib_info.c_str();
 	}
 	std::vector<std::pair<std::string, std::any>> out_param;
@@ -908,7 +937,6 @@ SetTF::SetTF(const std::string &name) :Plan(name)
 	command().loadXmlStr(
 		"<Command name=\"SetTF\">"
 		"	<GroupParam>"
-		"		<Param name=\"tool_id\" default=\"0\"/>"
 		"		<Param name=\"tool_name\" default=\"Tool0\"/>"
 		"		<Param name=\"tool_pe\" default=\"{0,0,0,0,0,0}\"/>"
 		"   </GroupParam>"
@@ -917,11 +945,11 @@ SetTF::SetTF(const std::string &name) :Plan(name)
 
 
 
-
+/*
 //用户重命名工具名称
 struct RenameTParam
 {
-	size_t tool_id;
+	//size_t tool_id;
 	std::string tool_name;
 	std::string calib_info;
 };
@@ -932,11 +960,7 @@ auto RenameT::prepairNrt(const std::map<std::string, std::string> &params, aris:
 	RenameTParam param;
 	for (auto &p : params)
 	{
-		if (p.first == "tool_id")
-		{
-			param.tool_id = std::stoi(p.second);
-		}
-		else if (p.first == "tool_name")
+		if (p.first == "tool_name")
 		{
 			std::string tempstr;
 			tempstr = p.second;
@@ -957,14 +981,15 @@ auto RenameT::prepairNrt(const std::map<std::string, std::string> &params, aris:
 	else
 	{
 		//修改工具名称
-		if (target.model->variablePool().findByName("Tool[" + std::to_string(param.tool_id) + "]_Name") != target.model->variablePool().end())
+		if (target.model->partPool().findByName("L6")->markerPool().findByName(param.tool_name) != target.model->partPool().findByName("L6")->markerPool().end())
 		{
-			dynamic_cast<aris::dynamic::StringVariable*>(&*target.model->variablePool().findByName("Tool[" + std::to_string(param.tool_id) + "]_Name"))->data() = param.tool_name;
+			target.model->partPool().findByName("L6")->markerPool().findByName(param.tool_name)->setName(param.tool_name);
 		}
 		else
 		{
-			target.model->variablePool().add<aris::dynamic::StringVariable>("Tool[" + std::to_string(param.tool_id) + "]_Name", param.tool_name);
+			throw std::runtime_error("cann't find \"" + param.tool_name + "\" node in partPool.");
 		}
+
 		//param.calib_info = "工具名称修改完成。";
 		std::string calib_info = "The tool's name has been updated.";
 		param.calib_info = calib_info.c_str();
@@ -989,7 +1014,7 @@ RenameT::RenameT(const std::string &name) :Plan(name)
 		"   </GroupParam>"
 		"</Command>");
 }
-
+*/
 
 
 

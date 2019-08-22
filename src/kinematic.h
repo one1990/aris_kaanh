@@ -70,6 +70,8 @@ public:
 private:
 
 };
+
+/*
 //用户重命名工具名称
 class RenameT : public aris::plan::Plan
 {
@@ -81,7 +83,7 @@ public:
 private:
 
 };
-
+*/
 
 
 
