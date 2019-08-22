@@ -63,6 +63,16 @@ auto JointDyna::prepairNrt(const std::map<std::string, std::string> &params, Pla
 
 	}
 	
+	if ((param.A1N > param.A1P) || (param.A2N > param.A2P) || (param.A3N > param.A3P)||(param.A4N > param.A4P) || (param.A5N > param.A5P) || (param.A6N > param.A6P))
+	{
+		std::string calib_info = "Error Motion Range";
+
+		std::vector<std::pair<std::string, std::any>> out_param;
+		out_param.push_back(std::make_pair<std::string, std::any>("calib_info", calib_info));
+		target.ret = out_param;
+	}
+
+
 	target.param = param;
 
  for(auto &option:target.mot_options) option|=
@@ -1156,6 +1166,16 @@ auto LoadDyna::prepairNrt(const std::map<std::string, std::string> &params, Plan
 			param.TYPE = std::stod(p.second);
 	}
 
+
+
+	if ((param.A3N > param.A3P) || (param.A5N > param.A5P) || (param.A6N > param.A6P))
+	{
+		std::string calib_info = "Error Motion Range";
+
+		std::vector<std::pair<std::string, std::any>> out_param;
+		out_param.push_back(std::make_pair<std::string, std::any>("calib_info", calib_info));
+		target.ret = out_param;
+	}
 	target.param = param;
 
 	std::fill(target.mot_options.begin(), target.mot_options.end(),
@@ -1191,6 +1211,7 @@ auto LoadDyna::executeRT(PlanTarget &target)->int
 	// 获取当前起始点位置 //
 	if (target.count == 1)
 	{
+		CollectNum = 1;
 		for (int i = 0; i < RobotAxis; i++)
 		{
 			begin_pjs[i] = target.model->motionPool()[i].mp();
