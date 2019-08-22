@@ -25,6 +25,7 @@ auto crossVector(double *a, double *s, double *n)->int
 	return 0;
 }
 
+
 //将位置和欧拉角组成的位姿的单位由mm和°转换为m和rad
 auto mmdeg2mrad(std::string datastr, double *data, size_t data_size)->int
 {
@@ -62,6 +63,35 @@ auto mmdeg2mrad(std::string datastr, double *data, size_t data_size)->int
 	}
 }
 
+//获取示教点位姿数据
+auto get_teachpt_data(std::string datastr, double *data, size_t data_size)->int
+{
+	std::string posestr = datastr.substr(datastr.find("{") + 1, datastr.find("}") - datastr.find("{") - 1);
+	std::string::size_type pos1 = 0;
+	std::string::size_type pos2 = posestr.find(",");
+	std::vector<std::string> tempvec;
+	while (pos2 != std::string::npos)
+	{
+		tempvec.push_back(posestr.substr(pos1, pos2 - pos1));
+		pos1 = pos2 + 1;
+		pos2 = posestr.find(",", pos1);
+	}
+	tempvec.push_back(posestr.substr(pos1, posestr.length() - 1));
+	if (tempvec.size() == data_size)
+	{
+		for (size_t i = 0; i < data_size; i++)
+		{
+			data[i] = std::stod(tempvec.at(i));
+		}
+		return 0;
+	}
+	else
+	{
+		throw std::runtime_error("The input data of teaching point's pose is wrong！");		//"输入的示教点位姿数据有误！"
+		return -1;
+	}
+}
+
 //4点标定法
 struct CalibT4PParam
 {
@@ -80,7 +110,7 @@ auto CalibT4P::prepairNrt(const std::map<std::string, std::string> &params, aris
 		if (p.first == "pose")
 		{
 			std::string tempstr = p.second;
-			int ret1 = mmdeg2mrad(tempstr, param.pe_4pt, 24);
+			int ret1 = get_teachpt_data(tempstr, param.pe_4pt, 24);
 			if (ret1 != 0) return;
 		}
 	}
@@ -107,7 +137,8 @@ auto CalibT4P::prepairNrt(const std::map<std::string, std::string> &params, aris
 	if (ret2 == 0)
 	{
 		//将标定结果转换为欧拉角形式
-		const double pose[6] = { tcp[0] *1000, tcp[1] * 1000, tcp[2] * 1000, 0, 0, 0 };
+		//const double pose[6] = { tcp[0] *1000, tcp[1] * 1000, tcp[2] * 1000, 0, 0, 0 };
+		const double pose[6] = { tcp[0], tcp[1], tcp[2], 0, 0, 0 };
 		for (int i = 0; i < 6; i++)
 		{
 			param.tool_pe.push_back(pose[i]);
@@ -265,7 +296,7 @@ auto CalibT5P::prepairNrt(const std::map<std::string, std::string> &params, aris
 		if (p.first == "pose")
 		{
 			std::string tempstr = p.second;
-			int ret1 = mmdeg2mrad(tempstr, param.pe_5pt, 30);
+			int ret1 = get_teachpt_data(tempstr, param.pe_5pt, 30);
 			if (ret1 != 0) return;
 		}
 	}
@@ -294,7 +325,8 @@ auto CalibT5P::prepairNrt(const std::map<std::string, std::string> &params, aris
 		//将标定结果转换为欧拉角形式
 		double re321[3];
 		s_rm2re(tcf, re321, "321");
-		const double pose[6] = { tcp[0] * 1000, tcp[1] * 1000, tcp[2] * 1000, re321[0] *180 / PI, re321[1] * 180 / PI, re321[2] * 180 / PI };
+		//const double pose[6] = { tcp[0] * 1000, tcp[1] * 1000, tcp[2] * 1000, re321[0] *180 / PI, re321[1] * 180 / PI, re321[2] * 180 / PI };
+		const double pose[6] = { tcp[0], tcp[1], tcp[2], re321[0], re321[1], re321[2] };
 		for (int i = 0; i < 6; i++)
 		{
 			param.tool_pe.push_back(pose[i]);
@@ -436,8 +468,28 @@ auto CalibT5P::cal_TCP_Z(double transmatric[80], double tcp[3], double &tcp_erro
 	//末端Flange坐标系的Z轴（0，0，1）经过旋转后变为a_Tz,则Fz×a_Tz为它们所在平面的法向量
 	double Fz[3] = { 0,0,1 };
 	double s_Ty[3], n_Tx[3];
-	crossVector(Fz, a_Tz, s_Ty);
+	double prod_oy = 0;
+	double prod_ox = 0;
+	//叉乘获得Y轴方向向量及向量单位化
+	crossVector(a_Tz, Fz, s_Ty);
+	for (int i = 0; i < 3; i++)
+	{
+		prod_oy = prod_oy + s_Ty[i] * s_Ty[i];
+	}
+	for (int i = 0; i < 3; i++)
+	{
+		s_Ty[i] = s_Ty[i] / std::sqrt(prod_oy);
+	}
+	//叉乘获得X轴方向向量及向量单位化
 	crossVector(s_Ty, a_Tz, n_Tx);
+	for (int i = 0; i < 3; i++)
+	{
+		prod_ox = prod_ox + n_Tx[i] * n_Tx[i];
+	}
+	for (int i = 0; i < 3; i++)
+	{
+		n_Tx[i] = n_Tx[i] / std::sqrt(prod_ox);
+	}
 	for (int i = 0; i < 3; i++)
 	{
 		tcf[i * 3 + 0] = n_Tx[i];
@@ -515,7 +567,7 @@ auto CalibT6P::prepairNrt(const std::map<std::string, std::string> &params, aris
 		if (p.first == "pose")
 		{
 			std::string tempstr = p.second;
-			int ret1 = mmdeg2mrad(tempstr, param.pe_6pt, 36);
+			int ret1 = get_teachpt_data(tempstr, param.pe_6pt, 36);
 			if (ret1 != 0) return;
 		}
 	}
@@ -544,7 +596,8 @@ auto CalibT6P::prepairNrt(const std::map<std::string, std::string> &params, aris
 		//将标定结果转换为欧拉角形式
 		double re321[3];
 		s_rm2re(tcf, re321, "321");
-		const double pose[6] = { tcp[0] * 1000, tcp[1] * 1000, tcp[2] * 1000, re321[0] * 180 / PI, re321[1] * 180 / PI, re321[2] * 180 / PI };
+		//const double pose[6] = { tcp[0] * 1000, tcp[1] * 1000, tcp[2] * 1000, re321[0] * 180 / PI, re321[1] * 180 / PI, re321[2] * 180 / PI };
+		const double pose[6] = { tcp[0], tcp[1], tcp[2], re321[0], re321[1], re321[2] };
 		for (int i = 0; i < 6; i++)
 		{
 			param.tool_pe.push_back(pose[i]);
@@ -565,6 +618,10 @@ auto CalibT6P::prepairNrt(const std::map<std::string, std::string> &params, aris
 	out_param.push_back(std::make_pair<std::string, std::any>("calib_info", param.calib_info));
 	out_param.push_back(std::make_pair<std::string, std::any>("tool_pe", param.tool_pe));
 	target.ret = out_param;
+
+
+
+
 	//target.option |= NOT_RUN_EXECUTE_FUNCTION;
 	//target.option |= NOT_RUN_COLLECT_FUNCTION;
 	target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION | NOT_PRINT_CMD_INFO | NOT_PRINT_CMD_INFO;
@@ -691,7 +748,17 @@ auto CalibT6P::cal_TCP_TCF(double transmatric[96], double tcp[3], double &tcp_er
 		s_Ty[i] = s_Ty[i] / len_oy;
 	}
 	double n_Tx[3];
+	double prod_ox = 0;
+	//叉乘获得X轴方向向量及向量单位化
 	crossVector(s_Ty, a_Tz, n_Tx);
+	for (int i = 0; i < 3; i++)
+	{
+		prod_ox = prod_ox + n_Tx[i] * n_Tx[i];
+	}
+	for (int i = 0; i < 3; i++)
+	{
+		n_Tx[i] = n_Tx[i] / std::sqrt(prod_ox);
+	}
 	/*std::cout << a_Tz[0] << "," << a_Tz[1] << "," << a_Tz[2] << std::endl;
 	std::cout << s_Ty[0] << "," << s_Ty[1] << "," << s_Ty[2] << std::endl;
 	std::cout << n_Tx[0] << "," << n_Tx[1] << "," << n_Tx[2] << std::endl;*/
@@ -761,7 +828,7 @@ auto CalibT6P::deltaRP_6Pt(double R[54], double P[18], double * deltaR, double *
 //设定工具坐标系的标定结果
 struct SetTFParam
 {
-	size_t tool_id;
+	//size_t tool_id;
 	std::string tool_name;
 	double tool_pe[6];
 	std::string calib_info;
@@ -774,11 +841,11 @@ auto SetTF::prepairNrt(const std::map<std::string, std::string> &params, aris::p
 	std::vector<std::string> tempvec;
 	for (auto &p : params)
 	{
-		if (p.first == "tool_id")
+		/*if (p.first == "tool_id")
 		{
 			param.tool_id = std::stoi(p.second);
-		}
-		else if (p.first == "tool_name")
+		}*/
+		if (p.first == "tool_name")
 		{
 			param.tool_name = p.second;
 		}
@@ -805,30 +872,55 @@ auto SetTF::prepairNrt(const std::map<std::string, std::string> &params, aris::p
 	}
 	else
 	{
+		//获取工具坐标系相对于法兰坐标系的位姿
 		for (int i = 0; i < 6; i++)
 		{
 			param.tool_pe[i] = std::stod(tempvec.at(i));
 		}
-		aris::core::Matrix mat1(1, 6, param.tool_pe);
-		if (target.model->variablePool().findByName("Tool[" + std::to_string(param.tool_id) + "]_Pose") != target.model->variablePool().end())
+		double tool_pm_f[16];
+		s_pe2pm(param.tool_pe, tool_pm_f, "321");
+		//获取法兰坐标系相对于底座坐标系的位姿
+		double tool0_pm_g[16];
+		try
 		{
-			dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("Tool[" + std::to_string(param.tool_id) + "]_Pose"))->data() = mat1;
+			auto mat1 = target.model->partPool().findByName("L6")->markerPool().findByName("tool0")->prtPm();
+			for (size_t i = 0; i < 4; i++)
+			{
+				for (size_t j = 0; j < 4; j++)
+				{
+					tool0_pm_g[4 * i + j] = mat1[i][j];
+				}
+			}
 		}
-		else
+		catch (std::exception)
 		{
-			target.model->variablePool().add<aris::dynamic::MatrixVariable>("Tool[" + std::to_string(param.tool_id) + "]_Pose", mat1);
+			throw std::runtime_error("cann't find \"tool0\" node in partPool.");
 		}
-		if (target.model->variablePool().findByName("Tool[" + std::to_string(param.tool_id) + "]_Name") != target.model->variablePool().end())
+		/*//读取xml里相应节点的值
+		double tool0_pe_g[6] = { 0 };
+		auto mat1 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->partPool().findByName("L6")->markerPool().findByName("too10"));
+		for (size_t i = 0; i < 6; i++)
 		{
-			dynamic_cast<aris::dynamic::StringVariable*>(&*target.model->variablePool().findByName("Tool[" + std::to_string(param.tool_id) + "]_Name"))->data() = param.tool_name;
+			tool0_pe_g[i] = mat1->data().data()[i];
 		}
-		else
+		double tool0_pm_g[16];
+		s_pe2pm(tool0_pe_g, tool0_pm_g, "313");
+		*/
+		//计算工具坐标系相对于底座坐标系的位姿
+		double tool_pm_g[16];
+		double tool_pe_g[6];
+		s_mm(4, 4, 4, tool0_pm_g, tool_pm_f, tool_pm_g);
+		s_pm2pe(tool0_pm_g, tool_pe_g, "313");
+		try
 		{
-			target.model->variablePool().add<aris::dynamic::StringVariable>("Tool[" + std::to_string(param.tool_id) + "]_Name", param.tool_name);
+			target.model->partPool().findByName("L6")->markerPool().findByName(param.tool_name)->setPrtPe(tool_pe_g);
 		}
-
+		catch(std::exception)
+		{
+			throw std::runtime_error("cann't find \"" + param.tool_name + "\" node in partPool.");
+		}
 		//param.calib_info = "工具坐标系位姿的配置节点已生成。";
-		const std::string calib_info = "The configuration node of tool's pose is created or updated.";
+		const std::string calib_info = "The configuration node of " + param.tool_name +"'s pose is created or updated.";
 		param.calib_info = calib_info.c_str();
 	}
 	std::vector<std::pair<std::string, std::any>> out_param;
@@ -845,7 +937,6 @@ SetTF::SetTF(const std::string &name) :Plan(name)
 	command().loadXmlStr(
 		"<Command name=\"SetTF\">"
 		"	<GroupParam>"
-		"		<Param name=\"tool_id\" default=\"0\"/>"
 		"		<Param name=\"tool_name\" default=\"Tool0\"/>"
 		"		<Param name=\"tool_pe\" default=\"{0,0,0,0,0,0}\"/>"
 		"   </GroupParam>"
@@ -854,11 +945,11 @@ SetTF::SetTF(const std::string &name) :Plan(name)
 
 
 
-
+/*
 //用户重命名工具名称
 struct RenameTParam
 {
-	size_t tool_id;
+	//size_t tool_id;
 	std::string tool_name;
 	std::string calib_info;
 };
@@ -869,11 +960,7 @@ auto RenameT::prepairNrt(const std::map<std::string, std::string> &params, aris:
 	RenameTParam param;
 	for (auto &p : params)
 	{
-		if (p.first == "tool_id")
-		{
-			param.tool_id = std::stoi(p.second);
-		}
-		else if (p.first == "tool_name")
+		if (p.first == "tool_name")
 		{
 			std::string tempstr;
 			tempstr = p.second;
@@ -894,14 +981,15 @@ auto RenameT::prepairNrt(const std::map<std::string, std::string> &params, aris:
 	else
 	{
 		//修改工具名称
-		if (target.model->variablePool().findByName("Tool[" + std::to_string(param.tool_id) + "]_Name") != target.model->variablePool().end())
+		if (target.model->partPool().findByName("L6")->markerPool().findByName(param.tool_name) != target.model->partPool().findByName("L6")->markerPool().end())
 		{
-			dynamic_cast<aris::dynamic::StringVariable*>(&*target.model->variablePool().findByName("Tool[" + std::to_string(param.tool_id) + "]_Name"))->data() = param.tool_name;
+			target.model->partPool().findByName("L6")->markerPool().findByName(param.tool_name)->setName(param.tool_name);
 		}
 		else
 		{
-			target.model->variablePool().add<aris::dynamic::StringVariable>("Tool[" + std::to_string(param.tool_id) + "]_Name", param.tool_name);
+			throw std::runtime_error("cann't find \"" + param.tool_name + "\" node in partPool.");
 		}
+
 		//param.calib_info = "工具名称修改完成。";
 		std::string calib_info = "The tool's name has been updated.";
 		param.calib_info = calib_info.c_str();
@@ -926,7 +1014,7 @@ RenameT::RenameT(const std::string &name) :Plan(name)
 		"   </GroupParam>"
 		"</Command>");
 }
-
+*/
 
 
 

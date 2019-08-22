@@ -6,6 +6,7 @@ const double PI = 3.141592653589793;
 
 auto crossVector(double* a, double* s, double* n)->int;
 auto mmdeg2mrad(std::string datastr, double *data, size_t data_size)->int;
+auto get_teachpt_data(std::string datastr, double *data, size_t data_size)->int;
 /*
 机器人工具坐标系标定，包含4点、5点、6点标定算法。
 机器人零点标定，包含首次标定，负载偏置标定。
@@ -69,6 +70,8 @@ public:
 private:
 
 };
+
+/*
 //用户重命名工具名称
 class RenameT : public aris::plan::Plan
 {
@@ -80,7 +83,7 @@ public:
 private:
 
 };
-
+*/
 
 
 
