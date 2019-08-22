@@ -7196,7 +7196,6 @@ double p, v, a;
 		plan_root->planPool().add<CalibT5P>();
 		plan_root->planPool().add<CalibT6P>();
 		plan_root->planPool().add<SetTF>();
-		plan_root->planPool().add<RenameT>();
 		plan_root->planPool().add<CalibZF>();
 		plan_root->planPool().add<CalibZO>();
 		plan_root->planPool().add<CalibZL>();
