@@ -31,6 +31,16 @@ namespace kaanh
 	//其他参数和函数声明 
 	using Size = std::size_t;
 	constexpr double PI = 3.141592653589793;
+	
+	struct SpeedParam
+	{
+		double w_percent;	//关节速度百分比
+		double v_tcp;	//TCP线速度mm/s
+		double w_tcp;	//空间旋转速度°/s
+		double w_ext;	//外部轴角速度°/s
+		double v_ext;	//外部轴线速度mm/s
+	};
+
 	auto createInterface()->std::unique_ptr<aris::server::InterfaceRoot>;
 	auto createControllerEA()->std::unique_ptr<aris::control::Controller>;
 	auto createModelRokaeXB4(const double *robot_pm = nullptr)->std::unique_ptr<aris::dynamic::Model>;
@@ -48,6 +58,26 @@ namespace kaanh
     auto createModelDaye(const double *robot_pm = nullptr)->std::unique_ptr<aris::dynamic::Model>;
 
 	//auto registerPlan()->void;
+
+	class Speed
+	{
+	public:
+		auto setspeed(SpeedParam speed)->void
+		{
+			s = speed;
+		};
+		auto getspeed()->SpeedParam
+		{
+			return s;
+		};
+		Speed(SpeedParam speed = {0.0,0.0,0.0,0.0,0.0})
+		{
+			s = speed;
+		};
+	
+	private:
+		SpeedParam s;
+	};
 
 	class Get : public aris::plan::Plan
 	{
@@ -458,12 +488,36 @@ namespace kaanh
 		ARIS_REGISTER_TYPE(SetDriver);
 	};
 
-	class SaveConfig : public aris::plan::Plan
+	class SaveXml : public aris::plan::Plan
 	{
 	public:
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		explicit SaveConfig(const std::string &name = "SaveConfig_plan");
-		ARIS_REGISTER_TYPE(SaveConfig);
+		explicit SaveXml(const std::string &name = "SaveXml_plan");
+		ARIS_REGISTER_TYPE(SaveXml);
+	};
+
+	class ScanSlave : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		explicit ScanSlave(const std::string &name = "ScanSlave_plan");
+		ARIS_REGISTER_TYPE(ScanSlave);
+	};
+
+	class GetEsiPdoList : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		explicit GetEsiPdoList(const std::string &name = "GetEsiPdoList_plan");
+		ARIS_REGISTER_TYPE(GetEsiPdoList);
+	};
+
+	class SetEsiPath : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		explicit SetEsiPath(const std::string &name = "SetEsiPath_plan");
+		ARIS_REGISTER_TYPE(SetEsiPath);
 	};
 
 	class ClearCon : public aris::plan::Plan
@@ -505,6 +559,15 @@ namespace kaanh
 		explicit SetCT(const std::string &name = "SetCT_plan");
 		ARIS_REGISTER_TYPE(SetCT);
 	};
+
+	class SetVel : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		explicit SetVel(const std::string &name = "SetVel_plan");
+		ARIS_REGISTER_TYPE(SetVel);
+	};
+
 }
 
 #endif

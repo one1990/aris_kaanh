@@ -14,6 +14,9 @@ int data_num = 0, data_num_send = 0;
 std::vector<std::vector<std::string>> plantrack(6, std::vector<std::string>());
 std::atomic_int which_di = 0;
 
+kaanh::Speed g_vel;
+std::atomic_int g_vel_percent = 0;
+
 auto xmlpath = std::filesystem::absolute(".");//获取当前工程所在的路径
 auto uixmlpath = std::filesystem::absolute(".");
 auto modelxmlpath = std::filesystem::absolute(".");
@@ -31,9 +34,8 @@ int main(int argc, char *argv[])
 	auto&cs = aris::server::ControlServer::instance();
 	auto port = argc < 2 ? 5866 : std::stoi(argv[1]);
 
-  
+
 	//生成kaanh.xml文档
-    
     //-------for rokae robot begin//
     cs.resetController(kaanh::createControllerRokaeXB4().release());
     //cs.resetModel(aris::robot::createModelRokaeXB4().release());
@@ -44,7 +46,7 @@ int main(int argc, char *argv[])
     cs.resetSensorRoot(new aris::sensor::SensorRoot);
     cs.saveXmlFile(xmlpath.string().c_str());
     //-------for rokae robot end// 
-	
+
 
     /*
     //-------for sanxiang robot begin//
@@ -79,6 +81,7 @@ int main(int argc, char *argv[])
 	//-------for qifan robot end// 
 	*/
 	//cs.loadXmlFile(xmlpath.string().c_str());
+
 	try 
 	{
 		cs.loadXmlFile(xmlpath.string().c_str());
@@ -92,6 +95,14 @@ int main(int argc, char *argv[])
 	cs.saveXmlFile(xmlpath.string().c_str());
 
 	cs.start();
+
+	//加载v100的速度值//
+	auto &getspeed = dynamic_cast<aris::dynamic::MatrixVariable &>(*cs.model().variablePool().findByName("v100"));
+	kaanh::SpeedParam speed;
+	std::copy(getspeed.data().begin(), getspeed.data().end(), &speed.w_percent);
+	g_vel.setspeed(speed);
+
+	std::cout << "w_percent:" << g_vel.getspeed().w_percent << std::endl;
 
 	//Start Web Socket//
     cs.open();
