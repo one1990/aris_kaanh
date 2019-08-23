@@ -234,7 +234,7 @@ auto JointDyna::executeRT(PlanTarget &target)->int
             //TorqueList[6 * (target.count - 1) + i] = POSRLS[i + 6][target.count - 1] / f2c_index[i];
 #ifdef UNIX
             AngleList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualPos();
-            //TorqueList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
+            TorqueList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualToq() / f2c_index[i];
 #endif
             //TorqueList[6 * (CollectNum - 1) + i] = 2;//controller->motionAtAbs(i).actualTor() * f2f_index[i];
 		}
@@ -358,7 +358,7 @@ JointDyna::JointDyna(const std::string &name) :Plan(name)
 		"		<Param name=\"A5N\" default=\"0.0\"/>"
 		"		<Param name=\"A6P\"default=\"0.0\"/>"
 		"		<Param name=\"A6N\" default=\"0.0\"/>"
-		"		<Param name=\"VEL\" default=\"0.15\"/>"
+        "		<Param name=\"VEL\" default=\"30\"/>"
 		"	</GroupParam>"
 		"</Command>");
 
@@ -1343,7 +1343,7 @@ auto LoadDyna::executeRT(PlanTarget &target)->int
             //TorqueList[6 * (target.count - 1) + i] = POSRLS[i + 6][target.count - 1];
 #ifdef UNIX
             AngleList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualPos();
-            //TorqueList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
+            TorqueList[6 * (CollectNum - 1) + i] = controller->motionAtAbs(i).actualToq() / f2c_index[i];
 #endif
         }
 	
@@ -1532,7 +1532,7 @@ LoadDyna::LoadDyna(const std::string &name) :Plan(name)
 		"		<Param name=\"A5N\" default=\"0.0\"/>"
 		"		<Param name=\"A6P\"default=\"0.0\"/>"
 		"		<Param name=\"A6N\" default=\"0.0\"/>"
-		"		<Param name=\"VEL\" default=\"0.15\"/>"
+        "		<Param name=\"VEL\" default=\"30\"/>"
 		"		<Param name=\"TYPE\" default=\"1\"/>"
 		"	</GroupParam>"
 		"</Command>");

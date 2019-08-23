@@ -2441,7 +2441,7 @@ auto MovePressureToolXY::executeRT(PlanTarget &target)->int
 	FmInWorld[5] = a[0] * FT_YANG[3] + a[1] * FT_YANG[4] + a[2] * FT_YANG[5];
 
 	for (int i = 0;i < 6;i++)
-        dX[i] = FmInWorld[i];
+        dX[i] = 0;//*FmInWorld[i];
 
 
 	double TangentArc[3] = { 0 };
@@ -2451,7 +2451,7 @@ auto MovePressureToolXY::executeRT(PlanTarget &target)->int
 	static bool MoveDirection = true;
 	static bool MoveDirectionT = true, MoveDirectionF = false;
 	static bool MoveDirectionChange = false;
-    static int StartCount = 15000;
+    static int StartCount = 1500;
 	double CosTheta1, CosTheta2;
 
 
@@ -2460,10 +2460,10 @@ auto MovePressureToolXY::executeRT(PlanTarget &target)->int
     static double pArc, vArc, aArc, vArcMax = 0.05;
 	aris::Size t_count;
 
-    double Square[4][3] = { {-0.1,0.46,0},
-                            {0.2,0.46,0},
-                            {0.2,0.50,0},
-                            {-0.1,0.50,0} };
+    double Square[4][3] = { {EndP0[0],0,0},
+                            {EndP0[0]+0.04,0,0},
+                            {EndP0[0]+0.04,0,0},
+                            {EndP0[0],0,0} };
 
 
 	static double MoveLength = 0;
@@ -2659,22 +2659,22 @@ auto MovePressureToolXY::executeRT(PlanTarget &target)->int
 		if (MoveDirection)
 		{
             dX[0] = dX[0]+vArc * TangentArc[0] / 1000;
-            dX[2] = dX[2]+vArc * TangentArc[2] / 1000;
             dX[1] = dX[1]+vArc * TangentArc[1] / 1000;
+            dX[2] = dX[2]+vArc * TangentArc[2] / 1000;
+
 		}
 		else
 		{
             dX[0] = dX[0]+vArc * TangentArc[0] / 1000;
-            dX[2] = dX[2]+vArc * TangentArc[2] / 1000;
             dX[1] = dX[1]+vArc * TangentArc[1] / 1000;
+            dX[2] = dX[2]+vArc * TangentArc[2] / 1000;
+
 		}
 		if (target.count > StartCount&&MoveDirectionT == true && MoveDirectionF == false)
 			if (MoveDirection)
                 MoveLength = MoveLength + sqrt(dX[0] * dX[0] + dX[2] * dX[2]);
 			else
                 MoveLength = MoveLength - sqrt(dX[0] * dX[0] + dX[2] * dX[2]);
-
-
 
 
 
@@ -2713,20 +2713,7 @@ auto MovePressureToolXY::executeRT(PlanTarget &target)->int
 
 	ForceToMeng = vArc;
 	TimeToMeng = target.count / 1000.0;
-	if (target.count % 300 == 0)
-	{
 
-        cout << FT_KAI[2] << "*" << TangentArc[0] <<"*"<<TangentArc[1] << "*" << TangentArc[2] << "*" << FT0[2] << std::endl;
-
-		//cout << FT_KAI[2] << "*" << NormalAng << "*" << TransVector[0] << "*" << TransVector[1] << "*" << TransVector[2] << "*" << FT0[2] << endl;
-		//cout << FT_KAI[2] << "*" << NormalAng << "*" << TransVector[4] << "*" << TransVector[5] << "*" << TransVector[6] << "*" << FT0[2] << endl;
-		//cout << FT_KAI[2] << "*" << NormalAng << "*" << TransVector[8] << "*" << TransVector[9] << "*" << TransVector[10] << "*" << FT0[2] << endl;
-
-				//cout <<  FT_KAI[0]<<"***"<<FmInWorld[2]<<endl;
-
-		cout << std::endl;
-
-	}
 
 
 	for (int j = 0; j < 6; j++)
@@ -2832,6 +2819,22 @@ auto MovePressureToolXY::executeRT(PlanTarget &target)->int
 		step_pjs[i] = step_pjs[i] + dTheta[i];
         target.model->motionPool().at(i).setMp(step_pjs[i]);
 	}
+
+
+    if (target.count % 300 == 0)
+    {
+
+        cout << step_pjs[0]<<"*"<<step_pjs[1] << "*" << step_pjs[2] <<"*"<<step_pjs[3]<< "*" << step_pjs[4] << "*" <<step_pjs[5] << std::endl;
+
+        //cout << FT_KAI[2] << "*" << NormalAng << "*" << TransVector[0] << "*" << TransVector[1] << "*" << TransVector[2] << "*" << FT0[2] << endl;
+        //cout << FT_KAI[2] << "*" << NormalAng << "*" << TransVector[4] << "*" << TransVector[5] << "*" << TransVector[6] << "*" << FT0[2] << endl;
+        //cout << FT_KAI[2] << "*" << NormalAng << "*" << TransVector[8] << "*" << TransVector[9] << "*" << TransVector[10] << "*" << FT0[2] << endl;
+
+                //cout <<  FT_KAI[0]<<"***"<<FmInWorld[2]<<endl;
+
+        cout << std::endl;
+
+    }
 
 
 
@@ -3313,7 +3316,7 @@ void PIDcalOne(double m,double ts,double *KP)
 }
 
 //系统传递函数H(s)=1/(ms+h)
-void PIDcalTeo(double m, double h, double ts, double overshoot,double *KP, double *KI)
+void PIDcalTwo(double m, double h, double ts, double overshoot,double *KP, double *KI)
 {
 	double temp = log(overshoot);
 	double kesi = 1 / sqrt(1 + aris::PI*aris::PI / temp / temp);
@@ -3323,7 +3326,23 @@ void PIDcalTeo(double m, double h, double ts, double overshoot,double *KP, doubl
 	KP[0] = 2 * kesi *omega * m - h;
 }
 
-auto f(aris::dynamic::Model *m, double *A){	auto &s = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(m->solverPool()[1]);	s.kinPos();	s.kinVel();	s.cptGeneralInverseDynamicMatrix();	s.cptJacobiWrtEE();	// J_inv	double U[36], tau[6], J_inv[36], tau2[6];	aris::Size p[6], rank;	s_householder_utp(6, 6, s.Jf(), U, tau, p, rank, 1e-7);	s_householder_utp2pinv(6, 6, rank, U, tau, p, J_inv, tau2, 1e-7);	// M = (M + I) * J_inv 	double M[36], tem[36];	s_mc(6, 6, s.M(), s.nM(), M, 6);	for (int i = 0; i < 6; ++i)M[at(i, i, 6)] += m->motionPool()[i].frcCoe()[2];	s_mm(6, 6, 6, M, J_inv, tem);	s_mm(6, 6, 6, J_inv, T(6), tem, 6, A, 6);}
+auto f(aris::dynamic::Model *m, double *A)->void
+{
+    auto &s = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(m->solverPool()[1]);
+
+    // J_inv
+    double U[36], tau[6], J_inv[36], tau2[6];
+    aris::Size p[6], rank;	s_householder_utp(6, 6, s.Jf(), U, tau, p, rank, 1e-4);
+    s_householder_utp2pinv(6, 6, rank, U, tau, p, J_inv, tau2, 1e-7);
+    // M = (M + I) * J_inv
+    double M[36], tem[36];
+    s_mc(6, 6, s.M(), s.nM(), M, 6);
+    for (int i = 0; i < 6; ++i)M[at(i, i, 6)] += m->motionPool()[i].frcCoe()[2];
+    s_mm(6, 6, 6, M, J_inv, tem);
+    s_mm(6, 6, 6, J_inv, T(6), tem, 6, A, 6);
+}
+
+
 
 
 struct ForceDirectParam
@@ -3333,6 +3352,10 @@ struct ForceDirectParam
 
 };
 
+double Premax_pos[6]={0};
+double Premin_pos[6]={0};
+double Premax_vel[6]={0};
+double Premin_vel[6]={0};
 
 auto ForceDirect::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 {
@@ -3346,54 +3369,67 @@ auto ForceDirect::prepairNrt(const std::map<std::string, std::string> &params, P
 
     }
 	target.param = param;
+    target.ret = std::vector<std::pair<std::string, std::any>>();
+
 
 	for (auto &option : target.mot_options) option |=
 		Plan::USE_TARGET_POS |
-		//#ifdef WIN32
-		Plan::NOT_CHECK_POS_MIN |
-		Plan::NOT_CHECK_POS_MAX |
-		Plan::NOT_CHECK_POS_CONTINUOUS |
-		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-		Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
-		//#endif
-		Plan::NOT_CHECK_VEL_CONTINUOUS |
-		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR |
+        Plan::NOT_CHECK_VEL_CONTINUOUS|
 		Plan::NOT_CHECK_ENABLE;
 
+    for(int i=0;i<6;i++)
+    {
+       Premax_pos[i]=target.controller->motionPool()[i].maxPos();
+       Premin_pos[i]=target.controller->motionPool()[i].minPos();
+
+       Premax_vel[i]=target.controller->motionPool()[i].maxVel();
+       Premin_vel[i]=target.controller->motionPool()[i].minVel();
+
+    }
+
+    {
+        double max_pos[6]={2.96706/3, 1.57,0.5,  2.96706/3,1.57,6.28};
+        double min_pos[6]={-2.96706/3,0,     -0.5,  -2.96706/3,-1.57,-6.28};
+        for(int i=0;i<6;i++)
+        {
+            target.controller->motionPool()[i].setMaxVel(target.controller->motionPool()[i].maxVel()/3);
+            target.controller->motionPool()[i].setMinVel(target.controller->motionPool()[i].minVel()/3);
+            target.controller->motionPool()[i].setMaxPos(max_pos[i]);
+            target.controller->motionPool()[i].setMinPos(min_pos[i]);
+        }
+
+
+    }
 
 }
 auto ForceDirect::executeRT(PlanTarget &target)->int
 {
-	auto &param = std::any_cast<ForceDirectParam&>(target.param);
+    auto &param = std::any_cast<ForceDirectParam&>(target.param);
+    auto &lout = target.controller->lout();
 
-	double RobotPosition[6];
-	double RobotPositionJ[6];
-	double RobotVelocity[6];
-	double RobotAcceleration[6];
-	double TorqueSensor[6];
-	double X1[3];
-	double X2[3];
 	static double begin_pjs[6];
 	static double step_pjs[6];
-	static double stateTor0[6][3], stateTor1[6][3], EndP0[3];
-	static double sT0[6][3], sT1[6][3];
-	static float FT0[6], FT_be[6];
+    static double begin_t0[6];
+    static double stateTor0[6][3], stateTor1[6][3];
+    static float FT0[6];
 
 	// 访问主站 //
 	auto controller = target.controller;
     auto &cout = controller->mout();
 
-	static double PqEnd0[7] = { 0 }, PqEnd[7] = { 0 };
+    static double PqEnd0[7] = { 0 }, PqEnd[7] = { 0 },pe0[6] = { 0 },pe[6] = { 0 };
 	static double begin_pm[16], relative_pm[16], relative_pa[6], pos_ratio, ori_ratio, norm_pos, norm_ori;
 	double end_pm[16];
     target.model->generalMotionPool().at(0).getMpq(PqEnd);
-	// 获取当前起始点位置 //
 
+	// 获取当前起始点位置 //
     double FT[6],FTemp[6];
     if(param.SensorType>0)
         GetATI(target,FT);
     else
         GetYuLi(target,FT);
+
+
 
 
 
@@ -3424,6 +3460,31 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
         FT[j]=FT[j]-FT0[j];
     }
 
+    double FT_YANG[6];
+    FT_YANG[0] = -FT[0];FT_YANG[1] = -FT[1];FT_YANG[2] = FT[2];
+    FT_YANG[3] = -FT[3];FT_YANG[4] = -FT[4];FT_YANG[5] = FT[5];
+
+    double FmInWorld[6],TransVector[16];
+    target.model->generalMotionPool().at(0).getMpm(TransVector);
+    double TransMatrix[4][4];
+    for (int i = 0;i < 4;i++)
+        for (int j = 0;j < 4;j++)
+            TransMatrix[i][j] = TransVector[4 * i + j];
+
+    double n[3] = { TransMatrix[0][0], TransMatrix[0][1], TransMatrix[0][2] };
+    double o[3] = { TransMatrix[1][0], TransMatrix[1][1], TransMatrix[1][2] };
+    double a[3] = { TransMatrix[2][0], TransMatrix[2][1], TransMatrix[2][2] };
+
+    //FT[0] = 0;FT[1] = 0;FT[2] = 1;FT[3] = 0;FT[4] = 0;FT[5] = 0;
+    FmInWorld[0] = n[0] * FT_YANG[0] + n[1] * FT_YANG[1] + n[2] * FT_YANG[2];
+    FmInWorld[1] = o[0] * FT_YANG[0] + o[1] * FT_YANG[1] + o[2] * FT_YANG[2];
+    FmInWorld[2] = a[0] * FT_YANG[0] + a[1] * FT_YANG[1] + a[2] * FT_YANG[2];
+    FmInWorld[3] = n[0] * FT_YANG[3] + n[1] * FT_YANG[4] + n[2] * FT_YANG[5];
+    FmInWorld[4] = o[0] * FT_YANG[3] + o[1] * FT_YANG[4] + o[2] * FT_YANG[5];
+    FmInWorld[5] = a[0] * FT_YANG[3] + a[1] * FT_YANG[4] + a[2] * FT_YANG[5];
+
+
+
     if (target.count == 1)
     {
         for (int j = 0; j < 6; j++)
@@ -3437,12 +3498,8 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
     {
         double CutFreq = 20;
         double intDT = 0.001;
-        stateTor1[j][0] = stateTor0[j][0] + intDT * (FT[j]-stateTor0[j][0])*CutFreq;
-
+        stateTor1[j][0] = stateTor0[j][0] + intDT * (FmInWorld[j]-stateTor0[j][0])*CutFreq;
     }
-
-
-
 
 	if (target.count == 1)
 	{
@@ -3457,20 +3514,29 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 		for (int i = 0; i < 6; ++i)
         {
 			step_pjs[i] = PqEnd[i];
+            begin_t0[i] = PqEnd[i];
 		}
 
+        for (int i = 0; i < 6; ++i)
+        {
+            target.model->generalMotionPool().at(0).getMpe(pe0);
+        }
 
-        PqEnd0[2] = -15;
+
+        //PqEnd0[2] = -15;
         //PqEnd0[0] = 0.398;PqEnd0[1] = 0;PqEnd0[2] = 0.6295;PqEnd0[3] = 0;PqEnd0[4] = 0.7071;PqEnd0[5] = 0;PqEnd0[6] = 0.7071;
 
         aris::dynamic::s_pq2pm(PqEnd0, begin_pm);
 		target.model->generalMotionPool()[0].getMpm(begin_pm);
 	}	
 
+
+
+
 	static bool flag[6] = { true,true,true,true,true,true };
-    double PosLimit[6] = { 0.000,0.030,0,0,0,0};
-    double NegLimit[6] = { -0.000,-0.030,0,0,0,0};
-    static double pArc[6], vArc[6], aArc[6], vArcMax[6] = { 0.001,0.02,0.001,0.001,0.001,0.001 };
+    double PosLimit[6] = { 0.000,0.40,0,0,0,0};
+    double NegLimit[6] = { -0.000,-0.40,0,0,0,0};
+    static double pArc[6], vArc[6], aArc[6], vArcMax[6] = { 0.001,0.4,0.001,0.001,0.001,0.001 };
 	static aris::Size t_count[6] = { 0 };
 	static int CountOffsetPos[6] = { 1,1,1,1,1,1 }, CountOffsetNeg[6] = { 1,1,1,1,1,1 };
 	int temp[6] = { 0 };
@@ -3515,28 +3581,35 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 		}
 	}
 
+    aris::dynamic::s_vc(6, pe0, pe);
+    pe[1]-=step_pjs[1]*0.0;
+    //pe[3]+=step_pjs[1];
+    //pe[4]+=step_pjs[1]*0.8;
+    //pe[5]-=step_pjs[1]*0.2;
+    aris::dynamic::s_pe2pq(pe, PqEnd0);
 
 
-    PqEnd0[1] = step_pjs[1];
-    PqEnd0[2]=-15;
 
+    //PqEnd0[1] = step_pjs[1];
+    //PqEnd0[2] = begin_t0[2]+step_pjs[1]*0.2;
+    //PqEnd0[2]=-15;
 
-
-	double TransMatrix[4][4];
-	for (int i = 0;i < 4;i++)
-		for (int j = 0;j < 4;j++)
-			TransMatrix[i][j] = begin_pm[4 * i + j];
-
-	double n[3] = { TransMatrix[0][0], TransMatrix[0][1], TransMatrix[0][2] };
-	double o[3] = { TransMatrix[1][0], TransMatrix[1][1], TransMatrix[1][2] };
-	double a[3] = { TransMatrix[2][0], TransMatrix[2][1], TransMatrix[2][2] };
-	
-
-
-	if (target.model->solverPool().at(1).kinPos())return -1;
-
+    ////////////////////////////////////////////////////compute dX(ee actual velocity)////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // dynamics //
+    for (int i = 0; i < 6; ++i)
+    {
+        target.model->motionPool()[i].setMp(controller->motionPool()[i].actualPos());
+        target.model->motionPool()[i].setMv(controller->motionAtAbs(i).actualVel());
+        target.model->motionPool()[i].setMa(0.0);
+    }
 	auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(target.model->solverPool()[1]);
-	fwd.cptJacobiWrtEE();
+    if (fwd.kinPos())return -1;
+    fwd.kinVel();
+    fwd.cptJacobiWrtEE();
+    fwd.cptGeneralInverseDynamicMatrix();
+    target.model->solverPool()[2].dynAccAndFce();
+
+
 	double va[6] = { 0 }, dX[6] = { 0 };
 	for (int i = 0;i < 6;i++)
 	{
@@ -3544,58 +3617,35 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 	}
 	s_mm(6, 1, 6, fwd.Jf(), va, dX);
 
-	/*
-	target.model->generalMotionPool()[0].getMpm(pmtemp);
-	Pm[0] = pmtemp[0];Pm[1] = pmtemp[1];Pm[2] = pmtemp[2];
-	Pm[3] = pmtemp[4];Pm[4] = pmtemp[5];Pm[5] = pmtemp[6];
-	Pm[6] = pmtemp[8];Pm[7] = pmtemp[9];Pm[8] = pmtemp[10];
-	double PmTrans[9] = { 0 };
-	s_mm(3, 3, 3, Pm0, Pm, PmTrans);*/
 
-    //PqEnd[0] = 0.398;PqEnd[1] = 0;PqEnd[2] = 0.6295;PqEnd[3] = 0;PqEnd[4] =0;PqEnd[5] = 0;PqEnd[6] = 1;
+    ////////////////////////////////////////////////////step 1. compute vt(ee target velocity)//////////////////////////////////////////////////////////////////////////////////////////////////
+    double vt[6] = { 0 };
+   // double KPP[7] = {200,200,5,-15,-15,-15,0};
+    //double KPV[7] = {100,100,0,4,4,4,0};
+    //double KIV[7] = {50,50,  4,1,1,1,0};
 
-    aris::dynamic::s_pq2pm(PqEnd, end_pm);
-	//target.model->generalMotionPool()[0].getMpm(end_pm);
-	aris::dynamic::s_inv_pm_dot_pm(begin_pm, end_pm, relative_pm);
-	// relative_pa //
-	double pq[7];
-	aris::dynamic::s_pm2pq(relative_pm, pq);
+    //double KPV[7] = {PV[0],PV[0],0,PV[0],PV[0],PV[0],PV[0]};
+    //double KIV[7] = {IV[0],IV[0],4,IV[0],IV[0],IV[0],IV[0]};
+    double KPP[7] = {50,50,50,10,10,10,0};
+    double KPV[7] = {100,100,100, 200, 200, 200,0};
+    double KIV[7] = {1000, 1000,  1000, 10000,10000,10000,0};
 
 
-	double vt[6] = { 0 }, ftemp[6] = { 0 };
-    double KPP[7] = {200,200,5,-15,-15,-15,0};
-    double KPV[7] = {100,100,0,4,4,4,0};
-    double KIV[7] = {50,50,  4,1,1,1,0};
     static double ErrSum[7]={0};
 	for (int i = 0; i < 3; ++i)
 	{
         ErrSum[i]=ErrSum[i]+(PqEnd0[i] - PqEnd[i])*0.001;
         vt[i] = KPP[i] * (PqEnd0[i]- PqEnd[i]);
-	}
 
-
-	/*
-	//姿态误差1
-	double omega = 2*acos(pq[6]);
-	for (int i = 3; i < 6; ++i)
-	{
-		ErrSum[i] = ErrSum[i] + (pq[i])*0.001;
-		ftemp[i] = KP[i] * (pq[i]) + KI[i] * ErrSum[i];
+        vt[i] = std::max(-0.2, vt[i]);  // protect linear velocity target
+        vt[i] = std::min(0.2, vt[i]);   // protect linear velocity target
 	}
-	ft[3] = n[0] * ftemp[3] + n[1] * ftemp[4] + n[2] * ftemp[5];
-	ft[4] = o[0] * ftemp[3] + o[1] * ftemp[4] + o[2] * ftemp[5];
-	ft[5] = a[0] * ftemp[3] + a[1] * ftemp[4] + a[2] * ftemp[5];
-	*/
 
 
 
     double dQuar[4] = { 0 };
 	//姿态误差2
 	double cos_theta = PqEnd[3] * PqEnd0[3] + PqEnd[4] * PqEnd0[4] + PqEnd[5] * PqEnd0[5] + PqEnd[6] * PqEnd0[6];
-
-    auto &lout = controller->lout();
-
-
 	if (cos_theta < 0)
 	{
 		PqEnd[3] = -PqEnd[3];
@@ -3608,48 +3658,86 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 	cos_theta = std::max(-1.0, cos_theta);
 	cos_theta = std::min(1.0, cos_theta);
 	
-	double theta = acos(cos_theta);
-	double sin_theta = sin(theta);
+    double theta = std::acos(cos_theta);
+    double sin_theta = std::sin(theta);
 
 
     if (theta < 0.03)
 	{
-        dQuar[0] = -PqEnd0[3] + PqEnd[3];
-        dQuar[1] = -PqEnd0[4] + PqEnd[4];
-        dQuar[2] = -PqEnd0[5] + PqEnd[5];
-        dQuar[3] = -PqEnd0[6] + PqEnd[6];
+        dQuar[0] = PqEnd0[3] - PqEnd[3];
+        dQuar[1] = PqEnd0[4] - PqEnd[4];
+        dQuar[2] = PqEnd0[5] - PqEnd[5];
+        dQuar[3] = PqEnd0[6] - PqEnd[6];
 	}
 	else
 	{ 
-        dQuar[0] = (PqEnd0[3] * cos_theta*(-theta) + theta * PqEnd[3]) / sin_theta;
-        dQuar[1] = (PqEnd0[4] * cos_theta*(-theta) + theta * PqEnd[4]) / sin_theta;
-        dQuar[2] = (PqEnd0[5] * cos_theta*(-theta) + theta * PqEnd[5]) / sin_theta;
-        dQuar[3] = (PqEnd0[6] * cos_theta*(-theta) + theta * PqEnd[6]) / sin_theta;
+        dQuar[0] = -(PqEnd0[3] * cos_theta*(-theta) + theta * PqEnd[3]) / sin_theta;
+        dQuar[1] = -(PqEnd0[4] * cos_theta*(-theta) + theta * PqEnd[4]) / sin_theta;
+        dQuar[2] = -(PqEnd0[5] * cos_theta*(-theta) + theta * PqEnd[5]) / sin_theta;
+        dQuar[3] = -(PqEnd0[6] * cos_theta*(-theta) + theta * PqEnd[6]) / sin_theta;
 	}
 	
-	for (int i = 3; i < 6; ++i)
-	{
-		ErrSum[i] = ErrSum[i] + (pq[i])*0.001;
-        vt[i] = KPP[i] * (dQuar[i-3]);
-	}
+    double norm_dQuar=std::max(1e-7, std::sqrt(aris::dynamic::s_vv(4,dQuar,dQuar)));
+    double unit_dQuar[4]={0},dqt[4]={0};
 
+    for(int i=0;i<4;i++)
+        unit_dQuar[i]=dQuar[i]/norm_dQuar;
+
+    for(int i=0;i<4;i++)
+    {
+        double dt = std::min(KPP[4]*theta, 0.5);// protect angular velocity target, theta always positive
+        dqt[i]=unit_dQuar[i]*dt;
+    }
+    aris::dynamic::s_wq2wa(PqEnd + 3, dqt, vt+3);
+
+
+    ////////////////////////////////////////////////////step 2. compute at(ee target acceleration)//////////////////////////////////////////////////////////////////////////////////////////////////
 	static double ErrSumVt[7] = { 0 };
-	double ft[6] = { 0 };
+    double at[6] = { 0 },ft[6] = { 0 };
+
+    const double err_sum_max[6]{0.2, 0.2, 0.2, 0.5, 0.5, 0.5};
+    const double err_sum_min[6]{-0.2, -0.2, -0.2, -0.5, -0.5, -0.5};
+
 	for (int i = 0; i < 6; ++i)
 	{
 		ErrSumVt[i] = ErrSumVt[i] + (vt[i]-dX[i])*0.001;
-		ft[i] = KPV[i] * (vt[i]-dX[i])+KIV[i]*ErrSumVt[i];
+        ErrSumVt[i] = std::min(ErrSumVt[i], err_sum_max[i]);  // protect integral value
+        ErrSumVt[i] = std::max(ErrSumVt[i], err_sum_min[i]);  // protect integral value
+        at[i] = KPV[i] * (vt[i]-dX[i])+KIV[i]*ErrSumVt[i];
 	}
 
 
+    ////////////////////////////////////////////////////step 3. compute ft(ee target force)//////////////////////////////////////////////////////////////////////////////////////////////////
+    //动力学
+    double A[36]={0};
+    f(target.model,A);
+    s_mm(6, 1, 6, A, at,ft);
+
+   /*
+    //Z-Direction
     static double SumdX=0, SumFt=0;
-    double Vmin=-0.02,dXKI=2000,vis=-1000;
+    double Vmin=-0.02,dXKI=2000,vis=-1200;
+    double KPF=17,KIF=5;
+    double target_f=-10;
     SumdX=SumdX+(Vmin-dX[2])*0.001;
-    SumFt = SumFt+(PqEnd0[2] - stateTor1[2][0])*0.001;
-    ft[2]=KPP[2] * (PqEnd0[2] - stateTor1[2][0])+KIV[2]*SumFt+0*dXKI*SumdX+vis*dX[2];
+    SumFt = SumFt+(target_f - stateTor1[2][0])*0.001;
+    ft[2]=KPF * (target_f - stateTor1[2][0])+KIF*SumFt+0*dXKI*SumdX+vis*dX[2];
+    */
 
+    //Z-Direction
+    static double SumdX=0, SumFt=0;
+    double Vmin=-0.02,dXKI=2000,vis=100;
+   // double KPF=7,KIF=5;
+    double KPF=5,KIF=4;
+    double target_f=5;
+    int motion=1;
+    SumdX=SumdX+(Vmin-dX[motion])*0.001;
+    SumFt = SumFt+(target_f - stateTor1[motion][0])*0.001;
+    ft[motion]=KPF * (target_f - stateTor1[motion][0])+KIF*SumFt+vis*dX[motion];
 
+    ft[motion]=-ft[motion]+0*dXKI*SumdX;
 
+    ////////////////////////////////////////////////////step 4. compute tau(caused by ft)//////////////////////////////////////////////////////////////////////////////////////////////////
 	double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
 
     double f_static[6] = { 9,9,5,3,2,2 };
@@ -3658,33 +3746,23 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 	double JoinTau[6] = { 0 };
 	s_mm(6, 1, 6, fwd.Jf(), T(6), ft, 1, JoinTau, 1);
 
-    if (target.count % 300 == 0)
-    {
-        cout<<ft[2]<<"****"<<FT[2]<<"****"<<step_pjs[1]<<"****"<<stateTor1[2][0]<<"****"<<dX[2]<<std::endl;
-    }
-
-    lout << ft[2] << ",";lout << FT[2] << ",";lout<<step_pjs[1] << ",";lout << temp[1] << ",";
-
-	double pa[6] = { 0 }, ta[6] = { 0 };
-	for (int i = 0; i < 6; i++)
-	{
-		pa[i] = controller->motionAtAbs(i).actualPos();
-		va[i] = controller->motionAtAbs(i).actualVel();
-        //ta[i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
-	}
-	//动力学
-	for (int i = 0; i < 6; ++i)
-	{
-		target.model->motionPool()[i].setMp(controller->motionPool()[i].actualPos());
-		target.model->motionPool().at(i).setMv(controller->motionAtAbs(i).actualVel());
-		target.model->motionPool().at(i).setMa(0.0);
-	}
-
-	target.model->solverPool()[1].kinPos();
-	target.model->solverPool()[1].kinVel();
-	target.model->solverPool()[2].dynAccAndFce();
 
 
+
+
+
+
+    //if(abs(ft[0])>250)
+        //ft[0]=0;
+    //if(abs(ft[1])>250)
+        //ft[1]=0;
+    //if(abs(ft[2])>250)
+       // ft[2]=0;
+
+    //lout << ft[2] << ",";lout << FT[2] << ",";lout<<step_pjs[1] << ",";
+
+
+    ////////////////////////////////////////////////////step 5. dynamic compensation//////////////////////////////////////////////////////////////////////////////////////////////////
 	for (int i = 0; i < 6; i++)
 	{
         JoinTau[i] = JoinTau[i] + target.model->motionPool()[i].mfDyn() + f_vel_JRC[i] * va[i] + 0 * f_static[i] * signV(va[i]);
@@ -3692,25 +3770,17 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 	}
 
 
-    lout << PqEnd[0] << ",";lout << PqEnd[1] << ",";
-    lout << PqEnd[2] << ",";lout << PqEnd[3] << ",";
-    lout << PqEnd[4] << ",";lout << PqEnd[5] << ",";lout << PqEnd[6] << ",";
 
 
-    lout << JoinTau[0] << ",";lout << JoinTau[1] << ",";
-    lout << JoinTau[2] << ",";lout << JoinTau[3] << ",";
-    lout << JoinTau[4] << ",";lout << JoinTau[5] << ",";lout << std::endl;
 
-	for (int i = 0; i < 6; i++)
-	{
-        JoinTau[i] = std::max(-300.0, JoinTau[i]);
-        JoinTau[i] = std::min(300.0, JoinTau[i]);
+    ////////////////////////////////////////////////////others//////////////////////////////////////////////////////////////////////////////////////////////////
+    for (int i = 0; i < 6; i++)
+    {
+        JoinTau[i] = std::max(-500.0, JoinTau[i]);
+        JoinTau[i] = std::min(500.0, JoinTau[i]);
 
         controller->motionAtAbs(i).setTargetToq(JoinTau[i]);
-	}
-
-
-
+    }
     for (int i = 0; i < 6; i++)
     {
 
@@ -3720,9 +3790,41 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
     }
 
 
-    return 350000 - target.count;
+
+
+    if (target.count % 300 == 0)
+    {
+        double err=(PqEnd0[2] - PqEnd[2]);
+        cout<<FmInWorld[0]<<"****"<<FmInWorld[1]<<"****"<<FmInWorld[2]<<"****"<<FT[0]<<"****"<<stateTor1[motion][0]<<"****"<<ft[motion]<<std::endl;
+    }
+
+    lout << target.count << ","
+         << PqEnd0[0] << ","
+         << PqEnd[0] << ","
+         << vt[3] << ","
+         << vt[4] << ","
+         << vt[5] << ","
+         << dX[3] << ","
+         << dX[4] << ","
+         << dX[5] << ","
+         << std::endl;
+
+    return 2000000 - target.count;
+}
+
+auto ForceDirect::collectNrt(aris::plan::PlanTarget &target)->void
+{
+
+    for(int i=0;i<6;i++)
+    {
+        target.controller->motionPool()[i].setMaxVel(Premax_vel[i]);
+        target.controller->motionPool()[i].setMinVel(Premin_vel[i]);
+        target.controller->motionPool()[i].setMaxPos(Premax_pos[i]);
+        target.controller->motionPool()[i].setMinPos(Premin_pos[i]);
+    }
 
 }
+
 
 ForceDirect::ForceDirect(const std::string &name) :Plan(name)
 {
