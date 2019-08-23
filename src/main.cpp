@@ -44,7 +44,10 @@ int main(int argc, char *argv[])
     cs.interfacePool().add<aris::server::WebInterface>("", "5866", aris::core::Socket::WEB);
 	cs.interfacePool().add<aris::server::WebInterface>("", "5867", aris::core::Socket::TCP);
     cs.resetSensorRoot(new aris::sensor::SensorRoot);
-    cs.saveXmlFile(xmlpath.string().c_str());
+	cs.interfaceRoot().loadXmlFile(uixmlpath.string().c_str());
+	//cs.model().saveXmlFile(modelxmlpath.string().c_str());	//for new model
+	cs.model().loadXmlFile(modelxmlpath.string().c_str());
+	cs.saveXmlFile(xmlpath.string().c_str());
     //-------for rokae robot end// 
 
 
@@ -80,20 +83,9 @@ int main(int argc, char *argv[])
 	cs.saveXmlFile(xmlpath.string().c_str());
 	//-------for qifan robot end// 
 	*/
-	//cs.loadXmlFile(xmlpath.string().c_str());
-
-	try 
-	{
-		cs.loadXmlFile(xmlpath.string().c_str());
-	}
-	catch (std::exception &e)
-	{
-		std::cout << e.what() << std::endl;
-	}
-	cs.interfaceRoot().loadXmlFile(uixmlpath.string().c_str());
-    //cs.model().loadXmlFile(modelxmlpath.string().c_str());
-	cs.saveXmlFile(xmlpath.string().c_str());
-
+	
+	cs.loadXmlFile(xmlpath.string().c_str());
+	
 	cs.start();
 
 	//加载v100的速度值//
