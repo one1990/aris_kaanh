@@ -108,12 +108,22 @@ class MovePressureToolXY : public aris::plan::Plan
 public:
 	auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
 	auto virtual executeRT(aris::plan::PlanTarget &target)->int;
-	//auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+    auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
 
 	explicit MovePressureToolXY(const std::string &name = "MovePressureToolXY");
 	ARIS_REGISTER_TYPE(MovePressureToolXY);
 };
 
+class MovePressureToolXYLine : public aris::plan::Plan
+{
+public:
+    auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+    auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+    auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+
+    explicit MovePressureToolXYLine(const std::string &name = "MovePressureToolXYLine");
+    ARIS_REGISTER_TYPE(MovePressureToolXYLine);
+};
 
 
 class MoveFeed : public aris::plan::Plan
