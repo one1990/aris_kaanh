@@ -3075,14 +3075,9 @@ auto MovePressureToolXYLine::prepairNrt(const std::map<std::string, std::string>
      for(auto &option:target.mot_options) option|=
         Plan::USE_TARGET_POS |
         //#ifdef WIN32
-        Plan::NOT_CHECK_POS_MIN |
-        Plan::NOT_CHECK_POS_MAX |
-        Plan::NOT_CHECK_POS_CONTINUOUS |
         Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
         Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
         //#endif
-        Plan::NOT_CHECK_VEL_MIN |
-        Plan::NOT_CHECK_VEL_MAX |
         Plan::NOT_CHECK_VEL_CONTINUOUS |
         Plan::NOT_CHECK_VEL_FOLLOWING_ERROR|
         Plan::NOT_CHECK_ENABLE;
@@ -3093,7 +3088,7 @@ auto MovePressureToolXYLine::prepairNrt(const std::map<std::string, std::string>
 }
 auto MovePressureToolXYLine::executeRT(PlanTarget &target)->int
 {
-    auto &param = std::any_cast<MovePressureToolXYParam&>(target.param);
+    auto &param = std::any_cast<MovePressureToolXYLineParam&>(target.param);
 
     static double step_pjs[6];
     static double stateTor0[6][3], stateTor1[6][3], EndP0[3];
@@ -3443,7 +3438,7 @@ auto MovePressureToolXYLine::executeRT(PlanTarget &target)->int
     if (target.count % 300 == 0)
     {
 
-        cout << step_pjs[0]<<"*"<<step_pjs[1] << "*" << step_pjs[2] <<"*"<<step_pjs[3]<< "*" << step_pjs[4] << "*" <<step_pjs[5] << std::endl;
+        cout << dX[0]<<"*"<<dX[1] << "*" << dX[2] <<"*"<<step_pjs[3]<< "*" << step_pjs[4] << "*" <<step_pjs[5] << std::endl;
 
         //cout << FT_KAI[2] << "*" << NormalAng << "*" << TransVector[0] << "*" << TransVector[1] << "*" << TransVector[2] << "*" << FT0[2] << endl;
         //cout << FT_KAI[2] << "*" << NormalAng << "*" << TransVector[4] << "*" << TransVector[5] << "*" << TransVector[6] << "*" << FT0[2] << endl;
@@ -3491,7 +3486,7 @@ MovePressureToolXYLine::MovePressureToolXYLine(const std::string &name) :Plan(na
 {
 
     command().loadXmlStr(
-        "<Command name=\"mvPreTXY\">"
+        "<Command name=\"mvPreTXYLine\">"
         "	<GroupParam>"
         "       <Param name=\"PressF\" default=\"0\"/>"
         "		<Param name=\"SensorType\"default=\"20.0\"/>"

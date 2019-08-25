@@ -6857,6 +6857,7 @@ double p, v, a;
 		plan_root->planPool().add<MoveFeed>();
 		plan_root->planPool().add<MovePressureToolYZ>();
 		plan_root->planPool().add<MovePressureToolXY>();
+		plan_root->planPool().add<MovePressureToolXYLine>();
 		plan_root->planPool().add<GetForce>();
         plan_root->planPool().add<MoveSeriesGK>();
         plan_root->planPool().add<ForceDirect>();
