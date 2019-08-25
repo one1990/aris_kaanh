@@ -6842,8 +6842,10 @@ double p, v, a;
 		aris::control::EthercatMaster mst;
 		mst.scan();
 
+		//for test//
+
 		std::vector<std::pair<std::string, std::any>> ret;
-		ret.push_back(std::make_pair<std::string, std::any>("controller_xml", mst.xmlString()));
+		ret.push_back(std::make_pair<std::string, std::any>("controller_xml", cs.controller().xmlString()));
 
 		target.ret = ret;
 		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
@@ -6857,6 +6859,7 @@ double p, v, a;
 
 
 	// 根据ESI补全从站信息 //
+	static aris::control::EthercatMaster mst;
 	struct GetEsiPdoListParam
 	{
 		int vendor_id;
@@ -6873,21 +6876,20 @@ double p, v, a;
 		{
 			if (p.first == "vendor_id")
 			{
-				param.vendor_id = std::stoi(p.second);
+				param.vendor_id = std::stoi(p.second, nullptr, 16);
 			}
-			if (p.first == "product_code")
+			else if (p.first == "product_code")
 			{
-				param.product_code = std::stoi(p.second);
+				param.product_code = std::stoi(p.second, nullptr, 16);
 			}
-			if (p.first == "revision_num")
+			else if (p.first == "revision_num")
 			{
-				param.revision_num = std::stoi(p.second);
+				param.revision_num = std::stoi(p.second, nullptr, 16);
 			}
 		}
 
-		aris::control::EthercatMaster mst;
 		auto pdolist = mst.getPdoList(param.vendor_id, param.product_code, param.revision_num);
-		
+
 		std::vector<std::pair<std::string, std::any>> ret;
 		ret.push_back(std::make_pair<std::string, std::any>("pdo_list_xml", pdolist));
 
@@ -6924,16 +6926,14 @@ double p, v, a;
 		{
 			if (p.first == "path")
 			{
-				for (auto &filepath : std::filesystem::directory_iterator(p.second))
-				{
-					if (filepath.is_regular_file())param.path.push_back(filepath.path());
-				}
+				param.path.push_back(p.second);
 			}
 		}
 
-		aris::control::EthercatMaster mst;
 		mst.setEsiDirs(param.path);
+		mst.updateDeviceList();
 		auto device_list = mst.getDeviceList();
+		std::cout << "param.path:"<< param.path.data()->string() << std::endl;
 
 		std::vector<std::pair<std::string, std::any>> ret;
 		ret.push_back(std::make_pair<std::string, std::any>("device_list_xml", device_list));
