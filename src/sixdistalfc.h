@@ -114,17 +114,38 @@ public:
 	ARIS_REGISTER_TYPE(MovePressureToolXY);
 };
 
-class MovePressureToolXYLine : public aris::plan::Plan
+class MovePressureToolXLine : public aris::plan::Plan
 {
 public:
     auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
     auto virtual executeRT(aris::plan::PlanTarget &target)->int;
     auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
 
-    explicit MovePressureToolXYLine(const std::string &name = "MovePressureToolXYLine");
-    ARIS_REGISTER_TYPE(MovePressureToolXYLine);
+    explicit MovePressureToolXLine(const std::string &name = "MovePressureToolXLine");
+    ARIS_REGISTER_TYPE(MovePressureToolXLine);
 };
 
+class MovePressureToolYLine : public aris::plan::Plan
+{
+public:
+	auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+	auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+	auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+
+	explicit MovePressureToolYLine(const std::string &name = "MovePressureToolYLine");
+	ARIS_REGISTER_TYPE(MovePressureToolYLine);
+};
+
+class MovePressureToolXSine : public aris::plan::Plan
+{
+public:
+	auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+	auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+	auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+
+	explicit MovePressureToolXSine(const std::string &name = "MovePressureToolXSine");
+	ARIS_REGISTER_TYPE(MovePressureToolXSine);
+};
 
 class MoveFeed : public aris::plan::Plan
 {
