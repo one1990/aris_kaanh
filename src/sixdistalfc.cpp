@@ -133,8 +133,8 @@ void SetLimit(PlanTarget &target, double ratio)
 
     }
 
-        double max_pos[6]={2.96706/3, 1.57,0.5,  2.96706/3,1.57,6.28};
-        double min_pos[6]={-2.96706/3,0,     -0.5,  -2.96706/3,-1.57,-6.28};
+        double max_pos[6]={2.96706/1, 1.57,1.0,  2.96706/3,1.57,6.28};
+        double min_pos[6]={-2.96706/1,0,     -0.5,  -2.96706/3,-1.57,-6.28};
         for(int i=0;i<6;i++)
         {
             target.controller->motionPool()[i].setMaxVel(target.controller->motionPool()[i].maxVel()/ratio);
@@ -3195,9 +3195,9 @@ auto MovePressureToolXYLine::executeRT(PlanTarget &target)->int
 
 
     double dXpid[6] = { 0,0,0,0,0,0 };
-    dXpid[2] = 1 * (FT_KAI[2] - (-5)) / 420000;
-    dXpid[3] = 1 * (FT_KAI[3]) / 2000;
-    dXpid[4] = 1 * (FT_KAI[4]) / 2000;
+    dXpid[2] = 1 * (FT_KAI[2] - (-5)) / 220000;
+    dXpid[3] = 0 * (FT_KAI[3]) / 2000;
+    dXpid[4] = 0 * (FT_KAI[4]) / 2000;
     dXpid[5] = 0 * (FT_KAI[5]) / 2000;
 
     double FmInWorld[6];
@@ -3205,7 +3205,7 @@ auto MovePressureToolXYLine::executeRT(PlanTarget &target)->int
     FT2World(target,dXpid,FmInWorld);
 
     for (int i = 0;i < 6;i++)
-        dX[i] = 0;//*FmInWorld[i];
+        dX[i] = FmInWorld[i];
 
 
     double TangentArc[3] = { 0 };
@@ -3233,7 +3233,7 @@ auto MovePressureToolXYLine::executeRT(PlanTarget &target)->int
 
     LengthT = sqrt((Square[0][0] - Square[1][0])*(Square[0][0] - Square[1][0]) + (Square[0][1] - Square[1][1])*(Square[0][1] - Square[1][1]));
 
-    static int count_offsetT = StartCount, count_offsetF = StartCount;
+    static int count_offsetT = StartCount;
     static double vArcEndT = 0, vArcEndF = 0;
     static int CountT = 0;
 
@@ -3309,7 +3309,7 @@ auto MovePressureToolXYLine::executeRT(PlanTarget &target)->int
         if (MoveDirection)
             if (MoveLength < LengthT - DecLength)
             {
-                aris::plan::moveAbsolute(target.count - count_offsetF + 1, 0, 1000, vArcMax / 1000, 0.05 / 1000 / 1000, 0.05 / 1000 / 1000, pArc, vArc, aArc, t_count);
+                aris::plan::moveAbsolute(target.count - count_offsetT + 1, 0, 1000, vArcMax / 1000, 0.05 / 1000 / 1000, 0.05 / 1000 / 1000, pArc, vArc, aArc, t_count);
                 vArc = vArc * 1000;
                 vArcEndT = vArc;
             }
@@ -3329,7 +3329,7 @@ auto MovePressureToolXYLine::executeRT(PlanTarget &target)->int
         if (!MoveDirection)
             if (MoveLength > (DecLength))
             {
-                aris::plan::moveAbsolute(target.count - count_offsetF + 1, 0, 1000, vArcMax / 1000, 0.05 / 1000 / 1000, 0.05 / 1000 / 1000, pArc, vArc, aArc, t_count);
+                aris::plan::moveAbsolute(target.count - count_offsetT + 1, 0, 1000, vArcMax / 1000, 0.05 / 1000 / 1000, 0.05 / 1000 / 1000, pArc, vArc, aArc, t_count);
                 vArc = vArc * 1000;
                 vArcEndF = vArc;
             }
@@ -3438,7 +3438,7 @@ auto MovePressureToolXYLine::executeRT(PlanTarget &target)->int
     if (target.count % 300 == 0)
     {
 
-        cout << dX[0]<<"*"<<dX[1] << "*" << dX[2] <<"*"<<step_pjs[3]<< "*" << step_pjs[4] << "*" <<step_pjs[5] << std::endl;
+        cout << FmInWorld[0]<<"*"<<FmInWorld[1] << "*" << FmInWorld[2] <<"*"<<step_pjs[3]<< "*" << step_pjs[4] << "*" <<FT_KAI[2] << std::endl;
 
         //cout << FT_KAI[2] << "*" << NormalAng << "*" << TransVector[0] << "*" << TransVector[1] << "*" << TransVector[2] << "*" << FT0[2] << endl;
         //cout << FT_KAI[2] << "*" << NormalAng << "*" << TransVector[4] << "*" << TransVector[5] << "*" << TransVector[6] << "*" << FT0[2] << endl;
@@ -3489,7 +3489,7 @@ MovePressureToolXYLine::MovePressureToolXYLine(const std::string &name) :Plan(na
         "<Command name=\"mvPreTXYLine\">"
         "	<GroupParam>"
         "       <Param name=\"PressF\" default=\"0\"/>"
-        "		<Param name=\"SensorType\"default=\"20.0\"/>"
+        "		<Param name=\"SensorType\"default=\"-20.0\"/>"
         "   </GroupParam>"
         "</Command>");
 
@@ -4187,9 +4187,9 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 
     //Y-Direction
     static double SumdX=0, SumFt=0;
-    double Vmin=-0.02,dXKI=2000,vis=300;
-    double KPF=5,KIF=4;
-    double target_f=5;
+    double Vmin=-0.02,dXKI=2000,vis=000;
+    double KPF=3,KIF=3;
+    double target_f=-5;
     int motion=1;
     SumdX=SumdX+(Vmin-dX[motion])*0.001;
     SumFt = SumFt+(target_f - stateTor1[motion])*0.001;
@@ -4250,14 +4250,14 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
     if (target.count % 300 == 0)
     {
         double err=(PqEnd0[2] - PqEnd[2]);
-        cout<<FmInWorld[0]<<"****"<<FmInWorld[1]<<"****"<<FmInWorld[2]<<"****"<<FT[0]<<"****"<<stateTor1[motion]<<"****"<<step_pjs[1]<<std::endl;
+        cout<<FmInWorld[0]<<"****"<<FmInWorld[1]<<"****"<<FmInWorld[2]<<"****"<<ft[motion]<<"****"<<stateTor1[motion]<<"****"<<dX[motion]<<std::endl;
     }
 
     lout << target.count << ","
          << PqEnd0[0] << ","
-         << PqEnd[0] << ","
-         << FmInWorld[2] << ","
-         << stateTor1[2] << ","
+         << PqEnd[1] << ","
+         << ft[motion] << ","
+         << dX[motion] << ","
          << step_pjs[1] << ","
          << std::endl;
 
