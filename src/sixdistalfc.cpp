@@ -3072,15 +3072,10 @@ auto MovePressureToolXLine::prepairNrt(const std::map<std::string, std::string> 
 
     target.param = param;
 
-     for(auto &option:target.mot_options) option|=
-        Plan::USE_TARGET_POS |
-        //#ifdef WIN32
-        Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-        Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
-        //#endif
-        Plan::NOT_CHECK_VEL_CONTINUOUS |
-        Plan::NOT_CHECK_VEL_FOLLOWING_ERROR|
-        Plan::NOT_CHECK_ENABLE;
+	for (auto &option : target.mot_options) option |=
+		Plan::USE_TARGET_POS |
+		Plan::NOT_CHECK_VEL_CONTINUOUS |
+		Plan::NOT_CHECK_ENABLE;
 
         SetLimit(target,6.0);
 
@@ -3494,12 +3489,7 @@ auto MovePressureToolYLine::prepairNrt(const std::map<std::string, std::string> 
 
 	for (auto &option : target.mot_options) option |=
 		Plan::USE_TARGET_POS |
-		//#ifdef WIN32
-		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-		Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
-		//#endif
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
-		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR |
 		Plan::NOT_CHECK_ENABLE;
 
 	SetLimit(target, 6.0);
@@ -4701,20 +4691,10 @@ auto MoveJoint::prepairNrt(const std::map<std::string, std::string> &params, Pla
 
 	target.param = param;
 
-    for(auto &option:target.mot_options) option|=
+	for (auto &option : target.mot_options) option |=
 		Plan::USE_TARGET_POS |
-		//#ifdef WIN32
-		Plan::NOT_CHECK_POS_MIN |
-		Plan::NOT_CHECK_POS_MAX |
-		Plan::NOT_CHECK_POS_CONTINUOUS |
-		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-		Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
-		//#endif
-		Plan::NOT_CHECK_VEL_MIN |
-		Plan::NOT_CHECK_VEL_MAX |
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
-        Plan::NOT_CHECK_VEL_FOLLOWING_ERROR|
-        Plan::NOT_CHECK_ENABLE;
+		Plan::NOT_CHECK_ENABLE;
 
 
     //读取动力学参数
@@ -4728,11 +4708,14 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 	auto &param = std::any_cast<MoveJointParam&>(target.param);
 
     static double step_pjs[6],begin_pjs[6];
-    static double stateTor0[6][2], stateTor1[6][2];
     static double FT0[6];
 
 	// 访问主站 //
 	auto controller = target.controller;
+	// 打印电流 //
+	auto &cout = controller->mout();
+	// log 电流 //
+	auto &lout = controller->lout();
 
 	// 获取当前起始点位置 //
 	if (target.count == 1)
@@ -4746,26 +4729,9 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 
 	}
 
-
-
-
-
-
-
 	if (target.model->solverPool().at(1).kinPos())return -1;
 
-
-	///* Using Jacobian, TransMatrix from ARIS
-	double EndW[3], EndP[3], BaseV[3];
-	double PqEnd[7], TransVector[16];
-	target.model->generalMotionPool().at(0).getMpm(TransVector);
-	target.model->generalMotionPool().at(0).getMpq(PqEnd);
-
-	double dX[6] = { 0.00000, -0.0000, -0.0000, -0.0000, -0.0000, -0.0000 };
 	double dTheta[6] = { 0 };
-    double dThetaFil[6] = { 0 };
-
-
 
     double FT[6],FTemp[6];
     if(param.SensorType>0)
@@ -4774,65 +4740,20 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
         GetYuLi(target,FT);
 
 
+    double pa[6],va[6],aa[6],ta[6],CollisionFT[6];
 
-    double q[6],dq[6],ddq[6],CollisionFT[6];
-    for (int i = 0; i < 6; i++)
-    {
-        q[i]= controller->motionPool()[i].actualPos();
-        dq[i] =0;
-        ddq[i] =0;
-        FTemp[i]=FT[i];
-    }
+	for (int i = 0; i < 6; i++)
+	{
+		pa[i] = controller->motionAtAbs(i).actualPos();
+		va[i] = controller->motionAtAbs(i).actualVel();
+		aa[i] = 0;
+		ta[i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
+	}
+    
 
-    sixDistalMatrix.sixDistalCollision(q, dq, ddq, FT, sixDistalMatrix.estParasFT, CollisionFT);
+    sixDistalMatrix.sixDistalCollision(pa, va, aa, FT, sixDistalMatrix.estParasFT, CollisionFT);
     for (int j = 0; j < 6; j++)
         FT[j]=FT[j]-CollisionFT[j];
-
-
-
-
-    if (target.count == 1)
-    {
-        for (int j = 0; j < 6; j++)
-        {
-            stateTor0[j][0] = FT[j];
-        }
-    }
-
-
-    /* One-Order Filter
-	for (int j = 0; j < 6; j++)
-	{
-        double CutFreq = 5;//SHANGHAI DIANQI EXP
-
-
-		double intDT = 0.001;
-        stateTor1[j][0] = stateTor0[j][0] + intDT * (FT[j]-stateTor0[j][0])*CutFreq;
-
-    }*/
-
-
-    // /*Second-Order Filter
-    for (int j = 0; j < 6; j++)
-    {
-        double A[2][2], B[2], CutFreq = 100;//SHANGHAI DIANQI EXP
-        //CutFreq = 85;
-        A[0][0] = 0; A[0][1] = 1;
-        A[1][0] = -CutFreq*CutFreq; A[1][1] = -sqrt(2)*CutFreq;
-
-        B[0] = 0; B[1] = CutFreq*CutFreq;
-
-        double intDT = 0.001;
-        stateTor1[j][0] = stateTor0[j][0] + intDT * (A[0][0] * stateTor0[j][0] + A[0][1] * stateTor0[j][1] + B[0] * FT[j]);
-        stateTor1[j][1] = stateTor0[j][1] + intDT * (A[1][0] * stateTor0[j][0] + A[1][1] * stateTor0[j][1] + B[1] * FT[j]);
-
-    }
-
-
-
-
-
-
 
     if (target.count == 1)
     {
@@ -4842,8 +4763,6 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
         }
     }
 
-
-
 	double FT_KAI[6];
     for (int i = 0; i < 6; i++)
 	{
@@ -4851,89 +4770,34 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 	}
 
 
-
-    for (int i = 0; i < 3; i++)
-    {
-        if (FT_KAI[i] < 0.1&&FT_KAI[i]>0)
-            FT_KAI[i] = 10 * FT_KAI[i] * FT_KAI[i];//In KAI Coordinate
-        else if (FT_KAI[i]<0 && FT_KAI[i]>-0.1)
-            FT_KAI[i] = -10 * FT_KAI[i] * FT_KAI[i];//In KAI Coordinate
-    }
-
-
-    for (int i = 3; i < 6; i++)
-    {
-        if (FT_KAI[i] < 0.05&&FT_KAI[i]>0)
-            FT_KAI[i] = 20 * FT_KAI[i] * FT_KAI[i];//In KAI Coordinate
-        else if (FT_KAI[i]<0 && FT_KAI[i]>-0.05)
-            FT_KAI[i] = -20 * FT_KAI[i] * FT_KAI[i];//In KAI Coordinate
-    }
-
-	double FT_YANG[6];
-    FT_YANG[0] = -FT_KAI[0];FT_YANG[1] = -FT_KAI[1];FT_YANG[2] = FT_KAI[2];
-    FT_YANG[3] = -FT_KAI[3];FT_YANG[4] = -FT_KAI[4];FT_YANG[5] = FT_KAI[5];
-
-	double FmInWorld[6];
-
-	double TransMatrix[4][4];
-	for (int i = 0;i < 4;i++)
-		for (int j = 0;j < 4;j++)
-			TransMatrix[i][j] = TransVector[4 * i + j];
-
-	double n[3] = { TransMatrix[0][0], TransMatrix[0][1], TransMatrix[0][2] };
-	double o[3] = { TransMatrix[1][0], TransMatrix[1][1], TransMatrix[1][2] };
-	double a[3] = { TransMatrix[2][0], TransMatrix[2][1], TransMatrix[2][2] };
-
-	//FT[0] = 0;FT[1] = 0;FT[2] = 1;FT[3] = 0;FT[4] = 0;FT[5] = 0;
-	FmInWorld[0] = n[0] * FT_YANG[0] + n[1] * FT_YANG[1] + n[2] * FT_YANG[2];
-	FmInWorld[1] = o[0] * FT_YANG[0] + o[1] * FT_YANG[1] + o[2] * FT_YANG[2];
-	FmInWorld[2] = a[0] * FT_YANG[0] + a[1] * FT_YANG[1] + a[2] * FT_YANG[2];
-	FmInWorld[3] = n[0] * FT_YANG[3] + n[1] * FT_YANG[4] + n[2] * FT_YANG[5];
-	FmInWorld[4] = o[0] * FT_YANG[3] + o[1] * FT_YANG[4] + o[2] * FT_YANG[5];
-	FmInWorld[5] = a[0] * FT_YANG[3] + a[1] * FT_YANG[4] + a[2] * FT_YANG[5];
-
-
-
-	for (int j = 0; j < 6; j++)
+	double zero_check[6] = { 1,1,1,0.05,0.05,0.05 };
+	for (int i = 0; i < 6; i++)
 	{
-		if (dX[j] > 0.00025)
-			dX[j] = 0.00025;
-		if (dX[j] < -0.00025)
-			dX[j] = -0.00025;
+		if (FT_KAI[i] < zero_check[i] && FT_KAI[i]>0)
+			FT_KAI[i] = 1 / zero_check[i] * FT_KAI[i] * FT_KAI[i];//In KAI Coordinate
+		else if (FT_KAI[i]<0 && FT_KAI[i]>-zero_check[i])
+			FT_KAI[i] = -1 / zero_check[i] * FT_KAI[i] * FT_KAI[i];//In KAI Coordinate
 	}
 
-
-	// 打印电流 //
-	auto &cout = controller->mout();
-
-	// log 电流 //
-	auto &lout = controller->lout();
+	double FmInWorld[6];
+	FT2World(target, FT_KAI, FmInWorld);
 
 
 	///* Using Jacobian, TransMatrix from ARIS
 	auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(target.model->solverPool()[1]);
-
     fwd.cptJacobiWrtEE();
     //FmInWorld[2] = 0; FmInWorld[3] = 0; FmInWorld[4] = 0; FmInWorld[5] = 0;
 	double JoinTau[6] = { 0 };
     s_mm(6, 1, 6,fwd.Jf() , T(6), FmInWorld, 1, JoinTau, 1);
 
-	
 
-
-	double pa[6] = { 0 }, va[6] = { 0 }, ta[6] = { 0 };
 	double ft_offset[6] = { 0 };
 	double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184835913, 39.0310903520972, 66.3992503259041, 107.566785527965 };
     double f_static[6] = { 9,9,5,3,2,2 };
     double f_vel_JRC[6] = { 10,10,10,10,10,10 };
 	double ExternTau[6] = { 0 };
 
-	for (int i = 0; i < 6; i++)
-	{
-		pa[i] = controller->motionAtAbs(i).actualPos();
-		va[i] = controller->motionAtAbs(i).actualVel();
-		ta[i] = controller->motionAtAbs(i).actualCur()/ f2c_index[i];
-	}
+
 	//动力学
 	for (int i = 0; i < 6; ++i)
 	{
@@ -4953,7 +4817,6 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
         ExternTau[i] = -ExternTau[i];
     }
 
-
     double rate=6.0;
     dTheta[0] = JoinTau[0] / 500/rate+ ExternTau[0] / 1000/rate;
     dTheta[1] = JoinTau[1] / 500/rate+ ExternTau[1] / 1000/rate;
@@ -4971,73 +4834,19 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 		//lout << dTheta[i] << ",";
 	}
 
-
-
-     static double StateDtheta0[6][2], StateDtheta1[6][2];
-
-     if (target.count == 1)
-     {
-         for (int j = 0; j < 6; j++)
-         {
-             stateTor0[j][0] = dTheta[j];
-         }
-     }
-     // /*Second-Order Filter
-     for (int j = 0; j < 6; j++)
-     {
-         double A[2][2], B[2], CutFreq = 20;//SHANGHAI DIANQI EXP
-         //CutFreq = 85;
-         A[0][0] = 0; A[0][1] = 1;
-         A[1][0] = -CutFreq*CutFreq; A[1][1] = -sqrt(2)*CutFreq;
-
-         B[0] = 0; B[1] = CutFreq*CutFreq;
-
-         double intDT = 0.001;
-         StateDtheta1[j][0] = StateDtheta0[j][0] + intDT * (A[0][0] * StateDtheta0[j][0] + A[0][1] * StateDtheta0[j][1] + B[0] * dTheta[j]);
-         StateDtheta1[j][1] = StateDtheta0[j][1] + intDT * (A[1][0] * StateDtheta0[j][0] + A[1][1] * StateDtheta0[j][1] + B[1] * dTheta[j]);
-
-     }
-
-
-
-
-
-
-
-	for (int i = 0; i < 6; i++)
-	{
-        dThetaFil[i] = StateDtheta1[i][0] * DirectionFlag[i];
-
-	}
-
-
-
 	for (int i = 0; i < 6; i++)
 	{
         step_pjs[i] = step_pjs[i] + dTheta[i];
        // target.model->motionPool().at(i).setMp(step_pjs[i]);
 	}
 
-
-
-
     double KP[6]={8,8,8,1,8,1};
-
-   
-
-
 
     for (int i = 0; i < 6; i++)
     {
-    pa[i] = controller->motionAtAbs(i).actualPos();
-    va[i] = controller->motionAtAbs(i).actualVel();
-    //ta[i] = controller->motionAtAbs(i).actualTor();
-    ft_offset[i]=(10*KP[i]*(step_pjs[i]-pa[i])+target.model->motionPool()[i].mfDyn()+0*f_vel_JRC[i]*va[i] + 0*f_static[i]*signV(va[i]))*f2c_index[i];
-    ft_offset[i] = std::max(-500.0, ft_offset[i]);
-    ft_offset[i] = std::min(500.0, ft_offset[i]);
-    //if(abs(pa[i])<1)
-
-        //controller->motionAtAbs(i).setTargetCur(ft_offset[i]);
+	 ft_offset[i]=(10*KP[i]*(step_pjs[i]-pa[i])+target.model->motionPool()[i].mfDyn()+0*f_vel_JRC[i]*va[i] + 0*f_static[i]*signV(va[i]))*f2c_index[i];
+	 ft_offset[i] = std::max(-500.0, ft_offset[i]);
+	 ft_offset[i] = std::min(500.0, ft_offset[i]);
     }
 
     lout << FTemp[0] << ",";lout << FTemp[1] << ",";
@@ -5046,15 +4855,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 /*
     lout << FT_YANG[0] << ",";lout << FT_YANG[1] << ",";
     lout << FT_YANG[2] << ",";lout << FT_YANG[3] << ",";
-    lout << FT_YANG[4] << ",";lout << FT_YANG[5] << ",";
-
-    lout << dTheta[0] << ",";lout << dTheta[1] << ",";
-    lout << dTheta[2] << ",";lout << dTheta[3] << ",";
-    lout << dTheta[4] << ",";lout << dTheta[5] << ",";
-
-    lout << step_pjs[0] << ",";lout << step_pjs[1] << ",";
-    lout << step_pjs[2] << ",";lout << step_pjs[3] << ",";
-    lout << step_pjs[4] << ",";lout << step_pjs[5] << ",";
+    lout << FT_YANG[4] << ",";lout << FT_YANG[5] << ","
 
     lout << va[0] << ",";lout << va[1] << ",";
     lout << va[2] << ",";lout << va[3] << ",";
@@ -5064,29 +4865,10 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 
     if (target.count % 300 == 0)
     {
-
-        //cout << step_pjs[2] << "***" << ft_offset[2] << "***" << step_pjs[2] << endl;
-
-        //cout <<FT_KAI[0]<<"***"<<FT_KAI[1]<<"***"<<FT_KAI[2]<<endl;
-        cout <<ta[0]<<"***"<<ExternTau[0]<<"***"<<JoinTau[0]<<"***"<<FmInWorld[1]<<"***"<<va[0]<<std::endl;
+        cout << FmInWorld[0]<<"***"<< FmInWorld[1]<<"***"<< FmInWorld[2]<<"***"<<FmInWorld[1]<<"***"<<va[0]<<std::endl;
     }
 
-
-
-	for (int i = 0; i < 6; i++)
-	{
-
-        stateTor0[i][0] = stateTor1[i][0];
-        stateTor0[i][1] = stateTor1[i][1];
-
-        StateDtheta0[i][0] = StateDtheta1[i][0];
-        StateDtheta0[i][1] = StateDtheta1[i][1];
-
-	}
-
-
 	return 150000000 - target.count;
-
 }
 
 MoveJoint::MoveJoint(const std::string &name) :Plan(name)
@@ -5096,7 +4878,7 @@ MoveJoint::MoveJoint(const std::string &name) :Plan(name)
 		"<Command name=\"mvJoint\">"
 		"	<GroupParam>"
 		"       <Param name=\"PressF\" default=\"0\"/>"
-        "		<Param name=\"SensorType\"default=\"20.0\"/>"
+        "		<Param name=\"SensorType\"default=\"-20.0\"/>"
 		"   </GroupParam>"
 		"</Command>");
 
@@ -5126,12 +4908,7 @@ auto MovePressureToolXSine::prepairNrt(const std::map<std::string, std::string> 
 
 	for (auto &option : target.mot_options) option |=
 		Plan::USE_TARGET_POS |
-		//#ifdef WIN32
-		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-		Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
-		//#endif
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
-		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR |
 		Plan::NOT_CHECK_ENABLE;
 
 	SetLimit(target, 6.0);
