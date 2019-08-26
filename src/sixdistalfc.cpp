@@ -5214,7 +5214,7 @@ auto MovePressureToolXSine::executeRT(PlanTarget &target)->int
 
 
 	double dXpid[6] = { 0,0,0,0,0,0 };
-	dXpid[2] = 1 * (FT_KAI[2] - (-5)) / 220000;
+    dXpid[2] = 1 * (FT_KAI[2] - (-5)) / 320000;
 	dXpid[3] = 0 * (FT_KAI[3]) / 2000;
 	dXpid[4] = 0 * (FT_KAI[4]) / 2000;
 	dXpid[5] = 0 * (FT_KAI[5]) / 2000;
@@ -5227,9 +5227,9 @@ auto MovePressureToolXSine::executeRT(PlanTarget &target)->int
 	if (target.count < 1000)
 		amp = amp + 0.00002;
 
-	dX[0] = amp*sin(2 * aris::PI / 5 * target.count / 1000.0)/1000.0;
+    dX[0] = amp*sin(2 * aris::PI / 3 * target.count / 1000.0)/1000.0;
 	dX[1] = 0;
-	dX[2] = 0;//FmInWorld[2];
+    dX[2] = FmInWorld[2];
 	dX[3] = 0; dX[4] = 0; dX[5] = 0;
 
 
@@ -5244,10 +5244,13 @@ auto MovePressureToolXSine::executeRT(PlanTarget &target)->int
 
 	// log 电流 //
 	auto &lout = controller->lout();
-	lout << FT_KAI[0] << ",";lout << FT_KAI[1] << ",";
-	lout << FT_KAI[2] << ",";lout << FT_KAI[3] << ",";
-	lout << FT_KAI[4] << ",";lout << FT_KAI[5] << ",";
+    lout << FT[0] << ",";lout << FT[1] << ",";
+    lout << FT[2] << ",";lout << FT[3] << ",";
+    lout << FT[4] << ",";lout << FT[5] << ",";
 
+    lout << stateTor1[0][0] << ",";lout << stateTor1[1][0] << ",";
+    lout << stateTor1[2][0] << ",";lout << stateTor1[3][0] << ",";
+    lout << stateTor1[4][0] << ",";lout << stateTor1[5][0] << ",";
 
 	lout << dX[0] << ",";lout << dX[1] << ",";
 	lout << dX[2] << ",";lout << dX[3] << ",";
@@ -5299,7 +5302,7 @@ auto MovePressureToolXSine::executeRT(PlanTarget &target)->int
 
 	}
 
-	return 15000 - target.count;
+    return 15000000 - target.count;
 
 }
 
