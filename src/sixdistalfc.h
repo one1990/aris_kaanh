@@ -147,6 +147,17 @@ public:
 	ARIS_REGISTER_TYPE(MovePressureToolXSine);
 };
 
+class MoveForceXSine : public aris::plan::Plan
+{
+public:
+	auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+	auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+	auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+
+	explicit MoveForceXSine(const std::string &name = "MoveForceXSine");
+	ARIS_REGISTER_TYPE(MoveForceXSine);
+};
+
 class MoveFeed : public aris::plan::Plan
 {
 public:
