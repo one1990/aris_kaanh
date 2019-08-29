@@ -5358,3 +5358,230 @@ MoveForceXSine::MoveForceXSine(const std::string &name) :Plan(name)
 		"</Command>");
 
 }
+
+
+
+
+struct MoveForceCircleParam
+{
+	double PressF;
+	double SensorType;
+
+
+};
+
+auto MoveForceCircle::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+{
+	MoveForceCircleParam param;
+	for (auto &p : params)
+	{
+		if (p.first == "PressF")
+			param.PressF = std::stod(p.second);
+		if (p.first == "SensorType")
+			param.SensorType = std::stod(p.second);
+	}
+
+	target.param = param;
+	target.ret = std::vector<std::pair<std::string, std::any>>();
+
+	for (auto &option : target.mot_options) option |=
+		Plan::USE_TARGET_POS |
+		Plan::NOT_CHECK_VEL_CONTINUOUS |
+		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
+		Plan::NOT_CHECK_ENABLE;
+
+	SetLimit(target, 6.0);
+
+
+}
+auto MoveForceCircle::executeRT(PlanTarget &target)->int
+{
+	auto &param = std::any_cast<MoveForceCircleParam&>(target.param);
+
+	static double step_pjs[6];
+	static double stateTor0[6][3], stateTor1[6][3], EndP0[3];
+	static double sT0[6][3], sT1[6][3];
+	static float FT0[6];
+
+	// 访问主站 //
+	auto controller = target.controller;
+	auto &cout = controller->mout();
+	// 获取当前起始点位置 //
+	if (target.count == 1)
+	{
+		for (int i = 0; i < 6; ++i)
+		{
+			step_pjs[i] = target.model->motionPool()[i].mp();
+			// controller->motionPool().at(i).setModeOfOperation(10);	//切换到电流控制
+		}
+	}
+
+
+	if (target.model->solverPool().at(1).kinPos())return -1;
+
+
+	double PqEnd[7], TransVector[16], NormalVector[3], CosNormalAng, SinNormalAng, NormalAng;
+	double XBase[3] = { 1,0,0 }, YBase[3] = { 0,1,0 }, ZBase[3] = { 0,0,1 };
+	double CrossNormalZbase[3] = { 0 };
+
+
+
+	double dX[6] = { 0.00000, -0.0000, -0.0000, -0.0000, -0.0000, -0.0000 };
+	double dTheta[6] = { 0 };
+
+	double FT[6];
+	if (param.SensorType > 0)
+		GetATI(target, FT);
+	else
+		GetYuLi(target, FT);
+
+
+
+	// 获取当前起始点位置 //
+	if (target.count == 1)
+	{
+		for (int j = 0; j < 6; j++)
+		{
+			stateTor0[j][0] = FT[j];
+			FT0[j] = FT[j];
+		}
+		for (int i = 0;i < 3;i++)
+			EndP0[i] = PqEnd[i];
+	}
+
+
+	SecondOrderFilter(FT, stateTor0, stateTor1, 80);
+
+
+	double FT_KAI[6];
+	for (int i = 0; i < 6; i++)
+	{
+		FT_KAI[i] = stateTor1[i][0] - FT0[i];//In KAI Coordinate
+	}
+
+	double zero_check[6] = { 1,1,1,0.05,0.05,0.05 };
+	for (int i = 0; i < 6; i++)
+	{
+		if (FT_KAI[i] < zero_check[i] && FT_KAI[i]>0)
+			FT_KAI[i] = 1 / zero_check[i] * FT_KAI[i] * FT_KAI[i];//In KAI Coordinate
+		else if (FT_KAI[i]<0 && FT_KAI[i]>-zero_check[i])
+			FT_KAI[i] = -1 / zero_check[i] * FT_KAI[i] * FT_KAI[i];//In KAI Coordinate
+	}
+
+	double FmInWorld[6];
+
+	FT2World(target, FT_KAI, FmInWorld);
+
+	double dXpid[6] = { 0,0,0,0,0,0 };
+	const int motion = 1;
+	dXpid[motion] = 1 * (FmInWorld[motion] - (-5)) / 620000;
+	dXpid[3] = 0 * (FmInWorld[3]) / 2000;
+	dXpid[4] = 0 * (FmInWorld[4]) / 2000;
+	dXpid[5] = 0 * (FmInWorld[5]) / 2000;
+
+
+	static double radius = 0;
+	if (target.count < 10000)
+		radius = radius + 0.000003;
+	
+	double time = 1 * target.count / 1000.0;
+
+	dX[0] = radius * cos(time) / 1000.0;
+	dX[1] = -radius * sin(time) / 1000.0;
+	dX[2] = 0;
+
+	dX[3] = 0; dX[4] = 0; dX[5] = 0;
+
+
+
+	for (int j = 0; j < 6; j++)
+	{
+		if (dX[j] > 0.00025)
+			dX[j] = 0.00025;
+		if (dX[j] < -0.00025)
+			dX[j] = -0.00025;
+	}
+
+	// log 电流 //
+	auto &lout = controller->lout();
+	//lout << FT[0] << ",";lout << FT[1] << ",";
+	//lout << FT[2] << ",";lout << FT[3] << ",";
+	//lout << FT[4] << ",";lout << FT[5] << ",";
+
+	//lout << stateTor1[0][0] << ",";lout << stateTor1[1][0] << ",";
+	//lout << stateTor1[2][0] << ",";lout << stateTor1[3][0] << ",";
+	//lout << stateTor1[4][0] << ",";lout << stateTor1[5][0] << ",";
+
+	lout << dX[0] << ",";lout << dX[1] << ",";
+	lout << dX[2] << ",";lout << dX[3] << ",";
+	lout << dX[4] << ",";lout << dX[5] << ",";
+	lout << std::endl;
+
+
+
+	dX2dTheta(target, dX, dTheta);
+
+	for (int i = 0; i < 6; i++)
+	{
+		if (dTheta[i] > 0.003)
+			dTheta[i] = 0.003;
+		if (dTheta[i] < -0.003)
+			dTheta[i] = -0.003;
+		//lout << dTheta[i] << ",";
+	}
+
+
+	//lout << std::endl;
+	for (int i = 0; i < 6; i++)
+	{
+		dTheta[i] = dTheta[i] * DirectionFlag[i];
+
+	}
+
+	for (int i = 0; i < 6; i++)
+	{
+		step_pjs[i] = step_pjs[i] + dTheta[i];
+		target.model->motionPool().at(i).setMp(step_pjs[i]);
+	}
+
+
+	if (target.count % 300 == 0)
+	{
+
+		cout << FmInWorld[0] << "*" << FmInWorld[1] << "*" << FmInWorld[2] << "*" << step_pjs[3] << "*" << step_pjs[4] << "*" << FmInWorld[motion] << std::endl;
+		cout << std::endl;
+
+	}
+
+	for (int i = 0; i < 6; i++)
+	{
+
+		stateTor0[i][0] = stateTor1[i][0];
+		stateTor0[i][1] = stateTor1[i][1];
+		stateTor0[i][2] = stateTor1[i][2];
+
+	}
+
+	return 35000 - target.count;
+
+}
+
+auto MoveForceCircle::collectNrt(aris::plan::PlanTarget &target)->void
+{
+
+	ReSetLimit(target);
+
+}
+
+MoveForceCircle::MoveForceCircle(const std::string &name) :Plan(name)
+{
+
+	command().loadXmlStr(
+		"<Command name=\"mvForC\">"
+		"	<GroupParam>"
+		"       <Param name=\"PressF\" default=\"0\"/>"
+		"		<Param name=\"SensorType\"default=\"-20.0\"/>"
+		"   </GroupParam>"
+		"</Command>");
+
+}

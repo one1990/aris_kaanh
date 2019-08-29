@@ -158,6 +158,17 @@ public:
 	ARIS_REGISTER_TYPE(MoveForceXSine);
 };
 
+class MoveForceCircle : public aris::plan::Plan
+{
+public:
+	auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+	auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+	auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+
+	explicit MoveForceCircle(const std::string &name = "MoveForceCircle");
+	ARIS_REGISTER_TYPE(MoveForceCircle);
+};
+
 class MoveFeed : public aris::plan::Plan
 {
 public:
