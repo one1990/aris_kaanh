@@ -2286,14 +2286,16 @@ double p, v, a;
 		else if (pos_unit_found->second == "m")pos_unit = 1.0;
 		else if (pos_unit_found->second == "mm")pos_unit = 0.001;
 		else if (pos_unit_found->second == "cm")pos_unit = 0.01;
-		else THROW_FILE_LINE("");
+    else THROW_FILE_LINE("");
+
 
 		for (auto cmd_param : params)
 		{
 			if (cmd_param.first == "mid_pq")
 			{
 				auto pq_mat = target.model->calculator().calculateExpression(cmd_param.second);
-				if (pq_mat.size() != 7)THROW_FILE_LINE("");
+        if (pq_mat.size() != 7)THROW_FILE_LINE("");
+
 				aris::dynamic::s_vc(7, pq_mat.data(), mid_pq_out);
 				aris::dynamic::s_nv(3, pos_unit, mid_pq_out);
 				return true;
@@ -2301,6 +2303,7 @@ double p, v, a;
 			else if (cmd_param.first == "mid_pm")
 			{
 				auto pm_mat = target.model->calculator().calculateExpression(cmd_param.second);
+
 				if (pm_mat.size() != 16)THROW_FILE_LINE("");
 				aris::dynamic::s_pm2pq(pm_mat.data(), mid_pq_out);
 				aris::dynamic::s_nv(3, pos_unit, mid_pq_out);
@@ -7167,15 +7170,23 @@ double p, v, a;
 		plan_root->planPool().add<MoveFeed>();
 		plan_root->planPool().add<MovePressureToolYZ>();
 		plan_root->planPool().add<MovePressureToolXY>();
+		plan_root->planPool().add<MovePressureToolXLine>();
+		plan_root->planPool().add<MovePressureToolYLine>();
+		plan_root->planPool().add<MovePressureToolXSine>();
+		plan_root->planPool().add<MoveForceXSine>();
+		plan_root->planPool().add<MoveForceCircle>();
 		plan_root->planPool().add<GetForce>();
         plan_root->planPool().add<MoveSeriesGK>();
         plan_root->planPool().add<ForceDirect>();
 
 		//plan_root->planPool().add<GetError>();
 		plan_root->planPool().add<JointDyna>();
+		plan_root->planPool().add<JointDynaSave>();
 		plan_root->planPool().add<JointTest>();
 		plan_root->planPool().add<DragTeach>();
 		plan_root->planPool().add<LoadDyna>();
+		plan_root->planPool().add<LoadDynaSave0>();
+		plan_root->planPool().add<LoadDynaSave1>();
 		plan_root->planPool().add<SaveYYbase>();
 		plan_root->planPool().add<SaveFile>();	
 

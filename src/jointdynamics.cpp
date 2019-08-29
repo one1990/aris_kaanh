@@ -2816,7 +2816,7 @@ void jointdynamics::RLSYang(const double *positionL, const double *sensorL, doub
 				stateTor0[j][1] = stateTor1[j][1];
 				stateTor0[j][2] = stateTor1[j][2];
 			}
-			std::cout << i << std::endl;
+			//std::cout << i << std::endl;
 		}
 
 		std::vector<double> QwithFric_vec(RobotAxis * SampleNum * (JointGroupDim + 2 * RobotAxis));

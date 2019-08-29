@@ -24,6 +24,15 @@ public:
 	ARIS_REGISTER_TYPE(MoveDistal);
 };
 
+class MoveDistalSave : public aris::plan::Plan
+{
+public:
+	auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+
+	explicit MoveDistalSave(const std::string &name = "MoveDistalSave");
+	ARIS_REGISTER_TYPE(MoveDistalSave);
+};
+
 class DistalTest : public aris::plan::Plan
 {
 public:
@@ -53,7 +62,7 @@ class MoveJoint : public aris::plan::Plan
 public:
 	auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
 	auto virtual executeRT(aris::plan::PlanTarget &target)->int;
-	//auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+    auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
 
 	explicit MoveJoint(const std::string &name = "MoveJoint");
 	ARIS_REGISTER_TYPE(MoveJoint);
@@ -64,7 +73,7 @@ class ForceDirect : public aris::plan::Plan
 public:
 	auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
 	auto virtual executeRT(aris::plan::PlanTarget &target)->int;
-	//auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+    auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
 
 	explicit ForceDirect(const std::string &name = "ForceDirect");
 	ARIS_REGISTER_TYPE(ForceDirect);
@@ -99,13 +108,66 @@ class MovePressureToolXY : public aris::plan::Plan
 public:
 	auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
 	auto virtual executeRT(aris::plan::PlanTarget &target)->int;
-	//auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+    auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
 
 	explicit MovePressureToolXY(const std::string &name = "MovePressureToolXY");
 	ARIS_REGISTER_TYPE(MovePressureToolXY);
 };
 
+class MovePressureToolXLine : public aris::plan::Plan
+{
+public:
+    auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+    auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+    auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
 
+    explicit MovePressureToolXLine(const std::string &name = "MovePressureToolXLine");
+    ARIS_REGISTER_TYPE(MovePressureToolXLine);
+};
+
+class MovePressureToolYLine : public aris::plan::Plan
+{
+public:
+	auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+	auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+	auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+
+	explicit MovePressureToolYLine(const std::string &name = "MovePressureToolYLine");
+	ARIS_REGISTER_TYPE(MovePressureToolYLine);
+};
+
+class MovePressureToolXSine : public aris::plan::Plan
+{
+public:
+	auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+	auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+	auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+
+	explicit MovePressureToolXSine(const std::string &name = "MovePressureToolXSine");
+	ARIS_REGISTER_TYPE(MovePressureToolXSine);
+};
+
+class MoveForceXSine : public aris::plan::Plan
+{
+public:
+	auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+	auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+	auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+
+	explicit MoveForceXSine(const std::string &name = "MoveForceXSine");
+	ARIS_REGISTER_TYPE(MoveForceXSine);
+};
+
+class MoveForceCircle : public aris::plan::Plan
+{
+public:
+	auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+	auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+	auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+
+	explicit MoveForceCircle(const std::string &name = "MoveForceCircle");
+	ARIS_REGISTER_TYPE(MoveForceCircle);
+};
 
 class MoveFeed : public aris::plan::Plan
 {
