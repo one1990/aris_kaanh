@@ -56,9 +56,13 @@ int main(int argc, char *argv[])
     cs.resetController(kaanh::createControllerSanXiang().release());
     cs.resetModel(kaanh::createModelSanXiang().release());
     cs.resetPlanRoot(kaanh::createPlanRootRokaeXB4().release());
-	cs.interfacePool().add<aris::server::WebInterface>("", "5866");
-    cs.resetSensorRoot(new aris::sensor::SensorRoot);
-    cs.saveXmlFile(xmlpath.string().c_str());
+	cs.interfacePool().add<aris::server::WebInterface>("", "5866", aris::core::Socket::WEB);
+	cs.interfacePool().add<aris::server::WebInterface>("", "5867", aris::core::Socket::TCP);
+	cs.resetSensorRoot(new aris::sensor::SensorRoot);
+	cs.interfaceRoot().loadXmlFile(uixmlpath.string().c_str());
+	//cs.model().saveXmlFile(modelxmlpath.string().c_str());	//for new model
+	cs.model().loadXmlFile(modelxmlpath.string().c_str());
+	cs.saveXmlFile(xmlpath.string().c_str());
     //-------for sanxiang robot end//
     */
 
@@ -67,9 +71,13 @@ int main(int argc, char *argv[])
     cs.resetController(kaanh::createControllerDaye().release());
     cs.resetModel(kaanh::createModelDaye().release());
     cs.resetPlanRoot(kaanh::createPlanRootRokaeXB4().release());
-	cs.interfacePool().add<aris::server::WebInterface>("", "5866");
-    cs.resetSensorRoot(new aris::sensor::SensorRoot);
-    cs.saveXmlFile(xmlpath.string().c_str());
+	cs.interfacePool().add<aris::server::WebInterface>("", "5866", aris::core::Socket::WEB);
+	cs.interfacePool().add<aris::server::WebInterface>("", "5867", aris::core::Socket::TCP);
+	cs.resetSensorRoot(new aris::sensor::SensorRoot);
+	cs.interfaceRoot().loadXmlFile(uixmlpath.string().c_str());
+	//cs.model().saveXmlFile(modelxmlpath.string().c_str());	//for new model
+	cs.model().loadXmlFile(modelxmlpath.string().c_str());
+	cs.saveXmlFile(xmlpath.string().c_str());
     //-------for daye robot end//
 	*/
 
