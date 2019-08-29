@@ -3197,17 +3197,10 @@ double p, v, a;
 		{
 			param.increase_count = std::stoi(params.at("increase_count"));
 			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
-			/*
-			param.vel = std::stod(params.at("vel"));
-			param.acc = std::stod(params.at("acc"));
-			param.dec = std::stod(params.at("dec"));
-			*/
-			
-			param.vel = c->motionPool().at(0).maxVel()*g_vel.getspeed().w_percent;
-			param.acc = c->motionPool().at(0).maxAcc();
-			param.dec = c->motionPool().at(0).maxAcc();
-
-			std::cout << "param.vel:" << param.vel << std::endl;
+					
+			param.vel = c->motionPool().at(param.motion_id).maxVel()*g_vel.getspeed().w_percent;
+			param.acc = std::min(std::max(std::stod(params.at("acc")), 0.0), 1.0)*c->motionPool().at(param.motion_id).maxAcc();
+			param.dec = std::min(std::max(std::stod(params.at("dec")), 0.0), 1.0)*c->motionPool().at(param.motion_id).maxAcc();
 
 			auto velocity = std::stoi(params.at("vel_percent"));
 			velocity = std::max(std::min(100, velocity), 0);
@@ -3226,7 +3219,7 @@ double p, v, a;
 		else
 		{
             std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
-            target.mot_options[0] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
+            target.mot_options[param.motion_id] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
 		}
 		target.param = param;
 	}
@@ -3325,9 +3318,9 @@ double p, v, a;
 			"<Command name=\"j1\">"
 			"	<GroupParam>"
             "		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
-			"		<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"
-			"		<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"
+			"		<Param name=\"vel\" default=\"0.5\" abbreviation=\"v\"/>"
+			"		<Param name=\"acc\" default=\"0.5\" abbreviation=\"a\"/>"
+			"		<Param name=\"dec\" default=\"0.5\" abbreviation=\"d\"/>"
 			"		<Param name=\"vel_percent\" default=\"10\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
 			"	</GroupParam>"
@@ -3360,9 +3353,9 @@ double p, v, a;
 			param.increase_count = std::stoi(params.at("increase_count"));
 			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
 
-			param.vel = c->motionPool().at(1).maxVel()*g_vel.getspeed().w_percent;
-			param.acc = c->motionPool().at(1).maxAcc();
-			param.dec = c->motionPool().at(1).maxAcc();
+			param.vel = c->motionPool().at(param.motion_id).maxVel()*g_vel.getspeed().w_percent;
+			param.acc = std::min(std::max(std::stod(params.at("acc")), 0.0), 1.0)*c->motionPool().at(param.motion_id).maxAcc();
+			param.dec = std::min(std::max(std::stod(params.at("dec")), 0.0), 1.0)*c->motionPool().at(param.motion_id).maxAcc();
 
 			auto velocity = std::stoi(params.at("vel_percent"));
 			velocity = std::max(std::min(100, velocity), 0);
@@ -3381,7 +3374,7 @@ double p, v, a;
 		else
 		{
 			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
-            target.mot_options[1] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
+            target.mot_options[param.motion_id] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
 		}
 		target.param = param;
 	}
@@ -3480,9 +3473,9 @@ double p, v, a;
 			"<Command name=\"j2\">"
 			"	<GroupParam>"
             "		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
-			"		<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"
-			"		<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"
+			"		<Param name=\"vel\" default=\"0.5\" abbreviation=\"v\"/>"
+			"		<Param name=\"acc\" default=\"0.5\" abbreviation=\"a\"/>"
+			"		<Param name=\"dec\" default=\"0.5\" abbreviation=\"d\"/>"
 			"		<Param name=\"vel_percent\" default=\"10\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
 			"	</GroupParam>"
@@ -3515,9 +3508,9 @@ double p, v, a;
 			param.increase_count = std::stoi(params.at("increase_count"));
 			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
 
-			param.vel = c->motionPool().at(2).maxVel()*g_vel.getspeed().w_percent;
-			param.acc = c->motionPool().at(2).maxAcc();
-			param.dec = c->motionPool().at(2).maxAcc();
+			param.vel = c->motionPool().at(param.motion_id).maxVel()*g_vel.getspeed().w_percent;
+			param.acc = std::min(std::max(std::stod(params.at("acc")), 0.0), 1.0)*c->motionPool().at(param.motion_id).maxAcc();
+			param.dec = std::min(std::max(std::stod(params.at("dec")), 0.0), 1.0)*c->motionPool().at(param.motion_id).maxAcc();
 
 			auto velocity = std::stoi(params.at("vel_percent"));
 			velocity = std::max(std::min(100, velocity), 0);
@@ -3536,7 +3529,7 @@ double p, v, a;
 		else
 		{
 			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
-            target.mot_options[2] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
+            target.mot_options[param.motion_id] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
 		}
 		target.param = param;
 	}
@@ -3635,9 +3628,9 @@ double p, v, a;
 			"<Command name=\"j3\">"
 			"	<GroupParam>"
             "		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
-			"		<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"
-			"		<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"
+			"		<Param name=\"vel\" default=\"0.5\" abbreviation=\"v\"/>"
+			"		<Param name=\"acc\" default=\"0.5\" abbreviation=\"a\"/>"
+			"		<Param name=\"dec\" default=\"0.5\" abbreviation=\"d\"/>"
 			"		<Param name=\"vel_percent\" default=\"10\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
 			"	</GroupParam>"
@@ -3670,9 +3663,9 @@ double p, v, a;
 			param.increase_count = std::stoi(params.at("increase_count"));
 			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
 
-			param.vel = c->motionPool().at(3).maxVel()*g_vel.getspeed().w_percent;
-			param.acc = c->motionPool().at(3).maxAcc();
-			param.dec = c->motionPool().at(3).maxAcc();
+			param.vel = c->motionPool().at(param.motion_id).maxVel()*g_vel.getspeed().w_percent;
+			param.acc = std::min(std::max(std::stod(params.at("acc")), 0.0), 1.0)*c->motionPool().at(param.motion_id).maxAcc();
+			param.dec = std::min(std::max(std::stod(params.at("dec")), 0.0), 1.0)*c->motionPool().at(param.motion_id).maxAcc();
 
 			auto velocity = std::stoi(params.at("vel_percent"));
 			velocity = std::max(std::min(100, velocity), 0);
@@ -3691,7 +3684,7 @@ double p, v, a;
 		else
 		{
 			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
-            target.mot_options[3] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
+            target.mot_options[param.motion_id] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
 		}
 		target.param = param;
 	}
@@ -3790,9 +3783,9 @@ double p, v, a;
 			"<Command name=\"j4\">"
 			"	<GroupParam>"
             "		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
-			"		<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"
-			"		<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"
+			"		<Param name=\"vel\" default=\"0.5\" abbreviation=\"v\"/>"
+			"		<Param name=\"acc\" default=\"0.5\" abbreviation=\"a\"/>"
+			"		<Param name=\"dec\" default=\"0.5\" abbreviation=\"d\"/>"
 			"		<Param name=\"vel_percent\" default=\"10\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
 			"	</GroupParam>"
@@ -3825,9 +3818,9 @@ double p, v, a;
 			param.increase_count = std::stoi(params.at("increase_count"));
 			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
 
-			param.vel = c->motionPool().at(4).maxVel()*g_vel.getspeed().w_percent;
-			param.acc = c->motionPool().at(4).maxAcc();
-			param.dec = c->motionPool().at(4).maxAcc();
+			param.vel = c->motionPool().at(param.motion_id).maxVel()*g_vel.getspeed().w_percent;
+			param.acc = std::min(std::max(std::stod(params.at("acc")), 0.0), 1.0)*c->motionPool().at(param.motion_id).maxAcc();
+			param.dec = std::min(std::max(std::stod(params.at("dec")), 0.0), 1.0)*c->motionPool().at(param.motion_id).maxAcc();
 
 			auto velocity = std::stoi(params.at("vel_percent"));
 			velocity = std::max(std::min(100, velocity), 0);
@@ -3846,7 +3839,7 @@ double p, v, a;
 		else
 		{
 			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
-            target.mot_options[4] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
+            target.mot_options[param.motion_id] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
 		}
 		target.param = param;
 	}
@@ -3945,9 +3938,9 @@ double p, v, a;
 			"<Command name=\"j5\">"
 			"	<GroupParam>"
             "		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
-			"		<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"
-			"		<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"
+			"		<Param name=\"vel\" default=\"0.5\" abbreviation=\"v\"/>"
+			"		<Param name=\"acc\" default=\"0.5\" abbreviation=\"a\"/>"
+			"		<Param name=\"dec\" default=\"0.5\" abbreviation=\"d\"/>"
 			"		<Param name=\"vel_percent\" default=\"10\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
 			"	</GroupParam>"
@@ -3980,9 +3973,9 @@ double p, v, a;
 			param.increase_count = std::stoi(params.at("increase_count"));
 			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
 
-			param.vel = c->motionPool().at(5).maxVel()*g_vel.getspeed().w_percent;
-			param.acc = c->motionPool().at(5).maxAcc();
-			param.dec = c->motionPool().at(5).maxAcc();
+			param.vel = c->motionPool().at(param.motion_id).maxVel()*g_vel.getspeed().w_percent;
+			param.acc = std::min(std::max(std::stod(params.at("acc")), 0.0), 1.0)*c->motionPool().at(param.motion_id).maxAcc();
+			param.dec = std::min(std::max(std::stod(params.at("dec")), 0.0), 1.0)*c->motionPool().at(param.motion_id).maxAcc();
 
 			auto velocity = std::stoi(params.at("vel_percent"));
 			velocity = std::max(std::min(100, velocity), 0);
@@ -4001,7 +3994,7 @@ double p, v, a;
 		else
 		{
 			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
-            target.mot_options[5] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
+            target.mot_options[param.motion_id] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
 		}
 		target.param = param;
 	}
@@ -4100,9 +4093,9 @@ double p, v, a;
 			"<Command name=\"j6\">"
 			"	<GroupParam>"
             "		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
-			"		<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"
-			"		<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"
+			"		<Param name=\"vel\" default=\"0.5\" abbreviation=\"v\"/>"
+			"		<Param name=\"acc\" default=\"0.5\" abbreviation=\"a\"/>"
+			"		<Param name=\"dec\" default=\"0.5\" abbreviation=\"d\"/>"
 			"		<Param name=\"vel_percent\" default=\"10\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
 			"	</GroupParam>"
@@ -4315,9 +4308,9 @@ double p, v, a;
 			"<Command name=\"jx\">"
 			"	<GroupParam>"
 			"		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"{0.05,0.05,0.05,0.25,0.25,0.25}\"/>"
-			"		<Param name=\"acc\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
-			"		<Param name=\"dec\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
+			"		<Param name=\"vel\" default=\"{0.2,0.2,0.2,0.25,0.25,0.25}\"/>"
+			"		<Param name=\"acc\" default=\"{1,1,1,1,1,1}\"/>"
+			"		<Param name=\"dec\" default=\"{1,1,1,1,1,1}\"/>"
 			"		<Param name=\"cor\" default=\"0\"/>"
 			"		<Param name=\"vel_percent\" default=\"20\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
@@ -4520,9 +4513,9 @@ double p, v, a;
 			"<Command name=\"jy\">"
 			"	<GroupParam>"
 			"		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"{0.05,0.05,0.05,0.25,0.25,0.25}\"/>"
-			"		<Param name=\"acc\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
-			"		<Param name=\"dec\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
+			"		<Param name=\"vel\" default=\"{0.2,0.2,0.2,0.25,0.25,0.25}\"/>"
+			"		<Param name=\"acc\" default=\"{1,1,1,1,1,1}\"/>"
+			"		<Param name=\"dec\" default=\"{1,1,1,1,1,1}\"/>"
 			"		<Param name=\"cor\" default=\"0\"/>"
 			"		<Param name=\"vel_percent\" default=\"20\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
@@ -4725,9 +4718,9 @@ double p, v, a;
 			"<Command name=\"jz\">"
 			"	<GroupParam>"
 			"		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"{0.05,0.05,0.05,0.25,0.25,0.25}\"/>"
-			"		<Param name=\"acc\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
-			"		<Param name=\"dec\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
+			"		<Param name=\"vel\" default=\"{0.2,0.2,0.2,0.25,0.25,0.25}\"/>"
+			"		<Param name=\"acc\" default=\"{1,1,1,1,1,1}\"/>"
+			"		<Param name=\"dec\" default=\"{1,1,1,1,1,1}\"/>"
 			"		<Param name=\"cor\" default=\"0\"/>"
 			"		<Param name=\"vel_percent\" default=\"20\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
@@ -4930,9 +4923,9 @@ double p, v, a;
 			"<Command name=\"jrx\">"
 			"	<GroupParam>"
 			"		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"{0.05,0.05,0.05,0.25,0.25,0.25}\"/>"
-			"		<Param name=\"acc\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
-			"		<Param name=\"dec\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
+			"		<Param name=\"vel\" default=\"{0.2,0.2,0.2,0.25,0.25,0.25}\"/>"
+			"		<Param name=\"acc\" default=\"{1,1,1,1,1,1}\"/>"
+			"		<Param name=\"dec\" default=\"{1,1,1,1,1,1}\"/>"
 			"		<Param name=\"cor\" default=\"0\"/>"
 			"		<Param name=\"vel_percent\" default=\"20\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
@@ -5142,9 +5135,9 @@ double p, v, a;
 			"<Command name=\"jry\">"
 			"	<GroupParam>"
 			"		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"{0.05,0.05,0.05,0.25,0.25,0.25}\"/>"
-			"		<Param name=\"acc\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
-			"		<Param name=\"dec\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
+			"		<Param name=\"vel\" default=\"{0.2,0.2,0.2,0.25,0.25,0.25}\"/>"
+			"		<Param name=\"acc\" default=\"{1,1,1,1,1,1}\"/>"
+			"		<Param name=\"dec\" default=\"{1,1,1,1,1,1}\"/>"
 			"		<Param name=\"cor\" default=\"0\"/>"
 			"		<Param name=\"vel_percent\" default=\"20\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
@@ -5347,9 +5340,9 @@ double p, v, a;
 			"<Command name=\"jrz\">"
 			"	<GroupParam>"
 			"		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"{0.05,0.05,0.05,0.25,0.25,0.25}\"/>"
-			"		<Param name=\"acc\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
-			"		<Param name=\"dec\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
+			"		<Param name=\"vel\" default=\"{0.2,0.2,0.2,0.25,0.25,0.25}\"/>"
+			"		<Param name=\"acc\" default=\"{1,1,1,1,1,1}\"/>"
+			"		<Param name=\"dec\" default=\"{1,1,1,1,1,1}\"/>"
 			"		<Param name=\"cor\" default=\"0\"/>"
 			"		<Param name=\"vel_percent\" default=\"20\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
