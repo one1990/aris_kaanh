@@ -5225,7 +5225,7 @@ auto MoveForceXSine::executeRT(PlanTarget &target)->int
 	}
 
 
-	SecondOrderFilter(FT, stateTor0, stateTor1, 80);
+    SecondOrderFilter(FT, stateTor0, stateTor1, 80);
 
 
 	double FT_KAI[6];
@@ -5248,8 +5248,8 @@ auto MoveForceXSine::executeRT(PlanTarget &target)->int
 	FT2World(target, FT_KAI, FmInWorld);
 
 	double dXpid[6] = { 0,0,0,0,0,0 };
-	const int motion = 2;
-	dXpid[motion] = 1 * (FmInWorld[motion] - (5)) / 320000;
+    const int motion = 1;
+    dXpid[motion] = 1 * (FmInWorld[motion] - (-5)) / 620000;
 	dXpid[3] = 0 * (FmInWorld[3]) / 2000;
 	dXpid[4] = 0 * (FmInWorld[4]) / 2000;
 	dXpid[5] = 0 * (FmInWorld[5]) / 2000;
@@ -5260,8 +5260,9 @@ auto MoveForceXSine::executeRT(PlanTarget &target)->int
 		amp = amp + 0.000003;
 
 	dX[0] = amp*sin(2 * aris::PI / 4 * target.count / 1000.0) / 1000.0;
-	dX[1] = 0;
-	dX[2] = dXpid[2];
+    dX[1] = dXpid[1];
+    dX[2] = dXpid[2];
+
 	dX[3] = 0; dX[4] = 0; dX[5] = 0;
 
 
@@ -5320,7 +5321,7 @@ auto MoveForceXSine::executeRT(PlanTarget &target)->int
 	if (target.count % 300 == 0)
 	{
 
-		cout << FmInWorld[0] << "*" << FmInWorld[1] << "*" << FmInWorld[2] << "*" << step_pjs[3] << "*" << step_pjs[4] << "*" << FT_KAI[2] << std::endl;
+        cout << FmInWorld[0] << "*" << FmInWorld[1] << "*" << FmInWorld[2] << "*" << step_pjs[3] << "*" << step_pjs[4] << "*" << FmInWorld[motion] << std::endl;
 		cout << std::endl;
 
 	}
