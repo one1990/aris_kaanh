@@ -1,4 +1,4 @@
-    <Model name="model" time="0">
+	<Model name="model" time="0">
         <Environment name="environment" gravity="{0,0,-9.8,0,0,0}"/>
         <VariablePoolElement name="variable_pool"/>
         <PartPoolElement name="part_pool">
@@ -32,7 +32,7 @@
             <Part name="L3" active="true" pe="{0,0,0,-0,0,-0}" vel="{0,0,0,0,0,0}" acc="{0,0,0,0,0,0}" inertia="{1,0,0,0,0,0,0,0,0,0}">
                 <MarkerPoolElement name="marker_pool">
                     <Marker name="joint_2_i" active="true" pe="{0.22,0,1.616,3.14159265358979,1.5707963267949,4.71238898038469}"/>
-                    <Marker name="joint_3_j" active="true" pe="{1.08,0,1.616,1.5707963267949,1.5707963267949,1.5707963267949}"/>
+                    <Marker name="joint_3_j" active="true" pe="{1.23,0,1.616,1.5707963267949,1.5707963267949,1.5707963267949}"/>
                 </MarkerPoolElement>
                 <GeometryPoolElement name="geometry_pool">
                     <FileGeometry name="test" pe="{0,0,0,-0,0,-0}" graphic_file_path="/RobotGallery/Qifan/MR16/l3.data"/>
@@ -40,8 +40,8 @@
             </Part>
             <Part name="L4" active="true" pe="{0,0,0,-0,0,-0}" vel="{0,0,0,0,0,0}" acc="{0,0,0,0,0,0}" inertia="{1,0,0,0,0,0,0,0,0,0}">
                 <MarkerPoolElement name="marker_pool">
-                    <Marker name="joint_3_i" active="true" pe="{1.08,0,1.616,1.5707963267949,1.5707963267949,1.5707963267949}"/>
-                    <Marker name="joint_4_j" active="true" pe="{1.08,0,1.616,3.14159265358979,1.5707963267949,4.71238898038469}"/>
+                    <Marker name="joint_3_i" active="true" pe="{1.23,0,1.616,1.5707963267949,1.5707963267949,1.5707963267949}"/>
+                    <Marker name="joint_4_j" active="true" pe="{1.23,0,1.616,3.14159265358979,1.5707963267949,4.71238898038469}"/>
                 </MarkerPoolElement>
                 <GeometryPoolElement name="geometry_pool">
                     <FileGeometry name="test" pe="{0,0,0,-0,0,-0}" graphic_file_path="/RobotGallery/Qifan/MR16/l4.data"/>
@@ -49,8 +49,8 @@
             </Part>
             <Part name="L5" active="true" pe="{0,0,0,-0,0,-0}" vel="{0,0,0,0,0,0}" acc="{0,0,0,0,0,0}" inertia="{1,0,0,0,0,0,0,0,0,0}">
                 <MarkerPoolElement name="marker_pool">
-                    <Marker name="joint_4_i" active="true" pe="{1.08,0,1.616,3.14159265358979,1.5707963267949,4.71238898038469}"/>
-                    <Marker name="joint_5_j" active="true" pe="{1.08,0,1.616,1.5707963267949,1.5707963267949,1.5707963267949}"/>
+                    <Marker name="joint_4_i" active="true" pe="{1.23,0,1.616,3.14159265358979,1.5707963267949,4.71238898038469}"/>
+                    <Marker name="joint_5_j" active="true" pe="{1.23,0,1.616,1.5707963267949,1.5707963267949,1.5707963267949}"/>
                 </MarkerPoolElement>
                 <GeometryPoolElement name="geometry_pool">
                     <FileGeometry name="test" pe="{0,0,0,-0,0,-0}" graphic_file_path="/RobotGallery/Qifan/MR16/l5.data"/>
@@ -58,8 +58,8 @@
             </Part>
             <Part name="L6" active="true" pe="{0,0,0,-0,0,-0}" vel="{0,0,0,0,0,0}" acc="{0,0,0,0,0,0}" inertia="{1,0,0,0,0,0,0,0,0,0}">
                 <MarkerPoolElement name="marker_pool">
-                    <Marker name="joint_5_i" active="true" pe="{1.08,0,1.616,1.5707963267949,1.5707963267949,1.5707963267949}"/>
-                    <Marker name="ee_makI" active="true" pe="{1.233,0,1.616,1.5707963267949,1.5707963267949,4.71238898038469}"/>
+                    <Marker name="joint_5_i" active="true" pe="{1.23,0,1.616,1.5707963267949,1.5707963267949,1.5707963267949}"/>
+                    <Marker name="ee_makI" active="true" pe="{1.383,0,1.616,1.5707963267949,1.5707963267949,4.71238898038469}"/>
                 </MarkerPoolElement>
                 <GeometryPoolElement name="geometry_pool">
                     <FileGeometry name="test" pe="{0,0,0,-0,0,-0}" graphic_file_path="/RobotGallery/Qifan/MR16/l6.data"/>

@@ -733,20 +733,56 @@
     <Model name="model" time="0">
         <Environment name="environment" gravity="{0,0,-9.8,0,0,0}"/>
         <VariablePoolElement name="variable_pool">
-            <MatrixVariable name="Tool[0]_Pose">{0,0,0,0,0,0}</MatrixVariable>
-            <StringVariable name="Tool[0]_Name">Tool_ee</StringVariable>
-            <MatrixVariable name="Tool[1]_Pose">{119.5,0,352,89.8,0.16,144.3}</MatrixVariable>
-            <MatrixVariable name="Tool[2]_Pose">{100,0,200,0,90,0}</MatrixVariable>
-            <MatrixVariable name="AxisZeroValue">{-0.1,-0.1,5,5,20,20}</MatrixVariable>
-            <MatrixVariable name="Tool[1]_AxisOffset">{0.1,0.1,0.1,0.1,0.1,0.1}</MatrixVariable>
-            <MatrixVariable name="Tool[2]_AxisOffset">{0.1,0.2,0.3,0.4,0.5,0.6}</MatrixVariable>
-            
+            <MatrixVariable name="v5">{0.01,0.005,3.49065850398866,0,0}</MatrixVariable>
+            <MatrixVariable name="v10">{0.03,0.01,3.49065850398866,0,0}</MatrixVariable>
+            <MatrixVariable name="v25">{0.05,0.025,3.49065850398866,0,0}</MatrixVariable>
+            <MatrixVariable name="v30">{0.05,0.03,3.49065850398866,0,0}</MatrixVariable>
+            <MatrixVariable name="v40">{0.05,0.04,3.49065850398866,0,0}</MatrixVariable>
+            <MatrixVariable name="v50">{0.08,0.05,3.49065850398866,0,0}</MatrixVariable>
+            <MatrixVariable name="v60">{0.08,0.06,3.49065850398866,0,0}</MatrixVariable>
+            <MatrixVariable name="v80">{0.08,0.08,3.49065850398866,0,0}</MatrixVariable>
+            <MatrixVariable name="v100">{0.1,0.1,3.49065850398866,0,0}</MatrixVariable>
+            <MatrixVariable name="v150">{0.15,0.15,3.49065850398866,0,0}</MatrixVariable>
+            <MatrixVariable name="v200">{0.2,0.2,3.49065850398866,0,0}</MatrixVariable>
+            <MatrixVariable name="v300">{0.3,0.3,3.49065850398866,0,0}</MatrixVariable>
         </VariablePoolElement>
         <PartPoolElement name="part_pool">
             <Part name="ground" active="true" pe="{0,0,0,-0,0,-0}" vel="{0,0,0,0,0,0}" acc="{0,0,0,0,0,0}" inertia="{1,0,0,0,1,1,1,0,0,0}">
                 <MarkerPoolElement name="marker_pool">
                     <Marker name="joint_0_j" active="true" pe="{0,0,0.3295,0.785398163397448,0,0.785398163397448}"/>
-                    <Marker name="ee_makJ" active="true" pe="{0,0,0,-0,0,-0}"/>
+                    <Marker name="wobj0" active="true" pe="{0,0,0,-0,0,-0}"/>
+                    <Marker name="wobj1" active="true" pe="{0,0,0,-0,0,-0}"/>
+                    <Marker name="wobj2" active="true" pe="{0,0,0,-0,0,-0}"/>
+                    <Marker name="wobj3" active="true" pe="{0,0,0,-0,0,-0}"/>
+                    <Marker name="wobj4" active="true" pe="{0,0,0,-0,0,-0}"/>
+                    <Marker name="wobj5" active="true" pe="{0,0,0,-0,0,-0}"/>
+                    <Marker name="wobj6" active="true" pe="{0,0,0,-0,0,-0}"/>
+                    <Marker name="wobj7" active="true" pe="{0,0,0,-0,0,-0}"/>
+                    <Marker name="wobj8" active="true" pe="{0,0,0,-0,0,-0}"/>
+                    <Marker name="wobj9" active="true" pe="{0,0,0,-0,0,-0}"/>
+                    <Marker name="wobj10" active="true" pe="{0,0,0,-0,0,-0}"/>
+                    <Marker name="wobj11" active="true" pe="{0,0,0,-0,0,-0}"/>
+                    <Marker name="wobj12" active="true" pe="{0,0,0,-0,0,-0}"/>
+                    <Marker name="wobj13" active="true" pe="{0,0,0,-0,0,-0}"/>
+                    <Marker name="wobj14" active="true" pe="{0,0,0,-0,0,-0}"/>
+                    <Marker name="wobj15" active="true" pe="{0,0,0,-0,0,-0}"/>
+                    <Marker name="wobj16" active="true" pe="{0,0,0,-0,0,-0}"/>
+                    <Marker name="wobj17" active="true" pe="{0,0,0,-0,0,-0}"/>
+                    <Marker name="wobj18" active="true" pe="{0,0,0,-0,0,-0}"/>
+                    <Marker name="wobj19" active="true" pe="{0,0,0,-0,0,-0}"/>
+                    <Marker name="wobj20" active="true" pe="{0,0,0,-0,0,-0}"/>
+                    <Marker name="wobj21" active="true" pe="{0,0,0,-0,0,-0}"/>
+                    <Marker name="wobj22" active="true" pe="{0,0,0,-0,0,-0}"/>
+                    <Marker name="wobj23" active="true" pe="{0,0,0,-0,0,-0}"/>
+                    <Marker name="wobj24" active="true" pe="{0,0,0,-0,0,-0}"/>
+                    <Marker name="wobj25" active="true" pe="{0,0,0,-0,0,-0}"/>
+                    <Marker name="wobj26" active="true" pe="{0,0,0,-0,0,-0}"/>
+                    <Marker name="wobj27" active="true" pe="{0,0,0,-0,0,-0}"/>
+                    <Marker name="wobj28" active="true" pe="{0,0,0,-0,0,-0}"/>
+                    <Marker name="wobj29" active="true" pe="{0,0,0,-0,0,-0}"/>
+                    <Marker name="wobj30" active="true" pe="{0,0,0,-0,0,-0}"/>
+                    <Marker name="wobj31" active="true" pe="{0,0,0,-0,0,-0}"/>
+                    <Marker name="wobj32" active="true" pe="{0,0,0,-0,0,-0}"/>
                 </MarkerPoolElement>
                 <GeometryPoolElement name="geometry_pool">
                     <FileGeometry name="test" pe="{0,0,0,-0,0,-0}" graphic_file_path="/RobotGallery/Rokae/XB4/l0.data"/>
@@ -800,7 +836,23 @@
             <Part name="L6" active="true" pe="{0,0,0,-0,0,-0}" vel="{0,0,0,0,0,0}" acc="{0,0,0,0,0,0}" inertia="{0,0,0.00066049870832,0.00012563800445,-0.00085124094833,0.04209529937135,0.04102481443654,-0.00067596644891,0.00017482449876,-0.00041025776053}">
                 <MarkerPoolElement name="marker_pool">
                     <Marker name="joint_5_i" active="true" pe="{0.32,0,0.6295,1.5707963267949,1.5707963267949,1.5707963267949}"/>
-                    <Marker name="ee_makI" active="true" pe="{0.398,0,0.6295,1.5707963267949,1.5707963267949,4.71238898038469}"/>
+                    <Marker name="tool0" active="true" pe="{0.398,0,0.6295,1.5707963267949,1.5707963267949,4.71238898038469}"/>
+                    <Marker name="tool1" active="true" pe="{0.398,0,0.6295,1.5707963267949,1.5707963267949,4.71238898038469}"/>
+                    <Marker name="tool2" active="true" pe="{0.398,0,0.6295,1.5707963267949,1.5707963267949,4.71238898038469}"/>
+                    <Marker name="tool3" active="true" pe="{0.398,0,0.6295,1.5707963267949,1.5707963267949,4.71238898038469}"/>
+                    <Marker name="tool4" active="true" pe="{0.398,0,0.6295,1.5707963267949,1.5707963267949,4.71238898038469}"/>
+                    <Marker name="tool5" active="true" pe="{0.398,0,0.6295,1.5707963267949,1.5707963267949,4.71238898038469}"/>
+                    <Marker name="tool6" active="true" pe="{0.398,0,0.6295,1.5707963267949,1.5707963267949,4.71238898038469}"/>
+                    <Marker name="tool7" active="true" pe="{0.398,0,0.6295,1.5707963267949,1.5707963267949,4.71238898038469}"/>
+                    <Marker name="tool8" active="true" pe="{0.398,0,0.6295,1.5707963267949,1.5707963267949,4.71238898038469}"/>
+                    <Marker name="tool9" active="true" pe="{0.398,0,0.6295,1.5707963267949,1.5707963267949,4.71238898038469}"/>
+                    <Marker name="tool10" active="true" pe="{0.398,0,0.6295,1.5707963267949,1.5707963267949,4.71238898038469}"/>
+                    <Marker name="tool11" active="true" pe="{0.398,0,0.6295,1.5707963267949,1.5707963267949,4.71238898038469}"/>
+                    <Marker name="tool12" active="true" pe="{0.398,0,0.6295,1.5707963267949,1.5707963267949,4.71238898038469}"/>
+                    <Marker name="tool13" active="true" pe="{0.398,0,0.6295,1.5707963267949,1.5707963267949,4.71238898038469}"/>
+                    <Marker name="tool14" active="true" pe="{0.398,0,0.6295,1.5707963267949,1.5707963267949,4.71238898038469}"/>
+                    <Marker name="tool15" active="true" pe="{0.398,0,0.6295,1.5707963267949,1.5707963267949,4.71238898038469}"/>
+                    <Marker name="tool16" active="true" pe="{0.398,0,0.6295,1.5707963267949,1.5707963267949,4.71238898038469}"/>
                 </MarkerPoolElement>
                 <GeometryPoolElement name="geometry_pool">
                     <FileGeometry name="test" pe="{0,0,0,-0,0,-0}" graphic_file_path="/RobotGallery/Rokae/XB4/l6.data"/>
@@ -824,7 +876,7 @@
             <Motion name="motion_5" active="true" prt_m="L6" prt_n="L5" mak_i="joint_5_i" mak_j="joint_5_j" cf="{0}" frc_coe="{1.78373986219597,0.31920640440152,0.03381545544099}" component="5" mp="0" mv="0" ma="0"/>
         </MotionPoolElement>
         <GeneralMotionPoolElement name="general_motion_pool">
-            <GeneralMotion name="ee" active="false" prt_m="L6" prt_n="ground" mak_i="ee_makI" mak_j="ee_makJ" cf="{0,0,0,0,0,0}"/>
+            <GeneralMotion name="ee" active="false" prt_m="L6" prt_n="ground" mak_i="tool0" mak_j="wobj0" cf="{0,0,0,0,0,0}"/>
         </GeneralMotionPoolElement>
         <ForcePoolElement name="force_pool"/>
         <SolverPoolElement name="solver_pool">
@@ -1143,7 +1195,7 @@
             <Reset name="reset_plan">
                 <Command name="rs">
                     <GroupParam>
-                        <Param name="pos" default="{0.5,0.353,0.5,0.5,0.5,0.5}"/>
+                        <Param name="pos" default="{0.5,0.3925,0.7899,0.5,0.5,0.5}"/>
                         <Param name="acc" default="0.1"/>
                         <Param name="vel" default="0.1"/>
                         <Param name="dec" default="0.1"/>
@@ -1827,8 +1879,8 @@
                     <GroupParam>
                         <Param name="increase_count" default="100"/>
                         <Param name="vel" default="{0.05,0.05,0.05,0.25,0.25,0.25}"/>
-                        <Param name="acc" default="{0.2,0.2,0.2,1,1,1}"/>
-                        <Param name="dec" default="{0.2,0.2,0.2,1,1,1}"/>
+                        <Param name="acc" default="{0.2,0.2,0.2,3,3,3}"/>
+                        <Param name="dec" default="{0.2,0.2,0.2,3,3,3}"/>
                         <Param name="cor" default="0"/>
                         <Param name="vel_percent" default="20"/>
                         <Param name="direction" default="1"/>
@@ -1840,8 +1892,8 @@
                     <GroupParam>
                         <Param name="increase_count" default="100"/>
                         <Param name="vel" default="{0.05,0.05,0.05,0.25,0.25,0.25}"/>
-                        <Param name="acc" default="{0.2,0.2,0.2,1,1,1}"/>
-                        <Param name="dec" default="{0.2,0.2,0.2,1,1,1}"/>
+                        <Param name="acc" default="{0.2,0.2,0.2,3,3,3}"/>
+                        <Param name="dec" default="{0.2,0.2,0.2,3,3,3}"/>
                         <Param name="cor" default="0"/>
                         <Param name="vel_percent" default="20"/>
                         <Param name="direction" default="1"/>
@@ -1853,8 +1905,8 @@
                     <GroupParam>
                         <Param name="increase_count" default="100"/>
                         <Param name="vel" default="{0.05,0.05,0.05,0.25,0.25,0.25}"/>
-                        <Param name="acc" default="{0.2,0.2,0.2,1,1,1}"/>
-                        <Param name="dec" default="{0.2,0.2,0.2,1,1,1}"/>
+                        <Param name="acc" default="{0.2,0.2,0.2,3,3,3}"/>
+                        <Param name="dec" default="{0.2,0.2,0.2,3,3,3}"/>
                         <Param name="cor" default="0"/>
                         <Param name="vel_percent" default="20"/>
                         <Param name="direction" default="1"/>
@@ -1866,8 +1918,8 @@
                     <GroupParam>
                         <Param name="increase_count" default="100"/>
                         <Param name="vel" default="{0.05,0.05,0.05,0.25,0.25,0.25}"/>
-                        <Param name="acc" default="{0.2,0.2,0.2,1,1,1}"/>
-                        <Param name="dec" default="{0.2,0.2,0.2,1,1,1}"/>
+                        <Param name="acc" default="{0.2,0.2,0.2,3,3,3}"/>
+                        <Param name="dec" default="{0.2,0.2,0.2,3,3,3}"/>
                         <Param name="cor" default="0"/>
                         <Param name="vel_percent" default="20"/>
                         <Param name="direction" default="1"/>
@@ -1879,8 +1931,8 @@
                     <GroupParam>
                         <Param name="increase_count" default="100"/>
                         <Param name="vel" default="{0.05,0.05,0.05,0.25,0.25,0.25}"/>
-                        <Param name="acc" default="{0.2,0.2,0.2,1,1,1}"/>
-                        <Param name="dec" default="{0.2,0.2,0.2,1,1,1}"/>
+                        <Param name="acc" default="{0.2,0.2,0.2,3,3,3}"/>
+                        <Param name="dec" default="{0.2,0.2,0.2,3,3,3}"/>
                         <Param name="cor" default="0"/>
                         <Param name="vel_percent" default="20"/>
                         <Param name="direction" default="1"/>
@@ -1892,8 +1944,8 @@
                     <GroupParam>
                         <Param name="increase_count" default="100"/>
                         <Param name="vel" default="{0.05,0.05,0.05,0.25,0.25,0.25}"/>
-                        <Param name="acc" default="{0.2,0.2,0.2,1,1,1}"/>
-                        <Param name="dec" default="{0.2,0.2,0.2,1,1,1}"/>
+                        <Param name="acc" default="{0.2,0.2,0.2,3,3,3}"/>
+                        <Param name="dec" default="{0.2,0.2,0.2,3,3,3}"/>
                         <Param name="cor" default="0"/>
                         <Param name="vel_percent" default="20"/>
                         <Param name="direction" default="1"/>
@@ -1963,7 +2015,7 @@
                 </Command>
             </SetCon>
             <SetDH name="SetDH_plan">
-                <Command name="setDH">
+                <Command name="setdh">
                     <GroupParam>
                         <UniqueParam>
                             <GroupParam name="start_group">
@@ -1988,7 +2040,7 @@
                 </Command>
             </SetDH>
             <SetPG name="SetPG_plan">
-                <Command name="setPG">
+                <Command name="setpgpath">
                     <GroupParam>
                         <Param name="name" default="test"/>
                         <Param name="pe" default="{0, 0, 0, -0, 0, -0}"/>
@@ -1997,6 +2049,15 @@
                     </GroupParam>
                 </Command>
             </SetPG>
+            <SetPPath name="SetPPath_plan">
+                <Command name="setppath">
+                    <GroupParam>
+                        <Param name="name" default="test"/>
+                        <Param name="pe" default="{0.0, 0.0, 0.0, -0.0, 0.0, -0.0}"/>
+                        <Param name="file_path" default="/RobotGallery/Rokae/XB4/l0.data;/RobotGallery/Rokae/XB4/l1.data;/RobotGallery/Rokae/XB4/l2.data;/RobotGallery/Rokae/XB4/l3.data;/RobotGallery/Rokae/XB4/l4.data;/RobotGallery/Rokae/XB4/l5.data;/RobotGallery/Rokae/XB4/l6.data"/>
+                    </GroupParam>
+                </Command>
+            </SetPPath>
             <SetUI name="SetUI_plan">
                 <Command name="setUI">
                     <GroupParam>
@@ -2019,15 +2080,32 @@
                     </GroupParam>
                 </Command>
             </SetDriver>
-            <SaveConfig name="SaveConfig_plan">
-                <Command name="saveConfig"/>
-            </SaveConfig>
-            <StartCS name="StartCS_plan">
-                <Command name="startCS"/>
-            </StartCS>
-            <StopCS name="StopCS_plan">
-                <Command name="stopCS"/>
-            </StopCS>
+            <SaveXml name="SaveXml_plan">
+                <Command name="savexml">
+                    <GroupParam>
+                        <Param name="path"/>
+                    </GroupParam>
+                </Command>
+            </SaveXml>
+            <ScanSlave name="ScanSlave_plan">
+                <Command name="scanslave"/>
+            </ScanSlave>
+            <GetEsiPdoList name="GetEsiPdoList_plan">
+                <Command name="getesipdolist">
+                    <GroupParam>
+                        <Param name="vendor_id" default="0"/>
+                        <Param name="product_code" default="0"/>
+                        <Param name="revision_num" default="0"/>
+                    </GroupParam>
+                </Command>
+            </GetEsiPdoList>
+            <SetEsiPath name="SetEsiPath_plan">
+                <Command name="setesipath">
+                    <GroupParam>
+                        <Param name="path"/>
+                    </GroupParam>
+                </Command>
+            </SetEsiPath>
             <SetCT name="SetCT_plan">
                 <Command name="setCT">
                     <GroupParam>
@@ -2035,6 +2113,13 @@
                     </GroupParam>
                 </Command>
             </SetCT>
+            <SetVel name="SetVel_plan">
+                <Command name="setvel">
+                    <GroupParam>
+                        <Param name="vel_percent" abbreviation="p" default="0"/>
+                    </GroupParam>
+                </Command>
+            </SetVel>
             <MoveXYZ name="MoveXYZ">
                 <Command name="mvXYZ">
                     <GroupParam>
@@ -2286,20 +2371,11 @@
             <SetTF name="SetTF">
                 <Command name="SetTF">
                     <GroupParam>
-                        <Param name="tool_id" default="0"/>
                         <Param name="tool_name" default="Tool0"/>
                         <Param name="tool_pe" default="{0,0,0,0,0,0}"/>
                     </GroupParam>
                 </Command>
             </SetTF>
-            <RenameT name="RenameT">
-                <Command name="RenameT">
-                    <GroupParam>
-                        <Param name="tool_id" default="0"/>
-                        <Param name="tool_name" default="Tool"/>
-                    </GroupParam>
-                </Command>
-            </RenameT>
             <CalibZF name="CalibZF">
                 <Command name="CalibZF">
                     <GroupParam>

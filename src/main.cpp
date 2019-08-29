@@ -34,7 +34,7 @@ int main(int argc, char *argv[])
 	auto&cs = aris::server::ControlServer::instance();
 	auto port = argc < 2 ? 5866 : std::stoi(argv[1]);
 
-
+	
 	//生成kaanh.xml文档
     //-------for rokae robot begin//
     cs.resetController(kaanh::createControllerRokaeXB4().release());
@@ -44,18 +44,25 @@ int main(int argc, char *argv[])
     cs.interfacePool().add<aris::server::WebInterface>("", "5866", aris::core::Socket::WEB);
 	cs.interfacePool().add<aris::server::WebInterface>("", "5867", aris::core::Socket::TCP);
     cs.resetSensorRoot(new aris::sensor::SensorRoot);
-    cs.saveXmlFile(xmlpath.string().c_str());
+	cs.interfaceRoot().loadXmlFile(uixmlpath.string().c_str());
+	//cs.model().saveXmlFile(modelxmlpath.string().c_str());	//for new model
+	cs.model().loadXmlFile(modelxmlpath.string().c_str());
+	cs.saveXmlFile(xmlpath.string().c_str());
     //-------for rokae robot end// 
-
+	
 
     /*
     //-------for sanxiang robot begin//
     cs.resetController(kaanh::createControllerSanXiang().release());
     cs.resetModel(kaanh::createModelSanXiang().release());
     cs.resetPlanRoot(kaanh::createPlanRootRokaeXB4().release());
-	cs.interfacePool().add<aris::server::WebInterface>("", "5866");
-    cs.resetSensorRoot(new aris::sensor::SensorRoot);
-    cs.saveXmlFile(xmlpath.string().c_str());
+	cs.interfacePool().add<aris::server::WebInterface>("", "5866", aris::core::Socket::WEB);
+	cs.interfacePool().add<aris::server::WebInterface>("", "5867", aris::core::Socket::TCP);
+	cs.resetSensorRoot(new aris::sensor::SensorRoot);
+	cs.interfaceRoot().loadXmlFile(uixmlpath.string().c_str());
+	//cs.model().saveXmlFile(modelxmlpath.string().c_str());	//for new model
+	cs.model().loadXmlFile(modelxmlpath.string().c_str());
+	cs.saveXmlFile(xmlpath.string().c_str());
     //-------for sanxiang robot end//
     */
 
@@ -64,9 +71,13 @@ int main(int argc, char *argv[])
     cs.resetController(kaanh::createControllerDaye().release());
     cs.resetModel(kaanh::createModelDaye().release());
     cs.resetPlanRoot(kaanh::createPlanRootRokaeXB4().release());
-	cs.interfacePool().add<aris::server::WebInterface>("", "5866");
-    cs.resetSensorRoot(new aris::sensor::SensorRoot);
-    cs.saveXmlFile(xmlpath.string().c_str());
+	cs.interfacePool().add<aris::server::WebInterface>("", "5866", aris::core::Socket::WEB);
+	cs.interfacePool().add<aris::server::WebInterface>("", "5867", aris::core::Socket::TCP);
+	cs.resetSensorRoot(new aris::sensor::SensorRoot);
+	cs.interfaceRoot().loadXmlFile(uixmlpath.string().c_str());
+	//cs.model().saveXmlFile(modelxmlpath.string().c_str());	//for new model
+	cs.model().loadXmlFile(modelxmlpath.string().c_str());
+	cs.saveXmlFile(xmlpath.string().c_str());
     //-------for daye robot end//
 	*/
 
@@ -75,31 +86,25 @@ int main(int argc, char *argv[])
 	cs.resetController(kaanh::createControllerQifan().release());
 	cs.resetModel(kaanh::createModelQifan().release());
 	cs.resetPlanRoot(kaanh::createPlanRootRokaeXB4().release());
-	cs.interfacePool().add<aris::server::WebInterface>("", "5866");
+	cs.interfacePool().add<aris::server::WebInterface>("", "5866", aris::core::Socket::WEB);
+	cs.interfacePool().add<aris::server::WebInterface>("", "5867", aris::core::Socket::TCP);
 	cs.resetSensorRoot(new aris::sensor::SensorRoot);
+	cs.interfaceRoot().loadXmlFile(uixmlpath.string().c_str());
+	//cs.model().saveXmlFile(modelxmlpath.string().c_str());	//for new model
+	cs.model().loadXmlFile(modelxmlpath.string().c_str());
 	cs.saveXmlFile(xmlpath.string().c_str());
 	//-------for qifan robot end// 
 	*/
-	//cs.loadXmlFile(xmlpath.string().c_str());
-
-	try 
-	{
-		cs.loadXmlFile(xmlpath.string().c_str());
-	}
-	catch (std::exception &e)
-	{
-		std::cout << e.what() << std::endl;
-	}
-	cs.interfaceRoot().loadXmlFile(uixmlpath.string().c_str());
-    //cs.model().loadXmlFile(modelxmlpath.string().c_str());
-	cs.saveXmlFile(xmlpath.string().c_str());
-
+	
+	cs.loadXmlFile(xmlpath.string().c_str());
+	
 	cs.start();
 
 	//加载v100的速度值//
 	auto &getspeed = dynamic_cast<aris::dynamic::MatrixVariable &>(*cs.model().variablePool().findByName("v100"));
 	kaanh::SpeedParam speed;
 	std::copy(getspeed.data().begin(), getspeed.data().end(), &speed.w_percent);
+	speed.w_tcp = speed.w_tcp * speed.w_percent;
 	g_vel.setspeed(speed);
 
 	std::cout << "w_percent:" << g_vel.getspeed().w_percent << std::endl;
