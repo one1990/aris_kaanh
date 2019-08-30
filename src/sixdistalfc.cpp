@@ -4464,9 +4464,9 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 
 
     aris::dynamic::s_vc(6, pe0, pe);
-    //pe[0]-=step_pjs[1]*0.1;
-    pe[3]+=step_pjs[1];
-    pe[4]+=step_pjs[1]*0.8;
+    pe[0]-=step_pjs[1]*0.08;
+    //pe[3]+=step_pjs[1];
+    //pe[4]+=step_pjs[1]*0.8;
     //pe[5]-=step_pjs[1]*0.2;
     aris::dynamic::s_pe2pq(pe, PqEnd0);
 
@@ -4552,7 +4552,7 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
     static double err_sum_fce_vt = 0.0;
 
     // protect max and min velocity //
-    const int motion = 2;
+    const int motion = 1;
     if(dX[motion] > vt_motion_max)
     {
         err_sum_fce_vt += (vt_motion_max - dX[motion]) * 0.001;
@@ -4584,7 +4584,7 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
     double A[36]={0};
     f(target.model, A);
     s_mm(6, 1, 6, A, at,ft);
-/*
+
     // fce control //
     static double SumdX=0, SumFt=0;
     double Vmin=-0.02;
@@ -4953,9 +4953,12 @@ auto MovePressureToolXSine::executeRT(PlanTarget &target)->int
 	auto &param = std::any_cast<MovePressureToolXSineParam&>(target.param);
 
 	static double step_pjs[6];
-	static double stateTor0[6][3], stateTor1[6][3], EndP0[3];
-	static double sT0[6][3], sT1[6][3];
+    static double stateTor0[6], stateTor1[6], EndP0[3];
+    static double sT0[6]={0}, sT1[6]={0};
 	static float FT0[6];
+
+    int FTnum=50;
+    static double FTten[50]={0};
 
 	// 访问主站 //
 	auto controller = target.controller;
@@ -4996,7 +4999,7 @@ auto MovePressureToolXSine::executeRT(PlanTarget &target)->int
 	{
 		for (int j = 0; j < 6; j++)
 		{
-			stateTor0[j][0] = FT[j];
+            stateTor0[j] = FT[j];
 			FT0[j] = FT[j];
 		}
 		for (int i = 0;i < 3;i++)
@@ -5004,13 +5007,14 @@ auto MovePressureToolXSine::executeRT(PlanTarget &target)->int
 	}
 
 
-	SecondOrderFilter(FT, stateTor0, stateTor1, 80);
+    //SecondOrderFilter(FT, stateTor0, stateTor1, 80);
 
+    OneOrderFilter(FT,stateTor0,stateTor1,80);
 
 	double FT_KAI[6];
 	for (int i = 0; i < 6; i++)
 	{
-		FT_KAI[i] = stateTor1[i][0] - FT0[i];//In KAI Coordinate
+        FT_KAI[i] = stateTor1[i] - FT0[i];//In KAI Coordinate
 	}
 
 	double zero_check[6] = { 1,1,1,0.05,0.05,0.05 };
@@ -5024,14 +5028,45 @@ auto MovePressureToolXSine::executeRT(PlanTarget &target)->int
 
 
 	double dXpid[6] = { 0,0,0,0,0,0 };
-    dXpid[2] = 1 * (FT_KAI[2] - (-5)) / 320000;
+    static double sumFor[6]={0};
+    for (int i=0;i<6;i++)
+        sumFor[i]=sumFor[i]+(FT_KAI[2] - (-5))*0.001;
+
+    bool flag=true;
+    for(int i=0;i<FTnum;i++)
+        if(abs(FTten[i])>4)
+            flag=false;
+
+
+    if(flag)
+       dXpid[2] = 1 * (FT_KAI[2] - (-5)) / 80000;
+    else
+    {
+       //flag=false;
+        sumFor[2]=0;
+       dXpid[2] = 1 * (FT_KAI[2] - (-5)) / 80000;
+       //if(abs(FT_KAI[2])<2)
+          // flag=true;
+    }
+
 	dXpid[3] = 0 * (FT_KAI[3]) / 2000;
 	dXpid[4] = 0 * (FT_KAI[4]) / 2000;
 	dXpid[5] = 0 * (FT_KAI[5]) / 2000;
 
+
+    if (target.count == 1)
+        for (int j = 0; j < 6; j++)
+            sT0[j] = dXpid[j];
+
+
+    OneOrderFilter(dXpid,sT0,sT1,40);
+
+
+
+
 	double FmInWorld[6];
 
-	FT2World(target, dXpid, FmInWorld);
+    FT2World(target, sT1, FmInWorld);
 
 	static double amp = 0;
     if (target.count < 10000)
@@ -5046,10 +5081,10 @@ auto MovePressureToolXSine::executeRT(PlanTarget &target)->int
 
 	for (int j = 0; j < 6; j++)
 	{
-		if (dX[j] > 0.00025)
-			dX[j] = 0.00025;
-		if (dX[j] < -0.00025)
-			dX[j] = -0.00025;
+        if (dX[j] > 0.00025)
+            dX[j] = 0.00025;
+        if (dX[j] < -0.00025)
+            dX[j] = -0.00025;
 	}
 
 	// log 电流 //
@@ -5058,9 +5093,9 @@ auto MovePressureToolXSine::executeRT(PlanTarget &target)->int
     lout << FT[2] << ",";lout << FT[3] << ",";
     lout << FT[4] << ",";lout << FT[5] << ",";
 
-    lout << stateTor1[0][0] << ",";lout << stateTor1[1][0] << ",";
-    lout << stateTor1[2][0] << ",";lout << stateTor1[3][0] << ",";
-    lout << stateTor1[4][0] << ",";lout << stateTor1[5][0] << ",";
+    lout << stateTor1[0] << ",";lout << stateTor1[1] << ",";
+    lout << stateTor1[2] << ",";lout << stateTor1[3] << ",";
+    lout << stateTor1[4] << ",";lout << stateTor1[5] << ",";
 
 	lout << dX[0] << ",";lout << dX[1] << ",";
 	lout << dX[2] << ",";lout << dX[3] << ",";
@@ -5095,10 +5130,10 @@ auto MovePressureToolXSine::executeRT(PlanTarget &target)->int
 	}
 
 
-	if (target.count % 300 == 0)
+    if (target.count % 100 == 0)
 	{
 
-		cout << FmInWorld[0] << "*" << FmInWorld[1] << "*" << FmInWorld[2] << "*" << step_pjs[3] << "*" << step_pjs[4] << "*" << FT_KAI[2] << std::endl;
+        cout << FTten[0] << "*" << FTten[1] <<"*"<<dX[2]<<"*"<<flag;
 		cout << std::endl;
 
 	}
@@ -5106,11 +5141,23 @@ auto MovePressureToolXSine::executeRT(PlanTarget &target)->int
 	for (int i = 0; i < 6; i++)
 	{
 
-		stateTor0[i][0] = stateTor1[i][0];
-		stateTor0[i][1] = stateTor1[i][1];
-		stateTor0[i][2] = stateTor1[i][2];
+        stateTor0[i] = stateTor1[i];
+        sT0[i] = sT1[i];
+
 
 	}
+
+    if(target.count<FTnum+1)
+       FTten[target.count-1]=FT_KAI[2];
+    else
+    {
+        for(int i=0;i<FTnum-1;i++)
+            FTten[i]=FTten[i+1];
+
+       FTten[FTnum-1]=FT_KAI[2];
+
+    }
+
 
     return 15000000 - target.count;
 
@@ -5249,7 +5296,7 @@ auto MoveForceXSine::executeRT(PlanTarget &target)->int
 
 	double dXpid[6] = { 0,0,0,0,0,0 };
     const int motion = 1;
-    dXpid[motion] = 1 * (FmInWorld[motion] - (-5)) / 620000;
+    dXpid[motion] = 1 * (FmInWorld[motion] - (-5)) / 420000;
 	dXpid[3] = 0 * (FmInWorld[3]) / 2000;
 	dXpid[4] = 0 * (FmInWorld[4]) / 2000;
 	dXpid[5] = 0 * (FmInWorld[5]) / 2000;
