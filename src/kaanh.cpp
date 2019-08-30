@@ -730,6 +730,7 @@ namespace kaanh
 		aris::control::EthercatController::MasterLinkState mls{};
 		std::vector<int> motion_state;
 		std::string currentplan;
+		int current_plan_id;
 		int vel_percent;
 	};
 	auto Get::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
@@ -817,6 +818,8 @@ namespace kaanh
 			slave_al_state[i] = int(out_data.sls[i].al_state);
 		}
 
+		out_data.current_plan_id = 0;
+
 		std::vector<std::pair<std::string, std::any>> out_param;
 		out_param.push_back(std::make_pair<std::string, std::any>("part_pq", out_data.part_pq));
 		out_param.push_back(std::make_pair<std::string, std::any>("end_pq", out_data.end_pq));
@@ -833,6 +836,7 @@ namespace kaanh
 		out_param.push_back(std::make_pair<std::string, std::any>("slave_al_state", slave_al_state));
 		out_param.push_back(std::make_pair<std::string, std::any>("motion_state", out_data.motion_state));
 		out_param.push_back(std::make_pair<std::string, std::any>("current_plan", out_data.currentplan));
+		out_param.push_back(std::make_pair<std::string, std::any>("current_plan_id", out_data.current_plan_id));
 
 		target.ret = out_param;
 		target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_PRINT_CMD_INFO | NOT_PRINT_CMD_INFO;
