@@ -6,16 +6,18 @@
 #include <array>
 #include <stdlib.h>
 #include"move_series.h"
-#include"kinematics.h"
 
 
 using namespace aris::dynamic;
 using namespace aris::plan;
 
+
 extern double fce_data[buffer_length];
 extern int data_num, data_num_send;
 extern std::atomic_int which_di;
 extern std::atomic_bool is_automatic;
+extern kaanh::Speed g_vel;
+extern std::atomic_int g_vel_percent;
 
 
 namespace kaanh
@@ -717,6 +719,7 @@ namespace kaanh
 		return std::move(model);
 	}
 
+
 	// 获取part_pq，end_pq，end_pe等 //
 	struct GetParam
 	{
@@ -727,6 +730,7 @@ namespace kaanh
 		aris::control::EthercatController::MasterLinkState mls{};
 		std::vector<int> motion_state;
 		std::string currentplan;
+		int vel_percent;
 	};
 	auto Get::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
@@ -753,14 +757,23 @@ namespace kaanh
 			}
 
 			cs.model().generalMotionPool().at(0).getMpq(std::any_cast<GetParam &>(data).end_pq.data());
-			cs.model().generalMotionPool().at(0).getMpe(std::any_cast<GetParam &>(data).end_pe.data());
+			cs.model().generalMotionPool().at(0).getMpe(std::any_cast<GetParam &>(data).end_pe.data(), "321");
 
 			for (aris::Size i = 0; i < cs.controller().motionPool().size(); i++)
 			{
+#ifdef WIN32
+				std::any_cast<GetParam &>(data).motion_pos[i] = cs.model().motionPool()[i].mp();
+				std::any_cast<GetParam &>(data).motion_vel[i] = cs.model().motionPool()[i].mv();
+				std::any_cast<GetParam &>(data).motion_acc[i] = cs.model().motionPool()[i].ma();
+				std::any_cast<GetParam &>(data).motion_toq[i] = cs.model().motionPool()[i].ma();
+#endif // WIN32
+
+#ifdef UNIX
 				std::any_cast<GetParam &>(data).motion_pos[i] = cs.controller().motionPool()[i].actualPos();
 				std::any_cast<GetParam &>(data).motion_vel[i] = cs.controller().motionPool()[i].actualVel();
 				std::any_cast<GetParam &>(data).motion_acc[i] = cs.model().motionPool()[i].ma();
 				std::any_cast<GetParam &>(data).motion_toq[i] = cs.controller().motionPool()[i].actualToq();
+#endif // UNIX
 			}
 			for (aris::Size i = 0; i < 100; i++)
 			{
@@ -785,7 +798,6 @@ namespace kaanh
 					std::any_cast<GetParam &>(data).motion_state[i] = 1;
 				}
 			}
-
 			if (target == nullptr)
 			{
 				std::any_cast<GetParam &>(data).currentplan = "none";
@@ -1047,6 +1059,7 @@ namespace kaanh
 
 		std::fill(target.mot_options.begin(), target.mot_options.end(),
 			Plan::USE_TARGET_POS);
+
 		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
 
@@ -1074,6 +1087,7 @@ namespace kaanh
 			{
 				step_pjs[i] = begin_pjs[i] + param.j[i] * (1 - std::cos(2 * PI*target.count / time)) / 2;
 				target.model->motionPool().at(i).setMp(step_pjs[i]);
+				//target.controller->motionPool().at(i).setTargetPos(step_pjs[i]);
 			}
 		}
 		else if ((time / 2 < target.count) && (target.count <= totaltime - time/2))
@@ -1125,7 +1139,7 @@ namespace kaanh
 			{
 				cout << "pos" << i+1 << ":" << controller->motionAtAbs(i).actualPos() << "  " ;
 				cout << "vel" << i+1 << ":" << controller->motionAtAbs(i).actualVel() << "  ";
-				cout << "cur" << i+1 << ":" << controller->motionAtAbs(i).actualCur() << "  ";
+				cout << "cur" << i+1 << ":" << controller->motionAtAbs(i).actualToq() << "  ";
 			}		
 			cout << std::endl;
 		}
@@ -1137,7 +1151,7 @@ namespace kaanh
 			lout << controller->motionAtAbs(i).targetPos() << ",";
 			lout << controller->motionAtAbs(i).actualPos() << ",";
 			lout << controller->motionAtAbs(i).actualVel() << ",";
-			lout << controller->motionAtAbs(i).actualCur() << ",";
+			lout << controller->motionAtAbs(i).actualToq() << ",";
 		}
 		lout << std::endl;
 			
@@ -2272,14 +2286,16 @@ double p, v, a;
 		else if (pos_unit_found->second == "m")pos_unit = 1.0;
 		else if (pos_unit_found->second == "mm")pos_unit = 0.001;
 		else if (pos_unit_found->second == "cm")pos_unit = 0.01;
-        else THROW_FILE_LINE("");
+    else THROW_FILE_LINE("");
+
 
 		for (auto cmd_param : params)
 		{
 			if (cmd_param.first == "mid_pq")
 			{
 				auto pq_mat = target.model->calculator().calculateExpression(cmd_param.second);
-                if (pq_mat.size() != 7)THROW_FILE_LINE("");
+        if (pq_mat.size() != 7)THROW_FILE_LINE("");
+
 				aris::dynamic::s_vc(7, pq_mat.data(), mid_pq_out);
 				aris::dynamic::s_nv(3, pos_unit, mid_pq_out);
 				return true;
@@ -2287,7 +2303,8 @@ double p, v, a;
 			else if (cmd_param.first == "mid_pm")
 			{
 				auto pm_mat = target.model->calculator().calculateExpression(cmd_param.second);
-                if (pm_mat.size() != 16)THROW_FILE_LINE("");
+
+				if (pm_mat.size() != 16)THROW_FILE_LINE("");
 				aris::dynamic::s_pm2pq(pm_mat.data(), mid_pq_out);
 				aris::dynamic::s_nv(3, pos_unit, mid_pq_out);
 				return true;
@@ -2299,16 +2316,16 @@ double p, v, a;
 				if (ori_unit_found == params.end()) ori_unit = 1.0;
 				else if (ori_unit_found->second == "rad")ori_unit = 1.0;
 				else if (ori_unit_found->second == "degree")ori_unit = PI / 180.0;
-                else THROW_FILE_LINE("");
+				else THROW_FILE_LINE("");
 
 				std::string eul_type;
 				auto eul_type_found = params.find("mid_eul_type");
 				if (eul_type_found == params.end()) eul_type = "321";
 				else if (check_eul_validity(eul_type_found->second.data()))	eul_type = eul_type_found->second;
-                else THROW_FILE_LINE("");
+				else THROW_FILE_LINE("");
 
 				auto pe_mat = target.model->calculator().calculateExpression(cmd_param.second);
-                if (pe_mat.size() != 6)THROW_FILE_LINE("");
+				if (pe_mat.size() != 6)THROW_FILE_LINE("");
 				aris::dynamic::s_nv(3, ori_unit, pe_mat.data() + 3);
 				aris::dynamic::s_pe2pq(pe_mat.data(), mid_pq_out, eul_type.data());
 				aris::dynamic::s_nv(3, pos_unit, mid_pq_out);
@@ -2316,7 +2333,7 @@ double p, v, a;
 			}
 		}
 
-        THROW_FILE_LINE("No mid pose input");
+		THROW_FILE_LINE("No mid pose input");
 	}
 	auto find_end_pq(const std::map<std::string, std::string> &params, PlanTarget &target, double *end_pq_out)->bool
 	{
@@ -2326,14 +2343,14 @@ double p, v, a;
 		else if (pos_unit_found->second == "m")pos_unit = 1.0;
 		else if (pos_unit_found->second == "mm")pos_unit = 0.001;
 		else if (pos_unit_found->second == "cm")pos_unit = 0.01;
-        else THROW_FILE_LINE("");
+		else THROW_FILE_LINE("");
 
 		for (auto cmd_param : params)
 		{
 			if (cmd_param.first == "end_pq")
 			{
 				auto pq_mat = target.model->calculator().calculateExpression(cmd_param.second);
-                if (pq_mat.size() != 7)THROW_FILE_LINE("");
+				if (pq_mat.size() != 7)THROW_FILE_LINE("");
 				aris::dynamic::s_vc(7, pq_mat.data(), end_pq_out);
 				aris::dynamic::s_nv(3, pos_unit, end_pq_out);
 				return true;
@@ -2341,7 +2358,7 @@ double p, v, a;
 			else if (cmd_param.first == "end_pm")
 			{
 				auto pm_mat = target.model->calculator().calculateExpression(cmd_param.second);
-                if (pm_mat.size() != 16)THROW_FILE_LINE("");
+				if (pm_mat.size() != 16)THROW_FILE_LINE("");
 				aris::dynamic::s_pm2pq(pm_mat.data(), end_pq_out);
 				aris::dynamic::s_nv(3, pos_unit, end_pq_out);
 				return true;
@@ -2353,16 +2370,16 @@ double p, v, a;
 				if (ori_unit_found == params.end()) ori_unit = 1.0;
 				else if (ori_unit_found->second == "rad")ori_unit = 1.0;
 				else if (ori_unit_found->second == "degree")ori_unit = PI / 180.0;
-                else THROW_FILE_LINE("");
+				else THROW_FILE_LINE("");
 
 				std::string eul_type;
 				auto eul_type_found = params.find("mid_eul_type");
 				if (eul_type_found == params.end()) eul_type = "321";
 				else if (check_eul_validity(eul_type_found->second.data()))	eul_type = eul_type_found->second;
-                else THROW_FILE_LINE("");
+				else THROW_FILE_LINE("");
 
 				auto pe_mat = target.model->calculator().calculateExpression(cmd_param.second);
-                if (pe_mat.size() != 6)THROW_FILE_LINE("");
+				if (pe_mat.size() != 6)THROW_FILE_LINE("");
 				aris::dynamic::s_nv(3, ori_unit, pe_mat.data() + 3);
 				aris::dynamic::s_pe2pq(pe_mat.data(), end_pq_out, eul_type.data());
 				aris::dynamic::s_nv(3, pos_unit, end_pq_out);
@@ -2370,7 +2387,7 @@ double p, v, a;
 			}
 		}
 
-        THROW_FILE_LINE("No end pose input");
+		THROW_FILE_LINE("No end pose input");
 	}
 	void slerp(double starting[4], double ending[4], double result[4], double t)
 	{
@@ -2421,8 +2438,8 @@ double p, v, a;
 		mvc_param.ee_begin_pq.resize(7);
 		mvc_param.ee_mid_pq.resize(7);
 		mvc_param.ee_end_pq.resize(7);
-        if (!find_mid_pq(params, target, mvc_param.ee_mid_pq.data()))THROW_FILE_LINE("");
-        if (!find_end_pq(params, target, mvc_param.ee_end_pq.data()))THROW_FILE_LINE("");
+		if (!find_mid_pq(params, target, mvc_param.ee_mid_pq.data()))THROW_FILE_LINE("");
+		if (!find_end_pq(params, target, mvc_param.ee_end_pq.data()))THROW_FILE_LINE("");
 
 		for (auto cmd_param : params)
 		{
@@ -2496,7 +2513,7 @@ double p, v, a;
 			A[4] = 2 * (mvc_param.ee_mid_pq[1] - mvc_param.ee_end_pq[1]);
 			A[5] = 2 * (mvc_param.ee_mid_pq[2] - mvc_param.ee_end_pq[2]);
 			A[6] = (A[1] * A[5] - A[4] * A[2]) / 4;
-			A[7] = (A[0] * A[5] - A[3] * A[2]) / 4;
+			A[7] = -(A[0] * A[5] - A[3] * A[2]) / 4;
 			A[8] = (A[0] * A[4] - A[3] * A[1]) / 4;
 			b[0] = pow(mvc_param.ee_begin_pq[0], 2) + pow(mvc_param.ee_begin_pq[1], 2) + pow(mvc_param.ee_begin_pq[2], 2) - pow(mvc_param.ee_mid_pq[0], 2) - pow(mvc_param.ee_mid_pq[1], 2) - pow(mvc_param.ee_mid_pq[2], 2);
 			b[1] = pow(mvc_param.ee_mid_pq[0], 2) + pow(mvc_param.ee_mid_pq[1], 2) + pow(mvc_param.ee_mid_pq[2], 2) - pow(mvc_param.ee_end_pq[0], 2) - pow(mvc_param.ee_end_pq[1], 2) - pow(mvc_param.ee_end_pq[2], 2);
@@ -2568,6 +2585,20 @@ double p, v, a;
 		//姿态规划//
 		aris::plan::moveAbsolute(target.count, 0.0, 1.0, mvc_param.angular_vel / 1000 / ori_theta / 2.0 * ori_ratio, mvc_param.angular_acc / 1000 / 1000 / ori_theta / 2.0 * ori_ratio * ori_ratio, mvc_param.angular_dec / 1000 / 1000 / ori_theta / 2.0* ori_ratio * ori_ratio, p, v, a, ori_total_count);
 		slerp(mvc_param.ee_begin_pq.data() + 3, mvc_param.ee_end_pq.data() + 3, pqt + 3, p);
+		
+		//雅克比矩阵判断奇异点//
+		{
+			auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(target.model->solverPool()[1]);
+			fwd.cptJacobiWrtEE();
+			//QR分解求方程的解
+			double U[36], tau[6];
+			aris::Size p[6];
+			Size rank;
+			//auto inline s_householder_utp(Size m, Size n, const double *A, AType a_t, double *U, UType u_t, double *tau, TauType tau_t, Size *p, Size &rank, double zero_check = 1e-10)noexcept->void
+			//A为输入
+			s_householder_utp(6, 6, fwd.Jf(), U, tau, p, rank, 1e-3);
+			if(rank < 6)return -1002;
+		}
 
 		// set目标位置，并进行运动学反解 //
 		target.model->generalMotionPool().at(0).setMpq(pqt);
@@ -2577,13 +2608,14 @@ double p, v, a;
 		auto &lout = controller->lout();
 		{
 			lout << target.count << " " << pqt[0] << " " << pqt[1] << " " << pqt[2] << " " << pqt[3] << " " << pqt[4] << " " << pqt[5] << " " << pqt[6] << "  ";
+			/*
 			for (Size i = 0; i < 6; i++)
 			{
 				lout << controller->motionAtAbs(i).targetPos() << ",";
 				lout << controller->motionAtAbs(i).actualPos() << ",";
 				lout << controller->motionAtAbs(i).actualVel() << ",";
-				lout << controller->motionAtAbs(i).actualCur() << ",";
 			}
+			*/
 			lout << std::endl;
 		}
 		//////////////////////////////////////////////////////////////////////////////////
@@ -2670,18 +2702,18 @@ double p, v, a;
 				imp_->s1_rt.vel_percent = 10;
 
 				imp_->increase_count = std::stoi(params.at("increase_count"));
-                if (imp_->increase_count < 0 || imp_->increase_count>1e5)THROW_FILE_LINE("");
+				if (imp_->increase_count < 0 || imp_->increase_count>1e5)THROW_FILE_LINE("");
 
 				auto mat = target.model->calculator().calculateExpression(params.at("vel"));
-                if (mat.size() != 6)THROW_FILE_LINE("");
+				if (mat.size() != 6)THROW_FILE_LINE("");
 				std::copy(mat.begin(), mat.end(), imp_->vel);
 
 				mat = target.model->calculator().calculateExpression(params.at("acc"));
-                if (mat.size() != 6)THROW_FILE_LINE("");
+				if (mat.size() != 6)THROW_FILE_LINE("");
 				std::copy(mat.begin(), mat.end(), imp_->acc);
 
 				mat = target.model->calculator().calculateExpression(params.at("dec"));
-                if (mat.size() != 6)THROW_FILE_LINE("");
+				if (mat.size() != 6)THROW_FILE_LINE("");
 				std::copy(mat.begin(), mat.end(), imp_->dec);
 
 				std::fill(target.mot_options.begin(), target.mot_options.end(), USE_TARGET_POS);
@@ -2704,7 +2736,7 @@ double p, v, a;
 
 				imp_->s2_nrt.cor_system = std::stoi(params.at("cor"));
 				auto velocity = std::stoi(params.at("vel_percent"));
-				velocity = std::max(std::min(100, velocity), -100);
+				velocity = std::max(std::min(100, velocity), 0);
 				imp_->s2_nrt.vel_percent = velocity;
 				imp_->s2_nrt.is_increase[0] = std::max(std::min(1, std::stoi(params.at("x"))), -1) * imp_->increase_count;
 				imp_->s2_nrt.is_increase[1] = std::max(std::min(1, std::stoi(params.at("y"))), -1) * imp_->increase_count;
@@ -2964,7 +2996,7 @@ double p, v, a;
 				imp_->s1_rt.vel_percent = 10;
 
 				imp_->increase_count = std::stoi(params.at("increase_count"));
-                if (imp_->increase_count < 0 || imp_->increase_count>1e5)THROW_FILE_LINE("");
+				if (imp_->increase_count < 0 || imp_->increase_count>1e5)THROW_FILE_LINE("");
 				imp_->vel = std::stod(params.at("vel"));
 				imp_->acc = std::stod(params.at("acc"));
 				imp_->dec = std::stod(params.at("dec"));
@@ -2987,7 +3019,7 @@ double p, v, a;
 				if (!imp_->s1_rt.jogj_is_running)throw std::runtime_error("manual mode not started, when pe");
 
 				auto velocity = std::stoi(params.at("vel_percent"));
-				velocity = std::max(std::min(100, velocity), -100);
+				velocity = std::max(std::min(100, velocity), 0);
 				imp_->s2_nrt.vel_percent = velocity;
 
 				imp_->s2_nrt.is_increase.assign(imp_->s2_nrt.is_increase.size(), 0);
@@ -3167,18 +3199,14 @@ double p, v, a;
 		for (auto &p : params)
 		{
 			param.increase_count = std::stoi(params.at("increase_count"));
-            if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
-			/*
-			param.vel = std::stod(params.at("vel"));
-			param.acc = std::stod(params.at("acc"));
-			param.dec = std::stod(params.at("dec"));
-			*/
-			param.vel = c->motionPool().at(0).maxVel();
-			param.acc = c->motionPool().at(0).maxAcc();
-			param.dec = c->motionPool().at(0).maxAcc();
+			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
+					
+			param.vel = c->motionPool().at(param.motion_id).maxVel()*g_vel.getspeed().w_percent;
+			param.acc = std::min(std::max(std::stod(params.at("acc")), 0.0), 1.0)*c->motionPool().at(param.motion_id).maxAcc();
+			param.dec = std::min(std::max(std::stod(params.at("dec")), 0.0), 1.0)*c->motionPool().at(param.motion_id).maxAcc();
 
 			auto velocity = std::stoi(params.at("vel_percent"));
-			velocity = std::max(std::min(100, velocity), -100);
+			velocity = std::max(std::min(100, velocity), 0);
 			param.vel_percent = velocity;
 			param.increase_status = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
 		}
@@ -3194,7 +3222,7 @@ double p, v, a;
 		else
 		{
             std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
-            target.mot_options[0] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
+            target.mot_options[param.motion_id] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
 		}
 		target.param = param;
 	}
@@ -3280,6 +3308,7 @@ double p, v, a;
 	}
 	auto JogJ1::collectNrt(PlanTarget &target)->void 
 	{
+		JogJParam::j1_count = 0;
 		if (target.ret_code < 0)
 		{
 			JogJParam::j1_count.store(0);
@@ -3292,9 +3321,9 @@ double p, v, a;
 			"<Command name=\"j1\">"
 			"	<GroupParam>"
             "		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
-			"		<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"
-			"		<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"
+			"		<Param name=\"vel\" default=\"0.5\" abbreviation=\"v\"/>"
+			"		<Param name=\"acc\" default=\"0.5\" abbreviation=\"a\"/>"
+			"		<Param name=\"dec\" default=\"0.5\" abbreviation=\"d\"/>"
 			"		<Param name=\"vel_percent\" default=\"10\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
 			"	</GroupParam>"
@@ -3325,14 +3354,14 @@ double p, v, a;
 		for (auto &p : params)
 		{
 			param.increase_count = std::stoi(params.at("increase_count"));
-            if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
+			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
 
-			param.vel = c->motionPool().at(1).maxVel();
-			param.acc = c->motionPool().at(1).maxAcc();
-			param.dec = c->motionPool().at(1).maxAcc();
+			param.vel = c->motionPool().at(param.motion_id).maxVel()*g_vel.getspeed().w_percent;
+			param.acc = std::min(std::max(std::stod(params.at("acc")), 0.0), 1.0)*c->motionPool().at(param.motion_id).maxAcc();
+			param.dec = std::min(std::max(std::stod(params.at("dec")), 0.0), 1.0)*c->motionPool().at(param.motion_id).maxAcc();
 
 			auto velocity = std::stoi(params.at("vel_percent"));
-			velocity = std::max(std::min(100, velocity), -100);
+			velocity = std::max(std::min(100, velocity), 0);
 			param.vel_percent = velocity;
 			param.increase_status = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
 		}
@@ -3348,7 +3377,7 @@ double p, v, a;
 		else
 		{
 			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
-            target.mot_options[1] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
+            target.mot_options[param.motion_id] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
 		}
 		target.param = param;
 	}
@@ -3434,6 +3463,7 @@ double p, v, a;
 	}
 	auto JogJ2::collectNrt(PlanTarget &target)->void 
 	{
+		JogJParam::j2_count = 0;
 		if (target.ret_code < 0)
 		{
 			JogJParam::j2_count.store(0);
@@ -3446,9 +3476,9 @@ double p, v, a;
 			"<Command name=\"j2\">"
 			"	<GroupParam>"
             "		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
-			"		<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"
-			"		<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"
+			"		<Param name=\"vel\" default=\"0.5\" abbreviation=\"v\"/>"
+			"		<Param name=\"acc\" default=\"0.5\" abbreviation=\"a\"/>"
+			"		<Param name=\"dec\" default=\"0.5\" abbreviation=\"d\"/>"
 			"		<Param name=\"vel_percent\" default=\"10\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
 			"	</GroupParam>"
@@ -3479,14 +3509,14 @@ double p, v, a;
 		for (auto &p : params)
 		{
 			param.increase_count = std::stoi(params.at("increase_count"));
-            if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
+			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
 
-			param.vel = c->motionPool().at(2).maxVel();
-			param.acc = c->motionPool().at(2).maxAcc();
-			param.dec = c->motionPool().at(2).maxAcc();
+			param.vel = c->motionPool().at(param.motion_id).maxVel()*g_vel.getspeed().w_percent;
+			param.acc = std::min(std::max(std::stod(params.at("acc")), 0.0), 1.0)*c->motionPool().at(param.motion_id).maxAcc();
+			param.dec = std::min(std::max(std::stod(params.at("dec")), 0.0), 1.0)*c->motionPool().at(param.motion_id).maxAcc();
 
 			auto velocity = std::stoi(params.at("vel_percent"));
-			velocity = std::max(std::min(100, velocity), -100);
+			velocity = std::max(std::min(100, velocity), 0);
 			param.vel_percent = velocity;
 			param.increase_status = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
 		}
@@ -3502,7 +3532,7 @@ double p, v, a;
 		else
 		{
 			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
-            target.mot_options[2] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
+            target.mot_options[param.motion_id] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
 		}
 		target.param = param;
 	}
@@ -3586,7 +3616,9 @@ double p, v, a;
 
 		return finished;
 	}
-	auto JogJ3::collectNrt(PlanTarget &target)->void {
+	auto JogJ3::collectNrt(PlanTarget &target)->void 
+	{
+		JogJParam::j3_count = 0;
 		if (target.ret_code < 0)
 		{
 			JogJParam::j3_count.store(0);
@@ -3599,9 +3631,9 @@ double p, v, a;
 			"<Command name=\"j3\">"
 			"	<GroupParam>"
             "		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
-			"		<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"
-			"		<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"
+			"		<Param name=\"vel\" default=\"0.5\" abbreviation=\"v\"/>"
+			"		<Param name=\"acc\" default=\"0.5\" abbreviation=\"a\"/>"
+			"		<Param name=\"dec\" default=\"0.5\" abbreviation=\"d\"/>"
 			"		<Param name=\"vel_percent\" default=\"10\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
 			"	</GroupParam>"
@@ -3632,14 +3664,14 @@ double p, v, a;
 		for (auto &p : params)
 		{
 			param.increase_count = std::stoi(params.at("increase_count"));
-            if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
+			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
 
-			param.vel = c->motionPool().at(3).maxVel();
-			param.acc = c->motionPool().at(3).maxAcc();
-			param.dec = c->motionPool().at(3).maxAcc();
+			param.vel = c->motionPool().at(param.motion_id).maxVel()*g_vel.getspeed().w_percent;
+			param.acc = std::min(std::max(std::stod(params.at("acc")), 0.0), 1.0)*c->motionPool().at(param.motion_id).maxAcc();
+			param.dec = std::min(std::max(std::stod(params.at("dec")), 0.0), 1.0)*c->motionPool().at(param.motion_id).maxAcc();
 
 			auto velocity = std::stoi(params.at("vel_percent"));
-			velocity = std::max(std::min(100, velocity), -100);
+			velocity = std::max(std::min(100, velocity), 0);
 			param.vel_percent = velocity;
 			param.increase_status = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
 		}
@@ -3655,7 +3687,7 @@ double p, v, a;
 		else
 		{
 			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
-            target.mot_options[3] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
+            target.mot_options[param.motion_id] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
 		}
 		target.param = param;
 	}
@@ -3739,7 +3771,9 @@ double p, v, a;
 
 		return finished;
 	}
-	auto JogJ4::collectNrt(PlanTarget &target)->void {
+	auto JogJ4::collectNrt(PlanTarget &target)->void 
+	{
+		JogJParam::j4_count = 0;
 		if (target.ret_code < 0)
 		{
 			JogJParam::j4_count.store(0);
@@ -3752,9 +3786,9 @@ double p, v, a;
 			"<Command name=\"j4\">"
 			"	<GroupParam>"
             "		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
-			"		<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"
-			"		<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"
+			"		<Param name=\"vel\" default=\"0.5\" abbreviation=\"v\"/>"
+			"		<Param name=\"acc\" default=\"0.5\" abbreviation=\"a\"/>"
+			"		<Param name=\"dec\" default=\"0.5\" abbreviation=\"d\"/>"
 			"		<Param name=\"vel_percent\" default=\"10\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
 			"	</GroupParam>"
@@ -3785,14 +3819,14 @@ double p, v, a;
 		for (auto &p : params)
 		{
 			param.increase_count = std::stoi(params.at("increase_count"));
-            if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
+			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
 
-			param.vel = c->motionPool().at(4).maxVel();
-			param.acc = c->motionPool().at(4).maxAcc();
-			param.dec = c->motionPool().at(4).maxAcc();
+			param.vel = c->motionPool().at(param.motion_id).maxVel()*g_vel.getspeed().w_percent;
+			param.acc = std::min(std::max(std::stod(params.at("acc")), 0.0), 1.0)*c->motionPool().at(param.motion_id).maxAcc();
+			param.dec = std::min(std::max(std::stod(params.at("dec")), 0.0), 1.0)*c->motionPool().at(param.motion_id).maxAcc();
 
 			auto velocity = std::stoi(params.at("vel_percent"));
-			velocity = std::max(std::min(100, velocity), -100);
+			velocity = std::max(std::min(100, velocity), 0);
 			param.vel_percent = velocity;
 			param.increase_status = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
 		}
@@ -3808,7 +3842,7 @@ double p, v, a;
 		else
 		{
 			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
-            target.mot_options[4] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
+            target.mot_options[param.motion_id] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
 		}
 		target.param = param;
 	}
@@ -3892,7 +3926,9 @@ double p, v, a;
 
 		return finished;
 	}
-	auto JogJ5::collectNrt(PlanTarget &target)->void {
+	auto JogJ5::collectNrt(PlanTarget &target)->void 
+	{
+		JogJParam::j5_count = 0;
 		if (target.ret_code < 0)
 		{
 			JogJParam::j5_count.store(0);
@@ -3905,9 +3941,9 @@ double p, v, a;
 			"<Command name=\"j5\">"
 			"	<GroupParam>"
             "		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
-			"		<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"
-			"		<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"
+			"		<Param name=\"vel\" default=\"0.5\" abbreviation=\"v\"/>"
+			"		<Param name=\"acc\" default=\"0.5\" abbreviation=\"a\"/>"
+			"		<Param name=\"dec\" default=\"0.5\" abbreviation=\"d\"/>"
 			"		<Param name=\"vel_percent\" default=\"10\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
 			"	</GroupParam>"
@@ -3938,14 +3974,14 @@ double p, v, a;
 		for (auto &p : params)
 		{
 			param.increase_count = std::stoi(params.at("increase_count"));
-            if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
+			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
 
-			param.vel = c->motionPool().at(5).maxVel();
-			param.acc = c->motionPool().at(5).maxAcc();
-			param.dec = c->motionPool().at(5).maxAcc();
+			param.vel = c->motionPool().at(param.motion_id).maxVel()*g_vel.getspeed().w_percent;
+			param.acc = std::min(std::max(std::stod(params.at("acc")), 0.0), 1.0)*c->motionPool().at(param.motion_id).maxAcc();
+			param.dec = std::min(std::max(std::stod(params.at("dec")), 0.0), 1.0)*c->motionPool().at(param.motion_id).maxAcc();
 
 			auto velocity = std::stoi(params.at("vel_percent"));
-			velocity = std::max(std::min(100, velocity), -100);
+			velocity = std::max(std::min(100, velocity), 0);
 			param.vel_percent = velocity;
 			param.increase_status = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
 		}
@@ -3961,7 +3997,7 @@ double p, v, a;
 		else
 		{
 			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
-            target.mot_options[5] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
+            target.mot_options[param.motion_id] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
 		}
 		target.param = param;
 	}
@@ -4045,7 +4081,9 @@ double p, v, a;
 
 		return finished;
 	}
-	auto JogJ6::collectNrt(PlanTarget &target)->void {
+	auto JogJ6::collectNrt(PlanTarget &target)->void 
+	{
+		JogJParam::j6_count = 0;
 		if (target.ret_code < 0)
 		{
 			JogJParam::j6_count.store(0);
@@ -4058,9 +4096,9 @@ double p, v, a;
 			"<Command name=\"j6\">"
 			"	<GroupParam>"
             "		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
-			"		<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"
-			"		<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"
+			"		<Param name=\"vel\" default=\"0.5\" abbreviation=\"v\"/>"
+			"		<Param name=\"acc\" default=\"0.5\" abbreviation=\"a\"/>"
+			"		<Param name=\"dec\" default=\"0.5\" abbreviation=\"d\"/>"
 			"		<Param name=\"vel_percent\" default=\"10\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
 			"	</GroupParam>"
@@ -4098,21 +4136,23 @@ double p, v, a;
 			param.increase_count = std::stoi(params.at("increase_count"));
 			param.cor_system = std::stoi(params.at("cor"));
 			auto velocity = std::stoi(params.at("vel_percent"));
-			velocity = std::max(std::min(100, velocity), -100);
+			velocity = std::max(std::min(100, velocity), 0);
 			param.vel_percent = velocity;
 
-            if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
+			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
 
 			auto mat = target.model->calculator().calculateExpression(params.at("vel"));
-            if (mat.size() != 6)THROW_FILE_LINE("");
+			if (mat.size() != 6)THROW_FILE_LINE("");
 			std::copy(mat.begin(), mat.end(), param.vel);
+			std::fill(param.vel, param.vel + 3, g_vel.getspeed().v_tcp);
+			std::fill(param.vel + 3, param.vel + 6, g_vel.getspeed().w_tcp);
 
 			mat = target.model->calculator().calculateExpression(params.at("acc"));
-            if (mat.size() != 6)THROW_FILE_LINE("");
+			if (mat.size() != 6)THROW_FILE_LINE("");
 			std::copy(mat.begin(), mat.end(), param.acc);
 
 			mat = target.model->calculator().calculateExpression(params.at("dec"));
-            if (mat.size() != 6)THROW_FILE_LINE("");
+			if (mat.size() != 6)THROW_FILE_LINE("");
 			std::copy(mat.begin(), mat.end(), param.dec);
 
 			param.increase_status[param.moving_type] = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
@@ -4256,7 +4296,9 @@ double p, v, a;
 
 		return finished[param.moving_type];
 	}
-	auto JX::collectNrt(PlanTarget &target)->void {
+	auto JX::collectNrt(PlanTarget &target)->void 
+	{
+		JCParam::jx_count = 0;
 		if (target.ret_code < 0)
 		{
 			JCParam::jx_count.store(0);
@@ -4269,9 +4311,9 @@ double p, v, a;
 			"<Command name=\"jx\">"
 			"	<GroupParam>"
 			"		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"{0.05,0.05,0.05,0.25,0.25,0.25}\"/>"
-			"		<Param name=\"acc\" default=\"{0.2,0.2,0.2,1,1,1}\"/>"
-			"		<Param name=\"dec\" default=\"{0.2,0.2,0.2,1,1,1}\"/>"
+			"		<Param name=\"vel\" default=\"{0.2,0.2,0.2,0.25,0.25,0.25}\"/>"
+			"		<Param name=\"acc\" default=\"{1,1,1,1,1,1}\"/>"
+			"		<Param name=\"dec\" default=\"{1,1,1,1,1,1}\"/>"
 			"		<Param name=\"cor\" default=\"0\"/>"
 			"		<Param name=\"vel_percent\" default=\"20\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
@@ -4299,21 +4341,23 @@ double p, v, a;
 			param.increase_count = std::stoi(params.at("increase_count"));
 			param.cor_system = std::stoi(params.at("cor"));
 			auto velocity = std::stoi(params.at("vel_percent"));
-			velocity = std::max(std::min(100, velocity), -100);
+			velocity = std::max(std::min(100, velocity), 0);
 			param.vel_percent = velocity;
 
-            if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
+			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
 
 			auto mat = target.model->calculator().calculateExpression(params.at("vel"));
-            if (mat.size() != 6)THROW_FILE_LINE("");
+			if (mat.size() != 6)THROW_FILE_LINE("");
 			std::copy(mat.begin(), mat.end(), param.vel);
+			std::fill(param.vel, param.vel + 3, g_vel.getspeed().v_tcp);
+			std::fill(param.vel + 3, param.vel + 6, g_vel.getspeed().w_tcp);
 
 			mat = target.model->calculator().calculateExpression(params.at("acc"));
-            if (mat.size() != 6)THROW_FILE_LINE("");
+			if (mat.size() != 6)THROW_FILE_LINE("");
 			std::copy(mat.begin(), mat.end(), param.acc);
 
 			mat = target.model->calculator().calculateExpression(params.at("dec"));
-            if (mat.size() != 6)THROW_FILE_LINE("");
+			if (mat.size() != 6)THROW_FILE_LINE("");
 			std::copy(mat.begin(), mat.end(), param.dec);
 
 			param.increase_status[param.moving_type] = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
@@ -4457,7 +4501,9 @@ double p, v, a;
 
 		return finished[param.moving_type];
 	}
-	auto JY::collectNrt(PlanTarget &target)->void {
+	auto JY::collectNrt(PlanTarget &target)->void 
+	{
+		JCParam::jy_count = 0;
 		if (target.ret_code < 0)
 		{
 			JCParam::jy_count.store(0);
@@ -4470,9 +4516,9 @@ double p, v, a;
 			"<Command name=\"jy\">"
 			"	<GroupParam>"
 			"		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"{0.05,0.05,0.05,0.25,0.25,0.25}\"/>"
-			"		<Param name=\"acc\" default=\"{0.2,0.2,0.2,1,1,1}\"/>"
-			"		<Param name=\"dec\" default=\"{0.2,0.2,0.2,1,1,1}\"/>"
+			"		<Param name=\"vel\" default=\"{0.2,0.2,0.2,0.25,0.25,0.25}\"/>"
+			"		<Param name=\"acc\" default=\"{1,1,1,1,1,1}\"/>"
+			"		<Param name=\"dec\" default=\"{1,1,1,1,1,1}\"/>"
 			"		<Param name=\"cor\" default=\"0\"/>"
 			"		<Param name=\"vel_percent\" default=\"20\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
@@ -4500,21 +4546,23 @@ double p, v, a;
 			param.increase_count = std::stoi(params.at("increase_count"));
 			param.cor_system = std::stoi(params.at("cor"));
 			auto velocity = std::stoi(params.at("vel_percent"));
-			velocity = std::max(std::min(100, velocity), -100);
+			velocity = std::max(std::min(100, velocity), 0);
 			param.vel_percent = velocity;
 
-            if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
+			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
 
 			auto mat = target.model->calculator().calculateExpression(params.at("vel"));
-            if (mat.size() != 6)THROW_FILE_LINE("");
+			if (mat.size() != 6)THROW_FILE_LINE("");
 			std::copy(mat.begin(), mat.end(), param.vel);
+			std::fill(param.vel, param.vel + 3, g_vel.getspeed().v_tcp);
+			std::fill(param.vel + 3, param.vel + 6, g_vel.getspeed().w_tcp);
 
 			mat = target.model->calculator().calculateExpression(params.at("acc"));
-            if (mat.size() != 6)THROW_FILE_LINE("");
+			if (mat.size() != 6)THROW_FILE_LINE("");
 			std::copy(mat.begin(), mat.end(), param.acc);
 
 			mat = target.model->calculator().calculateExpression(params.at("dec"));
-            if (mat.size() != 6)THROW_FILE_LINE("");
+			if (mat.size() != 6)THROW_FILE_LINE("");
 			std::copy(mat.begin(), mat.end(), param.dec);
 
 			param.increase_status[param.moving_type] = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
@@ -4658,7 +4706,9 @@ double p, v, a;
 
 		return finished[param.moving_type];
 	}
-	auto JZ::collectNrt(PlanTarget &target)->void {
+	auto JZ::collectNrt(PlanTarget &target)->void 
+	{
+		JCParam::jz_count = 0;
 		if (target.ret_code < 0)
 		{
 			JCParam::jz_count.store(0);
@@ -4671,9 +4721,9 @@ double p, v, a;
 			"<Command name=\"jz\">"
 			"	<GroupParam>"
 			"		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"{0.05,0.05,0.05,0.25,0.25,0.25}\"/>"
-			"		<Param name=\"acc\" default=\"{0.2,0.2,0.2,1,1,1}\"/>"
-			"		<Param name=\"dec\" default=\"{0.2,0.2,0.2,1,1,1}\"/>"
+			"		<Param name=\"vel\" default=\"{0.2,0.2,0.2,0.25,0.25,0.25}\"/>"
+			"		<Param name=\"acc\" default=\"{1,1,1,1,1,1}\"/>"
+			"		<Param name=\"dec\" default=\"{1,1,1,1,1,1}\"/>"
 			"		<Param name=\"cor\" default=\"0\"/>"
 			"		<Param name=\"vel_percent\" default=\"20\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
@@ -4701,21 +4751,23 @@ double p, v, a;
 			param.increase_count = std::stoi(params.at("increase_count"));
 			param.cor_system = std::stoi(params.at("cor"));
 			auto velocity = std::stoi(params.at("vel_percent"));
-			velocity = std::max(std::min(100, velocity), -100);
+			velocity = std::max(std::min(100, velocity), 0);
 			param.vel_percent = velocity;
 
-            if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
+			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
 
 			auto mat = target.model->calculator().calculateExpression(params.at("vel"));
-            if (mat.size() != 6)THROW_FILE_LINE("");
+			if (mat.size() != 6)THROW_FILE_LINE("");
 			std::copy(mat.begin(), mat.end(), param.vel);
+			std::fill(param.vel, param.vel + 3, g_vel.getspeed().v_tcp);
+			std::fill(param.vel + 3, param.vel + 6, g_vel.getspeed().w_tcp);
 
 			mat = target.model->calculator().calculateExpression(params.at("acc"));
-            if (mat.size() != 6)THROW_FILE_LINE("");
+			if (mat.size() != 6)THROW_FILE_LINE("");
 			std::copy(mat.begin(), mat.end(), param.acc);
 
 			mat = target.model->calculator().calculateExpression(params.at("dec"));
-            if (mat.size() != 6)THROW_FILE_LINE("");
+			if (mat.size() != 6)THROW_FILE_LINE("");
 			std::copy(mat.begin(), mat.end(), param.dec);
 
 			param.increase_status[param.moving_type] = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
@@ -4859,7 +4911,9 @@ double p, v, a;
 
 		return finished[param.moving_type];
 	}
-	auto JRX::collectNrt(PlanTarget &target)->void {
+	auto JRX::collectNrt(PlanTarget &target)->void 
+	{
+		JCParam::jrx_count = 0;
 		if (target.ret_code < 0)
 		{
 			JCParam::jrx_count.store(0);
@@ -4872,9 +4926,9 @@ double p, v, a;
 			"<Command name=\"jrx\">"
 			"	<GroupParam>"
 			"		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"{0.05,0.05,0.05,0.25,0.25,0.25}\"/>"
-			"		<Param name=\"acc\" default=\"{0.2,0.2,0.2,1,1,1}\"/>"
-			"		<Param name=\"dec\" default=\"{0.2,0.2,0.2,1,1,1}\"/>"
+			"		<Param name=\"vel\" default=\"{0.2,0.2,0.2,0.25,0.25,0.25}\"/>"
+			"		<Param name=\"acc\" default=\"{1,1,1,1,1,1}\"/>"
+			"		<Param name=\"dec\" default=\"{1,1,1,1,1,1}\"/>"
 			"		<Param name=\"cor\" default=\"0\"/>"
 			"		<Param name=\"vel_percent\" default=\"20\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
@@ -4909,21 +4963,23 @@ double p, v, a;
 			param.increase_count = std::stoi(params.at("increase_count"));
 			param.cor_system = std::stoi(params.at("cor"));
 			auto velocity = std::stoi(params.at("vel_percent"));
-			velocity = std::max(std::min(100, velocity), -100);
+			velocity = std::max(std::min(100, velocity), 0);
 			param.vel_percent = velocity;
 
-            if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
+			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
 
 			auto mat = target.model->calculator().calculateExpression(params.at("vel"));
-            if (mat.size() != 6)THROW_FILE_LINE("");
+			if (mat.size() != 6)THROW_FILE_LINE("");
 			std::copy(mat.begin(), mat.end(), param.vel);
+			std::fill(param.vel, param.vel + 3, g_vel.getspeed().v_tcp);
+			std::fill(param.vel + 3, param.vel + 6, g_vel.getspeed().w_tcp);
 
 			mat = target.model->calculator().calculateExpression(params.at("acc"));
-            if (mat.size() != 6)THROW_FILE_LINE("");
+			if (mat.size() != 6)THROW_FILE_LINE("");
 			std::copy(mat.begin(), mat.end(), param.acc);
 
 			mat = target.model->calculator().calculateExpression(params.at("dec"));
-            if (mat.size() != 6)THROW_FILE_LINE("");
+			if (mat.size() != 6)THROW_FILE_LINE("");
 			std::copy(mat.begin(), mat.end(), param.dec);
 
 			param.increase_status[param.moving_type] = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
@@ -5067,7 +5123,9 @@ double p, v, a;
 
 		return finished[param.moving_type];
 	}
-	auto JRY::collectNrt(PlanTarget &target)->void {
+	auto JRY::collectNrt(PlanTarget &target)->void 
+	{
+		JCParam::jry_count = 0;
 		if (target.ret_code < 0)
 		{
 			JCParam::jry_count.store(0);
@@ -5080,9 +5138,9 @@ double p, v, a;
 			"<Command name=\"jry\">"
 			"	<GroupParam>"
 			"		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"{0.05,0.05,0.05,0.25,0.25,0.25}\"/>"
-			"		<Param name=\"acc\" default=\"{0.2,0.2,0.2,1,1,1}\"/>"
-			"		<Param name=\"dec\" default=\"{0.2,0.2,0.2,1,1,1}\"/>"
+			"		<Param name=\"vel\" default=\"{0.2,0.2,0.2,0.25,0.25,0.25}\"/>"
+			"		<Param name=\"acc\" default=\"{1,1,1,1,1,1}\"/>"
+			"		<Param name=\"dec\" default=\"{1,1,1,1,1,1}\"/>"
 			"		<Param name=\"cor\" default=\"0\"/>"
 			"		<Param name=\"vel_percent\" default=\"20\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
@@ -5110,21 +5168,23 @@ double p, v, a;
 			param.increase_count = std::stoi(params.at("increase_count"));
 			param.cor_system = std::stoi(params.at("cor"));
 			auto velocity = std::stoi(params.at("vel_percent"));
-			velocity = std::max(std::min(100, velocity), -100);
+			velocity = std::max(std::min(100, velocity), 0);
 			param.vel_percent = velocity;
 
-            if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
+			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
 
 			auto mat = target.model->calculator().calculateExpression(params.at("vel"));
-            if (mat.size() != 6)THROW_FILE_LINE("");
+			if (mat.size() != 6)THROW_FILE_LINE("");
 			std::copy(mat.begin(), mat.end(), param.vel);
+			std::fill(param.vel, param.vel + 3, g_vel.getspeed().v_tcp);
+			std::fill(param.vel + 3, param.vel + 6, g_vel.getspeed().w_tcp);
 
 			mat = target.model->calculator().calculateExpression(params.at("acc"));
-            if (mat.size() != 6)THROW_FILE_LINE("");
+			if (mat.size() != 6)THROW_FILE_LINE("");
 			std::copy(mat.begin(), mat.end(), param.acc);
 
 			mat = target.model->calculator().calculateExpression(params.at("dec"));
-            if (mat.size() != 6)THROW_FILE_LINE("");
+			if (mat.size() != 6)THROW_FILE_LINE("");
 			std::copy(mat.begin(), mat.end(), param.dec);
 
 			param.increase_status[param.moving_type] = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
@@ -5268,7 +5328,9 @@ double p, v, a;
 
 		return finished[param.moving_type];
 	}
-	auto JRZ::collectNrt(PlanTarget &target)->void {
+	auto JRZ::collectNrt(PlanTarget &target)->void 
+	{
+		JCParam::jrz_count = 0;
 		if (target.ret_code < 0)
 		{
 			JCParam::jrz_count.store(0);
@@ -5281,9 +5343,9 @@ double p, v, a;
 			"<Command name=\"jrz\">"
 			"	<GroupParam>"
 			"		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"{0.05,0.05,0.05,0.25,0.25,0.25}\"/>"
-			"		<Param name=\"acc\" default=\"{0.2,0.2,0.2,1,1,1}\"/>"
-			"		<Param name=\"dec\" default=\"{0.2,0.2,0.2,1,1,1}\"/>"
+			"		<Param name=\"vel\" default=\"{0.2,0.2,0.2,0.25,0.25,0.25}\"/>"
+			"		<Param name=\"acc\" default=\"{1,1,1,1,1,1}\"/>"
+			"		<Param name=\"dec\" default=\"{1,1,1,1,1,1}\"/>"
 			"		<Param name=\"cor\" default=\"0\"/>"
 			"		<Param name=\"vel_percent\" default=\"20\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
@@ -6175,7 +6237,7 @@ double p, v, a;
 	auto ClearCon::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
 		auto&cs = aris::server::ControlServer::instance();
-		if (cs.running())throw std::runtime_error("cs is running, can not set position offset,please stop the cs!");
+		if (cs.running())throw std::runtime_error("cs is running, please stop the cs using cs_stop!");
 
 		auto &controller = target.controller;
 		controller->slavePool().clear();
@@ -6203,7 +6265,7 @@ double p, v, a;
 	auto SetCon::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
 		auto&cs = aris::server::ControlServer::instance();
-		if (cs.running())throw std::runtime_error("cs is running, can not set controller,please stop the cs!");
+		if (cs.running())throw std::runtime_error("cs is running, please stop the cs using cs_stop!");
 
 		SetConParam param;
 		param.motion_phyid = 0;
@@ -6290,7 +6352,7 @@ double p, v, a;
 	auto SetDH::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
 		auto&cs = aris::server::ControlServer::instance();
-		if (cs.running())throw std::runtime_error("cs is running, can not set DH parameters,please stop the cs!");
+		if (cs.running())throw std::runtime_error("cs is running, please stop the cs using cs_stop!");
 
 		SetDHParam dhparam;
 		dhparam.dh.clear();
@@ -6386,7 +6448,7 @@ double p, v, a;
 	SetDH::SetDH(const std::string &name) :Plan(name)
 	{
 		command().loadXmlStr(
-			"<Command name=\"setDH\">"
+			"<Command name=\"setdh\">"
 			"	<GroupParam>"
 			"		<UniqueParam>"
 			"			<GroupParam name=\"start_group\">"
@@ -6423,7 +6485,7 @@ double p, v, a;
 	auto SetPG::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
 		auto&cs = aris::server::ControlServer::instance();
-		if (cs.running())throw std::runtime_error("cs is running, can not set DH parameters,please stop the cs!");
+		if (cs.running())throw std::runtime_error("cs is running, please stop the cs using cs_stop!");
 
 		SetPGParam param;
 		param.pe.clear();
@@ -6467,7 +6529,7 @@ double p, v, a;
 	SetPG::SetPG(const std::string &name) :Plan(name)
 	{
 		command().loadXmlStr(
-			"<Command name=\"setPG\">"
+			"<Command name=\"setpgpath\">"
 			"	<GroupParam>"
 			"		<Param name=\"name\" default=\"test\"/>"
 			"		<Param name=\"pe\" default=\"{0, 0, 0, -0, 0, -0}\"/>"
@@ -6478,6 +6540,82 @@ double p, v, a;
 	}
 	
 
+	// 配置PG参数 //
+	struct SetPPathParam
+	{
+		std::string name;
+		std::vector<double> pe;
+		std::vector<std::string> file_path;
+	};
+	auto SetPPath::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		auto&cs = aris::server::ControlServer::instance();
+		//if (cs.running())throw std::runtime_error("cs is running, please stop the cs using cs_stop!");
+
+		SetPPathParam param;
+		param.pe.clear();
+		param.pe.resize(6, 0.0);
+		param.file_path.clear();
+
+		for (auto &p : params)
+		{
+			if (p.first == "name")
+			{
+				param.name = p.second;
+			}
+			else if (p.first == "pe")
+			{
+				auto mat = target.model->calculator().calculateExpression(params.at("pe"));
+				if (mat.size() == param.pe.size())
+				{
+					param.pe.assign(mat.begin(), mat.end());
+				}
+				else
+				{
+					throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
+				}
+			}
+			else if (p.first == "file_path")
+			{
+				auto data = p.second;
+				char *s_input = (char *)data.c_str();
+				const char *split = ";";
+				// 以‘;’为分隔符拆分字符串
+				char *sp_input = strtok(s_input, split);
+				std::string s_data;
+				while (sp_input != NULL)
+				{
+					s_data = sp_input;
+					param.file_path.push_back(s_data);
+					sp_input = strtok(NULL, split);
+				}
+			}
+		}
+
+		for (int i = 0; i < param.file_path.size(); i++)
+		{
+			target.model->partPool().at(i).geometryPool().clear();
+			target.model->partPool().at(i).geometryPool().add<FileGeometry>(param.name, param.file_path[i], param.pe.data());
+		}
+
+		std::vector<std::pair<std::string, std::any>> ret;
+		target.ret = ret;
+		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
+
+	}
+	SetPPath::SetPPath(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"setppath\">"
+			"	<GroupParam>"
+			"		<Param name=\"name\" default=\"test\"/>"
+			"		<Param name=\"pe\" default=\"{0.0, 0.0, 0.0, -0.0, 0.0, -0.0}\"/>"
+			"		<Param name=\"file_path\" default=\"/RobotGallery/Rokae/XB4/l0.data;/RobotGallery/Rokae/XB4/l1.data;/RobotGallery/Rokae/XB4/l2.data;/RobotGallery/Rokae/XB4/l3.data;/RobotGallery/Rokae/XB4/l4.data;/RobotGallery/Rokae/XB4/l5.data;/RobotGallery/Rokae/XB4/l6.data\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
+
+
 	// 配置UI //
 	struct SetUIParam
 	{
@@ -6486,7 +6624,7 @@ double p, v, a;
 	auto SetUI::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
 		auto&cs = aris::server::ControlServer::instance();
-		if (cs.running())throw std::runtime_error("cs is running, can not set UI, please stop the cs!");
+		if (cs.running())throw std::runtime_error("cs is running, please stop the cs using cs_stop!");
 
 		SetUIParam param;
 
@@ -6538,7 +6676,7 @@ double p, v, a;
 	auto SetDriver::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
 		auto&cs = aris::server::ControlServer::instance();
-		if (cs.running())throw std::runtime_error("cs is running, can not set pos_factor,pos,vel and acc,please stop the cs!");
+		if (cs.running())throw std::runtime_error("cs is running, please stop the cs using cs_stop!");
 		//std::unique_ptr<aris::control::Controller> controller(kaanh::createControllerRokaeXB4());
 		auto &controller = target.controller;
 		SetDriverParam param;
@@ -6653,26 +6791,159 @@ double p, v, a;
 
 
 	// 保存配置 //
-	auto SaveConfig::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	struct SaveXmlParam
+	{
+		std::string path;
+	};
+	auto SaveXml::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
 		auto&cs = aris::server::ControlServer::instance();
-		if (cs.running())throw std::runtime_error("cs is running, can not set position offset,please stop the cs!");
-
-        //cs.resetSensorRoot(new aris::sensor::SensorRoot);
-
-		auto xmlpath = std::filesystem::absolute(".");
+		if (cs.running())throw std::runtime_error("cs is running, please stop the cs using cs_stop!");
+		
+		SaveXmlParam param;
+		for (auto &p : params)
+		{
+			if (p.first == "path")
+			{
+				param.path = p.second;
+			}
+		}
 		const std::string xmlfile = "kaanh.xml";
-		xmlpath = xmlpath / xmlfile;
-		cs.saveXmlFile(xmlpath.string().c_str());
+		param.path = param.path + '/' + xmlfile;
+
+		std::cout << "path:" << param.path << std::endl;
+		cs.saveXmlFile(param.path.c_str());
 
 		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
 		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
 	}
-	SaveConfig::SaveConfig(const std::string &name) :Plan(name)
+	SaveXml::SaveXml(const std::string &name) :Plan(name)
 	{
 		command().loadXmlStr(
-			"<Command name=\"saveConfig\">"
+			"<Command name=\"savexml\">"
+			"	<GroupParam>"
+			"		<Param name=\"path\" default=\"\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
+
+
+	// 从硬件扫描从站 //
+	auto ScanSlave::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		auto&cs = aris::server::ControlServer::instance();
+		if (cs.running())throw std::runtime_error("cs is running, please stop the cs using cs_stop!");
+
+		aris::control::EthercatMaster mst;
+		mst.scan();
+
+		//for test//
+
+		std::vector<std::pair<std::string, std::any>> ret;
+		ret.push_back(std::make_pair<std::string, std::any>("controller_xml", cs.controller().xmlString()));
+
+		target.ret = ret;
+		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
+	}
+	ScanSlave::ScanSlave(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"scanslave\">"
+			"</Command>");
+	}
+
+
+	// 根据ESI补全从站信息 //
+	static aris::control::EthercatMaster mst;
+	struct GetEsiPdoListParam
+	{
+		int vendor_id;
+		int product_code;
+		int revision_num;
+	};
+	auto GetEsiPdoList::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		auto&cs = aris::server::ControlServer::instance();
+		if (cs.running())throw std::runtime_error("cs is running, please stop the cs using cs_stop!");
+		
+		GetEsiPdoListParam param;
+		for (auto &p : params)
+		{
+			if (p.first == "vendor_id")
+			{
+				param.vendor_id = std::stoi(p.second, nullptr, 16);
+			}
+			else if (p.first == "product_code")
+			{
+				param.product_code = std::stoi(p.second, nullptr, 16);
+			}
+			else if (p.first == "revision_num")
+			{
+				param.revision_num = std::stoi(p.second, nullptr, 16);
+			}
+		}
+
+		auto pdolist = mst.getPdoList(param.vendor_id, param.product_code, param.revision_num);
+
+		std::vector<std::pair<std::string, std::any>> ret;
+		ret.push_back(std::make_pair<std::string, std::any>("pdo_list_xml", pdolist));
+
+		target.ret = ret;
+		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
+	}
+	GetEsiPdoList::GetEsiPdoList(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"getesipdolist\">"
+			"	<GroupParam>"
+			"		<Param name=\"vendor_id\" default=\"0\"/>"
+			"		<Param name=\"product_code\" default=\"0\"/>"
+			"		<Param name=\"revision_num\" default=\"0\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
+
+
+	// 选择ESI路径 //
+	struct SetEsiPathParam
+	{
+		std::vector<std::filesystem::path> path;
+	};
+	auto SetEsiPath::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		auto&cs = aris::server::ControlServer::instance();
+		if (cs.running())throw std::runtime_error("cs is running, please stop the cs using cs_stop!");
+		
+		SetEsiPathParam param;
+		param.path.clear();
+
+		for (auto &p : params)
+		{
+			if (p.first == "path")
+			{
+				param.path.push_back(p.second);
+			}
+		}
+
+		mst.setEsiDirs(param.path);
+		mst.updateDeviceList();
+		auto device_list = mst.getDeviceList();
+		std::cout << "param.path:"<< param.path.data()->string() << std::endl;
+
+		std::vector<std::pair<std::string, std::any>> ret;
+		ret.push_back(std::make_pair<std::string, std::any>("device_list_xml", device_list));
+
+		target.ret = ret;
+		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
+	}
+	SetEsiPath::SetEsiPath(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"setesipath\">"
+			"	<GroupParam>"
+			"		<Param name=\"path\" default=\"\"/>"
+			"	</GroupParam>"
 			"</Command>");
 	}
 
@@ -6772,6 +7043,38 @@ double p, v, a;
 	}
 	
 
+	//设置全局速度//
+	struct SetVelParam
+	{
+		int vel_percent;
+	};
+	auto SetVel::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		SetVelParam param;
+		for (auto &p : params)
+		{
+			if (p.first == "vel_percent")
+			{
+				param.vel_percent = std::stoi(p.second);
+			}
+		}
+		g_vel_percent.store(param.vel_percent);
+
+		std::vector<std::pair<std::string, std::any>> ret;
+		target.ret = ret;
+		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
+	}
+	SetVel::SetVel(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"setvel\">"
+			"	<GroupParam>"
+			"		<Param name=\"vel_percent\" abbreviation=\"p\" default=\"0\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
+
+
     auto createPlanRootRokaeXB4()->std::unique_ptr<aris::plan::PlanRoot>
 	{
         std::unique_ptr<aris::plan::PlanRoot> plan_root(new aris::plan::PlanRoot);
@@ -6784,10 +7087,10 @@ double p, v, a;
         plan_root->planPool().add<aris::plan::Sleep>();
         plan_root->planPool().add<aris::plan::Recover>();
         auto &rs = plan_root->planPool().add<aris::plan::Reset>();
-        //rs.command().findParam("pos")->setDefaultValue("{0.5,0.3925,0.7899,0.5,0.5,0.5}");
+        rs.command().findParam("pos")->setDefaultValue("{0.5,0.3925,0.7899,0.5,0.5,0.5}");
 		
         //qifan//
-        rs.command().findParam("pos")->setDefaultValue("{0.5,0.353,0.5,0.5,0.5,0.5}");
+        //rs.command().findParam("pos")->setDefaultValue("{0.5,0.353,0.5,0.5,0.5,0.5}");
 
         plan_root->planPool().add<aris::plan::MoveAbsJ>();
 
@@ -6842,12 +7145,15 @@ double p, v, a;
 		plan_root->planPool().add<kaanh::SetCon>();
 		plan_root->planPool().add<kaanh::SetDH>();
 		plan_root->planPool().add<kaanh::SetPG>();
+		plan_root->planPool().add<kaanh::SetPPath>();
 		plan_root->planPool().add<kaanh::SetUI>();
 		plan_root->planPool().add<kaanh::SetDriver>();
-		plan_root->planPool().add<kaanh::SaveConfig>();
-		plan_root->planPool().add<kaanh::StartCS>();
-		plan_root->planPool().add<kaanh::StopCS>();
+		plan_root->planPool().add<kaanh::SaveXml>();
+		plan_root->planPool().add<kaanh::ScanSlave>();
+		plan_root->planPool().add<kaanh::GetEsiPdoList>();
+		plan_root->planPool().add<kaanh::SetEsiPath>();
 		plan_root->planPool().add<kaanh::SetCT>();
+		plan_root->planPool().add<kaanh::SetVel>();
 
 		plan_root->planPool().add<MoveXYZ>();
 		plan_root->planPool().add<MoveJoint>();
@@ -6875,11 +7181,7 @@ double p, v, a;
 		plan_root->planPool().add<LoadDynaSave0>();
 		plan_root->planPool().add<LoadDynaSave1>();
 		plan_root->planPool().add<SaveYYbase>();
-		plan_root->planPool().add<SaveFile>();
-
-		plan_root->planPool().add<FourPoints>();
-		plan_root->planPool().add<SetTool>();
-
+		plan_root->planPool().add<SaveFile>();	
 
 		plan_root->planPool().add<SevenJointDyna>();
 		plan_root->planPool().add<SevenJointTest>();
@@ -6893,6 +7195,15 @@ double p, v, a;
 		plan_root->planPool().add<cplan::MoveinModel>();
 		plan_root->planPool().add<cplan::FMovePath>();
 		plan_root->planPool().add<cplan::OpenFile>();
+		
+		plan_root->planPool().add<CalibT4P>();
+		plan_root->planPool().add<CalibT5P>();
+		plan_root->planPool().add<CalibT6P>();
+		plan_root->planPool().add<SetTF>();
+		plan_root->planPool().add<CalibZF>();
+		plan_root->planPool().add<CalibZO>();
+		plan_root->planPool().add<CalibZL>();
+		plan_root->planPool().add<SaveTeachPt>();
 
 		return plan_root;
 	}
