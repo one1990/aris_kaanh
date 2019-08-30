@@ -2724,7 +2724,7 @@ auto MovePressureToolXY::executeRT(PlanTarget &target)->int
 		{
 			TangentArc1[0] = ExtendSurface[0]; TangentArc1[1] = ExtendSurface[1]; TangentArc1[2] = ExtendSurface[2];
 
-			TangentArc2[0] = -ExtendSurface[0]; TangentArc2[1] = ExtendSurface[1]; TangentArc2[2] = ExtendSurface[2];
+			TangentArc2[0] = -ExtendSurface[0]; TangentArc2[1] = -ExtendSurface[1]; TangentArc2[2] = ExtendSurface[2];
 
 			if (MoveDirection == true)
 				for (int i = 0;i < 3;i++)
@@ -2746,7 +2746,7 @@ auto MovePressureToolXY::executeRT(PlanTarget &target)->int
 
 			TangentArc1[0] = Ktemp * ExtendSurface[0];
 			TangentArc1[1] = Ktemp * ExtendSurface[1];
-			TangentArc1[2] = -(NormalVector[0] * TangentArc0[0] + NormalVector[1] * TangentArc0[1]) / NormalVector[2];
+			TangentArc1[2] = -(NormalVector[0] * TangentArc1[0] + NormalVector[1] * TangentArc1[1]) / NormalVector[2];
 
 			CosTheta1 = TangentArc1[0] * TangentArc0[0] + TangentArc1[1] * TangentArc0[1] + TangentArc1[2] * TangentArc0[2];
 
@@ -2756,7 +2756,7 @@ auto MovePressureToolXY::executeRT(PlanTarget &target)->int
 
 			TangentArc2[0] = Ktemp * ExtendSurface[0];
 			TangentArc2[1] = Ktemp * ExtendSurface[1];
-			TangentArc2[2] = -(NormalVector[0] * TangentArc0[0] + NormalVector[1] * TangentArc0[1]) / NormalVector[2];
+			TangentArc2[2] = -(NormalVector[0] * TangentArc2[0] + NormalVector[1] * TangentArc2[1]) / NormalVector[2];
 
 			if (MoveDirection == true)
 				for (int i = 0;i < 3;i++)
@@ -2841,7 +2841,7 @@ auto MovePressureToolXY::executeRT(PlanTarget &target)->int
 
 			TangentArc1[0] = Ktemp * CrossSurface[0];
 			TangentArc1[1] = Ktemp * CrossSurface[1];
-			TangentArc1[2] = -(NormalVector[0] * TangentArc0[0] + NormalVector[1] * TangentArc0[1]) / NormalVector[2];
+			TangentArc1[2] = -(NormalVector[0] * TangentArc1[0] + NormalVector[1] * TangentArc1[1]) / NormalVector[2];
 
 			for (int i = 0;i < 3;i++)
 				TangentArc[i] = TangentArc1[i];
@@ -3234,7 +3234,7 @@ auto MovePressureToolXLine::executeRT(PlanTarget &target)->int
         {
             TangentArc1[0] = ExtendSurface[0]; TangentArc1[1] = ExtendSurface[1]; TangentArc1[2] = ExtendSurface[2];
 
-            TangentArc2[0] = -ExtendSurface[0]; TangentArc2[1] = ExtendSurface[1]; TangentArc2[2] = ExtendSurface[2];
+            TangentArc2[0] = -ExtendSurface[0]; TangentArc2[1] = -ExtendSurface[1]; TangentArc2[2] = ExtendSurface[2];
 
             if (MoveDirection == true)
                 for (int i = 0;i < 3;i++)
@@ -3256,7 +3256,7 @@ auto MovePressureToolXLine::executeRT(PlanTarget &target)->int
 
             TangentArc1[0] = Ktemp * ExtendSurface[0];
             TangentArc1[1] = Ktemp * ExtendSurface[1];
-            TangentArc1[2] = -(NormalVector[0] * TangentArc0[0] + NormalVector[1] * TangentArc0[1]) / NormalVector[2];
+            TangentArc1[2] = -(NormalVector[0] * TangentArc1[0] + NormalVector[1] * TangentArc1[1]) / NormalVector[2];
 
             CosTheta1 = TangentArc1[0] * TangentArc0[0] + TangentArc1[1] * TangentArc0[1] + TangentArc1[2] * TangentArc0[2];
 
@@ -3266,7 +3266,7 @@ auto MovePressureToolXLine::executeRT(PlanTarget &target)->int
 
             TangentArc2[0] = Ktemp * ExtendSurface[0];
             TangentArc2[1] = Ktemp * ExtendSurface[1];
-            TangentArc2[2] = -(NormalVector[0] * TangentArc0[0] + NormalVector[1] * TangentArc0[1]) / NormalVector[2];
+            TangentArc2[2] = -(NormalVector[0] * TangentArc2[0] + NormalVector[1] * TangentArc2[1]) / NormalVector[2];
 
             if (MoveDirection == true)
                 for (int i = 0;i < 3;i++)
@@ -3665,7 +3665,7 @@ auto MovePressureToolYLine::executeRT(PlanTarget &target)->int
 
 			TangentArc1[0] = Ktemp * ExtendSurface[0];
 			TangentArc1[1] = Ktemp * ExtendSurface[1];
-			TangentArc1[2] = -(NormalVector[0] * TangentArc0[0] + NormalVector[1] * TangentArc0[1]) / NormalVector[2];
+			TangentArc1[2] = -(NormalVector[0] * TangentArc1[0] + NormalVector[1] * TangentArc1[1]) / NormalVector[2];
 
 			CosTheta1 = TangentArc1[0] * TangentArc0[0] + TangentArc1[1] * TangentArc0[1] + TangentArc1[2] * TangentArc0[2];
 
@@ -3675,7 +3675,7 @@ auto MovePressureToolYLine::executeRT(PlanTarget &target)->int
 
 			TangentArc2[0] = Ktemp * ExtendSurface[0];
 			TangentArc2[1] = Ktemp * ExtendSurface[1];
-			TangentArc2[2] = -(NormalVector[0] * TangentArc0[0] + NormalVector[1] * TangentArc0[1]) / NormalVector[2];
+			TangentArc2[2] = -(NormalVector[0] * TangentArc2[0] + NormalVector[1] * TangentArc2[1]) / NormalVector[2];
 
 			if (MoveDirection == true)
 				for (int i = 0;i < 3;i++)
