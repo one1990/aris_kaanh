@@ -112,7 +112,6 @@ int main(int argc, char *argv[])
 	//Start Web Socket//
     cs.open();
 
-
 	//Receive Command//
 	cs.runCmdLine();
 

@@ -7079,6 +7079,131 @@ double p, v, a;
 	}
 
 
+	//编程界面指令//
+	struct MsgParam
+	{
+	};
+	auto onReceivedMsg(aris::core::Socket *socket, aris::core::Msg &msg)->int
+	{
+		std::string msg_data = msg.toString();
+
+		LOG_INFO << "receive cmd:"
+			<< msg.header().msg_size_ << "&"
+			<< msg.header().msg_id_ << "&"
+			<< msg.header().msg_type_ << "&"
+			<< msg.header().reserved1_ << "&"
+			<< msg.header().reserved2_ << "&"
+			<< msg.header().reserved3_ << ":"
+			<< msg_data << std::endl;
+
+		try
+		{
+			aris::server::ControlServer::instance().executeCmd(aris::core::Msg(msg), [socket, msg](aris::plan::PlanTarget &target)->void
+			{
+				// make return msg
+				aris::core::Msg ret_msg(msg);
+
+				// only copy if it is a str
+				if (auto str = std::any_cast<std::string>(&target.ret))
+				{
+					ret_msg.copy(*str);
+				}
+				else if (auto js = std::any_cast<std::vector<std::pair<std::string, std::any>>>(&target.ret))
+				{
+					js->push_back(std::make_pair<std::string, std::any>("return_code", target.ret_code));
+					js->push_back(std::make_pair<std::string, std::any>("return_message", std::string(target.ret_msg)));
+					ret_msg.copy(aris::server::parse_ret_value(*js));
+				}
+
+				// return back to source
+				try
+				{
+					socket->sendMsg(ret_msg);
+				}
+				catch (std::exception &e)
+				{
+					std::cout << e.what() << std::endl;
+					LOG_ERROR << e.what() << std::endl;
+				}
+			});
+		}
+		catch (std::exception &e)
+		{
+			std::vector<std::pair<std::string, std::any>> ret_pair;
+			ret_pair.push_back(std::make_pair<std::string, std::any>("return_code", int(aris::plan::PlanTarget::PARSE_EXCEPTION)));
+			ret_pair.push_back(std::make_pair<std::string, std::any>("return_message", std::string(e.what())));
+			std::string ret_str = aris::server::parse_ret_value(ret_pair);
+
+			std::cout << ret_str << std::endl;
+			LOG_ERROR << ret_str << std::endl;
+
+			try
+			{
+				aris::core::Msg m = msg;
+				m.copy(ret_str);
+				socket->sendMsg(m);
+			}
+			catch (std::exception &e)
+			{
+				std::cout << e.what() << std::endl;
+				LOG_ERROR << e.what() << std::endl;
+			}
+		}
+
+		return 0;
+	}
+	auto onReceivedConnection(aris::core::Socket *sock, const char *ip, int port)->int
+	{
+		std::cout << "socket receive connection" << std::endl;
+		LOG_INFO << "socket receive connection:\n"
+			<< std::setw(aris::core::LOG_SPACE_WIDTH) << "|" << "  ip:" << ip << "\n"
+			<< std::setw(aris::core::LOG_SPACE_WIDTH) << "|" << "port:" << port << std::endl;
+		return 0;
+	}
+	auto onLoseConnection(aris::core::Socket *socket)->int
+	{
+		std::cout << "socket lose connection" << std::endl;
+		LOG_INFO << "socket lose connection" << std::endl;
+		for (;;)
+		{
+			try
+			{
+				socket->startServer(socket->port());
+				break;
+			}
+			catch (std::runtime_error &e)
+			{
+				std::cout << e.what() << std::endl << "will try to restart server socket in 1s" << std::endl;
+				LOG_ERROR << e.what() << std::endl << "will try to restart server socket in 1s" << std::endl;
+				std::this_thread::sleep_for(std::chrono::seconds(1));
+			}
+		}
+		std::cout << "socket restart successful" << std::endl;
+		LOG_INFO << "socket restart successful" << std::endl;
+
+		return 0;
+	}
+	auto ProInterface::open()->void { sock_->startServer(); }
+	auto ProInterface::close()->void { sock_->stop(); }
+	auto ProInterface::loadXml(const aris::core::XmlElement &xml_ele)->void
+	{
+		Interface::loadXml(xml_ele);
+		this->sock_ = findOrInsertType<aris::core::Socket>("socket", "", "5866", aris::core::Socket::WEB);
+
+		sock_->setOnReceivedMsg(onReceivedMsg);
+		sock_->setOnReceivedConnection(onReceivedConnection);
+		sock_->setOnLoseConnection(onLoseConnection);
+	}
+	ProInterface::ProInterface(const std::string &name, const std::string &port, aris::core::Socket::TYPE type) :Interface(name)
+	{
+		sock_ = &add<aris::core::Socket>("socket", "", port, type);
+
+		sock_->setOnReceivedMsg(onReceivedMsg);
+		sock_->setOnReceivedConnection(onReceivedConnection);
+		sock_->setOnLoseConnection(onLoseConnection);
+	}
+
+
     auto createPlanRootRokaeXB4()->std::unique_ptr<aris::plan::PlanRoot>
 	{
         std::unique_ptr<aris::plan::PlanRoot> plan_root(new aris::plan::PlanRoot);

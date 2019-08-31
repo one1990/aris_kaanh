@@ -57,6 +57,21 @@ namespace kaanh
     auto createControllerDaye()->std::unique_ptr<aris::control::Controller>;
     auto createModelDaye(const double *robot_pm = nullptr)->std::unique_ptr<aris::dynamic::Model>;
 
+	class ProInterface :public aris::server::Interface
+	{
+	public:
+		auto virtual open()->void override;
+		auto virtual close()->void override;
+		auto virtual loadXml(const aris::core::XmlElement &xml_ele)->void override;
+
+		ProInterface(const std::string &name = "interface", const std::string &port = "5868", aris::core::Socket::TYPE type = aris::core::Socket::WEB);
+		ARIS_REGISTER_TYPE(ProInterface);
+		ARIS_DEFINE_BIG_FOUR(ProInterface);
+
+	private:
+		aris::core::Socket *sock_;
+	};
+
 	//auto registerPlan()->void;
 
 	class Speed
