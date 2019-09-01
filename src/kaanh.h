@@ -57,6 +57,13 @@ namespace kaanh
     auto createControllerDaye()->std::unique_ptr<aris::control::Controller>;
     auto createModelDaye(const double *robot_pm = nullptr)->std::unique_ptr<aris::dynamic::Model>;
 
+	struct CmdListParam
+	{
+		std::vector<std::pair<std::string, std::string>> cmd_vec;
+		int current_cmd_id = 0;
+		int current_plan_id = 0;
+	};
+	
 	class ProInterface :public aris::server::Interface
 	{
 	public:
@@ -581,6 +588,14 @@ namespace kaanh
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
 		explicit SetVel(const std::string &name = "SetVel_plan");
 		ARIS_REGISTER_TYPE(SetVel);
+	};
+
+	class Run : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		explicit Run(const std::string &name = "Run_plan");
+		ARIS_REGISTER_TYPE(Run);
 	};
 
 }

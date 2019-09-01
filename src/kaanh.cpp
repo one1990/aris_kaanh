@@ -18,6 +18,7 @@ extern std::atomic_int which_di;
 extern std::atomic_bool is_automatic;
 extern kaanh::Speed g_vel;
 extern std::atomic_int g_vel_percent;
+kaanh::CmdListParam cmdparam;
 
 
 namespace kaanh
@@ -730,7 +731,6 @@ namespace kaanh
 		aris::control::EthercatController::MasterLinkState mls{};
 		std::vector<int> motion_state;
 		std::string currentplan;
-		int current_plan_id;
 		int vel_percent;
 	};
 	auto Get::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
@@ -818,8 +818,6 @@ namespace kaanh
 			slave_al_state[i] = int(out_data.sls[i].al_state);
 		}
 
-		out_data.current_plan_id = 0;
-
 		std::vector<std::pair<std::string, std::any>> out_param;
 		out_param.push_back(std::make_pair<std::string, std::any>("part_pq", out_data.part_pq));
 		out_param.push_back(std::make_pair<std::string, std::any>("end_pq", out_data.end_pq));
@@ -836,7 +834,7 @@ namespace kaanh
 		out_param.push_back(std::make_pair<std::string, std::any>("slave_al_state", slave_al_state));
 		out_param.push_back(std::make_pair<std::string, std::any>("motion_state", out_data.motion_state));
 		out_param.push_back(std::make_pair<std::string, std::any>("current_plan", out_data.currentplan));
-		out_param.push_back(std::make_pair<std::string, std::any>("current_plan_id", out_data.current_plan_id));
+		out_param.push_back(std::make_pair<std::string, std::any>("current_plan_id", cmdparam.current_plan_id));
 
 		target.ret = out_param;
 		target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_PRINT_CMD_INFO | NOT_PRINT_CMD_INFO;
@@ -6954,7 +6952,8 @@ double p, v, a;
 
 	// 开启controller server //
 	auto StartCS::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
-	{
+	{	
+		/*
         std::cout<<0<<std::endl;
 		auto&cs = aris::server::ControlServer::instance();
 		if (cs.running())throw std::runtime_error("cs is already running!");
@@ -6962,6 +6961,34 @@ double p, v, a;
         cs.start();
 		
         std::cout<<2<<std::endl;
+		*/
+		std::string data = "collectcmd --cmdlist={1:moveJ\r\n2:moveJ\r\n3:moveL\r\n}";
+		auto begin_pos = data.find("{");
+		auto end_pos = data.rfind("}");
+		auto cmd_str = data.substr(begin_pos + 1, end_pos - 1 - begin_pos);
+		std::cout << "cmd_str:" << cmd_str << std::endl;
+		char *s_input = (char *)cmd_str.c_str();
+		std::ifstream infile(s_input);
+
+		const char *split = "\r\n";
+		// 以‘ ’为分隔符拆分字符串
+		char *sp_input = strtok(s_input, split);
+		//std::string mid = sp_input;
+		std::cout << "sp_input:" << sp_input << std::endl;
+		if (strcmp(sp_input, "collectcmd") == 0)
+		{
+			std::cout << "sp_input=" << "collectcmd" << std::endl;
+		}
+
+		double data_input;
+		int i = 0;
+		while (sp_input != NULL)
+		{
+			std::string str = sp_input;
+			std::cout << "str:" << str << std::endl;
+			sp_input = strtok(NULL, split);
+		}
+
 		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
 		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
@@ -7079,10 +7106,101 @@ double p, v, a;
 	}
 
 
-	//编程界面指令//
-	struct MsgParam
+	//运行指令//
+	struct RunParam
 	{
+		int goto_cmd_id;
 	};
+	auto Run::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		RunParam param;
+		std::vector<std::pair<std::string, std::any>> ret;
+		for (auto &p : params)
+		{
+			if (p.first == "forward")
+			{
+				std::thread forward;
+				forward = std::thread([&]()->void
+				{
+					auto&cs = aris::server::ControlServer::instance();
+					try
+					{
+						auto cmdret = cs.executeCmd(aris::core::Msg(cmdparam.cmd_vec[cmdparam.current_cmd_id++].second));
+						ret.push_back(std::make_pair<std::string, std::any>("return_code", cmdret->ret_code));
+						ret.push_back(std::make_pair<std::string, std::any>("return_message", std::string(cmdret->ret_msg)));
+						cmdparam.current_plan_id = std::stoi(cmdparam.cmd_vec[cmdparam.current_cmd_id].first);
+					}
+					catch (std::exception &e)
+					{
+						std::cout << e.what() << std::endl;
+						LOG_ERROR << e.what() << std::endl;
+					}
+				});
+				forward.join();
+			}
+			else if (p.first == "goto")
+			{
+				param.goto_cmd_id = std::stoi(p.second);
+			}
+			else if (p.first == "start")
+			{
+				std::thread start;
+				start = std::thread([&]()->void
+				{
+					auto&cs = aris::server::ControlServer::instance();
+					for(int i = cmdparam.current_cmd_id; i< cmdparam.cmd_vec.size()+1; i++)
+					try
+					{
+						auto cmdret = cs.executeCmd(aris::core::Msg(cmdparam.cmd_vec[i].second));
+						ret.push_back(std::make_pair<std::string, std::any>("return_code", cmdret->ret_code));
+						ret.push_back(std::make_pair<std::string, std::any>("return_message", std::string(cmdret->ret_msg)));
+						if (i == cmdparam.cmd_vec.size())
+						{
+							cmdparam.current_plan_id = std::stoi(cmdparam.cmd_vec[i].first) + 1;
+						}
+						else
+						{
+							cmdparam.current_plan_id = std::stoi(cmdparam.cmd_vec[i + 1].first);
+						}
+						
+					}
+					catch (std::exception &e)
+					{
+						std::cout << e.what() << std::endl;
+						LOG_ERROR << e.what() << std::endl;
+					}
+				});
+				start.join();
+			}
+			else if (p.first == "pause")
+			{
+
+			}
+			else if (p.first == "stop")
+			{
+
+			}
+		}
+		target.ret = ret;
+	}
+	Run::Run(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"run\">"
+			"	<GroupParam>"
+			"		<UniqueParam default=\"all\">"
+			"			<Param name=\"forward\"/>"
+			"			<Param name=\"goto\" default=\"2\"/>"
+			"			<Param name=\"start\"/>"
+			"			<Param name=\"pause\"/>"
+			"			<Param name=\"stop\"/>"
+			"		</UniqueParam>"
+			"	</GroupParam>"
+			"</Command>");
+	}
+
+
+	//编程界面指令//
 	auto onReceivedMsg(aris::core::Socket *socket, aris::core::Msg &msg)->int
 	{
 		std::string msg_data = msg.toString();
@@ -7096,57 +7214,107 @@ double p, v, a;
 			<< msg.header().reserved3_ << ":"
 			<< msg_data << std::endl;
 
-		try
+		//std::string data = "collectcmd --cmdlist = {1:moveJ\r\n2:moveJ\r\n3:moveL\r\n}";
+		
+		char *msg_input = (char *)msg_data.c_str();
+		char *cmd_name = strtok(msg_input, "--");
+
+		//解析指令失败//
+		if (cmd_name == NULL)
 		{
-			aris::server::ControlServer::instance().executeCmd(aris::core::Msg(msg), [socket, msg](aris::plan::PlanTarget &target)->void
-			{
-				// make return msg
-				aris::core::Msg ret_msg(msg);
-
-				// only copy if it is a str
-				if (auto str = std::any_cast<std::string>(&target.ret))
-				{
-					ret_msg.copy(*str);
-				}
-				else if (auto js = std::any_cast<std::vector<std::pair<std::string, std::any>>>(&target.ret))
-				{
-					js->push_back(std::make_pair<std::string, std::any>("return_code", target.ret_code));
-					js->push_back(std::make_pair<std::string, std::any>("return_message", std::string(target.ret_msg)));
-					ret_msg.copy(aris::server::parse_ret_value(*js));
-				}
-
-				// return back to source
-				try
-				{
-					socket->sendMsg(ret_msg);
-				}
-				catch (std::exception &e)
-				{
-					std::cout << e.what() << std::endl;
-					LOG_ERROR << e.what() << std::endl;
-				}
-			});
-		}
-		catch (std::exception &e)
-		{
-			std::vector<std::pair<std::string, std::any>> ret_pair;
-			ret_pair.push_back(std::make_pair<std::string, std::any>("return_code", int(aris::plan::PlanTarget::PARSE_EXCEPTION)));
-			ret_pair.push_back(std::make_pair<std::string, std::any>("return_message", std::string(e.what())));
-			std::string ret_str = aris::server::parse_ret_value(ret_pair);
-
-			std::cout << ret_str << std::endl;
-			LOG_ERROR << ret_str << std::endl;
-
+			aris::core::Msg ret_msg(msg);
+			std::vector<std::pair<std::string, std::any>> *js;
+			js->push_back(std::make_pair<std::string, std::any>("return_code", -3));
+			js->push_back(std::make_pair<std::string, std::any>("return_message", std::string("PARSE_EXCEPTION")));
+			ret_msg.copy(aris::server::parse_ret_value(*js));
+			// return back to source
 			try
 			{
-				aris::core::Msg m = msg;
-				m.copy(ret_str);
-				socket->sendMsg(m);
+				socket->sendMsg(ret_msg);
 			}
 			catch (std::exception &e)
 			{
 				std::cout << e.what() << std::endl;
 				LOG_ERROR << e.what() << std::endl;
+			}
+		}
+		else
+		{
+			if (strcmp(cmd_name, "collectcmd") == 0)
+			{
+				cmdparam.cmd_vec.clear();
+				auto begin_pos = msg_data.find("{");
+				auto end_pos = msg_data.rfind("}");
+				auto cmd_str = msg_data.substr(begin_pos + 1, end_pos - 1 - begin_pos);
+				char *cmd_input = (char *)cmd_str.c_str();
+				const char *split = "\r\n";
+				char *cmd = strtok(cmd_input, split);
+				int i = 0;
+				while (cmd != NULL)
+				{
+					std::string str = cmd;
+					auto sep_pos = str.find(":");
+					auto id = str.substr(0, sep_pos);
+					auto command = str.substr(sep_pos + 1);
+					cmdparam.cmd_vec.push_back(std::make_pair<std::string, std::string>(id.c_str(), command.c_str()));
+					cmd = strtok(NULL, split);
+				}
+				std::cout << "cmd_vec:" << cmdparam.cmd_vec[0].first << std::endl;
+			}
+			else
+			{
+				try
+				{
+					aris::server::ControlServer::instance().executeCmd(aris::core::Msg(msg), [socket, msg](aris::plan::PlanTarget &target)->void
+					{
+						// make return msg
+						aris::core::Msg ret_msg(msg);
+						// only copy if it is a str
+						if (auto str = std::any_cast<std::string>(&target.ret))
+						{
+							ret_msg.copy(*str);
+						}
+						else if (auto js = std::any_cast<std::vector<std::pair<std::string, std::any>>>(&target.ret))
+						{
+							js->push_back(std::make_pair<std::string, std::any>("return_code", target.ret_code));
+							js->push_back(std::make_pair<std::string, std::any>("return_message", std::string(target.ret_msg)));
+							ret_msg.copy(aris::server::parse_ret_value(*js));
+						}
+
+						// return back to source
+						try
+						{
+							socket->sendMsg(ret_msg);
+						}
+						catch (std::exception &e)
+						{
+							std::cout << e.what() << std::endl;
+							LOG_ERROR << e.what() << std::endl;
+						}
+					});
+				}
+				catch (std::exception &e)
+				{
+					std::vector<std::pair<std::string, std::any>> ret_pair;
+					ret_pair.push_back(std::make_pair<std::string, std::any>("return_code", int(aris::plan::PlanTarget::PARSE_EXCEPTION)));
+					ret_pair.push_back(std::make_pair<std::string, std::any>("return_message", std::string(e.what())));
+					std::string ret_str = aris::server::parse_ret_value(ret_pair);
+
+					std::cout << ret_str << std::endl;
+					LOG_ERROR << ret_str << std::endl;
+
+					try
+					{
+						aris::core::Msg m = msg;
+						m.copy(ret_str);
+						socket->sendMsg(m);
+					}
+					catch (std::exception &e)
+					{
+						std::cout << e.what() << std::endl;
+						LOG_ERROR << e.what() << std::endl;
+					}
+				}
 			}
 		}
 
@@ -7283,6 +7451,7 @@ double p, v, a;
 		plan_root->planPool().add<kaanh::SetEsiPath>();
 		plan_root->planPool().add<kaanh::SetCT>();
 		plan_root->planPool().add<kaanh::SetVel>();
+		plan_root->planPool().add<kaanh::StartCS>();
 
 		plan_root->planPool().add<MoveXYZ>();
 		plan_root->planPool().add<MoveJoint>();
