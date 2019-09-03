@@ -4,16 +4,19 @@
 #include <algorithm>
 #include"robotconfig.h"
 #include"sixdistaldynamics.h"
+#include"jointdynamics.h"
 #include <vector>
 //using namespace std;
 using namespace aris::plan;
 using namespace aris::dynamic;
 using namespace CONFIG;
 using namespace sixDistalDynamicsInt;
+using namespace JointDynamicsInt;
 /// \brief
 
 robotconfig robotDemo;
 sixdistaldynamics sixDistalMatrix;
+jointdynamics JointMatrixFT;
 
 
 std::vector<double> PositionList_vec(6 * SampleNum);
@@ -134,7 +137,7 @@ void SetLimit(PlanTarget &target, double ratio)
     }
 
         double max_pos[6]={2.96706/1, 1.57,1.0,  2.96706/3,1.57,6.28};
-        double min_pos[6]={-2.96706/1,-0.5,     -0.5,  -2.96706/3,-1.57,-6.28};
+        double min_pos[6]={-2.96706/1,-0.5,     -1,  -2.96706/3,-1.57,-6.28};
         for(int i=0;i<6;i++)
         {
             target.controller->motionPool()[i].setMaxVel(target.controller->motionPool()[i].maxVel()/ratio);
@@ -829,7 +832,8 @@ auto MoveDistal::executeRT(PlanTarget &target)->int
     double PosLimit[6] = { 1,0.5,0.5,param.A5P,param.A6P};
     double NegLimit[6] = { -1,-0.5,-0.5,-1,param.A5N,param.A6N};
     double dTheta = 0.00001;
-    static double pArc[6], vArc[6], aArc[6], vArcMax[6] = { param.VEL,param.VEL,param.VEL,param.VEL,param.VEL,param.VEL };
+    double vel_base = 0.15 / 100;
+    static double pArc[6], vArc[6], aArc[6], vArcMax[6] =  { param.VEL*vel_base,param.VEL*vel_base,param.VEL*vel_base,param.VEL*vel_base,param.VEL*vel_base,param.VEL*vel_base };
     static aris::Size t_count[6] = { 0 };
 
     static int CountOffsetPos[6] = { 1,1,1,1,1,1 }, CountOffsetNeg[6] = { 1,1,1,1,1,1 };
@@ -1012,12 +1016,12 @@ MoveDistal::MoveDistal(const std::string &name) :Plan(name)
 	command().loadXmlStr(
 		"<Command name=\"mvDistal\">"
 		"	<GroupParam>"
-        "		<Param name=\"SensorType\"default=\"1.0\"/>"
-		"		<Param name=\"A5P\"default=\"0.0\"/>"
-		"		<Param name=\"A5N\" default=\"0.0\"/>"
-		"		<Param name=\"A6P\"default=\"0.0\"/>"
-		"		<Param name=\"A6N\" default=\"0.0\"/>"
-		"		<Param name=\"VEL\" default=\"0.15\"/>"
+        "		<Param name=\"SensorType\"default=\"-1.0\"/>"
+        "		<Param name=\"A5P\"default=\"1.5\"/>"
+        "		<Param name=\"A5N\" default=\"-1.5\"/>"
+        "		<Param name=\"A6P\"default=\"2.0\"/>"
+        "		<Param name=\"A6N\" default=\"-2.0\"/>"
+        "		<Param name=\"VEL\" default=\"100\"/>"
 		"	</GroupParam>"
 		"</Command>");
 
@@ -4548,12 +4552,16 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 	}
 
     // fce control //
-    const double vt_motion_max = 0.05;
+    double vt_motion_max = 0.05;
     static double err_sum_fce_vt = 0.0;
+
+    if(target.count < 1000) vt_motion_max = 0.05;
+    else vt_motion_max = 0.5;
+
 
     // protect max and min velocity //
     const int motion = 1;
-    if(dX[motion] > vt_motion_max)
+   if(dX[motion] > vt_motion_max)
     {
         err_sum_fce_vt += (vt_motion_max - dX[motion]) * 0.001;
         at[motion] = KPV[motion] * (vt_motion_max-dX[motion]) + KIV[motion] * err_sum_fce_vt;
@@ -4588,8 +4596,9 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
     // fce control //
     static double SumdX=0, SumFt=0;
     double Vmin=-0.02;
-    const double KPF=3, KIF=5, vis = 500;
-    double target_f=10;
+    const double KPF=5, KIF=5, vis = 500;
+    //const double KPF=15, KIF=5, vis = 1000;
+    double target_f=-10;
     SumdX=SumdX+(Vmin-dX[motion])*0.001;
     SumFt = SumFt+(target_f - stateTor1[motion])*0.001;
     ft[motion]-=KPF * (target_f - stateTor1[motion]) + KIF*SumFt + vis*dX[motion];
@@ -4716,11 +4725,20 @@ auto MoveJoint::prepairNrt(const std::map<std::string, std::string> &params, Pla
         Plan::NOT_CHECK_VEL_CONTINUOUS |
         Plan::NOT_CHECK_ENABLE;
 
-    SetLimit(target,6.0);
+    SetLimit(target,4.0);
     //读取动力学参数
-    //auto mat0 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("estParasFT"));
-    //for (int i = 0;i < GroupDim;i++)
-        //sixDistalMatrix.estParasFT[i] = mat0->data().data()[i];
+    auto mat0 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("estParasFT"));
+    for (int i = 0;i < GroupDim;i++)
+        sixDistalMatrix.estParasFT[i] = mat0->data().data()[i];
+
+    auto mat1 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("estParasJoint"));
+    for (int i = 0;i < JointGroupDim + 12;i++)
+        JointMatrixFT.estParasJoint[i] = mat1->data().data()[i];
+
+    //auto mat3 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("LoadParas"));
+    for (int i = 0;i < 10;i++)
+        JointMatrixFT.LoadParas[i] = 0;//1 * mat3->data().data()[i];
+
 
 }
 auto MoveJoint::executeRT(PlanTarget &target)->int
@@ -4740,7 +4758,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
     // 获取当前起始点位置 //
     if (target.count == 1)
     {
-        for (int i = 0; i < 2; ++i)
+        for (int i = 0; i < 6; ++i)
         {
             step_pjs[i] = target.model->motionPool()[i].mp();
             begin_pjs[i] = target.model->motionPool()[i].mp();
@@ -4760,7 +4778,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
         GetYuLi(target,FT);
 
 
-    double pa[6],va[6],aa[6],ta[6],CollisionFT[6];
+    double pa[6],va[6],aa[6],ta[6],idealToq[6],idealFT[6];
 
     for (int i = 0; i < 6; i++)
     {
@@ -4770,10 +4788,17 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
         ta[i] = controller->motionAtAbs(i).actualToq() / f2c_index[i];
     }
 
+    double Acv[12] = {0.8,0.0,0.8,0.0,0.8,0.0,0.5,0.0,0.5,0.0,0.5,0.0};
 
-    //sixDistalMatrix.sixDistalCollision(pa, va, aa, FT, sixDistalMatrix.estParasFT, CollisionFT);
-    //for (int j = 0; j < 6; j++)
-        //FT[j]=FT[j]-CollisionFT[j];
+    JointMatrixFT.JointDragYang(pa, va, aa, ta, JointMatrixFT.estParasJoint, JointMatrixFT.LoadParas, idealToq, Acv);
+
+
+    sixDistalMatrix.sixDistalCollision(pa, va, aa, FT, sixDistalMatrix.estParasFT, idealFT);
+    for (int j = 0; j < 6; j++)
+    {
+        FTemp[j]=FT[j];
+        FT[j]=FT[j]-idealFT[j];
+    }
 
     if (target.count == 1)
     {
@@ -4790,7 +4815,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
     }
 
 
-    double zero_check[6] = { 1,1,1,0.05,0.05,0.05 };
+    double zero_check[6] = { 0.2,0.2,0.2,0.05,0.05,0.05 };
     for (int i = 0; i < 6; i++)
     {
         if (FT_KAI[i] < zero_check[i] && FT_KAI[i]>0)
@@ -4817,7 +4842,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
     double f_vel_JRC[6] = { 10,10,10,10,10,10 };
     double ExternTau[6] = { 0 };
 
-
+/*
     //动力学
     for (int i = 0; i < 6; ++i)
     {
@@ -4829,21 +4854,22 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
     target.model->solverPool()[1].kinPos();
     target.model->solverPool()[1].kinVel();
     target.model->solverPool()[2].dynAccAndFce();
-
+*/
 
     for (int i = 0; i < 6; i++)
     {
-        ExternTau[i] = ta[i] -JoinTau[i]- target.model->motionPool()[i].mfDyn() - f_vel_JRC[i] * va[i] - 1 * f_static[i] * signV(va[i]);
+        //ExternTau[i] = ta[i] -JoinTau[i]- target.model->motionPool()[i].mfDyn() - f_vel_JRC[i] * va[i] - 1 * f_static[i] * signV(va[i]);
+        ExternTau[i] = ta[i] -JoinTau[i]- idealToq[i];
         ExternTau[i] = -ExternTau[i];
     }
 
-    double rate=8.0;
-    dTheta[0] = JoinTau[0] / 500/rate+ ExternTau[0] / 1000/rate;
-    dTheta[1] = JoinTau[1] / 500/rate+ ExternTau[1] / 1000/rate;
-    dTheta[2] = JoinTau[2] / 500/rate+ ExternTau[2] / 1000/rate;
-    dTheta[3] = JoinTau[3] / 100/rate+ ExternTau[3] / 1000/rate;
-    dTheta[4] = JoinTau[4] / 500/rate+ ExternTau[4] / 1000/rate;
-    dTheta[5] = JoinTau[5] / 100/rate+ ExternTau[5] / 1000/rate;
+    double rate=6.0;
+    dTheta[0] = JoinTau[0] / 200/rate + ExternTau[0] / 1000/rate;
+    dTheta[1] = JoinTau[1] / 500/rate + ExternTau[1] / 1000/rate;
+    dTheta[2] = JoinTau[2] / 500/rate + ExternTau[2] / 1000/rate;
+    dTheta[3] = JoinTau[3] / 200/rate + ExternTau[3] / 1000/rate;
+    dTheta[4] = JoinTau[4] / 500/rate + ExternTau[4] / 1000/rate;
+    dTheta[5] = JoinTau[5] / 200/rate + ExternTau[5] / 1000/rate;
 
     for (int i = 0; i < 6; i++)
     {
@@ -4860,17 +4886,18 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
        // target.model->motionPool().at(i).setMp(step_pjs[i]);
     }
 
-    double KP[6]={8,8,8,1,8,1};
+    double KP[6]={8,8,8,1,1,1};
 
-    double torque_max[6]={200,300,300,300,300,300};
-    double torque_min[6]={-200,-300,-300,-300,-300,-300};
-    for (int i = 0; i < 2; i++)
+    double torque_max[6]={300,500,500,300,300,300};
+    double torque_min[6]={-300,-500,-500,-300,-300,-300};
+    for (int i = 0; i < 6; i++)
     {
 
-     ft_offset[i]=(5*KP[i]*(step_pjs[i]-pa[i])+target.model->motionPool()[i].mfDyn()+0*f_vel_JRC[i]*va[i] + 0*f_static[i]*signV(va[i]))*f2c_index[i];
+     ft_offset[i]=(3*KP[i]*(step_pjs[i]-pa[i])+idealToq[i])*f2c_index[i];
      ft_offset[i] = std::max(torque_min[i], ft_offset[i]);
      ft_offset[i] = std::min(torque_max[i], ft_offset[i]);
      controller->motionAtAbs(i).setTargetToq(ft_offset[i]);
+     
     }
 
     lout << FTemp[0] << ",";lout << FTemp[1] << ",";
@@ -4889,7 +4916,7 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
 
     if (target.count % 300 == 0)
     {
-        cout << dTheta[0]<<"***"<< dTheta[1]<<"***"<< dTheta[2]<<"***"<<ta[1]<<"***"<<va[0]<<std::endl;
+        cout<<ft_offset[0]<<"***"<< ft_offset[1]<<"***"<< ft_offset[2]<<"***"<<ft_offset[3]<<"***"<<ft_offset[4]<<std::endl;
     }
 
     return 150000000 - target.count;
@@ -5521,20 +5548,21 @@ auto MoveForceCircle::executeRT(PlanTarget &target)->int
 
 	double dXpid[6] = { 0,0,0,0,0,0 };
 	const int motion = 1;
-	dXpid[motion] = 1 * (FmInWorld[motion] - (-5)) / 620000;
-	dXpid[3] = 0 * (FmInWorld[3]) / 2000;
-	dXpid[4] = 0 * (FmInWorld[4]) / 2000;
-	dXpid[5] = 0 * (FmInWorld[5]) / 2000;
+    double ForRadius=-sqrt(FmInWorld[0]*FmInWorld[0]+FmInWorld[1]*FmInWorld[1]);
+    double RadiusAdd = (ForRadius - (-3)) / 620000;
+    RadiusAdd = std::max(-0.000025, RadiusAdd);
+    RadiusAdd = std::min(0.000025, RadiusAdd);
 
 
 	static double radius = 0;
-	if (target.count < 10000)
-		radius = radius + 0.000003;
+
+    if (radius < 10000)
+    radius = radius + RadiusAdd;
 	
 	double time = 1 * target.count / 1000.0;
 
-	dX[0] = radius * cos(time) / 1000.0;
-	dX[1] = -radius * sin(time) / 1000.0;
+    dX[0] = (RadiusAdd * sin(time)+radius * cos(time)) / 1000.0;
+    dX[1] = (RadiusAdd * cos(time)-radius * sin(time)) / 1000.0;
 	dX[2] = 0;
 
 	dX[3] = 0; dX[4] = 0; dX[5] = 0;
@@ -5543,10 +5571,10 @@ auto MoveForceCircle::executeRT(PlanTarget &target)->int
 
 	for (int j = 0; j < 6; j++)
 	{
-		if (dX[j] > 0.00025)
-			dX[j] = 0.00025;
-		if (dX[j] < -0.00025)
-			dX[j] = -0.00025;
+        if (dX[j] > 0.00025)
+            dX[j] = 0.00025;
+        if (dX[j] < -0.00025)
+            dX[j] = -0.00025;
 	}
 
 	// log 电流 //
@@ -5595,7 +5623,7 @@ auto MoveForceCircle::executeRT(PlanTarget &target)->int
 	if (target.count % 300 == 0)
 	{
 
-		cout << FmInWorld[0] << "*" << FmInWorld[1] << "*" << FmInWorld[2] << "*" << step_pjs[3] << "*" << step_pjs[4] << "*" << FmInWorld[motion] << std::endl;
+        cout << FmInWorld[0] << "*" << FmInWorld[1] << "*" << dX[0] << "*" << radius << "*" << ForRadius << "*" << RadiusAdd << std::endl;
 		cout << std::endl;
 
 	}
