@@ -5660,3 +5660,265 @@ MoveForceCircle::MoveForceCircle(const std::string &name) :Plan(name)
 		"</Command>");
 
 }
+
+
+
+
+
+//double P1[7] = { 0.29342,-0.43863428,0.2786477,0.5271747,0.849668,-0.007837787,0.0094264 };
+//double P2[7] = { 0.34742376,-0.406617,0.2786185,0.5271784,0.84966693,-0.00781518,0.0093789064};
+//double P3[7] = { 0.3054168,-0.345565,0.29131067,0.52718538,0.84966280,-0.007812,0.009362943 };
+//double P4[7] = { 0.260408347,-0.3761004,0.301647925,0.52717336,0.84967,-0.00779838,0.00932};
+//double P5[7] = { 0.2543459,-0.4210362,0.301633876,0.527177,0.8496687,-0.00778855,0.00930659664};
+
+struct MoveForceCurveParam
+{
+	double PressF;
+	double SensorType;
+
+	double p1x, p1y, p2x, p2y;
+};
+
+auto MoveForceCurve::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+{
+	MoveForceCurveParam param;
+	for (auto &p : params)
+	{
+		if (p.first == "PressF")
+			param.PressF = std::stod(p.second);
+		if (p.first == "SensorType")
+			param.SensorType = std::stod(p.second);
+
+		if (p.first == "p1x")
+			param.p1x = std::stod(p.second);
+		if (p.first == "p1y")
+			param.p1y = std::stod(p.second);
+		if (p.first == "p2x")
+			param.p2x = std::stod(p.second);
+		if (p.first == "p2y")
+			param.p2y = std::stod(p.second);
+	}
+
+	target.param = param;
+	target.ret = std::vector<std::pair<std::string, std::any>>();
+
+	for (auto &option : target.mot_options) option |=
+		Plan::USE_TARGET_POS |
+		Plan::NOT_CHECK_VEL_CONTINUOUS |
+		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
+		Plan::NOT_CHECK_ENABLE;
+
+	SetLimit(target, 6.0);
+
+
+}
+auto MoveForceCurve::executeRT(PlanTarget &target)->int
+{
+	auto &param = std::any_cast<MoveForceCurveParam&>(target.param);
+
+	static double step_pjs[6];
+	static double stateTor0[6][3], stateTor1[6][3], EndP0[3];
+	static double sT0[6][3], sT1[6][3];
+	static float FT0[6];
+
+	// 访问主站 //
+	auto controller = target.controller;
+	auto &cout = controller->mout();
+	// 获取当前起始点位置 //
+	if (target.count == 1)
+	{
+		for (int i = 0; i < 6; ++i)
+		{
+			step_pjs[i] = target.model->motionPool()[i].mp();
+			// controller->motionPool().at(i).setModeOfOperation(10);	//切换到电流控制
+		}
+	}
+
+
+	if (target.model->solverPool().at(1).kinPos())return -1;
+
+
+	double PqEnd[7], TransVector[16];
+
+
+
+	double dX[6] = { 0.00000, -0.0000, -0.0000, -0.0000, -0.0000, -0.0000 };
+	double dTheta[6] = { 0 };
+
+	double FT[6];
+	if (param.SensorType > 0)
+		GetATI(target, FT);
+	else
+		GetYuLi(target, FT);
+
+
+	// 获取当前起始点位置 //
+	if (target.count == 1)
+	{
+		for (int j = 0; j < 6; j++)
+		{
+			stateTor0[j][0] = FT[j];
+			FT0[j] = FT[j];
+		}
+		for (int i = 0;i < 3;i++)
+			EndP0[i] = PqEnd[i];
+	}
+
+
+	SecondOrderFilter(FT, stateTor0, stateTor1, 80);
+
+
+	double FT_KAI[6];
+	for (int i = 0; i < 6; i++)
+	{
+		FT_KAI[i] = stateTor1[i][0] - FT0[i];//In KAI Coordinate
+	}
+
+	double zero_check[6] = { 1,1,1,0.05,0.05,0.05 };
+	for (int i = 0; i < 6; i++)
+	{
+		if (FT_KAI[i] < zero_check[i] && FT_KAI[i]>0)
+			FT_KAI[i] = 1 / zero_check[i] * FT_KAI[i] * FT_KAI[i];//In KAI Coordinate
+		else if (FT_KAI[i]<0 && FT_KAI[i]>-zero_check[i])
+			FT_KAI[i] = -1 / zero_check[i] * FT_KAI[i] * FT_KAI[i];//In KAI Coordinate
+	}
+
+
+	double P1[3] = { 0 }, P2[3] = { 0 };
+	P1[0] = param.p1x;P1[1] = param.p1y;
+	P2[0] = param.p2x;P2[1] = param.p2y;
+
+	static double pArc, vArc, aArc, vArcMax = 0.04;
+	static aris::Size t_count = { 0 };
+
+	double dir[3] = { 0 }, vertic[3] = { 0 }, zbase[3] = {0,0,1};
+	double length = 0;
+		
+	length= sqrt((P2[0] - P1[0])*(P2[0] - P1[0]) + (P2[1] - P1[1])*(P2[1] - P1[1]));
+	dir[0] = (P2[0] - P1[0]) / length;
+	dir[1] = (P2[1] - P1[1]) / length;
+	aris::plan::moveAbsolute(target.count, 0, length, vArcMax / 1000, 0.05 / 1000 / 1000, 0.05 / 1000 / 1000, pArc, vArc, aArc, t_count);
+	
+
+
+
+
+	dX[0] = vArc * dir[0];
+	dX[1] = vArc * dir[1];
+	dX[2] = 0;
+
+	dX[3] = 0; dX[4] = 0; dX[5] = 0;
+
+	
+	crossVector(zbase, dir, vertic);
+	double xy_desired[2] = { 0 };
+	xy_desired[0] = -5 * vertic[0];
+	xy_desired[1] = -5 * vertic[1];
+	double FmInWorld[6];
+	FT2World(target, FT_KAI, FmInWorld);
+	double dXpid[6] = { 0,0,0,0,0,0 };
+	dXpid[0] = 0*(FmInWorld[0] - xy_desired[0]) / 6200000;
+	dXpid[1] = 0*(FmInWorld[1] - xy_desired[1]) / 6200000;
+
+	for (int i = 0;i < 6;i++)
+		dX[i] = dX[i] + dXpid[i];
+
+
+
+
+
+	for (int j = 0; j < 6; j++)
+	{
+		if (dX[j] > 0.00025)
+			dX[j] = 0.00025;
+		if (dX[j] < -0.00025)
+			dX[j] = -0.00025;
+	}
+
+	// log 电流 //
+	auto &lout = controller->lout();
+	//lout << FT[0] << ",";lout << FT[1] << ",";
+	//lout << FT[2] << ",";lout << FT[3] << ",";
+	//lout << FT[4] << ",";lout << FT[5] << ",";
+
+	//lout << stateTor1[0][0] << ",";lout << stateTor1[1][0] << ",";
+	//lout << stateTor1[2][0] << ",";lout << stateTor1[3][0] << ",";
+	//lout << stateTor1[4][0] << ",";lout << stateTor1[5][0] << ",";
+
+	lout << dX[0] << ",";lout << dX[1] << ",";
+	lout << dX[2] << ",";lout << dX[3] << ",";
+	lout << dX[4] << ",";lout << dX[5] << ",";
+	lout << std::endl;
+
+
+
+	dX2dTheta(target, dX, dTheta);
+
+	for (int i = 0; i < 6; i++)
+	{
+		if (dTheta[i] > 0.003)
+			dTheta[i] = 0.003;
+		if (dTheta[i] < -0.003)
+			dTheta[i] = -0.003;
+		//lout << dTheta[i] << ",";
+	}
+
+
+	//lout << std::endl;
+	for (int i = 0; i < 6; i++)
+	{
+		dTheta[i] = dTheta[i] * DirectionFlag[i];
+
+	}
+
+	for (int i = 0; i < 6; i++)
+	{
+		step_pjs[i] = step_pjs[i] + dTheta[i];
+		target.model->motionPool().at(i).setMp(step_pjs[i]);
+	}
+
+
+	if (target.count % 300 == 0)
+	{
+
+		cout << FmInWorld[0] << "*" << FmInWorld[1] << "*" << dX[0] << "*"  << std::endl;
+		cout << std::endl;
+
+	}
+
+	for (int i = 0; i < 6; i++)
+	{
+
+		stateTor0[i][0] = stateTor1[i][0];
+		stateTor0[i][1] = stateTor1[i][1];
+		stateTor0[i][2] = stateTor1[i][2];
+
+	}
+
+	return t_count - target.count;
+
+}
+
+auto MoveForceCurve::collectNrt(aris::plan::PlanTarget &target)->void
+{
+
+	ReSetLimit(target);
+
+}
+
+MoveForceCurve::MoveForceCurve(const std::string &name) :Plan(name)
+{
+
+	command().loadXmlStr(
+		"<Command name=\"mvForCur\">"
+		"	<GroupParam>"
+		"       <Param name=\"PressF\" default=\"0\"/>"
+		"		<Param name=\"SensorType\"default=\"-20.0\"/>"
+		"		<Param name=\"p1x\"default=\"-20.0\"/>"
+		"		<Param name=\"p1y\"default=\"-20.0\"/>"
+		"		<Param name=\"p2x\"default=\"-20.0\"/>"
+		"		<Param name=\"p2y\"default=\"-20.0\"/>"
+		"   </GroupParam>"
+		"</Command>");
+
+}

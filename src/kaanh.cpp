@@ -7169,6 +7169,7 @@ double p, v, a;
 		plan_root->planPool().add<MovePressureToolXSine>();
 		plan_root->planPool().add<MoveForceXSine>();
 		plan_root->planPool().add<MoveForceCircle>();
+		plan_root->planPool().add<MoveForceCurve>();
 		plan_root->planPool().add<GetForce>();
         plan_root->planPool().add<MoveSeriesGK>();
         plan_root->planPool().add<ForceDirect>();
