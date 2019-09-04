@@ -6,7 +6,8 @@
 #include <array>
 #include <stdlib.h>
 #include"move_series.h"
-
+#include"robotplan.h"
+#include"planfuns.h"
 
 using namespace aris::dynamic;
 using namespace aris::plan;
@@ -7187,6 +7188,8 @@ double p, v, a;
 		plan_root->planPool().add<SevenJointTest>();
         plan_root->planPool().add<SevenDragTeach>();
 		plan_root->planPool().add<SevenLoadDyna>();
+
+		plan_root->planPool().add<DoubleSPlan>();
 
 		plan_root->planPool().add<cplan::MoveCircle>();
 		plan_root->planPool().add<cplan::MoveTroute>();
