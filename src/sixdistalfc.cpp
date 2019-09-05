@@ -5665,11 +5665,54 @@ MoveForceCircle::MoveForceCircle(const std::string &name) :Plan(name)
 
 
 
-//double P1[7] = { 0.29342,-0.43863428,0.2786477,0.5271747,0.849668,-0.007837787,0.0094264 };
-//double P2[7] = { 0.34742376,-0.406617,0.2786185,0.5271784,0.84966693,-0.00781518,0.0093789064};
-//double P3[7] = { 0.3054168,-0.345565,0.29131067,0.52718538,0.84966280,-0.007812,0.009362943 };
-//double P4[7] = { 0.260408347,-0.3761004,0.301647925,0.52717336,0.84967,-0.00779838,0.00932};
-//double P5[7] = { 0.2543459,-0.4210362,0.301633876,0.527177,0.8496687,-0.00778855,0.00930659664};
+double P1[7] = { 0.29342,-0.43863428,0.2786477,0.5271747,0.849668,-0.007837787,0.0094264 };
+double P2[7] = { 0.34742376,-0.406617,0.2786185,0.5271784,0.84966693,-0.00781518,0.0093789064};
+double P3[7] = { 0.3054168,-0.345565,0.29131067,0.52718538,0.84966280,-0.007812,0.009362943 };
+double P4[7] = { 0.260408347,-0.3761004,0.301647925,0.52717336,0.84967,-0.00779838,0.00932};
+double P5[7] = { 0.2543459,-0.4210362,0.301633876,0.527177,0.8496687,-0.00778855,0.00930659664};
+
+void PressLine(PlanTarget &target, const int start_count, const double *FmInWorld, const double *P1, const double *P2, const double addLength,double *dX,bool &flag)
+{
+	static double pArc, vArc, aArc, vArcMax = 0.004;
+	static aris::Size t_count = { 0 };
+
+	double dir[3] = { 0 }, vertic[3] = { 0 }, zbase[3] = { 0,0,1 };
+	double length = 0;
+
+	length = sqrt((P2[0] - P1[0])*(P2[0] - P1[0]) + (P2[1] - P1[1])*(P2[1] - P1[1]));
+	dir[0] = (P2[0] - P1[0]) / length;
+	dir[1] = (P2[1] - P1[1]) / length;
+	length = sqrt((P2[0] - P1[0])*(P2[0] - P1[0]) + (P2[1] - P1[1])*(P2[1] - P1[1])) + addLength;
+	aris::plan::moveAbsolute(target.count-start_count, 0, length, vArcMax / 1000, 0.05 / 1000 / 1000, 0.05 / 1000 / 1000, pArc, vArc, aArc, t_count);
+
+	if ((target.count - start_count) == t_count)
+		flag = true;
+
+	double dX0[6] = { 0 };
+	dX0[0] = vArc * dir[0];
+	dX0[1] = vArc * dir[1];
+	dX0[2] = 0;
+
+
+	crossVector(zbase, dir, vertic);
+	double xy_desired[2] = { 0 };
+	xy_desired[0] = 10 * vertic[0];
+	xy_desired[1] = 10 * vertic[1];
+
+	//if(PqEnd[1]>-0.393&&PqEnd[1]<-0.385)
+		//xy_desired[0] = 0;
+
+
+	double dXpid[6] = { 0,0,0,0,0,0 };
+	dXpid[0] = 0 * (FmInWorld[0] - xy_desired[0]) / 620000;
+	dXpid[1] = 0 * (FmInWorld[1] - xy_desired[1]) / 620000;
+
+	for (int i = 0;i < 6;i++)
+		dX[i] = dX0[i] + dXpid[i];
+
+
+}
+
 
 struct MoveForceCurveParam
 {
@@ -5784,53 +5827,93 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
 			FT_KAI[i] = -1 / zero_check[i] * FT_KAI[i] * FT_KAI[i];//In KAI Coordinate
 	}
 
-
-	double P1[3] = { 0 }, P2[3] = { 0 };
-	P1[0] = param.p1x;P1[1] = param.p1y;
-	P2[0] = param.p2x;P2[1] = param.p2y;
-
-    static double pArc, vArc, aArc, vArcMax = 0.004;
-	static aris::Size t_count = { 0 };
-
-	double dir[3] = { 0 }, vertic[3] = { 0 }, zbase[3] = {0,0,1};
-	double length = 0;
-		
-	length= sqrt((P2[0] - P1[0])*(P2[0] - P1[0]) + (P2[1] - P1[1])*(P2[1] - P1[1]));
-	dir[0] = (P2[0] - P1[0]) / length;
-	dir[1] = (P2[1] - P1[1]) / length;
-    length=sqrt((P2[0] - P1[0])*(P2[0] - P1[0]) + (P2[1] - P1[1])*(P2[1] - P1[1]))+0.05;
-	aris::plan::moveAbsolute(target.count, 0, length, vArcMax / 1000, 0.05 / 1000 / 1000, 0.05 / 1000 / 1000, pArc, vArc, aArc, t_count);
-	
-
-
-
-    double dX0[6]={0};
-    dX0[0] = vArc * dir[0];
-    dX0[1] = vArc * dir[1];
-    dX0[2] = 0;
-
-    dX0[3] = 0; dX0[4] = 0; dX0[5] = 0;
-
-	
-	crossVector(zbase, dir, vertic);
-	double xy_desired[2] = { 0 };
-    xy_desired[0] = 10 * vertic[0];
-    xy_desired[1] = 10 * vertic[1];
-
-    //if(PqEnd[1]>-0.393&&PqEnd[1]<-0.385)
-        //xy_desired[0] = 0;
-
-    double FmInWorld[6];
+	double FmInWorld[6];
 	FT2World(target, FT_KAI, FmInWorld);
-	double dXpid[6] = { 0,0,0,0,0,0 };
-    dXpid[0] = 1*(FmInWorld[0] - xy_desired[0]) / 620000;
-    dXpid[1] = 1*(FmInWorld[1] - xy_desired[1]) / 620000;
+	
+	static char line_mark = 'A';
+	static int start_count = 0;
+	static bool begin_flag = true;
+	static bool finish_flag = false;
+	static double addLength[5] = { 0 };
+	switch (line_mark)
+	{
+	case 'A':
+		if (begin_flag)
+		{
+			start_count = target.count;
+			begin_flag = false;
+		}
+			PressLine(target, start_count,FmInWorld, P1, P2, addLength[0], dX,finish_flag);
+			if (finish_flag)
+			{
+				begin_flag = true;
+				finish_flag = false;
+				line_mark = 'B';
+		     }
+			break;
+	case 'B':
+		if (begin_flag)
+		{
+			start_count = target.count;
+			begin_flag = false;
+		}
+		PressLine(target, start_count, FmInWorld, P2, P3, addLength[1], dX, finish_flag);
+		if (finish_flag)
+		{
+			begin_flag = true;
+			finish_flag = false;
+			line_mark = 'C';
+		}
+			break;
+	case 'C':
+		if (begin_flag)
+		{
+			start_count = target.count;
+			begin_flag = false;
+		}
+		PressLine(target, start_count, FmInWorld, P3, P4, addLength[2], dX, finish_flag);
+		if (finish_flag)
+		{
+			begin_flag = true;
+			finish_flag = false;
+			line_mark = 'D';
+		}
+			break;
+	case 'D':
+		if (begin_flag)
+		{
+			start_count = target.count;
+			begin_flag = false;
+		}
+		PressLine(target, start_count, FmInWorld, P4, P5, addLength[3], dX, finish_flag);
+		if (finish_flag)
+		{
+			begin_flag = true;
+			finish_flag = false;
+			line_mark = 'E';
+		}
+			break;
+	case 'E':
+		if (begin_flag)
+		{
+			start_count = target.count;
+			begin_flag = false;
+		}
+		PressLine(target, start_count, FmInWorld, P5, P1, addLength[4], dX, finish_flag);
+		if (finish_flag)
+		{
+			begin_flag = true;
+			finish_flag = false;
+			line_mark = 'A';
+		}
+			break;
+	default:
+		cout << "curve finished" << std::endl;
 
-	for (int i = 0;i < 6;i++)
-        dX[i] = dX0[i] + dXpid[i];
+	}
 
 
-
+	
 
 
 	for (int j = 0; j < 6; j++)
@@ -5843,19 +5926,9 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
 
 	// log 电流 //
 	auto &lout = controller->lout();
-	//lout << FT[0] << ",";lout << FT[1] << ",";
-	//lout << FT[2] << ",";lout << FT[3] << ",";
-	//lout << FT[4] << ",";lout << FT[5] << ",";
 
-	//lout << stateTor1[0][0] << ",";lout << stateTor1[1][0] << ",";
-	//lout << stateTor1[2][0] << ",";lout << stateTor1[3][0] << ",";
-	//lout << stateTor1[4][0] << ",";lout << stateTor1[5][0] << ",";
-
-    lout << dX0[0] << ",";lout << dX0[1] << ",";
-    lout << dXpid[0] << ",";lout << dXpid[1] << ",";
     lout << dX[0] << ",";lout << dX[1] << ",";
     lout << FmInWorld[0] << ",";lout << FmInWorld[1] << ",";
-    lout << xy_desired[0] << ",";lout << xy_desired[1] << ",";
     lout << PqEnd[0] << ",";lout <<PqEnd[1] << ",";
 	lout << std::endl;
 
@@ -5890,7 +5963,7 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
 	if (target.count % 300 == 0)
 	{
 
-        cout << FmInWorld[0] << "*" << xy_desired[0] << "*" <<FmInWorld[1] << "*" << xy_desired[1] << "*"<<dX[0]<<"*"<<dX[1]<<std::endl;
+        cout << FmInWorld[0]  << "*" <<FmInWorld[1] << "*" <<dX[0]<<"*"<<line_mark<<std::endl;
 		cout << std::endl;
 
 	}
@@ -5904,7 +5977,7 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
 
 	}
 
-    return t_count - target.count;
+    return 1900000 - target.count;
 
 }
 
