@@ -360,9 +360,9 @@ void dX2dTheta(PlanTarget &target, const double *dXX, double *dTheta)
     s_householder_utp(6, 6, fwd.Jf(), U, tau, p, rank, 1e-10);
     for (int i = 0;i < 6;i++)
         if (U[7 * i] >= 0)
-            U[7 * i] = U[7 * i] + 0.1;
+            U[7 * i] = U[7 * i] + 0.001;
         else
-            U[7 * i] = U[7 * i] - 0.1;
+            U[7 * i] = U[7 * i] - 0.001;
     // 根据QR分解的结果求x，相当于Matlab中的 x = A\b //
     s_householder_utp_sov(6, 6, 1, rank, U, tau, p, dX, dTheta, 1e-10);
 
@@ -5738,7 +5738,8 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
 	if (target.model->solverPool().at(1).kinPos())return -1;
 
 
-	double PqEnd[7], TransVector[16];
+    double PqEnd[7];
+    target.model->generalMotionPool().at(0).getMpq(PqEnd);
 
 
 
@@ -5788,7 +5789,7 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
 	P1[0] = param.p1x;P1[1] = param.p1y;
 	P2[0] = param.p2x;P2[1] = param.p2y;
 
-	static double pArc, vArc, aArc, vArcMax = 0.04;
+    static double pArc, vArc, aArc, vArcMax = 0.004;
 	static aris::Size t_count = { 0 };
 
 	double dir[3] = { 0 }, vertic[3] = { 0 }, zbase[3] = {0,0,1};
@@ -5797,31 +5798,36 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
 	length= sqrt((P2[0] - P1[0])*(P2[0] - P1[0]) + (P2[1] - P1[1])*(P2[1] - P1[1]));
 	dir[0] = (P2[0] - P1[0]) / length;
 	dir[1] = (P2[1] - P1[1]) / length;
+    length=sqrt((P2[0] - P1[0])*(P2[0] - P1[0]) + (P2[1] - P1[1])*(P2[1] - P1[1]))+0.05;
 	aris::plan::moveAbsolute(target.count, 0, length, vArcMax / 1000, 0.05 / 1000 / 1000, 0.05 / 1000 / 1000, pArc, vArc, aArc, t_count);
 	
 
 
 
+    double dX0[6]={0};
+    dX0[0] = vArc * dir[0];
+    dX0[1] = vArc * dir[1];
+    dX0[2] = 0;
 
-	dX[0] = vArc * dir[0];
-	dX[1] = vArc * dir[1];
-	dX[2] = 0;
-
-	dX[3] = 0; dX[4] = 0; dX[5] = 0;
+    dX0[3] = 0; dX0[4] = 0; dX0[5] = 0;
 
 	
 	crossVector(zbase, dir, vertic);
 	double xy_desired[2] = { 0 };
-	xy_desired[0] = -5 * vertic[0];
-	xy_desired[1] = -5 * vertic[1];
-	double FmInWorld[6];
+    xy_desired[0] = 10 * vertic[0];
+    xy_desired[1] = 10 * vertic[1];
+
+    //if(PqEnd[1]>-0.393&&PqEnd[1]<-0.385)
+        //xy_desired[0] = 0;
+
+    double FmInWorld[6];
 	FT2World(target, FT_KAI, FmInWorld);
 	double dXpid[6] = { 0,0,0,0,0,0 };
-	dXpid[0] = 0*(FmInWorld[0] - xy_desired[0]) / 6200000;
-	dXpid[1] = 0*(FmInWorld[1] - xy_desired[1]) / 6200000;
+    dXpid[0] = 1*(FmInWorld[0] - xy_desired[0]) / 620000;
+    dXpid[1] = 1*(FmInWorld[1] - xy_desired[1]) / 620000;
 
 	for (int i = 0;i < 6;i++)
-		dX[i] = dX[i] + dXpid[i];
+        dX[i] = dX0[i] + dXpid[i];
 
 
 
@@ -5845,9 +5851,12 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
 	//lout << stateTor1[2][0] << ",";lout << stateTor1[3][0] << ",";
 	//lout << stateTor1[4][0] << ",";lout << stateTor1[5][0] << ",";
 
-	lout << dX[0] << ",";lout << dX[1] << ",";
-	lout << dX[2] << ",";lout << dX[3] << ",";
-	lout << dX[4] << ",";lout << dX[5] << ",";
+    lout << dX0[0] << ",";lout << dX0[1] << ",";
+    lout << dXpid[0] << ",";lout << dXpid[1] << ",";
+    lout << dX[0] << ",";lout << dX[1] << ",";
+    lout << FmInWorld[0] << ",";lout << FmInWorld[1] << ",";
+    lout << xy_desired[0] << ",";lout << xy_desired[1] << ",";
+    lout << PqEnd[0] << ",";lout <<PqEnd[1] << ",";
 	lout << std::endl;
 
 
@@ -5881,7 +5890,7 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
 	if (target.count % 300 == 0)
 	{
 
-		cout << FmInWorld[0] << "*" << FmInWorld[1] << "*" << dX[0] << "*"  << std::endl;
+        cout << FmInWorld[0] << "*" << xy_desired[0] << "*" <<FmInWorld[1] << "*" << xy_desired[1] << "*"<<dX[0]<<"*"<<dX[1]<<std::endl;
 		cout << std::endl;
 
 	}
@@ -5895,7 +5904,7 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
 
 	}
 
-	return t_count - target.count;
+    return t_count - target.count;
 
 }
 
@@ -5914,10 +5923,10 @@ MoveForceCurve::MoveForceCurve(const std::string &name) :Plan(name)
 		"	<GroupParam>"
 		"       <Param name=\"PressF\" default=\"0\"/>"
 		"		<Param name=\"SensorType\"default=\"-20.0\"/>"
-		"		<Param name=\"p1x\"default=\"-20.0\"/>"
-		"		<Param name=\"p1y\"default=\"-20.0\"/>"
-		"		<Param name=\"p2x\"default=\"-20.0\"/>"
-		"		<Param name=\"p2y\"default=\"-20.0\"/>"
+        "		<Param name=\"p1x\"default=\"0.29342\"/>"
+        "		<Param name=\"p1y\"default=\"-0.43863428\"/>"
+        "		<Param name=\"p2x\"default=\"0.34742376\"/>"
+        "		<Param name=\"p2y\"default=\"-0.406617\"/>"
 		"   </GroupParam>"
 		"</Command>");
 

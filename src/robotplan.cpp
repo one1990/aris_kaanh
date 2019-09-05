@@ -13,9 +13,50 @@ using namespace PLANGK;
 planconfig planoperator;
 
 
+
+double Premax_pos0[6]={0};
+double Premin_pos0[6]={0};
+double Premax_vel0[6]={0};
+double Premin_vel0[6]={0};
+void SetLimit0(PlanTarget &target, double ratio)
+{
+    for(int i=0;i<6;i++)
+    {
+       Premax_pos0[i]=target.controller->motionPool()[i].maxPos();
+       Premin_pos0[i]=target.controller->motionPool()[i].minPos();
+
+       Premax_vel0[i]=target.controller->motionPool()[i].maxVel();
+       Premin_vel0[i]=target.controller->motionPool()[i].minVel();
+
+    }
+
+        double max_pos[6]={2.96706/1, 1.57,1.0,  2.96706/3,1.57,6.28};
+        double min_pos[6]={-2.96706/1,-0.5,     -1,  -2.96706/3,-1.57,-6.28};
+        for(int i=0;i<6;i++)
+        {
+            target.controller->motionPool()[i].setMaxVel(target.controller->motionPool()[i].maxVel()/ratio);
+            target.controller->motionPool()[i].setMinVel(target.controller->motionPool()[i].minVel()/ratio);
+            target.controller->motionPool()[i].setMaxPos(max_pos[i]);
+            target.controller->motionPool()[i].setMinPos(min_pos[i]);
+        }
+
+}
+
+void ReSetLimit0(PlanTarget &target)
+{
+    for(int i=0;i<6;i++)
+    {
+        target.controller->motionPool()[i].setMaxVel(Premax_vel0[i]);
+        target.controller->motionPool()[i].setMinVel(Premin_vel0[i]);
+        target.controller->motionPool()[i].setMaxPos(Premax_pos0[i]);
+        target.controller->motionPool()[i].setMinPos(Premin_pos0[i]);
+    }
+
+}
+
 void RealU(const int count, const int count_change, const double u0, const double u1, double &u)
 {
-	double tau = (count - count_change) / 10.0;
+    double tau = (count - count_change) / 100.0;
 	if (tau > 1)
 		tau = 1;
 
@@ -70,6 +111,7 @@ auto DoubleSPlan::prepairNrt(const std::map<std::string, std::string> &params, P
 	std::copy(T,T+4,param.T);
 
 	target.param = param;
+    target.ret = std::vector<std::pair<std::string, std::any>>();
 
 	for (auto &option : target.mot_options) option |=
 		Plan::USE_TARGET_POS |
@@ -79,6 +121,10 @@ auto DoubleSPlan::prepairNrt(const std::map<std::string, std::string> &params, P
 		//#endif
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
 		Plan::NOT_CHECK_ENABLE;
+
+
+    SetLimit0(target, 3.0);
+
 }
 auto DoubleSPlan::executeRT(PlanTarget &target)->int
 {
@@ -107,21 +153,23 @@ auto DoubleSPlan::executeRT(PlanTarget &target)->int
 
 	if (target.model->solverPool().at(1).kinPos())return -1;
 
-	double st = 0, vt = 0, at = 0, jt = 0, ut = 1;
+    double st = 0, vt = 0, at = 0, jt = 0;
+    static double ut = 1;
 	static double ut0 = ut, ut1 = ut;
 	static int count_change=0;
 	static double time_SVEL = 0;
 
+
 	if (target.count == 400)
 	{
 		count_change = target.count;
-		ut0 = ut1;ut1 = 0.0;
+        ut0 = ut;ut1 = 1.0;
 	}
-	if (target.count == 500)
+    if (target.count == 600)
 	{
 		count_change = target.count;
-		ut0 = ut1;ut1 = 2.0;
-	}
+        ut0 = ut;ut1 = 2.0;
+    }
 
 	RealU(target.count, count_change, ut0, ut1, ut);
 	time_SVEL = time_SVEL + ut * 0.001;
@@ -147,7 +195,7 @@ auto DoubleSPlan::executeRT(PlanTarget &target)->int
 
 
 
-	if (target.count % 10 == 0)
+    if (target.count % 100 == 0)
 	{
 		//for (int i = 0; i < 6; i++)
 		{
@@ -155,7 +203,7 @@ auto DoubleSPlan::executeRT(PlanTarget &target)->int
 			//cout << "vel" << i + 1 << ":" << target.model->motionPool()[i].mv() << "  ";
 			//cout << "cur" << i + 1 << ":" << target.model->motionPool()[i].ma() << "  ";
 		}
-		cout << step_pjs[0] << "  ";
+        cout << target.count<<"***"<<step_pjs[0] << "  ";
 		cout << std::endl;
 	}
 
@@ -173,7 +221,7 @@ auto DoubleSPlan::executeRT(PlanTarget &target)->int
 
 auto DoubleSPlan::collectNrt(aris::plan::PlanTarget &target)->void
 {
-
+    ReSetLimit0(target);
 }
 
 
@@ -185,8 +233,8 @@ DoubleSPlan::DoubleSPlan(const std::string &name) :Plan(name)
 		"	<GroupParam>"
 		"		<Param name=\"jMax\"default=\"120.0\"/>"
 		"		<Param name=\"aMax\"default=\"15.0\"/>"
-		"		<Param name=\"vMax\" default=\"4.0\"/>"
-		"		<Param name=\"sMax\"default=\"1.5\"/>"
+        "		<Param name=\"vMax\" default=\"0.5\"/>"
+        "		<Param name=\"sMax\"default=\"1.0\"/>"
 		"	</GroupParam>"
 		"</Command>");
 
