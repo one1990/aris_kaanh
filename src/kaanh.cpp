@@ -18,7 +18,7 @@ extern std::atomic_int which_di;
 extern std::atomic_bool is_automatic;
 extern kaanh::Speed g_vel;
 extern std::atomic_int g_vel_percent;
-kaanh::CmdListParam cmdparam;
+static kaanh::CmdListParam cmdparam;
 
 
 namespace kaanh
@@ -7110,85 +7110,118 @@ double p, v, a;
 	struct RunParam
 	{
 		int goto_cmd_id;
+		std::thread run;
+		std::mutex mymutex;
 	};
+	RunParam param;
 	auto Run::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
-		RunParam param;
-		std::vector<std::pair<std::string, std::any>> ret;
+		std::vector<std::pair<std::string, std::any>> run_ret;
+		std::unique_lock<std::mutex>lock(param.mymutex);
 		for (auto &p : params)
 		{
 			if (p.first == "forward")
 			{
-				std::thread forward;
-				forward = std::thread([&]()->void
+				param.run = std::thread([&]()->void
 				{
-					auto&cs = aris::server::ControlServer::instance();
 					try
 					{
-						auto cmdret = cs.executeCmd(aris::core::Msg(cmdparam.cmd_vec[cmdparam.current_cmd_id++].second));
-						ret.push_back(std::make_pair<std::string, std::any>("return_code", cmdret->ret_code));
-						ret.push_back(std::make_pair<std::string, std::any>("return_message", std::string(cmdret->ret_msg)));
+						aris::server::ControlServer::instance().executeCmd(aris::core::Msg(aris::core::Msg(cmdparam.cmd_vec[cmdparam.current_cmd_id].second)));
 						cmdparam.current_plan_id = std::stoi(cmdparam.cmd_vec[cmdparam.current_cmd_id].first);
+						cmdparam.current_cmd_id += 1;
 					}
 					catch (std::exception &e)
 					{
 						std::cout << e.what() << std::endl;
 						LOG_ERROR << e.what() << std::endl;
 					}
-				});
-				forward.join();
+				});		
 			}
 			else if (p.first == "goto")
 			{
 				param.goto_cmd_id = std::stoi(p.second);
+				bool is_existing = false;
+				for (int i = 0; i < cmdparam.cmd_vec.size(); i++)
+				{
+					if ((std::stoi(cmdparam.cmd_vec[i].first) == param.goto_cmd_id)&&(cmdparam.current_cmd_id != i))
+					{
+						cmdparam.current_cmd_id = i - 1;
+						is_existing = true;
+					}
+					else
+					{
+						is_existing = false;
+					}
+				}
+				if (cmdparam.current_cmd_id < 0)
+				{
+					cmdparam.current_cmd_id = 0;
+				}
+				
+				if (is_existing)
+				{
+					param.run = std::thread([&]()->void
+					{
+						try
+						{
+							aris::server::ControlServer::instance().executeCmd(aris::core::Msg(aris::core::Msg(cmdparam.cmd_vec[cmdparam.current_cmd_id].second)));
+							cmdparam.current_plan_id = std::stoi(cmdparam.cmd_vec[cmdparam.current_cmd_id].first);
+							cmdparam.current_cmd_id += 1;
+						}
+						catch (std::exception &e)
+						{
+							std::cout << e.what() << std::endl;
+							LOG_ERROR << e.what() << std::endl;
+						}
+					});
+					is_existing = false;
+				}
 			}
 			else if (p.first == "start")
 			{
-				std::thread start;
-				start = std::thread([&]()->void
+				param.run = std::thread([&]()->void
 				{
 					auto&cs = aris::server::ControlServer::instance();
-					for(int i = cmdparam.current_cmd_id; i< cmdparam.cmd_vec.size()+1; i++)
-					try
-					{
-						auto cmdret = cs.executeCmd(aris::core::Msg(cmdparam.cmd_vec[i].second));
-						ret.push_back(std::make_pair<std::string, std::any>("return_code", cmdret->ret_code));
-						ret.push_back(std::make_pair<std::string, std::any>("return_message", std::string(cmdret->ret_msg)));
-						if (i == cmdparam.cmd_vec.size())
+					for (int i = cmdparam.current_cmd_id; i < cmdparam.cmd_vec.size(); i++)
+					{ 
+						try
 						{
-							cmdparam.current_plan_id = std::stoi(cmdparam.cmd_vec[i].first) + 1;
+							cs.executeCmd(aris::core::Msg(cmdparam.cmd_vec[i].second));
+							cmdparam.current_plan_id = std::stoi(cmdparam.cmd_vec[i].first);
 						}
-						else
+						catch (std::exception &e)
 						{
-							cmdparam.current_plan_id = std::stoi(cmdparam.cmd_vec[i + 1].first);
+							std::cout << e.what() << std::endl;
+							LOG_ERROR << e.what() << std::endl;
 						}
-						
 					}
-					catch (std::exception &e)
-					{
-						std::cout << e.what() << std::endl;
-						LOG_ERROR << e.what() << std::endl;
-					}
+					cmdparam.current_plan_id += 1;
+					cmdparam.current_cmd_id = cmdparam.cmd_vec.size();
 				});
-				start.join();
 			}
-			else if (p.first == "pause")
-			{
-
-			}
+			else if (p.first == "pause"){}
 			else if (p.first == "stop")
 			{
-
+				param.run.join();
+				cmdparam.cmd_vec.clear();
+				cmdparam.current_cmd_id = 0;
+				cmdparam.current_plan_id = 0;
 			}
 		}
-		target.ret = ret;
+
+		
+		target.ret = run_ret;
+	}
+	auto Run::collectNrt(aris::plan::PlanTarget &target)->void
+	{
+		param.run.join();
 	}
 	Run::Run(const std::string &name) :Plan(name)
 	{
 		command().loadXmlStr(
 			"<Command name=\"run\">"
 			"	<GroupParam>"
-			"		<UniqueParam default=\"all\">"
+			"		<UniqueParam>"
 			"			<Param name=\"forward\"/>"
 			"			<Param name=\"goto\" default=\"2\"/>"
 			"			<Param name=\"start\"/>"
@@ -7217,7 +7250,7 @@ double p, v, a;
 		//std::string data = "collectcmd --cmdlist = {1:moveJ\r\n2:moveJ\r\n3:moveL\r\n}";
 		
 		char *msg_input = (char *)msg_data.c_str();
-		char *cmd_name = strtok(msg_input, "--");
+		char *cmd_name = strtok(msg_input, " --");
 
 		//解析指令失败//
 		if (cmd_name == NULL)
@@ -7247,7 +7280,7 @@ double p, v, a;
 				auto end_pos = msg_data.rfind("}");
 				auto cmd_str = msg_data.substr(begin_pos + 1, end_pos - 1 - begin_pos);
 				char *cmd_input = (char *)cmd_str.c_str();
-				const char *split = "\r\n";
+				const char *split = "\\r\\n";
 				char *cmd = strtok(cmd_input, split);
 				int i = 0;
 				while (cmd != NULL)
@@ -7451,6 +7484,7 @@ double p, v, a;
 		plan_root->planPool().add<kaanh::SetEsiPath>();
 		plan_root->planPool().add<kaanh::SetCT>();
 		plan_root->planPool().add<kaanh::SetVel>();
+		plan_root->planPool().add<kaanh::Run>();
 		plan_root->planPool().add<kaanh::StartCS>();
 
 		plan_root->planPool().add<MoveXYZ>();
