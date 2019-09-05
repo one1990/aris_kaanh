@@ -7118,55 +7118,31 @@ double p, v, a;
 	{
 		std::vector<std::pair<std::string, std::any>> run_ret;
 		std::unique_lock<std::mutex>lock(param.mymutex);
-		for (auto &p : params)
+		if ((cmdparam.current_cmd_id >= cmdparam.cmd_vec.size()) || (cmdparam.current_cmd_id < 0))
+		{}
+		else
 		{
-			if (p.first == "forward")
+			for (auto &p : params)
 			{
-				param.run = std::thread([&]()->void
-				{
-					try
-					{
-						aris::server::ControlServer::instance().executeCmd(aris::core::Msg(aris::core::Msg(cmdparam.cmd_vec[cmdparam.current_cmd_id].second)));
-						cmdparam.current_plan_id = std::stoi(cmdparam.cmd_vec[cmdparam.current_cmd_id].first);
-						cmdparam.current_cmd_id += 1;
-					}
-					catch (std::exception &e)
-					{
-						std::cout << e.what() << std::endl;
-						LOG_ERROR << e.what() << std::endl;
-					}
-				});		
-			}
-			else if (p.first == "goto")
-			{
-				param.goto_cmd_id = std::stoi(p.second);
-				bool is_existing = false;
-				for (int i = 0; i < cmdparam.cmd_vec.size(); i++)
-				{
-					if ((std::stoi(cmdparam.cmd_vec[i].first) == param.goto_cmd_id)&&(cmdparam.current_cmd_id != i))
-					{
-						cmdparam.current_cmd_id = i - 1;
-						is_existing = true;
-					}
-					else
-					{
-						is_existing = false;
-					}
-				}
-				if (cmdparam.current_cmd_id < 0)
-				{
-					cmdparam.current_cmd_id = 0;
-				}
-				
-				if (is_existing)
+				if (p.first == "forward")
 				{
 					param.run = std::thread([&]()->void
 					{
 						try
 						{
-							aris::server::ControlServer::instance().executeCmd(aris::core::Msg(aris::core::Msg(cmdparam.cmd_vec[cmdparam.current_cmd_id].second)));
 							cmdparam.current_plan_id = std::stoi(cmdparam.cmd_vec[cmdparam.current_cmd_id].first);
-							cmdparam.current_cmd_id += 1;
+							aris::server::ControlServer::instance().executeCmd(aris::core::Msg(aris::core::Msg(cmdparam.cmd_vec[cmdparam.current_cmd_id].second)), [](aris::plan::PlanTarget &target)->void
+							{
+								cmdparam.current_cmd_id += 1;
+								if (cmdparam.current_cmd_id < cmdparam.cmd_vec.size() - 1)
+								{
+									cmdparam.current_plan_id = std::stoi(cmdparam.cmd_vec[cmdparam.current_cmd_id + 1].first);
+								}
+								else
+								{
+									cmdparam.current_plan_id = std::stoi(cmdparam.cmd_vec[cmdparam.current_cmd_id].first) + 1;
+								}
+							});
 						}
 						catch (std::exception &e)
 						{
@@ -7174,47 +7150,103 @@ double p, v, a;
 							LOG_ERROR << e.what() << std::endl;
 						}
 					});
-					is_existing = false;
 				}
-			}
-			else if (p.first == "start")
-			{
-				param.run = std::thread([&]()->void
+				else if (p.first == "goto")
 				{
-					auto&cs = aris::server::ControlServer::instance();
-					for (int i = cmdparam.current_cmd_id; i < cmdparam.cmd_vec.size(); i++)
-					{ 
-						try
+					param.goto_cmd_id = std::stoi(p.second);
+					bool is_existing = false;
+					for (int i = 0; i < cmdparam.cmd_vec.size(); i++)
+					{
+						if ((std::stoi(cmdparam.cmd_vec[i].first) == param.goto_cmd_id) && (cmdparam.current_cmd_id != i))
 						{
-							cs.executeCmd(aris::core::Msg(cmdparam.cmd_vec[i].second));
-							cmdparam.current_plan_id = std::stoi(cmdparam.cmd_vec[i].first);
+							cmdparam.current_cmd_id = i - 1;
+							is_existing = true;
 						}
-						catch (std::exception &e)
+						else
 						{
-							std::cout << e.what() << std::endl;
-							LOG_ERROR << e.what() << std::endl;
+							is_existing = false;
 						}
 					}
-					cmdparam.current_plan_id += 1;
-					cmdparam.current_cmd_id = cmdparam.cmd_vec.size();
-				});
+					if (cmdparam.current_cmd_id < 0)
+					{
+						cmdparam.current_cmd_id = 0;
+					}
+					if (is_existing)
+					{
+						param.run = std::thread([&]()->void
+						{
+							try
+							{
+								cmdparam.current_plan_id = std::stoi(cmdparam.cmd_vec[cmdparam.current_cmd_id].first);
+								aris::server::ControlServer::instance().executeCmd(aris::core::Msg(aris::core::Msg(cmdparam.cmd_vec[cmdparam.current_cmd_id].second)), [](aris::plan::PlanTarget &target)->void
+								{
+									cmdparam.current_cmd_id += 1;
+									cmdparam.current_plan_id = std::stoi(cmdparam.cmd_vec[cmdparam.current_cmd_id].first);
+								});
+							}
+							catch (std::exception &e)
+							{
+								std::cout << e.what() << std::endl;
+								LOG_ERROR << e.what() << std::endl;
+							}
+						});
+						is_existing = false;
+					}
+				}
+				else if (p.first == "start")
+				{
+					param.run = std::thread([&]()->void
+					{
+						cmdparam.current_plan_id = std::stoi(cmdparam.cmd_vec[cmdparam.current_cmd_id].first);
+						std::cout << "current_plan_id:" << cmdparam.current_plan_id << std::endl;
+						for (int i = cmdparam.current_cmd_id; i < cmdparam.cmd_vec.size(); i++)
+						{
+							try
+							{
+								auto&cs = aris::server::ControlServer::instance();
+								cs.executeCmd(aris::core::Msg(cmdparam.cmd_vec[i].second), [i](aris::plan::PlanTarget &target)->void
+								{
+									cmdparam.current_cmd_id += 1;
+									if (i < cmdparam.cmd_vec.size() - 1)
+									{
+										cmdparam.current_plan_id = std::stoi(cmdparam.cmd_vec[i + 1].first);
+									}
+									else
+									{
+										cmdparam.current_plan_id = std::stoi(cmdparam.cmd_vec[i].first) + 1;
+									}
+									std::cout << "current_plan_id:" << cmdparam.current_plan_id << std::endl;
+								});
+							}
+							catch (std::exception &e)
+							{
+								std::cout << e.what() << std::endl;
+								LOG_ERROR << e.what() << std::endl;
+							}
+						}
+					});
+				}
+				else if (p.first == "pause") {}
+				else if (p.first == "stop")
+				{
+					param.run.join();
+					cmdparam.cmd_vec.clear();
+					cmdparam.current_cmd_id = 0;
+					cmdparam.current_plan_id = 0;
+				}
 			}
-			else if (p.first == "pause"){}
-			else if (p.first == "stop")
-			{
-				param.run.join();
-				cmdparam.cmd_vec.clear();
-				cmdparam.current_cmd_id = 0;
-				cmdparam.current_plan_id = 0;
-			}
-		}
 
-		
+		}
 		target.ret = run_ret;
 	}
 	auto Run::collectNrt(aris::plan::PlanTarget &target)->void
 	{
-		param.run.join();
+		if ((cmdparam.current_cmd_id >= cmdparam.cmd_vec.size()) || (cmdparam.current_cmd_id < 0))
+		{}
+		else
+		{
+			param.run.join();
+		}
 	}
 	Run::Run(const std::string &name) :Plan(name)
 	{
@@ -7276,6 +7308,8 @@ double p, v, a;
 			if (strcmp(cmd_name, "collectcmd") == 0)
 			{
 				cmdparam.cmd_vec.clear();
+				cmdparam.current_cmd_id = 0;
+				cmdparam.current_plan_id = 0;
 				auto begin_pos = msg_data.find("{");
 				auto end_pos = msg_data.rfind("}");
 				auto cmd_str = msg_data.substr(begin_pos + 1, end_pos - 1 - begin_pos);
