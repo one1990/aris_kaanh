@@ -5665,15 +5665,15 @@ MoveForceCircle::MoveForceCircle(const std::string &name) :Plan(name)
 
 
 
-double P1[7] = { 0.29342,-0.43863428,0.2786477,0.5271747,0.849668,-0.007837787,0.0094264 };
-double P2[7] = { 0.34742376,-0.406617,0.2786185,0.5271784,0.84966693,-0.00781518,0.0093789064};
-double P3[7] = { 0.3054168,-0.345565,0.29131067,0.52718538,0.84966280,-0.007812,0.009362943 };
-double P4[7] = { 0.260408347,-0.3761004,0.301647925,0.52717336,0.84967,-0.00779838,0.00932};
-double P5[7] = { 0.2543459,-0.4210362,0.301633876,0.527177,0.8496687,-0.00778855,0.00930659664};
+double P1[7] = {  0.2957561877690258,-0.4453456380218208,0.2771034,-0.707070,-0.70714,0,0 };
+double P2[7] = { 0.34893612065625784,-0.41170589555940784,0.27707736,-0.7070685,-0.7071450,0,0};
+double P3[7] = { 0.30910799,-0.34915346,0.27707300,-0.707084,-0.7071295,0,0 };
+double P4[7] = { 0.2563542,-0.3824533,0.2770473,-0.707082,-0.70713,0,0};
+double P5[7] = { 0.25856243,-0.42001145,0.284604726,-0.7070756,-0.707137,0,0};
 
 void PressLine(PlanTarget &target, const int start_count, const double *FmInWorld, const double *P1, const double *P2, const double addLength,double *dX,bool &flag)
 {
-	static double pArc, vArc, aArc, vArcMax = 0.004;
+    static double pArc, vArc, aArc, vArcMax = 0.008;
 	static aris::Size t_count = { 0 };
 
 	double dir[3] = { 0 }, vertic[3] = { 0 }, zbase[3] = { 0,0,1 };
@@ -5683,7 +5683,7 @@ void PressLine(PlanTarget &target, const int start_count, const double *FmInWorl
 	dir[0] = (P2[0] - P1[0]) / length;
 	dir[1] = (P2[1] - P1[1]) / length;
 	length = sqrt((P2[0] - P1[0])*(P2[0] - P1[0]) + (P2[1] - P1[1])*(P2[1] - P1[1])) + addLength;
-	aris::plan::moveAbsolute(target.count-start_count, 0, length, vArcMax / 1000, 0.05 / 1000 / 1000, 0.05 / 1000 / 1000, pArc, vArc, aArc, t_count);
+    aris::plan::moveAbsolute(target.count-start_count, 0, length, vArcMax / 1000, 0.01 / 1000 / 1000, 0.01 / 1000 / 1000, pArc, vArc, aArc, t_count);
 
 	if ((target.count - start_count) == t_count)
 		flag = true;
@@ -5696,16 +5696,16 @@ void PressLine(PlanTarget &target, const int start_count, const double *FmInWorl
 
 	crossVector(zbase, dir, vertic);
 	double xy_desired[2] = { 0 };
-	xy_desired[0] = 10 * vertic[0];
-	xy_desired[1] = 10 * vertic[1];
+    xy_desired[0] = 10 * vertic[0];
+    xy_desired[1] = 10 * vertic[1];
 
 	//if(PqEnd[1]>-0.393&&PqEnd[1]<-0.385)
 		//xy_desired[0] = 0;
 
 
 	double dXpid[6] = { 0,0,0,0,0,0 };
-	dXpid[0] = 0 * (FmInWorld[0] - xy_desired[0]) / 620000;
-	dXpid[1] = 0 * (FmInWorld[1] - xy_desired[1]) / 620000;
+    dXpid[0] = 1 * (FmInWorld[0] - xy_desired[0]) / 1220000;
+    dXpid[1] = 1 * (FmInWorld[1] - xy_desired[1]) / 1220000;
 
 	for (int i = 0;i < 6;i++)
 		dX[i] = dX0[i] + dXpid[i];
@@ -5834,7 +5834,7 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
 	static int start_count = 0;
 	static bool begin_flag = true;
 	static bool finish_flag = false;
-	static double addLength[5] = { 0 };
+    static double addLength[5] = { 0.013,0.021,0.03,0.003,0.028 };
 	switch (line_mark)
 	{
 	case 'A':
