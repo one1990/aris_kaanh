@@ -1460,7 +1460,7 @@ namespace kaanh
 
 		target.param = param;
 
-		//std::fill(target.mot_options.begin(), target.mot_options.end(), Plan::USE_TARGET_POS);
+		std::fill(target.mot_options.begin(), target.mot_options.end(), Plan::USE_TARGET_POS);
 		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
 	}
@@ -1468,9 +1468,11 @@ namespace kaanh
 	{
 		auto &param = std::any_cast<MoveJRParam&>(target.param);
 		auto controller = target.controller;
+		//controller->logFile("moveJR");
 
 		if (target.count == 1)
 		{
+			controller->logFile("moveJR");
 			for (Size i = 0; i < param.joint_active_vec.size(); ++i)
 			{
 				if (param.joint_active_vec[i])
@@ -1479,7 +1481,7 @@ namespace kaanh
 				}
 			}
 		}
-double p, v, a;
+		double p, v, a;
 		aris::Size total_count{ 1 };
 		for (Size i = 0; i < param.joint_active_vec.size(); ++i)
 		{
@@ -1488,8 +1490,8 @@ double p, v, a;
 				
 				aris::Size t_count;
 				aris::plan::moveAbsolute(target.count/1, param.begin_joint_pos_vec[i], param.begin_joint_pos_vec[i]+param.joint_pos_vec[i], param.vel / 1000, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
-				controller->motionAtAbs(i).setTargetPos(p);
-				controller->motionAtAbs(i).setTargetVel(v);
+				//controller->motionAtAbs(i).setTargetPos(p);
+				//controller->motionAtAbs(i).setTargetVel(v);
 				target.model->motionPool().at(i).setMp(p);
 				total_count = std::max(total_count, t_count);
 			}
@@ -1511,11 +1513,13 @@ double p, v, a;
 		}
 
 		// log 电流 //
+		
 		auto &lout = controller->lout();
 		for (Size i = 0; i < param.joint_active_vec.size(); i++)
 		{
-			lout << controller->motionAtAbs(i).targetPos() << ",";
-			lout << controller->motionAtAbs(i).actualPos() << ",";
+			//lout << controller->motionatabs(i).targetpos() << ",";
+			//lout << controller->motionatabs(i).actualpos() << ",";
+			lout << target.model->motionPool().at(i).mp() << " ";
 		}
 		lout << std::endl;
 
@@ -2268,7 +2272,7 @@ double p, v, a;
 			"	</GroupParam>"
 			"</Command>");
 	}
-
+ 
 
 	auto check_eul_validity(const std::string &eul_type)->bool
 	{
@@ -2661,6 +2665,145 @@ double p, v, a;
 	ARIS_DEFINE_BIG_FOUR_CPP(MoveC);
 
 	
+	//复现文件位置//
+	struct MoveFParam
+	{
+		std::vector<Size> total_count_vec;
+		std::vector<double> axis_begin_pos_vec;
+		std::vector<double> axis_first_pos_vec;
+		std::vector<std::vector<double>> pos_vec;
+		double vel, acc, dec;
+		std::string path;
+	};
+	auto MoveF::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		MoveFParam param;
+		param.vel = std::stod(params.at("vel"));
+		param.acc = std::stod(params.at("acc"));
+		param.dec = std::stod(params.at("dec"));
+		param.path = params.at("path");
+
+		param.total_count_vec.resize(6, 0);
+		param.axis_begin_pos_vec.resize(6, 0.0);
+		param.axis_first_pos_vec.resize(6, 0.0);
+
+		param.pos_vec.resize(6, std::vector<double>(1, 0.0));
+		//std::cout << "size:" << param.pos_vec.size() << std::endl;
+		//初始化pos_vec//
+		for (int j = 0; j < param.pos_vec.size(); j++)
+		{
+			param.pos_vec[j].clear();
+		}
+
+		//定义读取log文件的输入流oplog//
+		std::ifstream oplog;
+		int cal = 0;
+		oplog.open(param.path);
+
+		//以下检查是否成功读取文件//
+		if (!oplog)
+		{
+			throw std::runtime_error("fail to open the file");
+		}
+		while (!oplog.eof())
+		{
+			for (int j = 0; j < param.pos_vec.size(); j++)
+			{
+				double data;
+				oplog >> data;
+				param.pos_vec[j].push_back(data);
+			}
+		}
+		oplog.close();
+		//oplog.clear();
+		for (int j = 0; j < param.pos_vec.size(); j++)
+		{
+			param.pos_vec[j].pop_back();
+			param.axis_first_pos_vec[j] = param.pos_vec[j][0];
+		}
+
+		target.param = param;
+		std::fill(target.mot_options.begin(), target.mot_options.end(),
+			Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER|
+			Plan::NOT_CHECK_POS_FOLLOWING_ERROR);
+		std::vector<std::pair<std::string, std::any>> ret;
+		target.ret = ret;
+	}
+	auto MoveF::executeRT(PlanTarget &target)->int
+	{
+		auto controller = target.controller;
+		auto &param = std::any_cast<MoveFParam&>(target.param);
+		
+		double p, v, a;
+		aris::Size t_count;
+		static aris::Size first_total_count = 1;
+		aris::Size total_count = 1;
+		aris::Size return_value = 0;
+
+		// 获取6个电机初始位置 //
+		if (target.count == 1)
+		{
+			for (int i = 0; i < 6; i++)
+			{
+				param.axis_begin_pos_vec[i] = target.model->motionPool().at(i).mp();
+			}
+			for (int i = 0; i < 6; i++)
+			{
+				// 梯形规划到log开始点 //
+				aris::plan::moveAbsolute(target.count, param.axis_begin_pos_vec[i], param.axis_first_pos_vec[i], param.vel / 1000, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
+				first_total_count = std::max(first_total_count, t_count);
+			}
+		}
+		
+		// 机械臂走到log开始点 //
+		if (target.count <= first_total_count)
+		{
+			for (int i = 0; i < 6; i++)
+			{
+				// 在第一个周期走梯形规划复位
+				aris::plan::moveAbsolute(target.count, param.axis_begin_pos_vec[i], param.axis_first_pos_vec[i], param.vel / 1000, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
+				controller->motionAtAbs(i).setTargetPos(p);
+				target.model->motionPool().at(i).setMp(p);
+			}
+		}
+		
+		// 机械臂开始从头到尾复现log中点 //
+		if (target.count > first_total_count)
+		{
+			for (int i = 0; i < 6; i++)
+			{
+				controller->motionAtAbs(i).setTargetPos(param.pos_vec[i][target.count - first_total_count]);
+				target.model->motionPool().at(i).setMp(param.pos_vec[i][target.count - first_total_count]);
+			}
+		}
+		if (target.model->solverPool().at(1).kinPos())return -1;
+
+		//输出6个轴的实时位置log文件//
+		auto &lout = controller->lout();
+		for (int i = 0; i < 6; i++)
+		{
+			lout << controller->motionAtAbs(i).actualPos() << " ";//第一列数字必须是位置
+		}
+		lout << std::endl;
+
+		return target.count > (first_total_count - 2 + param.pos_vec[0].size()) ? 0 : 1;
+
+	}
+	auto MoveF::collectNrt(PlanTarget &target)->void {}
+	MoveF::MoveF(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"mvf\">"
+			"	<GroupParam>"
+			"		<Param name=\"path\" default=\"C:\\Users\\kevin\\Desktop\\file\\rt_log--2019-09-06--19-14-16--moveJR.txt\"/>"
+			"		<Param name=\"vel\" default=\"0.05\" abbreviation=\"v\"/>"
+			"		<Param name=\"acc\" default=\"0.1\" abbreviation=\"a\"/>"
+			"		<Param name=\"dec\" default=\"0.1\" abbreviation=\"d\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
+
+
 	// 示教运动--输入末端大地坐标系的位姿pe，控制动作 //
 	struct JogCParam {};
 	struct JogCStruct
@@ -7117,30 +7260,37 @@ double p, v, a;
 	auto Run::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
 		std::vector<std::pair<std::string, std::any>> run_ret;
-		std::unique_lock<std::mutex>lock(param.mymutex);
-		if ((cmdparam.current_cmd_id >= cmdparam.cmd_vec.size()) || (cmdparam.current_cmd_id < 0))
-		{}
-		else
+		std::unique_lock<std::mutex>run_lock(param.mymutex);
+		
+
+		for (auto &p : params)
 		{
-			for (auto &p : params)
+			if (p.first == "forward")
 			{
-				if (p.first == "forward")
-				{
+				if ((cmdparam.current_cmd_id >= cmdparam.cmd_vec.size()) || (cmdparam.current_cmd_id < 0))
+				{ 
+					target.option = Plan::NOT_RUN_COLLECT_FUNCTION; 
+				}
+				else
+				{ 
 					param.run = std::thread([&]()->void
 					{
 						try
 						{
+							auto&cs = aris::server::ControlServer::instance();
 							cmdparam.current_plan_id = std::stoi(cmdparam.cmd_vec[cmdparam.current_cmd_id].first);
-							aris::server::ControlServer::instance().executeCmd(aris::core::Msg(aris::core::Msg(cmdparam.cmd_vec[cmdparam.current_cmd_id].second)), [](aris::plan::PlanTarget &target)->void
+							cs.executeCmd(aris::core::Msg(cmdparam.cmd_vec[cmdparam.current_cmd_id].second), [](aris::plan::PlanTarget &target)->void
 							{
+								
 								cmdparam.current_cmd_id += 1;
-								if (cmdparam.current_cmd_id < cmdparam.cmd_vec.size() - 1)
+								std::cout << "current_cmd_id:" << cmdparam.current_cmd_id << std::endl;
+								if (cmdparam.current_cmd_id >= cmdparam.cmd_vec.size())
 								{
-									cmdparam.current_plan_id = std::stoi(cmdparam.cmd_vec[cmdparam.current_cmd_id + 1].first);
+									cmdparam.current_plan_id = std::stoi(cmdparam.cmd_vec[cmdparam.cmd_vec.size()-1].first) + 1;
 								}
 								else
 								{
-									cmdparam.current_plan_id = std::stoi(cmdparam.cmd_vec[cmdparam.current_cmd_id].first) + 1;
+									cmdparam.current_plan_id = std::stoi(cmdparam.cmd_vec[cmdparam.current_cmd_id].first);
 								}
 							});
 						}
@@ -7151,54 +7301,66 @@ double p, v, a;
 						}
 					});
 				}
-				else if (p.first == "goto")
+			}
+			else if (p.first == "goto")
+			{
+				param.goto_cmd_id = std::stoi(p.second);
+				bool is_existing = false;
+				for (int i = 0; i < cmdparam.cmd_vec.size(); i++)
 				{
-					param.goto_cmd_id = std::stoi(p.second);
-					bool is_existing = false;
-					for (int i = 0; i < cmdparam.cmd_vec.size(); i++)
+					if ((std::stoi(cmdparam.cmd_vec[i].first) == param.goto_cmd_id) && (cmdparam.current_cmd_id != i))
 					{
-						if ((std::stoi(cmdparam.cmd_vec[i].first) == param.goto_cmd_id) && (cmdparam.current_cmd_id != i))
-						{
-							cmdparam.current_cmd_id = i - 1;
-							is_existing = true;
-						}
-						else
-						{
-							is_existing = false;
-						}
-					}
-					if (cmdparam.current_cmd_id < 0)
-					{
-						cmdparam.current_cmd_id = 0;
-					}
-					if (is_existing)
-					{
-						param.run = std::thread([&]()->void
-						{
-							try
-							{
-								cmdparam.current_plan_id = std::stoi(cmdparam.cmd_vec[cmdparam.current_cmd_id].first);
-								aris::server::ControlServer::instance().executeCmd(aris::core::Msg(aris::core::Msg(cmdparam.cmd_vec[cmdparam.current_cmd_id].second)), [](aris::plan::PlanTarget &target)->void
-								{
-									cmdparam.current_cmd_id += 1;
-									cmdparam.current_plan_id = std::stoi(cmdparam.cmd_vec[cmdparam.current_cmd_id].first);
-								});
-							}
-							catch (std::exception &e)
-							{
-								std::cout << e.what() << std::endl;
-								LOG_ERROR << e.what() << std::endl;
-							}
-						});
-						is_existing = false;
+						cmdparam.current_cmd_id = i - 1;
+						is_existing = true;
 					}
 				}
-				else if (p.first == "start")
+				if (cmdparam.current_cmd_id < 0)
+				{
+					cmdparam.current_cmd_id = 0;
+				}
+				if (is_existing)
+				{
+					param.run = std::thread([&]()->void
+					{
+						try
+						{
+							cmdparam.current_plan_id = std::stoi(cmdparam.cmd_vec[cmdparam.current_cmd_id].first);
+							aris::server::ControlServer::instance().executeCmd(aris::core::Msg(cmdparam.cmd_vec[cmdparam.current_cmd_id].second), [](aris::plan::PlanTarget &target)->void
+							{
+								cmdparam.current_cmd_id += 1;
+								if (cmdparam.current_cmd_id >= cmdparam.cmd_vec.size())
+								{
+									cmdparam.current_plan_id = std::stoi(cmdparam.cmd_vec[cmdparam.current_cmd_id - 1].first) + 1;
+								}
+								else
+								{
+									cmdparam.current_plan_id = std::stoi(cmdparam.cmd_vec[cmdparam.current_cmd_id].first);
+								}
+							});
+						}
+						catch (std::exception &e)
+						{
+							std::cout << e.what() << std::endl;
+							LOG_ERROR << e.what() << std::endl;
+						}
+					});
+				}
+				else
+				{
+					target.option = Plan::NOT_RUN_COLLECT_FUNCTION;
+				}
+			}
+			else if (p.first == "start")
+			{
+				if ((cmdparam.current_cmd_id >= cmdparam.cmd_vec.size()) || (cmdparam.current_cmd_id < 0)) 
+				{
+					target.option = Plan::NOT_RUN_COLLECT_FUNCTION;
+				}
+				else
 				{
 					param.run = std::thread([&]()->void
 					{
 						cmdparam.current_plan_id = std::stoi(cmdparam.cmd_vec[cmdparam.current_cmd_id].first);
-						std::cout << "current_plan_id:" << cmdparam.current_plan_id << std::endl;
 						for (int i = cmdparam.current_cmd_id; i < cmdparam.cmd_vec.size(); i++)
 						{
 							try
@@ -7215,7 +7377,6 @@ double p, v, a;
 									{
 										cmdparam.current_plan_id = std::stoi(cmdparam.cmd_vec[i].first) + 1;
 									}
-									std::cout << "current_plan_id:" << cmdparam.current_plan_id << std::endl;
 								});
 							}
 							catch (std::exception &e)
@@ -7226,27 +7387,24 @@ double p, v, a;
 						}
 					});
 				}
-				else if (p.first == "pause") {}
-				else if (p.first == "stop")
-				{
-					param.run.join();
-					cmdparam.cmd_vec.clear();
-					cmdparam.current_cmd_id = 0;
-					cmdparam.current_plan_id = 0;
-				}
 			}
-
+			else if (p.first == "pause") 
+			{ 
+				target.option = Plan::NOT_RUN_COLLECT_FUNCTION;
+			}
+			else if (p.first == "stop")
+			{
+				cmdparam.cmd_vec.clear();
+				cmdparam.current_cmd_id = 0;
+				cmdparam.current_plan_id = -1;
+				target.option = Plan::NOT_RUN_COLLECT_FUNCTION;
+			}
 		}
 		target.ret = run_ret;
 	}
 	auto Run::collectNrt(aris::plan::PlanTarget &target)->void
 	{
-		if ((cmdparam.current_cmd_id >= cmdparam.cmd_vec.size()) || (cmdparam.current_cmd_id < 0))
-		{}
-		else
-		{
-			param.run.join();
-		}
+		param.run.join();
 	}
 	Run::Run(const std::string &name) :Plan(name)
 	{
@@ -7309,7 +7467,7 @@ double p, v, a;
 			{
 				cmdparam.cmd_vec.clear();
 				cmdparam.current_cmd_id = 0;
-				cmdparam.current_plan_id = 0;
+				cmdparam.current_plan_id = -1;
 				auto begin_pos = msg_data.find("{");
 				auto end_pos = msg_data.rfind("}");
 				auto cmd_str = msg_data.substr(begin_pos + 1, end_pos - 1 - begin_pos);
@@ -7520,6 +7678,7 @@ double p, v, a;
 		plan_root->planPool().add<kaanh::SetVel>();
 		plan_root->planPool().add<kaanh::Run>();
 		plan_root->planPool().add<kaanh::StartCS>();
+		plan_root->planPool().add<kaanh::MoveF>();
 
 		plan_root->planPool().add<MoveXYZ>();
 		plan_root->planPool().add<MoveJoint>();
@@ -7556,7 +7715,6 @@ double p, v, a;
 
 		plan_root->planPool().add<cplan::MoveCircle>();
 		plan_root->planPool().add<cplan::MoveTroute>();
-		plan_root->planPool().add<cplan::MoveFile>();
 		plan_root->planPool().add<cplan::RemoveFile>();
 		plan_root->planPool().add<cplan::MoveinModel>();
 		plan_root->planPool().add<cplan::FMovePath>();

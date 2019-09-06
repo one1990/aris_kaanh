@@ -61,7 +61,8 @@ namespace kaanh
 	{
 		std::vector<std::pair<std::string, std::string>> cmd_vec;
 		int current_cmd_id = 0;
-		int current_plan_id = 0;
+		int current_plan_id = -1;
+		std::mutex cmdmutex;
 	};
 	
 	class ProInterface :public aris::server::Interface
@@ -186,6 +187,17 @@ namespace kaanh
 
 		explicit MoveJI(const std::string &name = "MoveJI_plan");
 		ARIS_REGISTER_TYPE(MoveJI);
+	};
+
+	class MoveF : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+
+		explicit MoveF(const std::string &name = "MoveF_plan");
+		ARIS_REGISTER_TYPE(MoveF);
 	};
 
 	class MoveC : public aris::plan::Plan
