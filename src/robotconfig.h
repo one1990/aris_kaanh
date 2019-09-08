@@ -28,7 +28,7 @@ namespace CONFIG
 		const double DT = 0.001;
         const double CutoffFrequency = 5;
 		const double EndPoint[3] = { 0, 0, 0.078};//The Position of End Plate
-        const double EndSensor[3] = { 0, 0, 0.1955};//The Position of Torque Sensor
+        const double EndSensor[3] = { 0, 0, 0.1155};//The Position of Torque Sensor
 
 		//aris::plan::PlanTarget
 
