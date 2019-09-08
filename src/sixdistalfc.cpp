@@ -4684,7 +4684,7 @@ ForceDirect::ForceDirect(const std::string &name) :Plan(name)
 {
 
 	command().loadXmlStr(
-        "<Command name=\"ForceDir\">"
+        "<Command name=\"FCPressL\">"
 		"	<GroupParam>"
 		"       <Param name=\"PressF\" default=\"0\"/>"
         "		<Param name=\"SensorType\"default=\"-20.0\"/>"
@@ -5732,13 +5732,15 @@ auto MoveForceCurve::prepairNrt(const std::map<std::string, std::string> &params
 		if (p.first == "SensorType")
 			param.SensorType = std::stod(p.second);
 
-		if (p.first == "p1x")
+		if (p.first == "P1")
 			param.p1x = std::stod(p.second);
-		if (p.first == "p1y")
+		if (p.first == "P2")
 			param.p1y = std::stod(p.second);
-		if (p.first == "p2x")
+		if (p.first == "P3")
 			param.p2x = std::stod(p.second);
-		if (p.first == "p2y")
+		if (p.first == "P4")
+			param.p2y = std::stod(p.second);
+		if (p.first == "P5")
 			param.p2y = std::stod(p.second);
 	}
 
@@ -5761,7 +5763,6 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
 
 	static double step_pjs[6];
 	static double stateTor0[6][3], stateTor1[6][3], EndP0[3];
-	static double sT0[6][3], sT1[6][3];
 	static float FT0[6];
 
 	// 访问主站 //
@@ -5769,13 +5770,8 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
 	auto &cout = controller->mout();
 	// 获取当前起始点位置 //
 	if (target.count == 1)
-	{
 		for (int i = 0; i < 6; ++i)
-		{
 			step_pjs[i] = target.model->motionPool()[i].mp();
-			// controller->motionPool().at(i).setModeOfOperation(10);	//切换到电流控制
-		}
-	}
 
 
 	if (target.model->solverPool().at(1).kinPos())return -1;
@@ -5784,11 +5780,10 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
     double PqEnd[7];
     target.model->generalMotionPool().at(0).getMpq(PqEnd);
 
-
-
 	double dX[6] = { 0.00000, -0.0000, -0.0000, -0.0000, -0.0000, -0.0000 };
 	double dTheta[6] = { 0 };
 
+//////////////////////////////////////////////////Get FT in World Framework, Filter////////////////////////////////////////////
 	double FT[6];
 	if (param.SensorType > 0)
 		GetATI(target, FT);
@@ -5830,6 +5825,7 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
 	double FmInWorld[6];
 	FT2World(target, FT_KAI, FmInWorld);
 	
+////////////////////////////////////////////////////////Press Profile Determined by P1-P2-P3-P4-P5////////////////////////////
 	static char line_mark = 'A';
 	static int start_count = 0;
 	static bool begin_flag = true;
@@ -5904,7 +5900,7 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
 		{
 			begin_flag = true;
 			finish_flag = false;
-			line_mark = 'A';
+			line_mark = 'F';
 		}
 			break;
 	default:
@@ -5912,10 +5908,9 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
 
 	}
 
-
 	
 
-
+/////////////////////////////////////////////////////dX to dTheta, Generate Motor Position/////////////////////////////////////////////////
 	for (int j = 0; j < 6; j++)
 	{
 		if (dX[j] > 0.00025)
@@ -5923,16 +5918,6 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
 		if (dX[j] < -0.00025)
 			dX[j] = -0.00025;
 	}
-
-	// log 电流 //
-	auto &lout = controller->lout();
-
-    lout << dX[0] << ",";lout << dX[1] << ",";
-    lout << FmInWorld[0] << ",";lout << FmInWorld[1] << ",";
-    lout << PqEnd[0] << ",";lout <<PqEnd[1] << ",";
-	lout << std::endl;
-
-
 
 	dX2dTheta(target, dX, dTheta);
 
@@ -5959,15 +5944,17 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
 		target.model->motionPool().at(i).setMp(step_pjs[i]);
 	}
 
+////////////////////////////////////////////////////////////////Display Real Press Force/////////////////////////////////////
+    static double PressF0[1] = { 0 }, PressF1[1] = { 0 };
+	double normal_force[1];
+	normal_force[0]= sqrt(FmInWorld[0] * FmInWorld[0] + FmInWorld[1] * FmInWorld[1]);
+	if (target.count == 1)
+		PressF0[0] = normal_force[0];
 
-	if (target.count % 300 == 0)
-	{
+	OneOrderFilter(normal_force, PressF0, PressF1, 5);
 
-        cout << FmInWorld[0]  << "*" <<FmInWorld[1] << "*" <<dX[0]<<"*"<<line_mark<<std::endl;
-		cout << std::endl;
 
-	}
-
+///////////////////////////////////////////////////////////////Filter Management/////////////////////////////////////////////
 	for (int i = 0; i < 6; i++)
 	{
 
@@ -5976,6 +5963,28 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
 		stateTor0[i][2] = stateTor1[i][2];
 
 	}
+	PressF0[0] = PressF1[0];
+///////////////////////////////////////////////////////////////Print and Save/////////////////////////////////////////////////
+	// log 电流 //
+	auto &lout = controller->lout();
+
+	lout << dX[0] << ",";lout << dX[1] << ",";
+	lout << FmInWorld[0] << ",";lout << FmInWorld[1] << ",";
+	lout << PqEnd[0] << ",";lout << PqEnd[1] << ",";
+	lout << std::endl;
+	if (target.count % 300 == 0)
+	{
+
+        cout << FmInWorld[0]  << "*" << PressF1[0] << "*" <<dX[0]<<"*"<<line_mark<<std::endl;
+		cout << std::endl;
+
+	}
+
+	
+
+/////////////////////////////////////////////////////////////Function Exit//////////////////////////////////////////////////
+	if (line_mark == 'F')
+		return 0;
 
     return 1900000 - target.count;
 
@@ -5992,14 +6001,15 @@ MoveForceCurve::MoveForceCurve(const std::string &name) :Plan(name)
 {
 
 	command().loadXmlStr(
-		"<Command name=\"mvForCur\">"
+		"<Command name=\"FCPressP\">"
 		"	<GroupParam>"
 		"       <Param name=\"PressF\" default=\"0\"/>"
 		"		<Param name=\"SensorType\"default=\"-20.0\"/>"
-        "		<Param name=\"p1x\"default=\"0.29342\"/>"
-        "		<Param name=\"p1y\"default=\"-0.43863428\"/>"
-        "		<Param name=\"p2x\"default=\"0.34742376\"/>"
-        "		<Param name=\"p2y\"default=\"-0.406617\"/>"
+        "		<Param name=\"P1\"default=\"0.29342\"/>"
+        "		<Param name=\"P2\"default=\"-0.43863428\"/>"
+        "		<Param name=\"P3\"default=\"0.34742376\"/>"
+        "		<Param name=\"P4\"default=\"-0.406617\"/>"
+		"		<Param name=\"P5\"default=\"-0.406617\"/>"
 		"   </GroupParam>"
 		"</Command>");
 
