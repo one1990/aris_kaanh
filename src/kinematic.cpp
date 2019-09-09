@@ -165,7 +165,7 @@ auto CalibT4P::prepairNrt(const std::map<std::string, std::string> &params, aris
 CalibT4P::CalibT4P(const std::string &name) :Plan(name)
 {
 	command().loadXmlStr(
-		"<Command name=\"CalibT4P\">"
+		"<Command name=\"calib_t4p\">"
 		"	<GroupParam>"
 		"		<Param name=\"pose\" default=\"{0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0}\"/>"
 		"   </GroupParam>"
@@ -353,7 +353,7 @@ auto CalibT5P::prepairNrt(const std::map<std::string, std::string> &params, aris
 CalibT5P::CalibT5P(const std::string &name) :Plan(name)
 {
 	command().loadXmlStr(
-		"<Command name=\"CalibT5P\">"
+		"<Command name=\"calib_t5p\">"
 		"	<GroupParam>"
 		"		<Param name=\"pose\" default=\"{0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0}\"/>"
 		"   </GroupParam>"
@@ -630,7 +630,7 @@ auto CalibT6P::prepairNrt(const std::map<std::string, std::string> &params, aris
 CalibT6P::CalibT6P(const std::string &name) :Plan(name)
 {
 	command().loadXmlStr(
-		"<Command name=\"CalibT6P\">"
+		"<Command name=\"calib_t6p\">"
 		"	<GroupParam>"
 		"		<Param name=\"pose\" default=\"{0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0}\"/>"
 		"   </GroupParam>"
@@ -896,21 +896,12 @@ auto SetTF::prepairNrt(const std::map<std::string, std::string> &params, aris::p
 		{
 			throw std::runtime_error("cann't find \"tool0\" node in partPool.");
 		}
-		/*//读取xml里相应节点的值
-		double tool0_pe_g[6] = { 0 };
-		auto mat1 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->partPool().findByName("L6")->markerPool().findByName("too10"));
-		for (size_t i = 0; i < 6; i++)
-		{
-			tool0_pe_g[i] = mat1->data().data()[i];
-		}
-		double tool0_pm_g[16];
-		s_pe2pm(tool0_pe_g, tool0_pm_g, "313");
-		*/
+		
 		//计算工具坐标系相对于底座坐标系的位姿
 		double tool_pm_g[16];
 		double tool_pe_g[6];
 		s_mm(4, 4, 4, tool0_pm_g, tool_pm_f, tool_pm_g);
-		s_pm2pe(tool0_pm_g, tool_pe_g, "313");
+		s_pm2pe(tool_pm_g, tool_pe_g, "313");
 		try
 		{
 			target.model->partPool().findByName("L6")->markerPool().findByName(param.tool_name)->setPrtPe(tool_pe_g);
@@ -919,6 +910,17 @@ auto SetTF::prepairNrt(const std::map<std::string, std::string> &params, aris::p
 		{
 			throw std::runtime_error("cann't find \"" + param.tool_name + "\" node in partPool.");
 		}
+		/*
+		auto mat2 = target.model->partPool().findByName("L6")->markerPool().findByName(param.tool_name)->prtPm();
+		for (size_t i = 0; i < 4; i++)
+		{
+			for (size_t j = 0; j < 4; j++)
+			{
+				std::cout << mat2[i][j] << ",";
+			}
+			std::cout << std::endl;
+		}
+		*/
 		//param.calib_info = "工具坐标系位姿的配置节点已生成。";
 		const std::string calib_info = "The configuration node of " + param.tool_name +"'s pose is created or updated.";
 		param.calib_info = calib_info.c_str();
@@ -935,7 +937,7 @@ auto SetTF::prepairNrt(const std::map<std::string, std::string> &params, aris::p
 SetTF::SetTF(const std::string &name) :Plan(name)
 {
 	command().loadXmlStr(
-		"<Command name=\"SetTF\">"
+		"<Command name=\"settf\">"
 		"	<GroupParam>"
 		"		<Param name=\"tool_name\" default=\"Tool0\"/>"
 		"		<Param name=\"tool_pe\" default=\"{0,0,0,0,0,0}\"/>"
@@ -1048,9 +1050,9 @@ auto CalibZF::prepairNrt(const std::map<std::string, std::string> &params, aris:
 	}
 	////从控制器配置文件里读取待标定轴原来的零点位置
 	
-	if (target.model->variablePool().findByName("AxisZeroValue") != target.model->variablePool().end())
+	if (target.model->variablePool().findByName("tool0_axis_home") != target.model->variablePool().end())
 	{
-		auto mat = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("AxisZeroValue"));
+		auto mat = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("tool0_axis_home"));
 		for (int i = 0; i < 6; i++)
 		{
 			CalibZF::zeroVal[i] = mat->data().data()[i];
@@ -1064,13 +1066,15 @@ auto CalibZF::prepairNrt(const std::map<std::string, std::string> &params, aris:
 	
 	//将新的标定轴零点位置写入控制器配置文件
 	aris::core::Matrix mat1(1, 6, CalibZF::zeroVal);
-	if (target.model->variablePool().findByName("AxisZeroValue") != target.model->variablePool().end())
+	//target.model->variablePool().findByName("tool0_axis_home")
+
+	if (target.model->variablePool().findByName("tool0_axis_home") != target.model->variablePool().end())
 	{
-		dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("AxisZeroValue"))->data() = mat1;
+		dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("tool0_axis_home"))->data() = mat1;
 	}
 	else
 	{
-		target.model->variablePool().add<aris::dynamic::MatrixVariable>("AxisZeroValue", mat1);
+		target.model->variablePool().add<aris::dynamic::MatrixVariable>("tool0_axis_home", mat1);
 	}
 	
 	const std::string calib_info = "The current axis's zero positon has been updated.";
@@ -1086,7 +1090,7 @@ auto CalibZF::prepairNrt(const std::map<std::string, std::string> &params, aris:
 CalibZF::CalibZF(const std::string &name) :Plan(name)
 {
 	command().loadXmlStr(
-		"<Command name=\"CalibZF\">"
+		"<Command name=\"calib_zf\">"
 		"	<GroupParam>"
 		"		<Param name=\"axis_id\" default=\"0\"/>"
 		"   </GroupParam>"
@@ -1101,7 +1105,7 @@ CalibZF::CalibZF(const std::string &name) :Plan(name)
 struct CalibZOParam
 {
 	size_t axis_id;		//当前标定轴的索引值0-5
-	size_t tool_id;		//工具索引号
+	std::string tool_name;		//工具名称
 	//bool calib_finished_flag;		//标定是否结束标志
 	std::string calib_info;
 };
@@ -1120,9 +1124,9 @@ auto CalibZO::prepairNrt(const std::map<std::string, std::string> &params, aris:
 		{
 			param.axis_id = std::stoi(p.second);
 		}
-		else if (p.first == "tool_id")
+		else if (p.first == "tool_name")
 		{
-			param.tool_id = std::stoi(p.second);
+			param.tool_name = p.second;
 		}
 		/*else if (p.first == "calib_finished_flag")
 		{
@@ -1132,16 +1136,16 @@ auto CalibZO::prepairNrt(const std::map<std::string, std::string> &params, aris:
 
 	target.param = param;
 	////从控制器配置文件里读取待标定轴原来的零点及相应工具的零点偏移量
-	if (target.model->variablePool().findByName("AxisZeroValue") != target.model->variablePool().end())
+	if (target.model->variablePool().findByName("tool0_axis_home") != target.model->variablePool().end())
 	{
-		auto mat = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("AxisZeroValue"));
+		auto mat = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("tool0_axis_home"));
 		for (int i = 0; i < 6; i++)
 		{
 			CalibZO::zeroVal[i] = mat->data().data()[i];
 		}
-		if (target.model->variablePool().findByName("Tool[" + std::to_string(param.tool_id) + "]_AxisOffset") != target.model->variablePool().end())
+		if (target.model->variablePool().findByName(param.tool_name + "_axis_offset") != target.model->variablePool().end())
 		{
-			auto mat1 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("Tool[" + std::to_string(param.tool_id) + "]_AxisOffset"));
+			auto mat1 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName(param.tool_name + "_axis_offset"));
 			for (int i = 0; i < 6; i++)
 			{
 				CalibZO::offsetVal[i] = mat1->data().data()[i];
@@ -1153,21 +1157,21 @@ auto CalibZO::prepairNrt(const std::map<std::string, std::string> &params, aris:
 
 		//将新的各轴零点位置偏移量写入控制器配置文件
 		aris::core::Matrix mat2(1, 6, CalibZO::offsetVal);
-		if (target.model->variablePool().findByName("Tool[" + std::to_string(param.tool_id) + "]_AxisOffset") != target.model->variablePool().end())
+		if (target.model->variablePool().findByName(param.tool_name + "_axis_offset") != target.model->variablePool().end())
 		{
-			dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("Tool[" + std::to_string(param.tool_id) + "]_AxisOffset"))->data() = mat2;
+			dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName(param.tool_name + "_axis_offset"))->data() = mat2;
 		}
 		else
 		{
-			target.model->variablePool().add<aris::dynamic::MatrixVariable>("Tool[" + std::to_string(param.tool_id) + "]_AxisOffset", mat2);
+			target.model->variablePool().add<aris::dynamic::MatrixVariable>(param.tool_name + "_axis_offset", mat2);
 		}
 		const std::string calib_info = "The current axis's zero offset value with tool has been updated.";
 		param.calib_info = calib_info.c_str();
 	}
 	else
 	{
-		throw std::runtime_error("\"AxisZeroValue\" is not exist in controller's configuration file");
-		param.calib_info = std::string("\"AxisZeroValue\" is not exist in controller's configuration file,please conduct \"CalibZF\" command firstly.").c_str();
+		throw std::runtime_error("\"tool0_axis_home\" is not exist in controller's configuration file");
+		param.calib_info = std::string("\"tool0_axis_home\" is not exist in controller's configuration file,please conduct \"CalibZF\" command firstly.").c_str();
 		//return;
 	}
 
@@ -1182,10 +1186,10 @@ auto CalibZO::prepairNrt(const std::map<std::string, std::string> &params, aris:
 CalibZO::CalibZO(const std::string &name) :Plan(name)
 {
 	command().loadXmlStr(
-		"<Command name=\"CalibZO\">"
+		"<Command name=\"calib_zo\">"
 		"	<GroupParam>"
 		"		<Param name=\"axis_id\" default=\"0\"/>"
-		"		<Param name=\"tool_id\" default=\"0\"/>"
+		"		<Param name=\"tool_name\" default=\"tool0\"/>"
 		"   </GroupParam>"
 		"</Command>");
 }
@@ -1197,7 +1201,7 @@ CalibZO::CalibZO(const std::string &name) :Plan(name)
 struct CalibZLParam
 {
 	size_t axis_id;		//当前标定轴的索引值0-5
-	size_t tool_id;		//工具索引号
+	std::string tool_name;		//工具名称
 	//bool calib_finished_flag;		//标定是否结束标志
 	std::string calib_info;
 };
@@ -1216,9 +1220,9 @@ auto CalibZL::prepairNrt(const std::map<std::string, std::string> &params, aris:
 		{
 			param.axis_id = std::stoi(p.second);
 		}
-		else if (p.first == "tool_id")
+		else if (p.first == "tool_name")
 		{
-			param.tool_id = std::stoi(p.second);
+			param.tool_name = p.second;
 		}
 		/*else if (p.first == "calib_finished_flag")
 		{
@@ -1226,9 +1230,9 @@ auto CalibZL::prepairNrt(const std::map<std::string, std::string> &params, aris:
 		}*/
 	}
 	////从控制器配置文件里读取已标定数据
-	if (target.model->variablePool().findByName("AxisZeroValue") != target.model->variablePool().end())
+	if (target.model->variablePool().findByName("tool0_axis_home") != target.model->variablePool().end())
 	{
-		auto mat = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("AxisZeroValue"));
+		auto mat = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("tool0_axis_home"));
 		for (int i = 0; i < 6; i++)
 		{
 			CalibZL::zeroVal[i] = mat->data().data()[i];
@@ -1236,13 +1240,13 @@ auto CalibZL::prepairNrt(const std::map<std::string, std::string> &params, aris:
 	}
 	else
 	{
-		throw std::runtime_error("\"AxisZeroValue\" is not exist in controller's configuration file");
-		param.calib_info = std::string("\"AxisZeroValue\" is not exist in controller's configuration file").c_str();
+		throw std::runtime_error("\"tool0_axis_home\" is not exist in controller's configuration file");
+		param.calib_info = std::string("\"tool0_axis_home\" is not exist in controller's configuration file").c_str();
 		//return;
 	}
-	if (target.model->variablePool().findByName("Tool[" + std::to_string(param.tool_id) + "]_AxisOffset") != target.model->variablePool().end())
+	if (target.model->variablePool().findByName(param.tool_name + "_axis_offset") != target.model->variablePool().end())
 	{
-		auto mat1 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("Tool[" + std::to_string(param.tool_id) + "]_AxisOffset"));
+		auto mat1 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName(param.tool_name + "_axis_offset"));
 		for (int i = 0; i < 6; i++)
 		{
 			CalibZL::offsetVal[i] = mat1->data().data()[i];
@@ -1250,7 +1254,7 @@ auto CalibZL::prepairNrt(const std::map<std::string, std::string> &params, aris:
 	}
 	else
 	{
-		const std::string name = "\"Tool[" + std::to_string(param.tool_id) + "]_AxisOffset\"" + " is not exist in controller's configuration file";
+		const std::string name = "\"" + param.tool_name + "_axis_offset\"" + " is not exist in controller's configuration file";
 		throw std::runtime_error(name);
 	}
 	target.param = param;
@@ -1260,13 +1264,13 @@ auto CalibZL::prepairNrt(const std::map<std::string, std::string> &params, aris:
 	
 	//标定完成后将有负载时新的各轴零点位置写入控制器配置文件，覆盖原零点位置
 	aris::core::Matrix mat2(1, 6, CalibZL::zeroVal);
-	if (target.model->variablePool().findByName("AxisZeroValue") != target.model->variablePool().end())
+	if (target.model->variablePool().findByName("tool0_axis_home") != target.model->variablePool().end())
 	{
-		dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("AxisZeroValue"))->data() = mat2;
+		dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("tool0_axis_home"))->data() = mat2;
 	}
 	else
 	{
-		target.model->variablePool().add<aris::dynamic::MatrixVariable>("AxisZeroValue", mat2);
+		target.model->variablePool().add<aris::dynamic::MatrixVariable>("tool0_axis_home", mat2);
 	}
 	const std::string calib_info = "The current axis's zero position with tool and external load has been updated.";
 	param.calib_info = calib_info.c_str();
@@ -1281,55 +1285,119 @@ auto CalibZL::prepairNrt(const std::map<std::string, std::string> &params, aris:
 CalibZL::CalibZL(const std::string &name) :Plan(name)
 {
 	command().loadXmlStr(
-		"<Command name=\"CalibZL\">"
+		"<Command name=\"calib_zl\">"
 		"	<GroupParam>"
 		"		<Param name=\"axis_id\" default=\"0\"/>"
-		"		<Param name=\"tool_id\" default=\"0\"/>"
+		"		<Param name=\"tool_name\" default=\"tool0\"/>"
 		"   </GroupParam>"
 		"</Command>");
 }
 
-//保存示教点
-struct SaveTeachPtParam
-{
-	std::string ptName;
-	
-};
-//静态变量初始化
-double SaveTeachPt::ptPose[6] = { 0 };
 
-auto SaveTeachPt::prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void
+//更新机器人模型
+struct SwitchToolParam
+{
+	std::string tool_name;		//工具名称
+	double zeroVal[6] = { 0 };
+	double offsetVal[6] = { 0 };
+	std::string calib_info;
+};
+
+
+auto SwitchTool::prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void
 {
 	//参数初始化
-	SaveTeachPtParam param;
+	SwitchToolParam param;
 	for (auto &p : params)
 	{
-		if (p.first == "ptName")
+		if (p.first == "tool_name")
 		{
-			param.ptName = std::string(p.second).c_str();
+			param.tool_name = p.second;
 		}
-		
 	}
-	target.param = param;
-	////从控制器获取当前示教点的位姿数据，并保存至数据文件
-	target.model->generalMotionPool().at(0).getMpe(SaveTeachPt::ptPose, "321");
-	aris::core::Matrix mat1(1, 6, SaveTeachPt::ptPose);
-	if (target.model->variablePool().findByName(param.ptName) != target.model->variablePool().end())
+	//从控制器配置文件里读取tool0的零位
+	if (target.model->variablePool().findByName("tool0_axis_home") != target.model->variablePool().end())
 	{
-		dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName(param.ptName))->data() = mat1;
+		auto mat = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("tool0_axis_home"));
+		for (int i = 0; i < 6; i++)
+		{
+			param.zeroVal[i] = mat->data().data()[i];
+		}
 	}
 	else
 	{
-		target.model->variablePool().add<aris::dynamic::MatrixVariable>(param.ptName, mat1);
+		throw std::runtime_error("\"tool0_axis_home\" is not exist in controller's configuration file");
+		param.calib_info = std::string("\"tool0_axis_home\" is not exist in controller's configuration file").c_str();
+		//return;
 	}
+	//从控制器配置文件里读取当前工具的零位偏移量
+	if (param.tool_name == "tool0")
+	{
+		for (int i = 0; i < 6; i++)
+		{
+			param.offsetVal[i] = 0;
+		}
+	}
+	else
+	{
+		if (target.model->variablePool().findByName(param.tool_name + "_axis_offset") != target.model->variablePool().end())
+		{
+			auto mat1 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName(param.tool_name + "_axis_offset"));
+			for (int i = 0; i < 6; i++)
+			{
+				param.offsetVal[i] = mat1->data().data()[i];
+			}
+		}
+		else
+		{
+			const std::string name = "\"" + param.tool_name + "_axis_offset\"" + " is not exist in controller's configuration file";
+			throw std::runtime_error(name);
+		}
+	}
+	
+	//更新控制器或模型中各轴的零位
+	for (int i = 0; i < 6; i++)
+	{
+		//target.model->motionPool()[0].setMpOffset(0.1);
+		target.controller->motionPool()[i].setPosOffset(param.zeroVal[i] + param.offsetVal[i]);
+	}
+	//更新模型中的工具
+	/*
+	double tool_pm_g[16];
+	try
+	{
+		auto mat1 = target.model->partPool().findByName("L6")->markerPool().findByName(param.tool_name)->prtPm();
+		for (size_t i = 0; i < 4; i++)
+		{
+			for (size_t j = 0; j < 4; j++)
+			{
+				tool_pm_g[4 * i + j] = mat1[i][j];
+			}
+		}
+		//更新模型的工具坐标系//
+
+	}
+	catch (std::exception)
+	{
+		throw std::runtime_error(param.tool_name + " node is not in partPool.");
+	}
+	*/
+	const std::string calib_info = "The tool of robot model has been updated.";
+	param.calib_info = calib_info.c_str();
+	std::vector<std::pair<std::string, std::any>> out_param;
+	out_param.push_back(std::make_pair<std::string, std::any>("calib_info", param.calib_info));
+	target.ret = out_param;
+	//target.option |= NOT_RUN_EXECUTE_FUNCTION;
+	//target.option |= NOT_RUN_COLLECT_FUNCTION;
+	target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION | NOT_PRINT_CMD_INFO | NOT_PRINT_CMD_INFO;
 }
 
-SaveTeachPt::SaveTeachPt(const std::string &name) :Plan(name)
+SwitchTool::SwitchTool(const std::string &name) :Plan(name)
 {
 	command().loadXmlStr(
-		"<Command name=\"CalibZL\">"
+		"<Command name=\"switchtool\">"
 		"	<GroupParam>"
-		"		<Param name=\"ptName\" default=\"P1\"/>"
+		"		<Param name=\"tool_name\" default=\"tool0\"/>"
 		"   </GroupParam>"
 		"</Command>");
 }
