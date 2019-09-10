@@ -6,6 +6,7 @@
 #include <array>
 #include <stdlib.h>
 #include"move_series.h"
+#include <string>
 
 
 using namespace aris::dynamic;
@@ -3235,7 +3236,7 @@ namespace kaanh
 			imp_->a_now[i] = a_next;
 		}
 
-		// 运动学反解//
+		// 运动学正解//
 		if (target.model->solverPool().at(1).kinPos())return -1;
 
 		// 打印 //
@@ -3322,17 +3323,9 @@ namespace kaanh
 		int vel_percent;
 		static std::atomic_int32_t j1_count, j2_count, j3_count, j4_count, j5_count, j6_count;
 	};
-	std::atomic_int32_t JogJParam::j1_count = 0;
-	auto JogJ1::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	auto set_jogj_input_param(const std::map<std::string, std::string> &cmd_params, PlanTarget &target, JogJParam &param)->void
 	{
-		auto&cs = aris::server::ControlServer::instance();
 		auto c = target.controller;
-		JogJParam param;
-		
-		std::vector<std::pair<std::string, std::any>> ret;
-		target.ret = ret;
-		
-		param.motion_id = 0;
 		param.p_now = 0.0;
 		param.v_now = 0.0;
 		param.a_now = 0.0;
@@ -3341,20 +3334,30 @@ namespace kaanh
 		param.increase_status = 0;
 		param.vel_percent = 0;
 
-		for (auto &p : params)
-		{
-			param.increase_count = std::stoi(params.at("increase_count"));
-			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
-					
-			param.vel = c->motionPool().at(param.motion_id).maxVel()*g_vel.getspeed().w_percent;
-			param.acc = std::min(std::max(std::stod(params.at("acc")), 0.0), 1.0)*c->motionPool().at(param.motion_id).maxAcc();
-			param.dec = std::min(std::max(std::stod(params.at("dec")), 0.0), 1.0)*c->motionPool().at(param.motion_id).maxAcc();
+		param.increase_count = std::stoi(cmd_params.at("increase_count"));
+		if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
 
-			auto velocity = std::stoi(params.at("vel_percent"));
-			velocity = std::max(std::min(100, velocity), 0);
-			param.vel_percent = velocity;
-			param.increase_status = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
-		}
+		param.vel = c->motionPool().at(param.motion_id).maxVel()*g_vel.getspeed().w_percent;
+		param.acc = std::min(std::max(std::stod(cmd_params.at("acc")), 0.0), 1.0)*c->motionPool().at(param.motion_id).maxAcc();
+		param.dec = std::min(std::max(std::stod(cmd_params.at("dec")), 0.0), 1.0)*c->motionPool().at(param.motion_id).maxAcc();
+
+		auto velocity = std::stoi(cmd_params.at("vel_percent"));
+		velocity = std::max(std::min(100, velocity), 0);
+		param.vel_percent = velocity;
+		param.increase_status = std::max(std::min(1, std::stoi(cmd_params.at("direction"))), -1);
+	}
+	std::atomic_int32_t JogJParam::j1_count = 0;
+	auto JogJ1::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		auto&cs = aris::server::ControlServer::instance();
+		JogJParam param;
+
+		std::vector<std::pair<std::string, std::any>> ret;
+		target.ret = ret;
+
+		param.motion_id = 0;
+
+		set_jogj_input_param(params, target, param);
 
 		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
 		//当前有指令在执行//
@@ -3422,7 +3425,7 @@ namespace kaanh
 		param.v_now = v_next;
 		param.a_now = a_next;
 
-		// 运动学反解//
+		// 运动学正解//
 		if (target.model->solverPool().at(1).kinPos())return -1;
 
 		// 打印 //
@@ -3488,28 +3491,7 @@ namespace kaanh
 		target.ret = ret;
 
 		param.motion_id = 1;
-		param.p_now = 0.0;
-		param.v_now = 0.0;
-		param.a_now = 0.0;
-		param.target_pos = 0.0;
-		param.max_vel = 0.0;
-		param.increase_status = 0;
-		param.vel_percent = 0;
-
-		for (auto &p : params)
-		{
-			param.increase_count = std::stoi(params.at("increase_count"));
-			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
-
-			param.vel = c->motionPool().at(param.motion_id).maxVel()*g_vel.getspeed().w_percent;
-			param.acc = std::min(std::max(std::stod(params.at("acc")), 0.0), 1.0)*c->motionPool().at(param.motion_id).maxAcc();
-			param.dec = std::min(std::max(std::stod(params.at("dec")), 0.0), 1.0)*c->motionPool().at(param.motion_id).maxAcc();
-
-			auto velocity = std::stoi(params.at("vel_percent"));
-			velocity = std::max(std::min(100, velocity), 0);
-			param.vel_percent = velocity;
-			param.increase_status = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
-		}
+		set_jogj_input_param(params, target, param);
 
 		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
 		//当前有指令在执行//
@@ -3577,7 +3559,7 @@ namespace kaanh
 		param.v_now = v_next;
 		param.a_now = a_next;
 
-		// 运动学反解//
+		// 运动学正解//
 		if (target.model->solverPool().at(1).kinPos())return -1;
 
 		// 打印 //
@@ -3643,28 +3625,7 @@ namespace kaanh
 		target.ret = ret;
 
 		param.motion_id = 2;
-		param.p_now = 0.0;
-		param.v_now = 0.0;
-		param.a_now = 0.0;
-		param.target_pos = 0.0;
-		param.max_vel = 0.0;
-		param.increase_status = 0;
-		param.vel_percent = 0;
-
-		for (auto &p : params)
-		{
-			param.increase_count = std::stoi(params.at("increase_count"));
-			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
-
-			param.vel = c->motionPool().at(param.motion_id).maxVel()*g_vel.getspeed().w_percent;
-			param.acc = std::min(std::max(std::stod(params.at("acc")), 0.0), 1.0)*c->motionPool().at(param.motion_id).maxAcc();
-			param.dec = std::min(std::max(std::stod(params.at("dec")), 0.0), 1.0)*c->motionPool().at(param.motion_id).maxAcc();
-
-			auto velocity = std::stoi(params.at("vel_percent"));
-			velocity = std::max(std::min(100, velocity), 0);
-			param.vel_percent = velocity;
-			param.increase_status = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
-		}
+		set_jogj_input_param(params, target, param);
 
 		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
 		//当前有指令在执行//
@@ -3732,7 +3693,7 @@ namespace kaanh
 		param.v_now = v_next;
 		param.a_now = a_next;
 
-		// 运动学反解//
+		// 运动学正解//
 		if (target.model->solverPool().at(1).kinPos())return -1;
 
 		// 打印 //
@@ -3798,28 +3759,7 @@ namespace kaanh
 		target.ret = ret;
 
 		param.motion_id = 3;
-		param.p_now = 0.0;
-		param.v_now = 0.0;
-		param.a_now = 0.0;
-		param.target_pos = 0.0;
-		param.max_vel = 0.0;
-		param.increase_status = 0;
-		param.vel_percent = 0;
-
-		for (auto &p : params)
-		{
-			param.increase_count = std::stoi(params.at("increase_count"));
-			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
-
-			param.vel = c->motionPool().at(param.motion_id).maxVel()*g_vel.getspeed().w_percent;
-			param.acc = std::min(std::max(std::stod(params.at("acc")), 0.0), 1.0)*c->motionPool().at(param.motion_id).maxAcc();
-			param.dec = std::min(std::max(std::stod(params.at("dec")), 0.0), 1.0)*c->motionPool().at(param.motion_id).maxAcc();
-
-			auto velocity = std::stoi(params.at("vel_percent"));
-			velocity = std::max(std::min(100, velocity), 0);
-			param.vel_percent = velocity;
-			param.increase_status = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
-		}
+		set_jogj_input_param(params, target, param);
 
 		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
 		//当前有指令在执行//
@@ -3887,7 +3827,7 @@ namespace kaanh
 		param.v_now = v_next;
 		param.a_now = a_next;
 
-		// 运动学反解//
+		// 运动学正解//
 		if (target.model->solverPool().at(1).kinPos())return -1;
 
 		// 打印 //
@@ -3953,28 +3893,7 @@ namespace kaanh
 		target.ret = ret;
 
 		param.motion_id = 4;
-		param.p_now = 0.0;
-		param.v_now = 0.0;
-		param.a_now = 0.0;
-		param.target_pos = 0.0;
-		param.max_vel = 0.0;
-		param.increase_status = 0;
-		param.vel_percent = 0;
-
-		for (auto &p : params)
-		{
-			param.increase_count = std::stoi(params.at("increase_count"));
-			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
-
-			param.vel = c->motionPool().at(param.motion_id).maxVel()*g_vel.getspeed().w_percent;
-			param.acc = std::min(std::max(std::stod(params.at("acc")), 0.0), 1.0)*c->motionPool().at(param.motion_id).maxAcc();
-			param.dec = std::min(std::max(std::stod(params.at("dec")), 0.0), 1.0)*c->motionPool().at(param.motion_id).maxAcc();
-
-			auto velocity = std::stoi(params.at("vel_percent"));
-			velocity = std::max(std::min(100, velocity), 0);
-			param.vel_percent = velocity;
-			param.increase_status = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
-		}
+		set_jogj_input_param(params, target, param);
 
 		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
 		//当前有指令在执行//
@@ -4042,7 +3961,7 @@ namespace kaanh
 		param.v_now = v_next;
 		param.a_now = a_next;
 
-		// 运动学反解//
+		// 运动学正解//
 		if (target.model->solverPool().at(1).kinPos())return -1;
 
 		// 打印 //
@@ -4108,28 +4027,7 @@ namespace kaanh
 		target.ret = ret;
 
 		param.motion_id = 5;
-		param.p_now = 0.0;
-		param.v_now = 0.0;
-		param.a_now = 0.0;
-		param.target_pos = 0.0;
-		param.max_vel = 0.0;
-		param.increase_status = 0;
-		param.vel_percent = 0;
-
-		for (auto &p : params)
-		{
-			param.increase_count = std::stoi(params.at("increase_count"));
-			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
-
-			param.vel = c->motionPool().at(param.motion_id).maxVel()*g_vel.getspeed().w_percent;
-			param.acc = std::min(std::max(std::stod(params.at("acc")), 0.0), 1.0)*c->motionPool().at(param.motion_id).maxAcc();
-			param.dec = std::min(std::max(std::stod(params.at("dec")), 0.0), 1.0)*c->motionPool().at(param.motion_id).maxAcc();
-
-			auto velocity = std::stoi(params.at("vel_percent"));
-			velocity = std::max(std::min(100, velocity), 0);
-			param.vel_percent = velocity;
-			param.increase_status = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
-		}
+		set_jogj_input_param(params, target, param);
 
 		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
 		//当前有指令在执行//
@@ -4197,7 +4095,7 @@ namespace kaanh
 		param.v_now = v_next;
 		param.a_now = a_next;
 
-		// 运动学反解//
+		// 运动学正解//
 		if (target.model->solverPool().at(1).kinPos())return -1;
 
 		// 打印 //
@@ -4262,7 +4160,38 @@ namespace kaanh
 		int moving_type;
 		int increase_status[6]{0,0,0,0,0,0};
 		static std::atomic_int32_t jx_count, jy_count, jz_count, jrx_count, jry_count, jrz_count;
+		aris::dynamic::Marker *tool, *wobj;
 	};
+	auto set_jogc_input_param(const std::map<std::string, std::string> &cmd_params, PlanTarget &target, JCParam &param)->void
+	{
+		param.tool = &*target.model->generalMotionPool()[0].makI().fatherPart().markerPool().findByName(cmd_params.at("tool"));
+		param.wobj = &*target.model->generalMotionPool()[0].makJ().fatherPart().markerPool().findByName(cmd_params.at("wobj"));
+
+		param.increase_count = std::stoi(cmd_params.at("increase_count"));
+		if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
+
+		param.cor_system = std::stoi(cmd_params.at("cor"));
+		auto velocity = std::stoi(cmd_params.at("vel_percent"));
+		velocity = std::max(std::min(100, velocity), 0);
+		param.vel_percent = velocity;
+
+		auto mat = target.model->calculator().calculateExpression(cmd_params.at("vel"));
+		if (mat.size() != 6)THROW_FILE_LINE("");
+		std::copy(mat.begin(), mat.end(), param.vel);
+		std::fill(param.vel, param.vel + 3, g_vel.getspeed().v_tcp);
+		std::fill(param.vel + 3, param.vel + 6, g_vel.getspeed().w_tcp);
+
+		mat = target.model->calculator().calculateExpression(cmd_params.at("acc"));
+		if (mat.size() != 6)THROW_FILE_LINE("");
+		std::copy(mat.begin(), mat.end(), param.acc);
+
+		mat = target.model->calculator().calculateExpression(cmd_params.at("dec"));
+		if (mat.size() != 6)THROW_FILE_LINE("");
+		std::copy(mat.begin(), mat.end(), param.dec);
+
+		param.increase_status[param.moving_type] = std::max(std::min(1, std::stoi(cmd_params.at("direction"))), -1);
+
+	}
 	std::atomic_int32_t JCParam::jx_count = 0;
 	auto JX::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
@@ -4276,32 +4205,7 @@ namespace kaanh
 		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
 
-		for (auto &p : params)
-		{
-			param.increase_count = std::stoi(params.at("increase_count"));
-			param.cor_system = std::stoi(params.at("cor"));
-			auto velocity = std::stoi(params.at("vel_percent"));
-			velocity = std::max(std::min(100, velocity), 0);
-			param.vel_percent = velocity;
-
-			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
-
-			auto mat = target.model->calculator().calculateExpression(params.at("vel"));
-			if (mat.size() != 6)THROW_FILE_LINE("");
-			std::copy(mat.begin(), mat.end(), param.vel);
-			std::fill(param.vel, param.vel + 3, g_vel.getspeed().v_tcp);
-			std::fill(param.vel + 3, param.vel + 6, g_vel.getspeed().w_tcp);
-
-			mat = target.model->calculator().calculateExpression(params.at("acc"));
-			if (mat.size() != 6)THROW_FILE_LINE("");
-			std::copy(mat.begin(), mat.end(), param.acc);
-
-			mat = target.model->calculator().calculateExpression(params.at("dec"));
-			if (mat.size() != 6)THROW_FILE_LINE("");
-			std::copy(mat.begin(), mat.end(), param.dec);
-
-			param.increase_status[param.moving_type] = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
-		}
+		set_jogc_input_param(params, target, param);
 
 		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
 		
@@ -4385,7 +4289,8 @@ namespace kaanh
 
 		// 获取当前位姿矩阵 //
 		double pm_now[16];
-		target.model->generalMotionPool()[0].getMpm(pm_now);
+		//target.model->generalMotionPool()[0].getMpm(pm_now);
+		param.tool->getPm(*param.wobj, pm_now);
 
 		// 保存下个周期的copy //
 		s_vc(6, p_next, p_now);
@@ -4403,14 +4308,16 @@ namespace kaanh
 			s_pm_dot_pm(pm_now, pm, param.pm_target.data());
 		}
 
-		target.model->generalMotionPool().at(0).setMpm(param.pm_target.data());
+		//target.model->generalMotionPool().at(0).setMpm(param.pm_target.data());
+		param.tool->setPm(*param.wobj, param.pm_target.data());
+		target.model->generalMotionPool().at(0).updMpm();
 
 		// 运动学反解 //
 		if (target.model->solverPool().at(0).kinPos())return -1;
 
 		// 打印 //
 		auto &cout = controller->mout();
-		if (target.count % 10 == 0)
+		if (target.count % 100 == 0)
 		{
 			cout << "jx_count:" << std::endl;
 			cout << param.jx_count << "  ";
@@ -4460,6 +4367,8 @@ namespace kaanh
 			"		<Param name=\"acc\" default=\"{1,1,1,1,1,1}\"/>"
 			"		<Param name=\"dec\" default=\"{1,1,1,1,1,1}\"/>"
 			"		<Param name=\"cor\" default=\"0\"/>"
+			"		<Param name=\"tool\" default=\"tool0\"/>"
+			"		<Param name=\"wobj\" default=\"wobj0\"/>"
 			"		<Param name=\"vel_percent\" default=\"20\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
 			"	</GroupParam>"
@@ -4481,35 +4390,9 @@ namespace kaanh
 		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
 
-		for (auto &p : params)
-		{
-			param.increase_count = std::stoi(params.at("increase_count"));
-			param.cor_system = std::stoi(params.at("cor"));
-			auto velocity = std::stoi(params.at("vel_percent"));
-			velocity = std::max(std::min(100, velocity), 0);
-			param.vel_percent = velocity;
-
-			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
-
-			auto mat = target.model->calculator().calculateExpression(params.at("vel"));
-			if (mat.size() != 6)THROW_FILE_LINE("");
-			std::copy(mat.begin(), mat.end(), param.vel);
-			std::fill(param.vel, param.vel + 3, g_vel.getspeed().v_tcp);
-			std::fill(param.vel + 3, param.vel + 6, g_vel.getspeed().w_tcp);
-
-			mat = target.model->calculator().calculateExpression(params.at("acc"));
-			if (mat.size() != 6)THROW_FILE_LINE("");
-			std::copy(mat.begin(), mat.end(), param.acc);
-
-			mat = target.model->calculator().calculateExpression(params.at("dec"));
-			if (mat.size() != 6)THROW_FILE_LINE("");
-			std::copy(mat.begin(), mat.end(), param.dec);
-
-			param.increase_status[param.moving_type] = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
-		}
+		set_jogc_input_param(params, target, param);
 
 		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
-
 		//当前有指令在执行//
         if (planptr && planptr->plan != this)throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + "Other command is running");
 
@@ -4590,7 +4473,7 @@ namespace kaanh
 
 		// 获取当前位姿矩阵 //
 		double pm_now[16];
-		target.model->generalMotionPool()[0].getMpm(pm_now);
+		param.tool->getPm(*param.wobj, pm_now);
 
 		// 保存下个周期的copy //
 		s_vc(6, p_next, p_now);
@@ -4608,7 +4491,8 @@ namespace kaanh
 			s_pm_dot_pm(pm_now, pm, param.pm_target.data());
 		}
 
-		target.model->generalMotionPool().at(0).setMpm(param.pm_target.data());
+		param.tool->setPm(*param.wobj, param.pm_target.data());
+		target.model->generalMotionPool().at(0).updMpm();
 
 		// 运动学反解 //
 		if (target.model->solverPool().at(0).kinPos())return -1;
@@ -4665,6 +4549,8 @@ namespace kaanh
 			"		<Param name=\"acc\" default=\"{1,1,1,1,1,1}\"/>"
 			"		<Param name=\"dec\" default=\"{1,1,1,1,1,1}\"/>"
 			"		<Param name=\"cor\" default=\"0\"/>"
+			"		<Param name=\"tool\" default=\"tool0\"/>"
+			"		<Param name=\"wobj\" default=\"wobj0\"/>"
 			"		<Param name=\"vel_percent\" default=\"20\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
 			"	</GroupParam>"
@@ -4686,32 +4572,7 @@ namespace kaanh
 		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
 
-		for (auto &p : params)
-		{
-			param.increase_count = std::stoi(params.at("increase_count"));
-			param.cor_system = std::stoi(params.at("cor"));
-			auto velocity = std::stoi(params.at("vel_percent"));
-			velocity = std::max(std::min(100, velocity), 0);
-			param.vel_percent = velocity;
-
-			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
-
-			auto mat = target.model->calculator().calculateExpression(params.at("vel"));
-			if (mat.size() != 6)THROW_FILE_LINE("");
-			std::copy(mat.begin(), mat.end(), param.vel);
-			std::fill(param.vel, param.vel + 3, g_vel.getspeed().v_tcp);
-			std::fill(param.vel + 3, param.vel + 6, g_vel.getspeed().w_tcp);
-
-			mat = target.model->calculator().calculateExpression(params.at("acc"));
-			if (mat.size() != 6)THROW_FILE_LINE("");
-			std::copy(mat.begin(), mat.end(), param.acc);
-
-			mat = target.model->calculator().calculateExpression(params.at("dec"));
-			if (mat.size() != 6)THROW_FILE_LINE("");
-			std::copy(mat.begin(), mat.end(), param.dec);
-
-			param.increase_status[param.moving_type] = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
-		}
+		set_jogc_input_param(params, target, param);
 
 		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
 
@@ -4795,7 +4656,7 @@ namespace kaanh
 
 		// 获取当前位姿矩阵 //
 		double pm_now[16];
-		target.model->generalMotionPool()[0].getMpm(pm_now);
+		param.tool->getPm(*param.wobj, pm_now);
 
 		// 保存下个周期的copy //
 		s_vc(6, p_next, p_now);
@@ -4813,7 +4674,8 @@ namespace kaanh
 			s_pm_dot_pm(pm_now, pm, param.pm_target.data());
 		}
 
-		target.model->generalMotionPool().at(0).setMpm(param.pm_target.data());
+		param.tool->setPm(*param.wobj, param.pm_target.data());
+		target.model->generalMotionPool().at(0).updMpm();
 
 		// 运动学反解 //
 		if (target.model->solverPool().at(0).kinPos())return -1;
@@ -4870,6 +4732,8 @@ namespace kaanh
 			"		<Param name=\"acc\" default=\"{1,1,1,1,1,1}\"/>"
 			"		<Param name=\"dec\" default=\"{1,1,1,1,1,1}\"/>"
 			"		<Param name=\"cor\" default=\"0\"/>"
+			"		<Param name=\"tool\" default=\"tool0\"/>"
+			"		<Param name=\"wobj\" default=\"wobj0\"/>"
 			"		<Param name=\"vel_percent\" default=\"20\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
 			"	</GroupParam>"
@@ -4891,32 +4755,7 @@ namespace kaanh
 		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
 
-		for (auto &p : params)
-		{
-			param.increase_count = std::stoi(params.at("increase_count"));
-			param.cor_system = std::stoi(params.at("cor"));
-			auto velocity = std::stoi(params.at("vel_percent"));
-			velocity = std::max(std::min(100, velocity), 0);
-			param.vel_percent = velocity;
-
-			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
-
-			auto mat = target.model->calculator().calculateExpression(params.at("vel"));
-			if (mat.size() != 6)THROW_FILE_LINE("");
-			std::copy(mat.begin(), mat.end(), param.vel);
-			std::fill(param.vel, param.vel + 3, g_vel.getspeed().v_tcp);
-			std::fill(param.vel + 3, param.vel + 6, g_vel.getspeed().w_tcp);
-
-			mat = target.model->calculator().calculateExpression(params.at("acc"));
-			if (mat.size() != 6)THROW_FILE_LINE("");
-			std::copy(mat.begin(), mat.end(), param.acc);
-
-			mat = target.model->calculator().calculateExpression(params.at("dec"));
-			if (mat.size() != 6)THROW_FILE_LINE("");
-			std::copy(mat.begin(), mat.end(), param.dec);
-
-			param.increase_status[param.moving_type] = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
-		}
+		set_jogc_input_param(params, target, param);
 
 		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
 
@@ -5000,7 +4839,7 @@ namespace kaanh
 
 		// 获取当前位姿矩阵 //
 		double pm_now[16];
-		target.model->generalMotionPool()[0].getMpm(pm_now);
+		param.tool->getPm(*param.wobj, pm_now);
 
 		// 保存下个周期的copy //
 		s_vc(6, p_next, p_now);
@@ -5018,7 +4857,8 @@ namespace kaanh
 			s_pm_dot_pm(pm_now, pm, param.pm_target.data());
 		}
 
-		target.model->generalMotionPool().at(0).setMpm(param.pm_target.data());
+		param.tool->setPm(*param.wobj, param.pm_target.data());
+		target.model->generalMotionPool().at(0).updMpm();
 
 		// 运动学反解 //
 		if (target.model->solverPool().at(0).kinPos())return -1;
@@ -5075,6 +4915,8 @@ namespace kaanh
 			"		<Param name=\"acc\" default=\"{1,1,1,1,1,1}\"/>"
 			"		<Param name=\"dec\" default=\"{1,1,1,1,1,1}\"/>"
 			"		<Param name=\"cor\" default=\"0\"/>"
+			"		<Param name=\"tool\" default=\"tool0\"/>"
+			"		<Param name=\"wobj\" default=\"wobj0\"/>"
 			"		<Param name=\"vel_percent\" default=\"20\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
 			"	</GroupParam>"
@@ -5103,32 +4945,7 @@ namespace kaanh
 			param.dec[i] = c->motionPool().at(i).maxAcc();
 		}
 
-		for (auto &p : params)
-		{
-			param.increase_count = std::stoi(params.at("increase_count"));
-			param.cor_system = std::stoi(params.at("cor"));
-			auto velocity = std::stoi(params.at("vel_percent"));
-			velocity = std::max(std::min(100, velocity), 0);
-			param.vel_percent = velocity;
-
-			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
-
-			auto mat = target.model->calculator().calculateExpression(params.at("vel"));
-			if (mat.size() != 6)THROW_FILE_LINE("");
-			std::copy(mat.begin(), mat.end(), param.vel);
-			std::fill(param.vel, param.vel + 3, g_vel.getspeed().v_tcp);
-			std::fill(param.vel + 3, param.vel + 6, g_vel.getspeed().w_tcp);
-
-			mat = target.model->calculator().calculateExpression(params.at("acc"));
-			if (mat.size() != 6)THROW_FILE_LINE("");
-			std::copy(mat.begin(), mat.end(), param.acc);
-
-			mat = target.model->calculator().calculateExpression(params.at("dec"));
-			if (mat.size() != 6)THROW_FILE_LINE("");
-			std::copy(mat.begin(), mat.end(), param.dec);
-
-			param.increase_status[param.moving_type] = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
-		}
+		set_jogc_input_param(params, target, param);
 
 		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
 
@@ -5212,7 +5029,7 @@ namespace kaanh
 
 		// 获取当前位姿矩阵 //
 		double pm_now[16];
-		target.model->generalMotionPool()[0].getMpm(pm_now);
+		param.tool->getPm(*param.wobj, pm_now);
 
 		// 保存下个周期的copy //
 		s_vc(6, p_next, p_now);
@@ -5230,7 +5047,8 @@ namespace kaanh
 			s_pm_dot_pm(pm_now, pm, param.pm_target.data());
 		}
 
-		target.model->generalMotionPool().at(0).setMpm(param.pm_target.data());
+		param.tool->setPm(*param.wobj, param.pm_target.data());
+		target.model->generalMotionPool().at(0).updMpm();
 
 		// 运动学反解 //
 		if (target.model->solverPool().at(0).kinPos())return -1;
@@ -5287,6 +5105,8 @@ namespace kaanh
 			"		<Param name=\"acc\" default=\"{1,1,1,1,1,1}\"/>"
 			"		<Param name=\"dec\" default=\"{1,1,1,1,1,1}\"/>"
 			"		<Param name=\"cor\" default=\"0\"/>"
+			"		<Param name=\"tool\" default=\"tool0\"/>"
+			"		<Param name=\"wobj\" default=\"wobj0\"/>"
 			"		<Param name=\"vel_percent\" default=\"20\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
 			"	</GroupParam>"
@@ -5308,32 +5128,7 @@ namespace kaanh
 		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
 
-		for (auto &p : params)
-		{
-			param.increase_count = std::stoi(params.at("increase_count"));
-			param.cor_system = std::stoi(params.at("cor"));
-			auto velocity = std::stoi(params.at("vel_percent"));
-			velocity = std::max(std::min(100, velocity), 0);
-			param.vel_percent = velocity;
-
-			if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
-
-			auto mat = target.model->calculator().calculateExpression(params.at("vel"));
-			if (mat.size() != 6)THROW_FILE_LINE("");
-			std::copy(mat.begin(), mat.end(), param.vel);
-			std::fill(param.vel, param.vel + 3, g_vel.getspeed().v_tcp);
-			std::fill(param.vel + 3, param.vel + 6, g_vel.getspeed().w_tcp);
-
-			mat = target.model->calculator().calculateExpression(params.at("acc"));
-			if (mat.size() != 6)THROW_FILE_LINE("");
-			std::copy(mat.begin(), mat.end(), param.acc);
-
-			mat = target.model->calculator().calculateExpression(params.at("dec"));
-			if (mat.size() != 6)THROW_FILE_LINE("");
-			std::copy(mat.begin(), mat.end(), param.dec);
-
-			param.increase_status[param.moving_type] = std::max(std::min(1, std::stoi(params.at("direction"))), -1);
-		}
+		set_jogc_input_param(params, target, param);
 
 		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
 
@@ -5417,7 +5212,7 @@ namespace kaanh
 
 		// 获取当前位姿矩阵 //
 		double pm_now[16];
-		target.model->generalMotionPool()[0].getMpm(pm_now);
+		param.tool->getPm(*param.wobj, pm_now);
 
 		// 保存下个周期的copy //
 		s_vc(6, p_next, p_now);
@@ -5435,7 +5230,8 @@ namespace kaanh
 			s_pm_dot_pm(pm_now, pm, param.pm_target.data());
 		}
 
-		target.model->generalMotionPool().at(0).setMpm(param.pm_target.data());
+		param.tool->setPm(*param.wobj, param.pm_target.data());
+		target.model->generalMotionPool().at(0).updMpm();
 
 		// 运动学反解 //
 		if (target.model->solverPool().at(0).kinPos())return -1;
@@ -5492,6 +5288,8 @@ namespace kaanh
 			"		<Param name=\"acc\" default=\"{1,1,1,1,1,1}\"/>"
 			"		<Param name=\"dec\" default=\"{1,1,1,1,1,1}\"/>"
 			"		<Param name=\"cor\" default=\"0\"/>"
+			"		<Param name=\"tool\" default=\"tool0\"/>"
+			"		<Param name=\"wobj\" default=\"wobj0\"/>"
 			"		<Param name=\"vel_percent\" default=\"20\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
 			"	</GroupParam>"
@@ -7272,9 +7070,7 @@ namespace kaanh
 	}
 	auto Run::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
-		std::cout << "begin------------" << std::endl;
 		std::vector<std::pair<std::string, std::any>> run_ret;
-		
 		auto param = std::make_shared<RunParam>();		
 
 		for (auto &p : params)
@@ -7285,7 +7081,6 @@ namespace kaanh
 				if (is_auto_executing())
 				{
 					target.option = Plan::NOT_RUN_COLLECT_FUNCTION| Plan::NOT_RUN_EXECUTE_FUNCTION;
-					return;
 				}
 				//没有指令在执行//
 				else
@@ -7301,6 +7096,7 @@ namespace kaanh
 								std::unique_lock<std::mutex> run_lock(mymutex);
 								if ((cmdparam.current_cmd_id >= cmdparam.cmd_vec.size()) || (cmdparam.current_cmd_id < 0))
 								{
+									set_is_auto_executing(false);
 									return;
 								}
 								else
@@ -7321,8 +7117,7 @@ namespace kaanh
 									cmdparam.current_plan_id = std::stoi(cmdparam.cmd_vec[cmdparam.current_cmd_id + 1].first);
 								}
 								cmdparam.current_cmd_id += 1;
-								const bool is_not_forward = false;
-								set_is_auto_executing(is_not_forward);
+								set_is_auto_executing(false);
 							});
 						}
 						catch (std::exception &e)
@@ -7339,7 +7134,6 @@ namespace kaanh
 				if (is_auto_executing())
 				{
 					target.option = Plan::NOT_RUN_COLLECT_FUNCTION | Plan::NOT_RUN_EXECUTE_FUNCTION;
-					return;
 				}
 				//没有指令在执行//
 				else
@@ -7365,6 +7159,7 @@ namespace kaanh
 						}
 						if (!is_existed)
 						{
+							set_is_auto_executing(false);
 							return;
 						}
 						else
@@ -7404,7 +7199,6 @@ namespace kaanh
 				if (is_auto_executing())
 				{
 					target.option = Plan::NOT_RUN_COLLECT_FUNCTION | Plan::NOT_RUN_EXECUTE_FUNCTION;
-					return;
 				}
 				//没有指令在执行//
 				else
@@ -7421,6 +7215,7 @@ namespace kaanh
 								std::unique_lock<std::mutex> run_lock(mymutex);
 								if ((cmdparam.current_cmd_id >= cmdparam.cmd_vec.size()) || (cmdparam.current_cmd_id < 0))
 								{
+									set_is_auto_executing(false);
 									return;
 								}
 								else
@@ -7461,28 +7256,20 @@ namespace kaanh
 			else if (p.first == "pause") 
 			{ 
 				std::unique_lock<std::mutex> run_lock(mymutex);
-				target.option = Plan::NOT_RUN_COLLECT_FUNCTION | Plan::NOT_RUN_EXECUTE_FUNCTION;
 				const bool is_pause = false;
 				set_is_auto_executing(is_pause);
+
+				target.option = Plan::NOT_RUN_COLLECT_FUNCTION | Plan::NOT_RUN_EXECUTE_FUNCTION;
 			}
 			else if (p.first == "stop")
 			{
-				//有指令在执行//
-				if (is_auto_executing())
-				{
-					std::unique_lock<std::mutex> run_lock(mymutex);
-					cmdparam.current_cmd_id = 0;
-					cmdparam.current_plan_id = -1;
-					target.option = Plan::NOT_RUN_COLLECT_FUNCTION | Plan::NOT_RUN_EXECUTE_FUNCTION;
-					const bool is_pause = false;
-					set_is_auto_executing(is_pause);
-				}
-				//没有指令在执行//
-				else
-				{
-					target.option = Plan::NOT_RUN_COLLECT_FUNCTION | Plan::NOT_RUN_EXECUTE_FUNCTION;
-					return;
-				}
+				std::unique_lock<std::mutex> run_lock(mymutex);
+				cmdparam.current_cmd_id = 0;
+				cmdparam.current_plan_id = -1;
+				const bool is_stop = false;
+				set_is_auto_executing(is_stop);
+
+				target.option = Plan::NOT_RUN_COLLECT_FUNCTION | Plan::NOT_RUN_EXECUTE_FUNCTION;
 			}
 		}
 		target.ret = run_ret;
@@ -7491,8 +7278,7 @@ namespace kaanh
 	auto Run::collectNrt(aris::plan::PlanTarget &target)->void
 	{
 		auto param = std::any_cast<std::shared_ptr<RunParam>>(target.param);
-		param->run.join();	
-		std::cout << "end------------" << std::endl;
+		param->run.join();
 	}
 	Run::Run(const std::string &name) :Plan(name)
 	{
@@ -7512,6 +7298,39 @@ namespace kaanh
 
 
 	//编程界面指令//
+	bool splitString(std::string spCharacter, const std::string& objString, std::vector<std::pair<std::string, std::string>>& stringVector)
+	{
+		if (objString.length() == 0)
+		{
+			return true;
+		}
+		size_t posBegin = 0;
+		size_t posEnd = 0;
+
+		while (posEnd != std::string::npos)
+		{
+			posBegin = posEnd;
+			posEnd = objString.find(spCharacter, posBegin);
+
+			if (posBegin == posEnd)
+			{
+				posEnd += spCharacter.size();
+				continue;
+			}
+			if (posEnd == std::string::npos)
+			{
+				break;
+			}
+			std::string str = objString.substr(posBegin, posEnd - posBegin);
+			auto sep_pos = str.find(":");
+			auto id = str.substr(0, sep_pos);
+			auto command = str.substr(sep_pos + 1);
+			stringVector.push_back(std::make_pair<std::string, std::string>(id.c_str(), command.c_str()));
+			posEnd += spCharacter.size();
+		}
+		return true;
+	}
+	
 	auto onReceivedMsg(aris::core::Socket *socket, aris::core::Msg &msg)->int
 	{
 		std::string msg_data = msg.toString();
@@ -7526,12 +7345,12 @@ namespace kaanh
 			<< msg_data << std::endl;
 
 		//std::string data = "collectcmd --cmdlist = {1:moveJ\r\n2:moveJ\r\n3:moveL\r\n}";
-		
-		char *msg_input = (char *)msg_data.c_str();
-		char *cmd_name = strtok(msg_input, " --");
+		std::string s = " --";
+		auto cmd_name_pos = msg_data.find(s);
+		auto cmd_name = msg_data.substr(0, cmd_name_pos);
 
 		//解析指令失败//
-		if (cmd_name == NULL)
+		if (cmd_name.empty())
 		{
 			aris::core::Msg ret_msg(msg);
 			std::vector<std::pair<std::string, std::any>> *js;
@@ -7551,7 +7370,7 @@ namespace kaanh
 		}
 		else
 		{
-			if (strcmp(cmd_name, "collectcmd") == 0)
+			if (strcmp(cmd_name.c_str(), "collectcmd") == 0)
 			{
 				{
 					std::unique_lock<std::mutex> run_lock(mymutex);
@@ -7559,9 +7378,14 @@ namespace kaanh
 					cmdparam.current_cmd_id = 0;
 					cmdparam.current_plan_id = -1;
 				}
+
 				auto begin_pos = msg_data.find("{");
 				auto end_pos = msg_data.rfind("}");
 				auto cmd_str = msg_data.substr(begin_pos + 1, end_pos - 1 - begin_pos);
+				const std::string split = "\\r\\n";
+				splitString(split, cmd_str, cmdparam.cmd_vec);
+
+				/*
 				char *cmd_input = (char *)cmd_str.c_str();
 				const char *split = "\\r\\n";
 				char *cmd = strtok(cmd_input, split);
@@ -7575,6 +7399,7 @@ namespace kaanh
 					cmdparam.cmd_vec.push_back(std::make_pair<std::string, std::string>(id.c_str(), command.c_str()));
 					cmd = strtok(NULL, split);
 				}
+				*/
 				std::cout << "cmd_vec:" << cmdparam.cmd_vec[0].first << std::endl;
 			}
 			else
