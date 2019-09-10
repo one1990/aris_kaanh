@@ -62,7 +62,6 @@ namespace kaanh
 		std::vector<std::pair<std::string, std::string>> cmd_vec;
 		int current_cmd_id = 0;
 		int current_plan_id = -1;
-		std::mutex cmdmutex;
 	};
 	
 	class ProInterface :public aris::server::Interface
