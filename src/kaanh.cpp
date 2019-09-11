@@ -6,7 +6,8 @@
 #include <array>
 #include <stdlib.h>
 #include"move_series.h"
-
+#include"robotplan.h"
+#include"planfuns.h"
 
 using namespace aris::dynamic;
 using namespace aris::plan;
@@ -87,7 +88,7 @@ namespace kaanh
         dynamic_cast<aris::control::Motion&>(controller->slavePool()[2]).setPosOffset(-0.063596878644675794);
         dynamic_cast<aris::control::Motion&>(controller->slavePool()[3]).setPosOffset(0.65575523199999997);
         dynamic_cast<aris::control::Motion&>(controller->slavePool()[4]).setPosOffset(-1.49538803280913);
-        dynamic_cast<aris::control::Motion&>(controller->slavePool()[5]).setPosOffset(-3.2476329105045001);
+        dynamic_cast<aris::control::Motion&>(controller->slavePool()[5]).setPosOffset(-1.76544794265974);
 		
         for(int i=0; i<6; i++)
         {
@@ -7167,6 +7168,14 @@ double p, v, a;
 		plan_root->planPool().add<MoveFeed>();
 		plan_root->planPool().add<MovePressureToolYZ>();
 		plan_root->planPool().add<MovePressureToolXY>();
+
+		plan_root->planPool().add<MovePressureToolXLine>();
+		plan_root->planPool().add<MovePressureToolYLine>();
+		plan_root->planPool().add<MovePressureToolXSine>();
+		plan_root->planPool().add<MoveForceXSine>();
+		plan_root->planPool().add<MoveForceCircle>();
+		plan_root->planPool().add<MoveForceCurve>();
+
 		plan_root->planPool().add<GetForce>();
         plan_root->planPool().add<MoveSeriesGK>();
         plan_root->planPool().add<ForceDirect>();
@@ -7183,6 +7192,8 @@ double p, v, a;
 		plan_root->planPool().add<SevenJointTest>();
         plan_root->planPool().add<SevenDragTeach>();
 		plan_root->planPool().add<SevenLoadDyna>();
+
+		plan_root->planPool().add<DoubleSPlan>();
 
 		plan_root->planPool().add<cplan::MoveCircle>();
 		plan_root->planPool().add<cplan::MoveTroute>();

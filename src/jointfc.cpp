@@ -78,16 +78,10 @@ auto JointDyna::prepairNrt(const std::map<std::string, std::string> &params, Pla
  for(auto &option:target.mot_options) option|=
 		Plan::USE_TARGET_POS |
 		//#ifdef WIN32
-		Plan::NOT_CHECK_POS_MIN |
-		Plan::NOT_CHECK_POS_MAX |
-		Plan::NOT_CHECK_POS_CONTINUOUS |
 		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
 		Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
 		//#endif
-		Plan::NOT_CHECK_VEL_MIN |
-		Plan::NOT_CHECK_VEL_MAX |
-		Plan::NOT_CHECK_VEL_CONTINUOUS |
-		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+        Plan::NOT_CHECK_VEL_CONTINUOUS;
 		
 }
 auto JointDyna::executeRT(PlanTarget &target)->int
@@ -173,7 +167,7 @@ auto JointDyna::executeRT(PlanTarget &target)->int
 			{
 				if (vArc[i] > 0.0001*1e-4)
 				{
-					vArc[i] = vArc[i] - 0.001*10e-3;
+                    vArc[i] = vArc[i] - 0.001*1e-3;
 					step_pjs[i] = step_pjs[i] + vArc[i];
 				}
 
@@ -346,19 +340,19 @@ JointDyna::JointDyna(const std::string &name) :Plan(name)
 	command().loadXmlStr(
 		"<Command name=\"JointDyna\">"
 		"	<GroupParam>"
-		"		<Param name=\"A1P\"default=\"0.0\"/>"
-		"		<Param name=\"A1N\" default=\"0.0\"/>"
-		"		<Param name=\"A2P\"default=\"0.0\"/>"
-		"		<Param name=\"A2N\" default=\"0.0\"/>"
-		"		<Param name=\"A3P\"default=\"0.0\"/>"
-		"		<Param name=\"A3N\" default=\"0.0\"/>"
-		"		<Param name=\"A4P\"default=\"0.0\"/>"
-		"		<Param name=\"A4N\" default=\"0.0\"/>"
-		"		<Param name=\"A5P\"default=\"0.0\"/>"
-		"		<Param name=\"A5N\" default=\"0.0\"/>"
-		"		<Param name=\"A6P\"default=\"0.0\"/>"
-		"		<Param name=\"A6N\" default=\"0.0\"/>"
-        "		<Param name=\"VEL\" default=\"30\"/>"
+        "		<Param name=\"A1P\"default=\"1\"/>"
+        "		<Param name=\"A1N\" default=\"-1\"/>"
+        "		<Param name=\"A2P\"default=\"0.5\"/>"
+        "		<Param name=\"A2N\" default=\"-0.5\"/>"
+        "		<Param name=\"A3P\"default=\"0.5\"/>"
+        "		<Param name=\"A3N\" default=\"-0.5\"/>"
+        "		<Param name=\"A4P\"default=\"0.5\"/>"
+        "		<Param name=\"A4N\" default=\"-0.5\"/>"
+        "		<Param name=\"A5P\"default=\"0.5\"/>"
+        "		<Param name=\"A5N\" default=\"-0.5\"/>"
+        "		<Param name=\"A6P\"default=\"0.5\"/>"
+        "		<Param name=\"A6N\" default=\"-0.5\"/>"
+        "		<Param name=\"VEL\" default=\"100\"/>"
 		"	</GroupParam>"
 		"</Command>");
 
@@ -730,16 +724,12 @@ auto JointTest::prepairNrt(const std::map<std::string, std::string> &params, Pla
     for(auto &option:target.mot_options) option|=
 		Plan::USE_TARGET_POS |
 		//#ifdef WIN32
-		Plan::NOT_CHECK_POS_MIN |
-		Plan::NOT_CHECK_POS_MAX |
-		Plan::NOT_CHECK_POS_CONTINUOUS |
 		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
 		Plan::NOT_CHECK_POS_FOLLOWING_ERROR |
 		//#endif
-		Plan::NOT_CHECK_VEL_MIN |
-		Plan::NOT_CHECK_VEL_MAX |
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
-		Plan::NOT_CHECK_VEL_FOLLOWING_ERROR;
+        Plan::NOT_CHECK_VEL_FOLLOWING_ERROR|
+        Plan::NOT_CHECK_ENABLE;
 
 	//读取动力学参数
 	/*KAI
@@ -778,9 +768,9 @@ auto JointTest::prepairNrt(const std::map<std::string, std::string> &params, Pla
 	for (int i = 0;i < JointGroupDim + 12;i++)
 		JointMatrix.estParasJoint[i] = mat0->data().data()[i];
 
-	auto mat3 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("LoadParas"));
+    //auto mat3 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("LoadParas"));
 	for (int i = 0;i < 10;i++)
-         JointMatrix.LoadParas[i] = 1*mat3->data().data()[i];
+         JointMatrix.LoadParas[i] = 0;//1*mat3->data().data()[i];
 	
 
 	//for (int i = 50;i < JointGroupDim;i++)
@@ -835,7 +825,7 @@ auto JointTest::executeRT(PlanTarget &target)->int
 
 	for (int i = 0;i < 6;i++)
 	{
-		ts[i] = controller->motionAtAbs(i).actualCur() / f2c_index[i];
+        ts[i] = controller->motionAtAbs(i).actualToq() / f2c_index[i];
 	}
 
 	double Acv[12] = { 1,1,1,1,1,1,1,1,1,1,1,1 };
