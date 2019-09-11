@@ -88,7 +88,7 @@ namespace kaanh
         dynamic_cast<aris::control::Motion&>(controller->slavePool()[2]).setPosOffset(-0.063596878644675794);
         dynamic_cast<aris::control::Motion&>(controller->slavePool()[3]).setPosOffset(0.65575523199999997);
         dynamic_cast<aris::control::Motion&>(controller->slavePool()[4]).setPosOffset(-1.49538803280913);
-        dynamic_cast<aris::control::Motion&>(controller->slavePool()[5]).setPosOffset(-3.2476329105045001);
+        dynamic_cast<aris::control::Motion&>(controller->slavePool()[5]).setPosOffset(-1.76544794265974);
 		
         for(int i=0; i<6; i++)
         {

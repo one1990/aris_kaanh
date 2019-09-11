@@ -3886,34 +3886,6 @@ MovePressureToolYLine::MovePressureToolYLine(const std::string &name) :Plan(name
 
 
 
-auto GetForce::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
-{
-
-	double FT[2] = { 0,0 };
-
-	std::any cur_a = double(0);
-    /*target.server->getRtData([&](aris::server::ControlServer& cs, std::any &data)->void
-
-	{
-		FT[0] = TimeToMeng;
-		FT[1] = ForceToMeng;
-		//std::any_cast<double&>(data) = cs.controller().motionPool().at(i).actualCur();
-    }, cur_a);*/
-
-
-	std::string ret(reinterpret_cast<char*>(&FT), 2 * sizeof(double));
-	target.ret = ret;
-	target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_PRINT_CMD_INFO | NOT_PRINT_CMD_INFO;
-}
-auto GetForce::collectNrt(PlanTarget &target)->void {}
-GetForce::GetForce(const std::string &name) : Plan(name)
-{
-	command().loadXmlStr(
-		"<Command name=\"GetForce\">"
-		"</Command>");
-}
-
-
 
 struct MoveFeedParam
 {
@@ -4560,7 +4532,7 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 
 
     // protect max and min velocity //
-    const int motion = 1;
+    const int motion = 2;
    if(dX[motion] > vt_motion_max)
     {
         err_sum_fce_vt += (vt_motion_max - dX[motion]) * 0.001;
@@ -4598,7 +4570,7 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
     double Vmin=-0.02;
     const double KPF=5, KIF=5, vis = 500;
     //const double KPF=15, KIF=5, vis = 1000;
-    double target_f=-10;
+    double target_f=10;
     SumdX=SumdX+(Vmin-dX[motion])*0.001;
     SumFt = SumFt+(target_f - stateTor1[motion])*0.001;
     ft[motion]-=KPF * (target_f - stateTor1[motion]) + KIF*SumFt + vis*dX[motion];
@@ -4863,13 +4835,13 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
         ExternTau[i] = -ExternTau[i];
     }
 
-    double rate=6.0;
-    dTheta[0] = JoinTau[0] / 200/rate + ExternTau[0] / 1000/rate;
+    double rate=0.05;
+    dTheta[0] = JoinTau[0] / 300/rate + ExternTau[0] / 1000/rate;
     dTheta[1] = JoinTau[1] / 500/rate + ExternTau[1] / 1000/rate;
     dTheta[2] = JoinTau[2] / 500/rate + ExternTau[2] / 1000/rate;
     dTheta[3] = JoinTau[3] / 200/rate + ExternTau[3] / 1000/rate;
-    dTheta[4] = JoinTau[4] / 500/rate + ExternTau[4] / 1000/rate;
-    dTheta[5] = JoinTau[5] / 200/rate + ExternTau[5] / 1000/rate;
+    dTheta[4] = JoinTau[4] / 300/rate + ExternTau[4] / 1000/rate;
+    dTheta[5] = JoinTau[5] / 300/rate + ExternTau[5] / 1000/rate;
 
     for (int i = 0; i < 6; i++)
     {
@@ -4886,14 +4858,14 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
        // target.model->motionPool().at(i).setMp(step_pjs[i]);
     }
 
-    double KP[6]={8,8,8,1,1,1};
+    double KP[6]={8,10,10,1,2,0.1};
 
-    double torque_max[6]={300,500,500,300,300,300};
-    double torque_min[6]={-300,-500,-500,-300,-300,-300};
+    double torque_max[6]={300,500,500,300,300,400};
+    double torque_min[6]={-300,-500,-500,-300,-300,-400};
     for (int i = 0; i < 6; i++)
     {
 
-     ft_offset[i]=(3*KP[i]*(step_pjs[i]-pa[i])+idealToq[i])*f2c_index[i];
+     ft_offset[i]=(30*KP[i]*(step_pjs[i]-pa[i])+idealToq[i])*f2c_index[i];
      ft_offset[i] = std::max(torque_min[i], ft_offset[i]);
      ft_offset[i] = std::min(torque_max[i], ft_offset[i]);
      controller->motionAtAbs(i).setTargetToq(ft_offset[i]);
@@ -5673,7 +5645,7 @@ double P5[7] = { 0.25856243,-0.42001145,0.284604726,-0.7070756,-0.707137,0,0};
 
 void PressLine(PlanTarget &target, const int start_count, const double *FmInWorld, const double *P1, const double *P2, const double addLength,double *dX,bool &flag)
 {
-    static double pArc, vArc, aArc, vArcMax = 0.008;
+    static double pArc, vArc, aArc, vArcMax = 0.025;
 	static aris::Size t_count = { 0 };
 
 	double dir[3] = { 0 }, vertic[3] = { 0 }, zbase[3] = { 0,0,1 };
@@ -5683,7 +5655,7 @@ void PressLine(PlanTarget &target, const int start_count, const double *FmInWorl
 	dir[0] = (P2[0] - P1[0]) / length;
 	dir[1] = (P2[1] - P1[1]) / length;
 	length = sqrt((P2[0] - P1[0])*(P2[0] - P1[0]) + (P2[1] - P1[1])*(P2[1] - P1[1])) + addLength;
-    aris::plan::moveAbsolute(target.count-start_count, 0, length, vArcMax / 1000, 0.01 / 1000 / 1000, 0.01 / 1000 / 1000, pArc, vArc, aArc, t_count);
+    aris::plan::moveAbsolute(target.count-start_count, 0, length, vArcMax / 1000, 0.02 / 1000 / 1000, 0.02 / 1000 / 1000, pArc, vArc, aArc, t_count);
 
 	if ((target.count - start_count) == t_count)
 		flag = true;
@@ -5704,11 +5676,11 @@ void PressLine(PlanTarget &target, const int start_count, const double *FmInWorl
 
 
 	double dXpid[6] = { 0,0,0,0,0,0 };
-    dXpid[0] = 1 * (FmInWorld[0] - xy_desired[0]) / 1220000;
-    dXpid[1] = 1 * (FmInWorld[1] - xy_desired[1]) / 1220000;
+    dXpid[0] = 1 * (FmInWorld[0] - xy_desired[0]) / 720000;
+    dXpid[1] = 1 * (FmInWorld[1] - xy_desired[1]) / 720000;
 
 	for (int i = 0;i < 6;i++)
-		dX[i] = dX0[i] + dXpid[i];
+        dX[i] = dX0[i] + dXpid[i];
 
 
 }
@@ -5732,15 +5704,15 @@ auto MoveForceCurve::prepairNrt(const std::map<std::string, std::string> &params
 		if (p.first == "SensorType")
 			param.SensorType = std::stod(p.second);
 
-		if (p.first == "P1")
+        if (p.first == "PP1")
 			param.p1x = std::stod(p.second);
-		if (p.first == "P2")
+        if (p.first == "PP2")
 			param.p1y = std::stod(p.second);
-		if (p.first == "P3")
+        if (p.first == "PP3")
 			param.p2x = std::stod(p.second);
-		if (p.first == "P4")
+        if (p.first == "PP4")
 			param.p2y = std::stod(p.second);
-		if (p.first == "P5")
+        if (p.first == "PP5")
 			param.p2y = std::stod(p.second);
 	}
 
@@ -5753,7 +5725,7 @@ auto MoveForceCurve::prepairNrt(const std::map<std::string, std::string> &params
 		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
 		Plan::NOT_CHECK_ENABLE;
 
-	SetLimit(target, 6.0);
+    SetLimit(target, 4.0);
 
 
 }
@@ -5804,13 +5776,13 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
 	}
 
 
-	SecondOrderFilter(FT, stateTor0, stateTor1, 80);
+    SecondOrderFilter(FT, stateTor0, stateTor1, 280);
 
 
 	double FT_KAI[6];
 	for (int i = 0; i < 6; i++)
 	{
-		FT_KAI[i] = stateTor1[i][0] - FT0[i];//In KAI Coordinate
+        FT_KAI[i] = FT[i] - FT0[i];//In KAI Coordinate
 	}
 
 	double zero_check[6] = { 1,1,1,0.05,0.05,0.05 };
@@ -5830,7 +5802,9 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
 	static int start_count = 0;
 	static bool begin_flag = true;
 	static bool finish_flag = false;
-    static double addLength[5] = { 0.013,0.021,0.03,0.003,0.028 };
+    //static double addLength[5] = { -0.018,-0.025,-0.010,-0.015,0.01 };
+    //static double addLength[5] = { 0.008,0.001,0.023,0.005,0.025};
+    static double addLength[5] = { -0.00,-0.00,0.000,0.000,0.000};
 	switch (line_mark)
 	{
 	case 'A':
@@ -5900,7 +5874,7 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
 		{
 			begin_flag = true;
 			finish_flag = false;
-			line_mark = 'F';
+            line_mark = 'A';
 		}
 			break;
 	default:
@@ -5913,20 +5887,20 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
 /////////////////////////////////////////////////////dX to dTheta, Generate Motor Position/////////////////////////////////////////////////
 	for (int j = 0; j < 6; j++)
 	{
-		if (dX[j] > 0.00025)
-			dX[j] = 0.00025;
-		if (dX[j] < -0.00025)
-			dX[j] = -0.00025;
+        if (dX[j] > 0.00035)
+            dX[j] = 0.00035;
+        if (dX[j] < -0.00035)
+            dX[j] = -0.00035;
 	}
 
 	dX2dTheta(target, dX, dTheta);
 
 	for (int i = 0; i < 6; i++)
 	{
-		if (dTheta[i] > 0.003)
-			dTheta[i] = 0.003;
-		if (dTheta[i] < -0.003)
-			dTheta[i] = -0.003;
+        if (dTheta[i] > 0.005)
+            dTheta[i] = 0.005;
+        if (dTheta[i] < -0.005)
+            dTheta[i] = -0.005;
 		//lout << dTheta[i] << ",";
 	}
 
@@ -5951,7 +5925,7 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
 	if (target.count == 1)
 		PressF0[0] = normal_force[0];
 
-	OneOrderFilter(normal_force, PressF0, PressF1, 5);
+    OneOrderFilter(normal_force, PressF0, PressF1, 5);
 
 
 ///////////////////////////////////////////////////////////////Filter Management/////////////////////////////////////////////
@@ -5968,6 +5942,7 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
 	// log 电流 //
 	auto &lout = controller->lout();
 
+    lout << FT[0] << ",";lout << FT[1] << ",";
 	lout << dX[0] << ",";lout << dX[1] << ",";
 	lout << FmInWorld[0] << ",";lout << FmInWorld[1] << ",";
 	lout << PqEnd[0] << ",";lout << PqEnd[1] << ",";
@@ -5975,7 +5950,7 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
 	if (target.count % 300 == 0)
 	{
 
-        cout << FmInWorld[0]  << "*" << PressF1[0] << "*" <<dX[0]<<"*"<<line_mark<<std::endl;
+        cout << FmInWorld[0]  << "*" << FmInWorld[1]  << "*"<<PressF1[0] << "*" <<dX[0]<<"*"<<line_mark<<std::endl;
 		cout << std::endl;
 
 	}
@@ -6005,12 +5980,56 @@ MoveForceCurve::MoveForceCurve(const std::string &name) :Plan(name)
 		"	<GroupParam>"
 		"       <Param name=\"PressF\" default=\"0\"/>"
 		"		<Param name=\"SensorType\"default=\"-20.0\"/>"
-        "		<Param name=\"P1\"default=\"0.29342\"/>"
-        "		<Param name=\"P2\"default=\"-0.43863428\"/>"
-        "		<Param name=\"P3\"default=\"0.34742376\"/>"
-        "		<Param name=\"P4\"default=\"-0.406617\"/>"
-		"		<Param name=\"P5\"default=\"-0.406617\"/>"
+        "		<Param name=\"PP1\"default=\"0.29342\"/>"
+        "		<Param name=\"PP2\"default=\"-0.43863428\"/>"
+        "		<Param name=\"PP3\"default=\"0.34742376\"/>"
+        "		<Param name=\"PP4\"default=\"-0.406617\"/>"
+        "		<Param name=\"PP5\"default=\"-0.406617\"/>"
 		"   </GroupParam>"
 		"</Command>");
 
 }
+
+
+// 获取part_pq，end_pq，end_pe等 //
+struct GetForceParam
+{
+
+    double set_force,press_force;
+
+};
+auto GetForce::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+{
+    GetForceParam par;
+
+    std::any param = par;
+    //std::any param = std::make_any<GetParam>();
+
+
+    target.server->getRtData([&](aris::server::ControlServer& cs, const aris::plan::PlanTarget *target, std::any& data)->void
+    {
+
+        auto ec = dynamic_cast<aris::control::EthercatController*>(&cs.controller());
+
+
+    }, param);
+
+    auto out_data = std::any_cast<GetForceParam &>(param);
+
+
+    std::vector<std::pair<std::string, std::any>> out_param;
+
+    out_param.push_back(std::make_pair<std::string, std::any>("set_force", out_data.set_force));
+    out_param.push_back(std::make_pair<std::string, std::any>("press_force", out_data.press_force));
+
+    target.ret = out_param;
+    target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_PRINT_CMD_INFO | NOT_PRINT_CMD_INFO;
+}
+auto GetForce::collectNrt(PlanTarget &target)->void {}
+GetForce::GetForce(const std::string &name) : Plan(name)
+{
+    command().loadXmlStr(
+        "<Command name=\"get\">"
+        "</Command>");
+}
+
