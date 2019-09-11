@@ -79,8 +79,6 @@ namespace kaanh
 		aris::core::Socket *sock_;
 	};
 
-	//auto registerPlan()->void;
-
 	class Speed
 	{
 	public:
@@ -111,6 +109,115 @@ namespace kaanh
 		ARIS_REGISTER_TYPE(Get);
 	};
 
+	class Enable : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void override;
+		auto virtual executeRT(aris::plan::PlanTarget &target)->int override;
+
+		virtual ~Enable();
+		explicit Enable(const std::string &name = "enable_plan");
+		ARIS_REGISTER_TYPE(Enable);
+		ARIS_DECLARE_BIG_FOUR(Enable);
+
+	private:
+		struct Imp;
+		aris::core::ImpPtr<Imp> imp_;
+	};
+
+	class Disable : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+
+		virtual ~Disable();
+		explicit Disable(const std::string &name = "enable_plan");
+		ARIS_REGISTER_TYPE(Disable);
+		ARIS_DECLARE_BIG_FOUR(Disable);
+
+	private:
+		struct Imp;
+		aris::core::ImpPtr<Imp> imp_;
+	};
+	
+	class Home : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+
+		virtual ~Home();
+		explicit Home(const std::string &name = "home_plan");
+		ARIS_REGISTER_TYPE(Home);
+		ARIS_DECLARE_BIG_FOUR(Home);
+
+	private:
+		struct Imp;
+		aris::core::ImpPtr<Imp> imp_;
+	};
+
+	class Mode : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+
+		virtual ~Mode();
+		explicit Mode(const std::string &name = "mode_plan");
+		ARIS_REGISTER_TYPE(Mode);
+		ARIS_DECLARE_BIG_FOUR(Mode);
+
+	private:
+		struct Imp;
+		aris::core::ImpPtr<Imp> imp_;
+	};
+	
+	class Reset : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+
+		virtual ~Reset();
+		explicit Reset(const std::string &name = "reset_plan");
+		ARIS_REGISTER_TYPE(Reset);
+		ARIS_DECLARE_BIG_FOUR(Reset);
+
+	private:
+		struct Imp;
+		aris::core::ImpPtr<Imp> imp_;
+	};
+	
+	class Recover : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+
+		virtual ~Recover();
+		explicit Recover(const std::string &name = "recover_plan");
+		ARIS_REGISTER_TYPE(Recover);
+		ARIS_DECLARE_BIG_FOUR(Recover);
+	};
+	
+	class Sleep : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+
+		virtual ~Sleep();
+		explicit Sleep(const std::string &name = "sleep_plan");
+		ARIS_REGISTER_TYPE(Sleep);
+		ARIS_DECLARE_BIG_FOUR(Sleep);
+
+	private:
+		struct Imp;
+		aris::core::ImpPtr<Imp> imp_;
+	};
+
 	class MoveF : public aris::plan::Plan
 	{
 	public:
@@ -120,6 +227,54 @@ namespace kaanh
 
 		explicit MoveF(const std::string &name = "MoveF_plan");
 		ARIS_REGISTER_TYPE(MoveF);
+	};
+
+	class MoveAbsJ :public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+
+		virtual ~MoveAbsJ();
+		explicit MoveAbsJ(const std::string &name = "move_abs_j");
+		ARIS_REGISTER_TYPE(MoveAbsJ);
+		ARIS_DECLARE_BIG_FOUR(MoveAbsJ);
+
+	private:
+		struct Imp;
+		aris::core::ImpPtr<Imp> imp_;
+	};
+	
+	class MoveJ : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+
+		virtual ~MoveJ();
+		explicit MoveJ(const std::string &name = "move_j");
+		ARIS_REGISTER_TYPE(MoveJ);
+		ARIS_DECLARE_BIG_FOUR(MoveJ);
+
+	private:
+		struct Imp;
+		aris::core::ImpPtr<Imp> imp_;
+	};
+	
+	class MoveL : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+
+		virtual ~MoveL();
+		explicit MoveL(const std::string &name = "move_l");
+		ARIS_REGISTER_TYPE(MoveL);
+		ARIS_DECLARE_BIG_FOUR(MoveL);
+
+	private:
+		struct Imp;
+		aris::core::ImpPtr<Imp> imp_;
 	};
 
 	class MoveC : public aris::plan::Plan
@@ -461,6 +616,13 @@ namespace kaanh
 		ARIS_REGISTER_TYPE(Run);
 	};
 
+	class MoveSt : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		explicit MoveSt(const std::string &name = "MoveSt_plan");
+		ARIS_REGISTER_TYPE(MoveSt);
+	};
 }
 
 #endif
