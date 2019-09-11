@@ -3489,13 +3489,14 @@ void jointdynamics::JointDragYang(const double * q, const double *dq, const doub
 			YYMat[m][n] = distalVec[JointGroupDim * m + n];
 
 	double Y1[RobotAxis][2 * RobotAxis];
+    double margin[6]={0.01,0.01,0.01,0.01,02,0.01};
 	for (int m = 0; m < RobotAxis; m++)
 	{
 		for (int n = 0; n < 2 * RobotAxis; n++)
 		{
 			Y1[m][n] = 0;
 			if (n == 2 * m)
-				Y1[m][n] = 1 * sign(dq[m]);
+                Y1[m][n] = 1 * signDrag(dq[m],margin[m]);
 			if (n == 2 * m + 1)
 				Y1[m][n] = dq[m];
 		}

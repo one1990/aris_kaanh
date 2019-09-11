@@ -34,7 +34,7 @@ int main(int argc, char *argv[])
 	auto&cs = aris::server::ControlServer::instance();
 	auto port = argc < 2 ? 5866 : std::stoi(argv[1]);
 
-	
+/*
 	//生成kaanh.xml文档
     //-------for rokae robot begin//
     cs.resetController(kaanh::createControllerRokaeXB4().release());
@@ -47,10 +47,10 @@ int main(int argc, char *argv[])
     cs.resetSensorRoot(new aris::sensor::SensorRoot);
 	cs.interfaceRoot().loadXmlFile(uixmlpath.string().c_str());
 	//cs.model().saveXmlFile(modelxmlpath.string().c_str());	//for new model
-	cs.model().loadXmlFile(modelxmlpath.string().c_str());
+	//cs.model().loadXmlFile(modelxmlpath.string().c_str());
 	cs.saveXmlFile(xmlpath.string().c_str());
     //-------for rokae robot end// 
-	
+
 
     /*
     //-------for sanxiang robot begin//

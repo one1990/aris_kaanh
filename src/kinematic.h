@@ -131,19 +131,18 @@ private:
 
 };
 
-
-//保存示教点指令
-class SaveTeachPt : public aris::plan::Plan
+//重置当前工具后更新机器人模型-
+class SwitchTool : public aris::plan::Plan
 {
 public:
 	auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-	explicit SaveTeachPt(const std::string &name = "SaveTeachPt");
-	ARIS_REGISTER_TYPE(SaveTeachPt);
-
+	explicit SwitchTool(const std::string &name = "SwitchTool");
+	ARIS_REGISTER_TYPE(SwitchTool);
 private:
-	static double ptPose[6];
+
 
 };
+
 
 
 #endif
