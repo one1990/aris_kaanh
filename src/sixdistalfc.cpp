@@ -821,6 +821,7 @@ auto MoveDistal::executeRT(PlanTarget &target)->int
 	// 获取当前起始点位置 //
 	if (target.count == 1)
 	{
+        CollectNum = 1;
 		for (int i = 0; i < 6; i++)
 		{
 			begin_pjs[i] = target.model->motionPool()[i].mp();
@@ -4871,18 +4872,18 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
      controller->motionAtAbs(i).setTargetToq(ft_offset[i]);
      
     }
-
+/*
     lout << FTemp[0] << ",";lout << FTemp[1] << ",";
     lout << FTemp[2] << ",";lout << FTemp[3] << ",";
     lout << FTemp[4] << ",";lout << FTemp[5] << ",";
-/*
+
     lout << FT_YANG[0] << ",";lout << FT_YANG[1] << ",";
     lout << FT_YANG[2] << ",";lout << FT_YANG[3] << ",";
     lout << FT_YANG[4] << ",";lout << FT_YANG[5] << ","
-
-    lout << va[0] << ",";lout << va[1] << ",";
-    lout << va[2] << ",";lout << va[3] << ",";
-    lout << va[4] << ",";lout << va[5] << ",";*/
+*/
+    lout << pa[0] << ",";lout << pa[1] << ",";
+    lout << pa[2] << ",";lout << pa[3] << ",";
+    lout << pa[4] << ",";lout << pa[5] << ",";
     lout << std::endl;
 
 
@@ -4913,6 +4914,153 @@ MoveJoint::MoveJoint(const std::string &name) :Plan(name)
         "</Command>");
 
 }
+
+
+//复现文件位置//
+struct ReplayParam
+{
+    std::vector<aris::Size> total_count_vec;
+    std::vector<double> axis_begin_pos_vec;
+    std::vector<double> axis_first_pos_vec;
+    std::vector<std::vector<double>> pos_vec;
+    double vel, acc, dec;
+    std::string path;
+};
+auto Replay::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+{
+    ReplayParam param;
+    param.vel = std::stod(params.at("vel"));
+    param.acc = std::stod(params.at("acc"));
+    param.dec = std::stod(params.at("dec"));
+    param.path = params.at("path");
+
+    param.total_count_vec.resize(6, 0);
+    param.axis_begin_pos_vec.resize(6, 0.0);
+    param.axis_first_pos_vec.resize(6, 0.0);
+
+    param.pos_vec.resize(6, std::vector<double>(1, 0.0));
+    //std::cout << "size:" << param.pos_vec.size() << std::endl;
+    //初始化pos_vec//
+    for (int j = 0; j < param.pos_vec.size(); j++)
+    {
+        param.pos_vec[j].clear();
+    }
+
+    //定义读取log文件的输入流oplog//
+    std::ifstream oplog;
+    int cal = 0;
+    oplog.open(param.path);
+
+    //以下检查是否成功读取文件//
+    if (!oplog)
+    {
+        throw std::runtime_error("fail to open the file");
+    }
+    while (!oplog.eof())
+    {
+        for (int j = 0; j < param.pos_vec.size(); j++)
+        {
+            double data;
+            oplog >> data;
+            param.pos_vec[j].push_back(data);
+        }
+    }
+    oplog.close();
+    //oplog.clear();
+    for (int j = 0; j < param.pos_vec.size(); j++)
+    {
+        param.pos_vec[j].pop_back();
+        param.axis_first_pos_vec[j] = param.pos_vec[j][0];
+    }
+
+    target.param = param;
+    std::fill(target.mot_options.begin(), target.mot_options.end(),
+        Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER|
+        Plan::NOT_CHECK_POS_FOLLOWING_ERROR);
+    std::vector<std::pair<std::string, std::any>> ret;
+    target.ret = ret;
+}
+auto Replay::executeRT(PlanTarget &target)->int
+{
+    auto controller = target.controller;
+    auto &param = std::any_cast<ReplayParam&>(target.param);
+
+    double p, v, a;
+    aris::Size t_count;
+    static aris::Size first_total_count = 1;
+    aris::Size total_count = 1;
+    aris::Size return_value = 0;
+
+    // 获取6个电机初始位置 //
+    if (target.count == 1)
+    {
+        for (int i = 0; i < 6; i++)
+        {
+            param.axis_begin_pos_vec[i] = target.model->motionPool().at(i).mp();
+        }
+        for (int i = 0; i < 6; i++)
+        {
+            // 梯形规划到log开始点 //
+            aris::plan::moveAbsolute(target.count, param.axis_begin_pos_vec[i], param.axis_first_pos_vec[i], param.vel / 1000, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
+            first_total_count = std::max(first_total_count, t_count);
+        }
+    }
+
+    // 机械臂走到log开始点 //
+    if (target.count <= first_total_count)
+    {
+        for (int i = 0; i < 6; i++)
+        {
+            // 在第一个周期走梯形规划复位
+            aris::plan::moveAbsolute(target.count, param.axis_begin_pos_vec[i], param.axis_first_pos_vec[i], param.vel / 1000, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
+            controller->motionAtAbs(i).setTargetPos(p);
+            target.model->motionPool().at(i).setMp(p);
+        }
+    }
+
+    // 机械臂开始从头到尾复现log中点 //
+    if (target.count > first_total_count)
+    {
+        for (int i = 0; i < 6; i++)
+        {
+            controller->motionAtAbs(i).setTargetPos(param.pos_vec[i][target.count - first_total_count]);
+            target.model->motionPool().at(i).setMp(param.pos_vec[i][target.count - first_total_count]);
+        }
+    }
+    if (target.model->solverPool().at(1).kinPos())return -1;
+
+    //输出6个轴的实时位置log文件//
+    auto &lout = controller->lout();
+    for (int i = 0; i < 6; i++)
+    {
+        lout << controller->motionAtAbs(i).actualPos() << " ";//第一列数字必须是位置
+    }
+    lout << std::endl;
+
+    return target.count > (first_total_count - 2 + param.pos_vec[0].size()) ? 0 : 1;
+
+}
+auto Replay::collectNrt(PlanTarget &target)->void {}
+Replay::Replay(const std::string &name) :Plan(name)
+{
+    command().loadXmlStr(
+        "<Command name=\"MotionReplay\">"
+        "	<GroupParam>"
+        "		<Param name=\"path\" default=\"C:\\Users\\kevin\\Desktop\\file\\rt_log--2019-09-06--19-14-16--moveJR.txt\"/>"
+        "		<Param name=\"vel\" default=\"0.05\" abbreviation=\"v\"/>"
+        "		<Param name=\"acc\" default=\"0.1\" abbreviation=\"a\"/>"
+        "		<Param name=\"dec\" default=\"0.1\" abbreviation=\"d\"/>"
+        "	</GroupParam>"
+        "</Command>");
+}
+
+
+
+
+
+
+
+
 
 
 struct MovePressureToolXSineParam
@@ -5655,7 +5803,7 @@ void PressLine(PlanTarget &target, const int start_count, const double *FmInWorl
 	dir[0] = (P2[0] - P1[0]) / length;
 	dir[1] = (P2[1] - P1[1]) / length;
 	length = sqrt((P2[0] - P1[0])*(P2[0] - P1[0]) + (P2[1] - P1[1])*(P2[1] - P1[1])) + addLength;
-    aris::plan::moveAbsolute(target.count-start_count, 0, length, vArcMax / 1000, 0.02 / 1000 / 1000, 0.02 / 1000 / 1000, pArc, vArc, aArc, t_count);
+    aris::plan::moveAbsolute(target.count-start_count, 0, length, vArcMax / 1000, 0.01 / 1000 / 1000, 0.01 / 1000 / 1000, pArc, vArc, aArc, t_count);
 
 	if ((target.count - start_count) == t_count)
 		flag = true;
