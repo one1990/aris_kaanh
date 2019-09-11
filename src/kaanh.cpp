@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include"move_series.h"
 #include <string>
+#include"robotplan.h"
+#include"planfuns.h"
 
 
 using namespace aris::dynamic;
@@ -90,7 +92,7 @@ namespace kaanh
         dynamic_cast<aris::control::Motion&>(controller->slavePool()[2]).setPosOffset(-0.063596878644675794);
         dynamic_cast<aris::control::Motion&>(controller->slavePool()[3]).setPosOffset(0.65575523199999997);
         dynamic_cast<aris::control::Motion&>(controller->slavePool()[4]).setPosOffset(-1.49538803280913);
-        dynamic_cast<aris::control::Motion&>(controller->slavePool()[5]).setPosOffset(-3.2476329105045001);
+        dynamic_cast<aris::control::Motion&>(controller->slavePool()[5]).setPosOffset(-1.76544794265974);
 		
         for(int i=0; i<6; i++)
         {
@@ -3150,6 +3152,7 @@ namespace kaanh
 		param.increase_status = 0;
 		param.vel_percent = 0;
 
+
 		param.increase_count = std::stoi(cmd_params.at("increase_count"));
 		if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
 
@@ -3186,7 +3189,7 @@ namespace kaanh
 		else
 		{
             std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
-            target.mot_options[param.motion_id] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
+            target.mot_options[0] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
 		}
 		target.param = param;
 	}
@@ -3285,9 +3288,9 @@ namespace kaanh
 			"<Command name=\"j1\">"
 			"	<GroupParam>"
             "		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"0.5\" abbreviation=\"v\"/>"
-			"		<Param name=\"acc\" default=\"0.5\" abbreviation=\"a\"/>"
-			"		<Param name=\"dec\" default=\"0.5\" abbreviation=\"d\"/>"
+			"		<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
+			"		<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"
+			"		<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"
 			"		<Param name=\"vel_percent\" default=\"10\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
 			"	</GroupParam>"
@@ -3320,7 +3323,7 @@ namespace kaanh
 		else
 		{
 			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
-            target.mot_options[param.motion_id] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
+            target.mot_options[1] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
 		}
 		target.param = param;
 	}
@@ -3419,9 +3422,9 @@ namespace kaanh
 			"<Command name=\"j2\">"
 			"	<GroupParam>"
             "		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"0.5\" abbreviation=\"v\"/>"
-			"		<Param name=\"acc\" default=\"0.5\" abbreviation=\"a\"/>"
-			"		<Param name=\"dec\" default=\"0.5\" abbreviation=\"d\"/>"
+			"		<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
+			"		<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"
+			"		<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"
 			"		<Param name=\"vel_percent\" default=\"10\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
 			"	</GroupParam>"
@@ -3454,7 +3457,7 @@ namespace kaanh
 		else
 		{
 			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
-            target.mot_options[param.motion_id] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
+            target.mot_options[2] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
 		}
 		target.param = param;
 	}
@@ -3553,9 +3556,9 @@ namespace kaanh
 			"<Command name=\"j3\">"
 			"	<GroupParam>"
             "		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"0.5\" abbreviation=\"v\"/>"
-			"		<Param name=\"acc\" default=\"0.5\" abbreviation=\"a\"/>"
-			"		<Param name=\"dec\" default=\"0.5\" abbreviation=\"d\"/>"
+			"		<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
+			"		<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"
+			"		<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"
 			"		<Param name=\"vel_percent\" default=\"10\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
 			"	</GroupParam>"
@@ -3573,7 +3576,7 @@ namespace kaanh
 
 		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
-
+    
 		param.motion_id = 3;
 		set_jogj_input_param(params, target, param);
 
@@ -3588,7 +3591,7 @@ namespace kaanh
 		else
 		{
 			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
-            target.mot_options[param.motion_id] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
+            target.mot_options[3] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
 		}
 		target.param = param;
 	}
@@ -3687,9 +3690,9 @@ namespace kaanh
 			"<Command name=\"j4\">"
 			"	<GroupParam>"
             "		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"0.5\" abbreviation=\"v\"/>"
-			"		<Param name=\"acc\" default=\"0.5\" abbreviation=\"a\"/>"
-			"		<Param name=\"dec\" default=\"0.5\" abbreviation=\"d\"/>"
+			"		<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
+			"		<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"
+			"		<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"
 			"		<Param name=\"vel_percent\" default=\"10\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
 			"	</GroupParam>"
@@ -3722,7 +3725,7 @@ namespace kaanh
 		else
 		{
 			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
-            target.mot_options[param.motion_id] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
+            target.mot_options[4] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
 		}
 		target.param = param;
 	}
@@ -3821,9 +3824,9 @@ namespace kaanh
 			"<Command name=\"j5\">"
 			"	<GroupParam>"
             "		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"0.5\" abbreviation=\"v\"/>"
-			"		<Param name=\"acc\" default=\"0.5\" abbreviation=\"a\"/>"
-			"		<Param name=\"dec\" default=\"0.5\" abbreviation=\"d\"/>"
+			"		<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
+			"		<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"
+			"		<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"
 			"		<Param name=\"vel_percent\" default=\"10\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
 			"	</GroupParam>"
@@ -3856,7 +3859,7 @@ namespace kaanh
 		else
 		{
 			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
-            target.mot_options[param.motion_id] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
+            target.mot_options[5] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
 		}
 		target.param = param;
 	}
@@ -3955,9 +3958,9 @@ namespace kaanh
 			"<Command name=\"j6\">"
 			"	<GroupParam>"
             "		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"0.5\" abbreviation=\"v\"/>"
-			"		<Param name=\"acc\" default=\"0.5\" abbreviation=\"a\"/>"
-			"		<Param name=\"dec\" default=\"0.5\" abbreviation=\"d\"/>"
+			"		<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
+			"		<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"
+			"		<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"
 			"		<Param name=\"vel_percent\" default=\"10\"/>"
 			"		<Param name=\"direction\" default=\"1\"/>"
 			"	</GroupParam>"
@@ -4179,9 +4182,9 @@ namespace kaanh
 			"<Command name=\"jx\">"
 			"	<GroupParam>"
 			"		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"{0.2,0.2,0.2,0.25,0.25,0.25}\"/>"
-			"		<Param name=\"acc\" default=\"{1,1,1,1,1,1}\"/>"
-			"		<Param name=\"dec\" default=\"{1,1,1,1,1,1}\"/>"
+			"		<Param name=\"vel\" default=\"{0.05,0.05,0.05,0.25,0.25,0.25}\"/>"
+			"		<Param name=\"acc\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
+			"		<Param name=\"dec\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
 			"		<Param name=\"cor\" default=\"0\"/>"
 			"		<Param name=\"tool\" default=\"tool0\"/>"
 			"		<Param name=\"wobj\" default=\"wobj0\"/>"
@@ -4361,9 +4364,9 @@ namespace kaanh
 			"<Command name=\"jy\">"
 			"	<GroupParam>"
 			"		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"{0.2,0.2,0.2,0.25,0.25,0.25}\"/>"
-			"		<Param name=\"acc\" default=\"{1,1,1,1,1,1}\"/>"
-			"		<Param name=\"dec\" default=\"{1,1,1,1,1,1}\"/>"
+			"		<Param name=\"vel\" default=\"{0.05,0.05,0.05,0.25,0.25,0.25}\"/>"
+			"		<Param name=\"acc\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
+			"		<Param name=\"dec\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
 			"		<Param name=\"cor\" default=\"0\"/>"
 			"		<Param name=\"tool\" default=\"tool0\"/>"
 			"		<Param name=\"wobj\" default=\"wobj0\"/>"
@@ -4544,9 +4547,9 @@ namespace kaanh
 			"<Command name=\"jz\">"
 			"	<GroupParam>"
 			"		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"{0.2,0.2,0.2,0.25,0.25,0.25}\"/>"
-			"		<Param name=\"acc\" default=\"{1,1,1,1,1,1}\"/>"
-			"		<Param name=\"dec\" default=\"{1,1,1,1,1,1}\"/>"
+			"		<Param name=\"vel\" default=\"{0.05,0.05,0.05,0.25,0.25,0.25}\"/>"
+			"		<Param name=\"acc\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
+			"		<Param name=\"dec\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
 			"		<Param name=\"cor\" default=\"0\"/>"
 			"		<Param name=\"tool\" default=\"tool0\"/>"
 			"		<Param name=\"wobj\" default=\"wobj0\"/>"
@@ -4727,9 +4730,9 @@ namespace kaanh
 			"<Command name=\"jrx\">"
 			"	<GroupParam>"
 			"		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"{0.2,0.2,0.2,0.25,0.25,0.25}\"/>"
-			"		<Param name=\"acc\" default=\"{1,1,1,1,1,1}\"/>"
-			"		<Param name=\"dec\" default=\"{1,1,1,1,1,1}\"/>"
+			"		<Param name=\"vel\" default=\"{0.05,0.05,0.05,0.25,0.25,0.25}\"/>"
+			"		<Param name=\"acc\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
+			"		<Param name=\"dec\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
 			"		<Param name=\"cor\" default=\"0\"/>"
 			"		<Param name=\"tool\" default=\"tool0\"/>"
 			"		<Param name=\"wobj\" default=\"wobj0\"/>"
@@ -5718,10 +5721,8 @@ namespace kaanh
 		aris::control::EthercatMaster mst;
 		mst.scan();
 
-		//for test//
-
 		std::vector<std::pair<std::string, std::any>> ret;
-		ret.push_back(std::make_pair<std::string, std::any>("controller_xml", cs.controller().xmlString()));
+		ret.push_back(std::make_pair<std::string, std::any>("controller_xml", mst.xmlString()));
 
 		target.ret = ret;
 		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
@@ -5735,7 +5736,6 @@ namespace kaanh
 
 
 	// 根据ESI补全从站信息 //
-	static aris::control::EthercatMaster mst;
 	struct GetEsiPdoListParam
 	{
 		int vendor_id;
@@ -5752,20 +5752,21 @@ namespace kaanh
 		{
 			if (p.first == "vendor_id")
 			{
-				param.vendor_id = std::stoi(p.second, nullptr, 16);
+				param.vendor_id = std::stoi(p.second);
 			}
-			else if (p.first == "product_code")
+			if (p.first == "product_code")
 			{
-				param.product_code = std::stoi(p.second, nullptr, 16);
+				param.product_code = std::stoi(p.second);
 			}
-			else if (p.first == "revision_num")
+			if (p.first == "revision_num")
 			{
-				param.revision_num = std::stoi(p.second, nullptr, 16);
+				param.revision_num = std::stoi(p.second);
 			}
 		}
 
+		aris::control::EthercatMaster mst;
 		auto pdolist = mst.getPdoList(param.vendor_id, param.product_code, param.revision_num);
-
+		
 		std::vector<std::pair<std::string, std::any>> ret;
 		ret.push_back(std::make_pair<std::string, std::any>("pdo_list_xml", pdolist));
 
@@ -5802,14 +5803,16 @@ namespace kaanh
 		{
 			if (p.first == "path")
 			{
-				param.path.push_back(p.second);
+				for (auto &filepath : std::filesystem::directory_iterator(p.second))
+				{
+					if (filepath.is_regular_file())param.path.push_back(filepath.path());
+				}
 			}
 		}
 
+		aris::control::EthercatMaster mst;
 		mst.setEsiDirs(param.path);
-		mst.updateDeviceList();
 		auto device_list = mst.getDeviceList();
-		std::cout << "param.path:"<< param.path.data()->string() << std::endl;
 
 		std::vector<std::pair<std::string, std::any>> ret;
 		ret.push_back(std::make_pair<std::string, std::any>("device_list_xml", device_list));
@@ -6540,23 +6543,23 @@ namespace kaanh
 		plan_root->planPool().add<MoveFeed>();
 		plan_root->planPool().add<MovePressureToolYZ>();
 		plan_root->planPool().add<MovePressureToolXY>();
+
 		plan_root->planPool().add<MovePressureToolXLine>();
 		plan_root->planPool().add<MovePressureToolYLine>();
 		plan_root->planPool().add<MovePressureToolXSine>();
 		plan_root->planPool().add<MoveForceXSine>();
 		plan_root->planPool().add<MoveForceCircle>();
+		plan_root->planPool().add<MoveForceCurve>();
+
 		plan_root->planPool().add<GetForce>();
         plan_root->planPool().add<MoveSeriesGK>();
         plan_root->planPool().add<ForceDirect>();
 
 		//plan_root->planPool().add<GetError>();
 		plan_root->planPool().add<JointDyna>();
-		plan_root->planPool().add<JointDynaSave>();
 		plan_root->planPool().add<JointTest>();
 		plan_root->planPool().add<DragTeach>();
 		plan_root->planPool().add<LoadDyna>();
-		plan_root->planPool().add<LoadDynaSave0>();
-		plan_root->planPool().add<LoadDynaSave1>();
 		plan_root->planPool().add<SaveYYbase>();
 		plan_root->planPool().add<SaveFile>();	
 
@@ -6564,6 +6567,8 @@ namespace kaanh
 		plan_root->planPool().add<SevenJointTest>();
         plan_root->planPool().add<SevenDragTeach>();
 		plan_root->planPool().add<SevenLoadDyna>();
+
+		plan_root->planPool().add<DoubleSPlan>();
 
 		plan_root->planPool().add<cplan::MoveCircle>();
 		plan_root->planPool().add<cplan::MoveTroute>();
@@ -6579,7 +6584,7 @@ namespace kaanh
 		plan_root->planPool().add<CalibZF>();
 		plan_root->planPool().add<CalibZO>();
 		plan_root->planPool().add<CalibZL>();
-		plan_root->planPool().add<SaveTeachPt>();
+		plan_root->planPool().add<SwitchTool>();
 
 		return plan_root;
 	}
