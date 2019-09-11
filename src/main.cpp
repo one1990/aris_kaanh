@@ -41,8 +41,9 @@ int main(int argc, char *argv[])
     //cs.resetModel(aris::robot::createModelRokaeXB4().release());
     cs.resetModel(kaanh::createModelRokae().release());
     cs.resetPlanRoot(kaanh::createPlanRootRokaeXB4().release());
-    cs.interfacePool().add<aris::server::WebInterface>("", "5866", aris::core::Socket::WEB);
-	cs.interfacePool().add<aris::server::WebInterface>("", "5867", aris::core::Socket::TCP);
+    //cs.interfacePool().add<aris::server::WebInterface>("", "5866", aris::core::Socket::WEB);
+	cs.interfacePool().add<kaanh::ProInterface>("", "5866", aris::core::Socket::WEB);
+	//cs.interfacePool().add<aris::server::WebInterface>("", "5867", aris::core::Socket::TCP);
     cs.resetSensorRoot(new aris::sensor::SensorRoot);
 	cs.interfaceRoot().loadXmlFile(uixmlpath.string().c_str());
 	//cs.model().saveXmlFile(modelxmlpath.string().c_str());	//for new model
@@ -111,7 +112,6 @@ int main(int argc, char *argv[])
 
 	//Start Web Socket//
     cs.open();
-
 
 	//Receive Command//
 	cs.runCmdLine();

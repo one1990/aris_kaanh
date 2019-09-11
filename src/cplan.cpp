@@ -249,8 +249,6 @@ namespace cplan
 	/// @return 返回值为空
 	auto MoveFile::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
-	
-	
 		MoveFileParam p;
 		p.total_time = std::stoi(params.at("total_time"));
 		p.vel = std::stod(params.at("vel"));

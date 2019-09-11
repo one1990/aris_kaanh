@@ -57,6 +57,28 @@ namespace kaanh
     auto createControllerDaye()->std::unique_ptr<aris::control::Controller>;
     auto createModelDaye(const double *robot_pm = nullptr)->std::unique_ptr<aris::dynamic::Model>;
 
+	struct CmdListParam
+	{
+		std::vector<std::pair<std::string, std::string>> cmd_vec;
+		int current_cmd_id = 0;
+		int current_plan_id = -1;
+	};
+	
+	class ProInterface :public aris::server::Interface
+	{
+	public:
+		auto virtual open()->void override;
+		auto virtual close()->void override;
+		auto virtual loadXml(const aris::core::XmlElement &xml_ele)->void override;
+
+		ProInterface(const std::string &name = "interface", const std::string &port = "5868", aris::core::Socket::TYPE type = aris::core::Socket::WEB);
+		ARIS_REGISTER_TYPE(ProInterface);
+		ARIS_DEFINE_BIG_FOUR(ProInterface);
+
+	private:
+		aris::core::Socket *sock_;
+	};
+
 	//auto registerPlan()->void;
 
 	class Speed
@@ -89,81 +111,15 @@ namespace kaanh
 		ARIS_REGISTER_TYPE(Get);
 	};
 
-	class MoveX : public aris::plan::Plan
+	class MoveF : public aris::plan::Plan
 	{
 	public:
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
 		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
 		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
 
-		explicit MoveX(const std::string &name = "MoveX_plan");
-		ARIS_REGISTER_TYPE(MoveX);
-	};
-
-	class MoveJS : public aris::plan::Plan
-	{
-	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
-		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
-
-		explicit MoveJS(const std::string &name = "MoveJS_plan");
-		ARIS_REGISTER_TYPE(MoveJS);
-	};
-
-	class MoveJSN : public aris::plan::Plan
-	{
-	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
-		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
-
-		explicit MoveJSN(const std::string &name = "MoveJSN_plan");
-		ARIS_REGISTER_TYPE(MoveJSN);
-	};
-
-	class MoveJR : public aris::plan::Plan
-	{
-	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
-		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
-
-		explicit MoveJR(const std::string &name = "MoveJR_plan");
-		ARIS_REGISTER_TYPE(MoveJR);
-	};
-
-	class MoveTTT : public aris::plan::Plan
-	{
-	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
-		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
-
-		explicit MoveTTT(const std::string &name = "MoveTTT_plan");
-		ARIS_REGISTER_TYPE(MoveTTT);
-	};
-
-	class MoveJM : public aris::plan::Plan
-	{
-	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
-		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
-
-		explicit MoveJM(const std::string &name = "MoveJM_plan");
-		ARIS_REGISTER_TYPE(MoveJM);
-	};
-
-	class MoveJI : public aris::plan::Plan
-	{
-	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
-		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
-
-		explicit MoveJI(const std::string &name = "MoveJI_plan");
-		ARIS_REGISTER_TYPE(MoveJI);
+		explicit MoveF(const std::string &name = "MoveF_plan");
+		ARIS_REGISTER_TYPE(MoveF);
 	};
 
 	class MoveC : public aris::plan::Plan
@@ -368,78 +324,6 @@ namespace kaanh
 		ARIS_REGISTER_TYPE(JRZ);
 	};
 
-	class Grasp : public aris::plan::Plan
-	{
-	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
-		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
-
-		explicit Grasp(const std::string &name = "Grasp_plan");
-		ARIS_REGISTER_TYPE(Grasp);
-	};
-
-	class ListenDI : public aris::plan::Plan
-	{
-	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
-		explicit ListenDI(const std::string &name = "ListenDI_plan");
-		ARIS_REGISTER_TYPE(ListenDI);
-	};
-
-	class MoveEA : public aris::plan::Plan
-	{
-	public:
-		//平均值速度滤波、摩擦力滤波器初始化//
-		std::vector<double> fore_vel;
-		IIR_FILTER::IIR iir;
-		double tempforce;
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
-		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
-
-		explicit MoveEA(const std::string &name = "MoveEA_plan");
-		ARIS_REGISTER_TYPE(MoveEA);
-	};
-
-	class MoveEAP : public aris::plan::Plan
-	{
-	public:
-		//平均值速度滤波、摩擦力滤波器初始化//
-		std::vector<double> fore_vel;
-		IIR_FILTER::IIR iir;
-		double tempforce;
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
-		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
-
-		explicit MoveEAP(const std::string &name = "MoveEAP_plan");
-		ARIS_REGISTER_TYPE(MoveEAP);
-	};
-
-	class FSSignal : public aris::plan::Plan
-	{
-	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
-		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
-
-		explicit FSSignal(const std::string &name = "FSSignal_plan");
-		ARIS_REGISTER_TYPE(FSSignal);
-	};
-
-    class ATIFS : public aris::plan::Plan
-    {
-    public:
-        auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-        auto virtual executeRT(aris::plan::PlanTarget &target)->int;
-        auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
-
-        explicit ATIFS(const std::string &name = "ATIFS_plan");
-        ARIS_REGISTER_TYPE(ATIFS);
-    };
-
 	class SetCon : public aris::plan::Plan
 	{
 	public:
@@ -566,6 +450,15 @@ namespace kaanh
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
 		explicit SetVel(const std::string &name = "SetVel_plan");
 		ARIS_REGISTER_TYPE(SetVel);
+	};
+
+	class Run : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+		explicit Run(const std::string &name = "Run_plan");
+		ARIS_REGISTER_TYPE(Run);
 	};
 
 }
