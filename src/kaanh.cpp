@@ -14,14 +14,18 @@
 using namespace aris::dynamic;
 using namespace aris::plan;
 
-
-extern double fce_data[buffer_length];
-extern int data_num, data_num_send;
-extern std::atomic_int which_di;
-extern std::atomic_bool is_automatic;
+//global vel//
 extern kaanh::Speed g_vel;
 extern std::atomic_int g_vel_percent;
-static kaanh::CmdListParam cmdparam;
+//global vel//
+
+//state machine flag//
+extern std::atomic_bool g_error;
+extern std::atomic_bool g_is_manual;
+extern std::atomic_bool g_is_auto;
+//state machine flag//
+
+kaanh::CmdListParam cmdparam;
 
 
 namespace kaanh

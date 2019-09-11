@@ -6,16 +6,18 @@
 #include<filesystem>
 
 
-std::atomic_bool is_automatic = false;
 using namespace aris::dynamic;
 
-double fce_data[buffer_length], fce_send[buffer_length];
-int data_num = 0, data_num_send = 0;
-std::vector<std::vector<std::string>> plantrack(6, std::vector<std::string>());
-std::atomic_int which_di = 0;
-
+//global vel//
 kaanh::Speed g_vel;
 std::atomic_int g_vel_percent = 0;
+//global vel//
+
+//state machine flag//
+std::atomic_bool g_error = false;
+std::atomic_bool g_is_manual = false;
+std::atomic_bool g_is_auto = false;
+//state machine flag//
 
 auto xmlpath = std::filesystem::absolute(".");//获取当前工程所在的路径
 auto uixmlpath = std::filesystem::absolute(".");
