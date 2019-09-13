@@ -1110,7 +1110,6 @@ namespace kaanh
 		std::any param = par;
 		//std::any param = std::make_any<GetParam>();
 
-		
 		target.server->getRtData([&](aris::server::ControlServer& cs, const aris::plan::PlanTarget *target, std::any& data)->void
 		{
 			for (aris::Size i(-1); ++i < cs.model().partPool().size();)
@@ -3987,6 +3986,7 @@ namespace kaanh
 	};
 	auto set_jogc_input_param(const std::map<std::string, std::string> &cmd_params, PlanTarget &target, JCParam &param)->void
 	{
+		std::cout << "tool" << cmd_params.at("tool") << std::endl;
 		param.tool = &*target.model->generalMotionPool()[0].makI().fatherPart().markerPool().findByName(cmd_params.at("tool"));
 		param.wobj = &*target.model->generalMotionPool()[0].makJ().fatherPart().markerPool().findByName(cmd_params.at("wobj"));
 
@@ -4024,6 +4024,9 @@ namespace kaanh
 
 		param.pm_target.resize(16, 0.0);
 		param.moving_type = 0;//0,1,2,3,4,5分别表示沿x,y,z,Rx,Ry,Rz动作//
+
+		auto t = params.at("tool");
+		std::cout << "tool:" << t << std::endl;
 
 		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
@@ -6384,7 +6387,7 @@ namespace kaanh
 					ret_pair.push_back(std::make_pair<std::string, std::any>("return_message", std::string(e.what())));
 					std::string ret_str = aris::server::parse_ret_value(ret_pair);
 
-					std::cout << ret_str << std::endl;
+					//std::cout << ret_str << std::endl;
 					LOG_ERROR << ret_str << std::endl;
 
 					try
