@@ -205,6 +205,16 @@ public:
 };
 
 
+
+class FCStop : public aris::plan::Plan
+{
+public:
+    auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+    explicit FCStop(const std::string &name = "FCStop");
+    ARIS_REGISTER_TYPE(FCStop);
+};
+
+
 //与Meng交换数据
 class GetForce : public aris::plan::Plan
 {
