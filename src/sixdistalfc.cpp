@@ -88,7 +88,7 @@ void GetYuLi(PlanTarget &target,double* FT)
     conSensor->slavePool().at(6).readPdo(0x6030, 0x05, &FTtemp[4], 32);
     conSensor->slavePool().at(6).readPdo(0x6030, 0x06, &FTtemp[5], 32);
     #endif
-
+   //std::cout<<FTtemp[0]<<"***"<<FTtemp[1]<<std::endl;
     for(int i=0;i<6;i++)
         FT[i]=FTtemp[i];
 
@@ -445,7 +445,7 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 	static double begin_pjs[6];
 	static double step_pjs[6];
 	static double stateTor0[6][3], stateTor1[6][3];
-	static float FT0[6], FT_be[6];
+    static double FT0[6], FT_be[6];
 
 	// 访问主站 //
 	auto controller = target.controller;
@@ -1413,7 +1413,7 @@ auto MovePressure::executeRT(PlanTarget &target)->int
 	static double begin_pjs[6];
 	static double step_pjs[6];
 	static double stateTor0[6][3], stateTor1[6][3];
-	static float FT0[6], FT_be[6];
+    static double FT0[6], FT_be[6];
 	static double SumFtErr[6];
 	// 访问主站 //
 	auto controller = target.controller;
@@ -1442,7 +1442,7 @@ auto MovePressure::executeRT(PlanTarget &target)->int
 	double dX[6] = { 0.00000, -0.0000, -0.0000, -0.0000, -0.0000, -0.0000 };
 	double dTheta[6] = { 0 };
 
-	float FT[6];
+    double FT[6];
 	uint16_t FTnum;
 	auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.controller);
 	conSensor->slavePool().at(6).readPdo(0x6030, 0x00, &FTnum, 16);
@@ -2561,7 +2561,7 @@ auto MovePressureToolXY::executeRT(PlanTarget &target)->int
 	static double step_pjs[6];
 	static double stateTor0[6][3], stateTor1[6][3], EndP0[3];
 	static double sT0[6][3], sT1[6][3];
-    static float FT0[6];
+    static double FT0[6];
 
 	// 访问主站 //
 	auto controller = target.controller;
@@ -3107,7 +3107,7 @@ auto MovePressureToolXLine::executeRT(PlanTarget &target)->int
     static double step_pjs[6];
     static double stateTor0[6][3], stateTor1[6][3], EndP0[3];
     static double sT0[6][3], sT1[6][3];
-    static float FT0[6];
+    static double FT0[6];
 
     // 访问主站 //
     auto controller = target.controller;
@@ -3522,7 +3522,7 @@ auto MovePressureToolYLine::executeRT(PlanTarget &target)->int
 	static double step_pjs[6];
 	static double stateTor0[6][3], stateTor1[6][3], EndP0[3];
 	static double sT0[6][3], sT1[6][3];
-	static float FT0[6];
+    static double FT0[6];
 
 	// 访问主站 //
 	auto controller = target.controller;
@@ -3950,7 +3950,7 @@ auto MoveFeed::executeRT(PlanTarget &target)->int
 	static double begin_pjs[6];
 	static double step_pjs[6];
 	static double stateTor0[6][3], stateTor1[6][3];
-	static float FT0[6], FT_be[6];
+    static double FT0[6], FT_be[6];
 	static double SumFtErr[6];
 	// 访问主站 //
 	auto controller = target.controller;
@@ -3979,7 +3979,7 @@ auto MoveFeed::executeRT(PlanTarget &target)->int
 	double dX[6] = { 0.00000, -0.0000, -0.0000, -0.0000, -0.0000, -0.0000 };
 	double dTheta[6] = { 0 };
 
-	float FT[6];
+    double FT[6];
 	uint16_t FTnum;
 	auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.controller);
 	conSensor->slavePool().at(6).readPdo(0x6030, 0x00, &FTnum, 16);
@@ -4371,7 +4371,7 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
     static double begin_t0[6];
     static double stateTor0[6], stateTor1[6];
 
-    static float FT0[6];
+    static double FT0[6];
     static double PqEnd0[7] = { 0 }, PqEnd[7] = { 0 },pe0[6] = { 0 },pe[6] = { 0 };
 	// 访问主站 //
 	auto controller = target.controller;
@@ -5155,7 +5155,7 @@ auto MovePressureToolXSine::executeRT(PlanTarget &target)->int
 	static double step_pjs[6];
     static double stateTor0[6], stateTor1[6], EndP0[3];
     static double sT0[6]={0}, sT1[6]={0};
-	static float FT0[6];
+    static double FT0[6];
 
     int FTnum=50;
     static double FTten[50]={0};
@@ -5423,7 +5423,7 @@ auto MoveForceXSine::executeRT(PlanTarget &target)->int
 	static double step_pjs[6];
 	static double stateTor0[6][3], stateTor1[6][3], EndP0[3];
 	static double sT0[6][3], sT1[6][3];
-	static float FT0[6];
+    static double FT0[6];
 
 	// 访问主站 //
 	auto controller = target.controller;
@@ -5648,7 +5648,7 @@ auto MoveForceCircle::executeRT(PlanTarget &target)->int
 	static double step_pjs[6];
 	static double stateTor0[6][3], stateTor1[6][3], EndP0[3];
 	static double sT0[6][3], sT1[6][3];
-	static float FT0[6];
+    static double FT0[6];
 
 	// 访问主站 //
 	auto controller = target.controller;
@@ -5843,8 +5843,9 @@ double P2[7] = { 0.34893612065625784,-0.41170589555940784,0.27707736,-0.7070685,
 double P3[7] = { 0.30910799,-0.34915346,0.27707300,-0.707084,-0.7071295,0,0 };
 double P4[7] = { 0.2563542,-0.3824533,0.2770473,-0.707082,-0.70713,0,0};
 double P5[7] = { 0.25856243,-0.42001145,0.284604726,-0.7070756,-0.707137,0,0};
+static long start_count = 0;
 
-void PressLine(PlanTarget &target, const long start_count, const double *FmInWorld, const double *P1, const double *P2, const double addLength,double *dX,std::atomic_bool &flag)
+void PressLine(PlanTarget &target, const double *FmInWorld, const double *P1, const double *P2, const double addLength,double *dX,bool &flag)
 {
     double pArc, vArc, aArc, vArcMax = 0.025;
     aris::Size t_count = 0;
@@ -5859,11 +5860,10 @@ void PressLine(PlanTarget &target, const long start_count, const double *FmInWor
     aris::plan::moveAbsolute(target.count-start_count+1, 0, length, vArcMax / 1000, 0.02 / 1000 / 1000, 0.02 / 1000 / 1000, pArc, vArc, aArc, t_count);
 
     if ((target.count - start_count-t_count) < 0.5&&(target.count - start_count-t_count) >- 0.5)
+      {
         flag = true;
-    {
-        int a=target.count - start_count;
-    std::cout<<target.count<<"***"<<length<<"**"<<t_count<<"***"<<flag<<"**"<<start_count<<"***"<<a;
     }
+
     double dX0[6] = { 0 };
     dX0[0] = vArc * dir[0];
     dX0[1] = vArc * dir[1];
@@ -5884,7 +5884,7 @@ void PressLine(PlanTarget &target, const long start_count, const double *FmInWor
     dXpid[1] = 1 * (FmInWorld[1] - xy_desired[1]) / 720000;
 
     for (int i = 0;i < 6;i++)
-        dX[i] = dX0[i] + 0;//dXpid[i];
+        dX[i] = dX0[i] + dXpid[i];
 
 
 }
@@ -5941,7 +5941,7 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
 
 	static double step_pjs[6];
 	static double stateTor0[6][3], stateTor1[6][3], EndP0[3];
-	static float FT0[6];
+    static double FT0[6];
 
 	// 访问主站 //
 	auto controller = target.controller;
@@ -5962,7 +5962,7 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
 	double dTheta[6] = { 0 };
 
 //////////////////////////////////////////////////Get FT in World Framework, Filter////////////////////////////////////////////
-	double FT[6];
+    double FT[6]={0};
 	if (param.SensorType > 0)
 		GetATI(target, FT);
 	else
@@ -5984,15 +5984,15 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
 	}
 
 
-    SecondOrderFilter(FT, stateTor0, stateTor1, 280);
+    //SecondOrderFilter(FT, stateTor0, stateTor1, 280);
 
 
-	double FT_KAI[6];
+    double FT_KAI[6]={0};
 	for (int i = 0; i < 6; i++)
 	{
         FT_KAI[i] = FT[i] - FT0[i];//In KAI Coordinate
 	}
-
+/*
 	double zero_check[6] = { 1,1,1,0.05,0.05,0.05 };
 	for (int i = 0; i < 6; i++)
 	{
@@ -6000,19 +6000,26 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
 			FT_KAI[i] = 1 / zero_check[i] * FT_KAI[i] * FT_KAI[i];//In KAI Coordinate
 		else if (FT_KAI[i]<0 && FT_KAI[i]>-zero_check[i])
 			FT_KAI[i] = -1 / zero_check[i] * FT_KAI[i] * FT_KAI[i];//In KAI Coordinate
-	}
+    }*/
 
 	double FmInWorld[6];
 	FT2World(target, FT_KAI, FmInWorld);
 	
     ////////////////////////////////////////////////////////Press Profile Determined by P1-P2-P3-P4-P5////////////////////////////
         static char line_mark = 'A';
-        long start_count = 0;
         static bool begin_flag = true;
-        static std::atomic_bool finish_flag = false;
+        if(target.count==1)
+        {
+            line_mark = 'A';
+            begin_flag = true;
+            start_count=0;
+        }
+
+
+        bool finish_flag = false;
         //static double addLength[5] = { -0.018,-0.025,-0.010,-0.015,0.01 };
         //static double addLength[5] = { 0.008,0.001,0.023,0.005,0.025};
-        static double addLength[5] = { -0.00,-0.00,0.000,0.000,0.000};
+        double addLength[5] = { -0.00,-0.00,0.000,0.000,0.000};
         switch (line_mark)
         {
         case 'A':
@@ -6021,7 +6028,7 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
                 start_count = target.count;
                 begin_flag = false;
             }
-                PressLine(target, start_count,FmInWorld, P1, P2, addLength[0], dX,finish_flag);
+                PressLine(target, FmInWorld, P1, P2, addLength[0], dX,finish_flag);
                 if (finish_flag)
                 {
                     begin_flag = true;
@@ -6035,7 +6042,7 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
                 start_count = target.count;
                 begin_flag = false;
             }
-            PressLine(target, start_count, FmInWorld, P2, P3, addLength[1], dX, finish_flag);
+            PressLine(target, FmInWorld, P2, P3, addLength[1], dX, finish_flag);
             if (finish_flag)
             {
                 begin_flag = true;
@@ -6049,7 +6056,7 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
                 start_count = target.count;
                 begin_flag = false;
             }
-            PressLine(target, start_count, FmInWorld, P3, P4, addLength[2], dX, finish_flag);
+            PressLine(target, FmInWorld, P3, P4, addLength[2], dX, finish_flag);
             if (finish_flag)
             {
                 begin_flag = true;
@@ -6063,7 +6070,7 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
                 start_count = target.count;
                 begin_flag = false;
             }
-            PressLine(target, start_count, FmInWorld, P4, P5, addLength[3], dX, finish_flag);
+            PressLine(target, FmInWorld, P4, P5, addLength[3], dX, finish_flag);
             if (finish_flag)
             {
                 begin_flag = true;
@@ -6077,7 +6084,7 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
                 start_count = target.count;
                 begin_flag = false;
             }
-            PressLine(target, start_count, FmInWorld, P5, P1, addLength[4], dX, finish_flag);
+            PressLine(target, FmInWorld, P5, P1, addLength[4], dX, finish_flag);
             if (finish_flag)
             {
                 begin_flag = true;
@@ -6095,20 +6102,20 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
 /////////////////////////////////////////////////////dX to dTheta, Generate Motor Position/////////////////////////////////////////////////
 	for (int j = 0; j < 6; j++)
 	{
-        if (dX[j] > 0.00035)
-            dX[j] = 0.00035;
-        if (dX[j] < -0.00035)
-            dX[j] = -0.00035;
+        if (dX[j] > 0.00025)
+            dX[j] = 0.00025;
+        if (dX[j] < -0.00025)
+            dX[j] = -0.00025;
 	}
 
 	dX2dTheta(target, dX, dTheta);
 
 	for (int i = 0; i < 6; i++)
 	{
-        if (dTheta[i] > 0.005)
-            dTheta[i] = 0.005;
-        if (dTheta[i] < -0.005)
-            dTheta[i] = -0.005;
+        if (dTheta[i] > 0.0025)
+            dTheta[i] = 0.0025;
+        if (dTheta[i] < -0.0025)
+            dTheta[i] = -0.0025;
 		//lout << dTheta[i] << ",";
 	}
 
@@ -6150,7 +6157,7 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
 	// log 电流 //
 	auto &lout = controller->lout();
 
-    lout << FT[0] << ",";lout << FT[1] << ",";
+    lout << target.count << ",";lout << FT[1] << ",";
 	lout << dX[0] << ",";lout << dX[1] << ",";
 	lout << FmInWorld[0] << ",";lout << FmInWorld[1] << ",";
 	lout << PqEnd[0] << ",";lout << PqEnd[1] << ",";
@@ -6158,8 +6165,8 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
     //if (target.count % 100 == 0)
 	{
 
-        cout << begin_flag  << "*" << finish_flag  << "**"<<line_mark<<std::endl;
-		cout << std::endl;
+        cout << target.count  << "*" << FmInWorld[0]  << "**"<<FmInWorld[1]<<"**"<<FmInWorld[2]<<"*" << FT0[0]  << "**"<<FT0[1]<<"**"<<FT0[2]<<std::endl;
+        //cout << std::endl;
 
 	}
 
