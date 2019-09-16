@@ -2502,6 +2502,7 @@ namespace kaanh
 		param.dec = std::stod(params.at("dec"));
 		param.path = params.at("path");
 
+        std::cout<<param.path;
 		param.total_count_vec.resize(6, 0);
 		param.axis_begin_pos_vec.resize(6, 0.0);
 		param.axis_first_pos_vec.resize(6, 0.0);
@@ -2614,10 +2615,10 @@ namespace kaanh
 		command().loadXmlStr(
 			"<Command name=\"mvf\">"
 			"	<GroupParam>"
-			"		<Param name=\"path\" default=\"C:\\Users\\kevin\\Desktop\\file\\rt_log--2019-09-06--19-14-16--moveJR.txt\"/>"
-			"		<Param name=\"vel\" default=\"0.05\" abbreviation=\"v\"/>"
-			"		<Param name=\"acc\" default=\"0.1\" abbreviation=\"a\"/>"
-			"		<Param name=\"dec\" default=\"0.1\" abbreviation=\"d\"/>"
+            "		<Param name=\"path\" default=\"/home/kaanh/Desktop/build-Kaanh-gk-Desktop_Qt_5_11_2_GCC_64bit-Default/log/motion_replay.txt\"/>"
+            "		<Param name=\"vel\" default=\"0.5\" abbreviation=\"v\"/>"
+            "		<Param name=\"acc\" default=\"0.6\" abbreviation=\"a\"/>"
+            "		<Param name=\"dec\" default=\"0.6\" abbreviation=\"d\"/>"
 			"	</GroupParam>"
 			"</Command>");
 	}
@@ -4181,7 +4182,7 @@ namespace kaanh
 		command().loadXmlStr(
 			"<Command name=\"jx\">"
 			"	<GroupParam>"
-			"		<Param name=\"increase_count\" default=\"100\"/>"
+            "		<Param name=\"increase_count\" default=\"100\"/>"
 			"		<Param name=\"vel\" default=\"{0.05,0.05,0.05,0.25,0.25,0.25}\"/>"
 			"		<Param name=\"acc\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
 			"		<Param name=\"dec\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
@@ -4363,7 +4364,7 @@ namespace kaanh
 		command().loadXmlStr(
 			"<Command name=\"jy\">"
 			"	<GroupParam>"
-			"		<Param name=\"increase_count\" default=\"100\"/>"
+            "		<Param name=\"increase_count\" default=\"100\"/>"
 			"		<Param name=\"vel\" default=\"{0.05,0.05,0.05,0.25,0.25,0.25}\"/>"
 			"		<Param name=\"acc\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
 			"		<Param name=\"dec\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
@@ -4546,7 +4547,7 @@ namespace kaanh
 		command().loadXmlStr(
 			"<Command name=\"jz\">"
 			"	<GroupParam>"
-			"		<Param name=\"increase_count\" default=\"100\"/>"
+            "		<Param name=\"increase_count\" default=\"100\"/>"
 			"		<Param name=\"vel\" default=\"{0.05,0.05,0.05,0.25,0.25,0.25}\"/>"
 			"		<Param name=\"acc\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
 			"		<Param name=\"dec\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
@@ -4729,7 +4730,7 @@ namespace kaanh
 		command().loadXmlStr(
 			"<Command name=\"jrx\">"
 			"	<GroupParam>"
-			"		<Param name=\"increase_count\" default=\"100\"/>"
+            "		<Param name=\"increase_count\" default=\"100\"/>"
 			"		<Param name=\"vel\" default=\"{0.05,0.05,0.05,0.25,0.25,0.25}\"/>"
 			"		<Param name=\"acc\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
 			"		<Param name=\"dec\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
@@ -4919,7 +4920,7 @@ namespace kaanh
 		command().loadXmlStr(
 			"<Command name=\"jry\">"
 			"	<GroupParam>"
-			"		<Param name=\"increase_count\" default=\"100\"/>"
+            "		<Param name=\"increase_count\" default=\"100\"/>"
 			"		<Param name=\"vel\" default=\"{0.2,0.2,0.2,0.25,0.25,0.25}\"/>"
 			"		<Param name=\"acc\" default=\"{1,1,1,1,1,1}\"/>"
 			"		<Param name=\"dec\" default=\"{1,1,1,1,1,1}\"/>"
@@ -5102,7 +5103,7 @@ namespace kaanh
 		command().loadXmlStr(
 			"<Command name=\"jrz\">"
 			"	<GroupParam>"
-			"		<Param name=\"increase_count\" default=\"100\"/>"
+            "		<Param name=\"increase_count\" default=\"100\"/>"
 			"		<Param name=\"vel\" default=\"{0.2,0.2,0.2,0.25,0.25,0.25}\"/>"
 			"		<Param name=\"acc\" default=\"{1,1,1,1,1,1}\"/>"
 			"		<Param name=\"dec\" default=\"{1,1,1,1,1,1}\"/>"
