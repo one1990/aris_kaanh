@@ -1923,7 +1923,9 @@ namespace kaanh
 				p, v, a, mvj_param->total_count[i]);
 
 			controller->motionPool()[i].setTargetPos(p);
+			target.model->motionPool()[i].setMp(p);
 		}
+		if (target.model->solverPool().at(1).kinPos())return -1;
 
 		if (g_move_stop)
 		{
@@ -3133,6 +3135,18 @@ namespace kaanh
 	JogJ& JogJ::operator=(JogJ &&other) = default;
 
 
+#define JOGJ_PARAM_STRING \
+		"	<UniqueParam>"\
+		"		<GroupParam>"\
+		"			<Param name=\"increase_count\" default=\"500\"/>"\
+		"			<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"\
+		"			<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"\
+		"			<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"\
+		"			<Param name=\"vel_percent\" default=\"10\"/>"\
+		"			<Param name=\"direction\" default=\"1\"/>"\
+		"		</GroupParam>"\
+		"		<Param name=\"stop\"/>"\
+		"	</UniqueParam>"
 	// 示教运动--关节1点动 //
 	struct JogJParam 
 	{
@@ -3144,8 +3158,10 @@ namespace kaanh
 		int vel_percent;
 		static std::atomic_int32_t j1_count, j2_count, j3_count, j4_count, j5_count, j6_count;
 	};
-	auto set_jogj_input_param(const std::map<std::string, std::string> &cmd_params, PlanTarget &target, JogJParam &param)->void
+	template<typename JogType>
+	auto set_jogj_input_param(JogType* this_p, const std::map<std::string, std::string> &cmd_params, PlanTarget &target, JogJParam &param, std::atomic_int32_t& j_count)->void
 	{
+		auto&cs = aris::server::ControlServer::instance();
 		auto c = target.controller;
 		param.p_now = 0.0;
 		param.v_now = 0.0;
@@ -3155,45 +3171,53 @@ namespace kaanh
 		param.increase_status = 0;
 		param.vel_percent = 0;
 
+		for (auto &p : cmd_params)
+		{
+			if (p.first == "increase_count")
+			{
+				param.increase_count = std::stoi(cmd_params.at("increase_count"));
+				if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
 
-		param.increase_count = std::stoi(cmd_params.at("increase_count"));
-		if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
+				param.vel = c->motionPool().at(param.motion_id).maxVel()*g_vel.getspeed().w_percent;
+				param.acc = std::min(std::max(std::stod(cmd_params.at("acc")), 0.0), 1.0)*c->motionPool().at(param.motion_id).maxAcc();
+				param.dec = std::min(std::max(std::stod(cmd_params.at("dec")), 0.0), 1.0)*c->motionPool().at(param.motion_id).maxAcc();
 
-		param.vel = c->motionPool().at(param.motion_id).maxVel()*g_vel.getspeed().w_percent;
-		param.acc = std::min(std::max(std::stod(cmd_params.at("acc")), 0.0), 1.0)*c->motionPool().at(param.motion_id).maxAcc();
-		param.dec = std::min(std::max(std::stod(cmd_params.at("dec")), 0.0), 1.0)*c->motionPool().at(param.motion_id).maxAcc();
+				auto velocity = std::stoi(cmd_params.at("vel_percent"));
+				velocity = std::max(std::min(100, velocity), 0);
+				param.vel_percent = velocity;
+				param.increase_status = std::max(std::min(1, std::stoi(cmd_params.at("direction"))), -1);
 
-		auto velocity = std::stoi(cmd_params.at("vel_percent"));
-		velocity = std::max(std::min(100, velocity), 0);
-		param.vel_percent = velocity;
-		param.increase_status = std::max(std::min(1, std::stoi(cmd_params.at("direction"))), -1);
+				std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
+				//当前有指令在执行//
+				if (planptr && planptr->plan != this_p)throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + "Other command is running");
+				if (j_count.exchange(param.increase_count))
+				{
+					target.option |= aris::plan::Plan::Option::NOT_RUN_EXECUTE_FUNCTION | aris::plan::Plan::Option::NOT_RUN_COLLECT_FUNCTION;
+				}
+				else
+				{
+					std::fill(target.mot_options.begin(), target.mot_options.end(), aris::plan::Plan::MotionOption::NOT_CHECK_POS_FOLLOWING_ERROR | aris::plan::Plan::MotionOption::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | aris::plan::Plan::MotionOption::USE_TARGET_POS | aris::plan::Plan::MotionOption::NOT_CHECK_ENABLE);
+					target.mot_options[param.motion_id] = aris::plan::Plan::MotionOption::NOT_CHECK_POS_FOLLOWING_ERROR | aris::plan::Plan::MotionOption::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | aris::plan::Plan::MotionOption::USE_TARGET_POS;
+				}
+			}
+			else if (p.first == "stop")
+			{
+				j_count.exchange(0);
+				target.option |= aris::plan::Plan::Option::NOT_RUN_EXECUTE_FUNCTION | aris::plan::Plan::Option::NOT_RUN_COLLECT_FUNCTION;
+			}
+		}
 	}
 	std::atomic_int32_t JogJParam::j1_count = 0;
 	auto JogJ1::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
-	{
-		auto&cs = aris::server::ControlServer::instance();
+	{	
 		JogJParam param;
-
 		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
 
 		param.motion_id = 0;
 
-		set_jogj_input_param(params, target, param);
+		set_jogj_input_param(this, params, target, param, param.j1_count);
 
-		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
-		//当前有指令在执行//
-        if (planptr && planptr->plan != this)throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + "Other command is running");
-
-		if (param.j1_count.exchange(param.increase_count))
-		{
-			target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION;
-		}
-		else
-		{
-            std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
-            target.mot_options[0] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
-		}
 		target.param = param;
 	}
 	auto JogJ1::executeRT(PlanTarget &target)->int
@@ -3289,14 +3313,7 @@ namespace kaanh
 	{
 		command().loadXmlStr(
 			"<Command name=\"j1\">"
-			"	<GroupParam>"
-            "		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
-			"		<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"
-			"		<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"
-			"		<Param name=\"vel_percent\" default=\"10\"/>"
-			"		<Param name=\"direction\" default=\"1\"/>"
-			"	</GroupParam>"
+				JOGJ_PARAM_STRING
 			"</Command>");
 	}
 
@@ -3305,29 +3322,14 @@ namespace kaanh
 	std::atomic_int32_t JogJParam::j2_count = 0;
 	auto JogJ2::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
-		auto&cs = aris::server::ControlServer::instance();
-		auto c = target.controller;
 		JogJParam param;
-
 		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
 
 		param.motion_id = 1;
-		set_jogj_input_param(params, target, param);
 
-		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
-		//当前有指令在执行//
-        if (planptr && planptr->plan != this)throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + "Other command is running");
+		set_jogj_input_param(this, params, target, param, param.j2_count);
 
-		if (param.j2_count.exchange(param.increase_count))
-		{
-			target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION;
-		}
-		else
-		{
-			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
-            target.mot_options[1] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
-		}
 		target.param = param;
 	}
 	auto JogJ2::executeRT(PlanTarget &target)->int
@@ -3423,14 +3425,7 @@ namespace kaanh
 	{
 		command().loadXmlStr(
 			"<Command name=\"j2\">"
-			"	<GroupParam>"
-            "		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
-			"		<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"
-			"		<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"
-			"		<Param name=\"vel_percent\" default=\"10\"/>"
-			"		<Param name=\"direction\" default=\"1\"/>"
-			"	</GroupParam>"
+				JOGJ_PARAM_STRING
 			"</Command>");
 	}
 
@@ -3439,29 +3434,13 @@ namespace kaanh
 	std::atomic_int32_t JogJParam::j3_count = 0;
 	auto JogJ3::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
-		auto&cs = aris::server::ControlServer::instance();
-		auto c = target.controller;
 		JogJParam param;
-
 		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
 
 		param.motion_id = 2;
-		set_jogj_input_param(params, target, param);
+		set_jogj_input_param(this, params, target, param, param.j3_count);
 
-		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
-		//当前有指令在执行//
-        if (planptr && planptr->plan != this)throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + "Other command is running");
-
-		if (param.j3_count.exchange(param.increase_count))
-		{
-			target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION;
-		}
-		else
-		{
-			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
-            target.mot_options[2] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
-		}
 		target.param = param;
 	}
 	auto JogJ3::executeRT(PlanTarget &target)->int
@@ -3557,14 +3536,7 @@ namespace kaanh
 	{
 		command().loadXmlStr(
 			"<Command name=\"j3\">"
-			"	<GroupParam>"
-            "		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
-			"		<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"
-			"		<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"
-			"		<Param name=\"vel_percent\" default=\"10\"/>"
-			"		<Param name=\"direction\" default=\"1\"/>"
-			"	</GroupParam>"
+				JOGJ_PARAM_STRING
 			"</Command>");
 	}
 
@@ -3573,29 +3545,13 @@ namespace kaanh
 	std::atomic_int32_t JogJParam::j4_count = 0;
 	auto JogJ4::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
-		auto&cs = aris::server::ControlServer::instance();
-		auto c = target.controller;
 		JogJParam param;
-
 		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
     
 		param.motion_id = 3;
-		set_jogj_input_param(params, target, param);
+		set_jogj_input_param(this, params, target, param, param.j4_count);
 
-		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
-		//当前有指令在执行//
-        if (planptr && planptr->plan != this)throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + "Other command is running");
-
-		if (param.j4_count.exchange(param.increase_count))
-		{
-			target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION;
-		}
-		else
-		{
-			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
-            target.mot_options[3] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
-		}
 		target.param = param;
 	}
 	auto JogJ4::executeRT(PlanTarget &target)->int
@@ -3691,14 +3647,7 @@ namespace kaanh
 	{
 		command().loadXmlStr(
 			"<Command name=\"j4\">"
-			"	<GroupParam>"
-            "		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
-			"		<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"
-			"		<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"
-			"		<Param name=\"vel_percent\" default=\"10\"/>"
-			"		<Param name=\"direction\" default=\"1\"/>"
-			"	</GroupParam>"
+				JOGJ_PARAM_STRING
 			"</Command>");
 	}
 
@@ -3707,29 +3656,13 @@ namespace kaanh
 	std::atomic_int32_t JogJParam::j5_count = 0;
 	auto JogJ5::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
-		auto&cs = aris::server::ControlServer::instance();
-		auto c = target.controller;
 		JogJParam param;
-
 		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
 
 		param.motion_id = 4;
-		set_jogj_input_param(params, target, param);
+		set_jogj_input_param(this, params, target, param, param.j5_count);
 
-		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
-		//当前有指令在执行//
-        if (planptr && planptr->plan != this)throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + "Other command is running");
-
-		if (param.j5_count.exchange(param.increase_count))
-		{
-			target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION;
-		}
-		else
-		{
-			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
-            target.mot_options[4] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
-		}
 		target.param = param;
 	}
 	auto JogJ5::executeRT(PlanTarget &target)->int
@@ -3825,14 +3758,7 @@ namespace kaanh
 	{
 		command().loadXmlStr(
 			"<Command name=\"j5\">"
-			"	<GroupParam>"
-            "		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
-			"		<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"
-			"		<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"
-			"		<Param name=\"vel_percent\" default=\"10\"/>"
-			"		<Param name=\"direction\" default=\"1\"/>"
-			"	</GroupParam>"
+				JOGJ_PARAM_STRING
 			"</Command>");
 	}
 
@@ -3841,29 +3767,13 @@ namespace kaanh
 	std::atomic_int32_t JogJParam::j6_count = 0;
 	auto JogJ6::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
-		auto&cs = aris::server::ControlServer::instance();
-		auto c = target.controller;
 		JogJParam param;
-
 		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
 
 		param.motion_id = 5;
-		set_jogj_input_param(params, target, param);
+		set_jogj_input_param(this, params, target, param, param.j6_count);
 
-		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
-		//当前有指令在执行//
-        if (planptr && planptr->plan != this)throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + "Other command is running");
-
-		if (param.j6_count.exchange(param.increase_count))
-		{
-			target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION;
-		}
-		else
-		{
-			std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS | NOT_CHECK_ENABLE);
-            target.mot_options[5] = NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS;
-		}
 		target.param = param;
 	}
 	auto JogJ6::executeRT(PlanTarget &target)->int
@@ -3959,18 +3869,26 @@ namespace kaanh
 	{
 		command().loadXmlStr(
 			"<Command name=\"j6\">"
-			"	<GroupParam>"
-            "		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"
-			"		<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"
-			"		<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"
-			"		<Param name=\"vel_percent\" default=\"10\"/>"
-			"		<Param name=\"direction\" default=\"1\"/>"
-			"	</GroupParam>"
+				JOGJ_PARAM_STRING
 			"</Command>");
 	}
 
 
+#define JOGC_PARAM_STRING \
+		"	<UniqueParam>"\
+		"		<GroupParam>"\
+		"			<Param name=\"increase_count\" default=\"500\"/>"\
+		"			<Param name=\"vel\" default=\"{0.05,0.05,0.05,0.25,0.25,0.25}\"/>"\
+		"			<Param name=\"acc\" default=\"{0.2,0.2,0.2,1,1,1}\"/>"\
+		"			<Param name=\"dec\" default=\"{0.2,0.2,0.2,1,1,1}\"/>"\
+		"			<Param name=\"cor\" default=\"0\"/>"\
+		"			<Param name=\"tool\" default=\"tool0\"/>"\
+		"			<Param name=\"wobj\" default=\"wobj0\"/>"\
+		"			<Param name=\"vel_percent\" default=\"20\"/>"\
+		"			<Param name=\"direction\" default=\"1\"/>"\
+		"		</GroupParam>"\
+		"		<Param name=\"stop\"/>"\
+		"	</UniqueParam>"
 	// 示教运动--jogx //
 	struct JCParam 
 	{
@@ -3984,68 +3902,80 @@ namespace kaanh
 		static std::atomic_int32_t jx_count, jy_count, jz_count, jrx_count, jry_count, jrz_count;
 		aris::dynamic::Marker *tool, *wobj;
 	};
-	auto set_jogc_input_param(const std::map<std::string, std::string> &cmd_params, PlanTarget &target, JCParam &param)->void
+	template<typename JogType>
+	auto set_jogc_input_param(JogType* this_p, const std::map<std::string, std::string> &cmd_params, PlanTarget &target, JCParam &param, std::atomic_int32_t& j_count)->void
 	{
-		std::cout << "tool" << cmd_params.at("tool") << std::endl;
-		param.tool = &*target.model->generalMotionPool()[0].makI().fatherPart().markerPool().findByName(cmd_params.at("tool"));
-		param.wobj = &*target.model->generalMotionPool()[0].makJ().fatherPart().markerPool().findByName(cmd_params.at("wobj"));
+		auto&cs = aris::server::ControlServer::instance();
+		auto c = target.controller;
 
-		param.increase_count = std::stoi(cmd_params.at("increase_count"));
-		if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
+		for (auto &p : cmd_params)
+		{
+			if (p.first == "increase_count")
+			{
+				auto tool_is_string = cmd_params.at("tool");
+				auto wobj_is_string = cmd_params.at("wobj");
 
-		param.cor_system = std::stoi(cmd_params.at("cor"));
-		auto velocity = std::stoi(cmd_params.at("vel_percent"));
-		velocity = std::max(std::min(100, velocity), 0);
-		param.vel_percent = velocity;
+				param.tool = &*target.model->generalMotionPool()[0].makI().fatherPart().markerPool().findByName(cmd_params.at("tool"));
+				param.wobj = &*target.model->generalMotionPool()[0].makJ().fatherPart().markerPool().findByName(cmd_params.at("wobj"));
 
-		auto mat = target.model->calculator().calculateExpression(cmd_params.at("vel"));
-		if (mat.size() != 6)THROW_FILE_LINE("");
-		std::copy(mat.begin(), mat.end(), param.vel);
-		std::fill(param.vel, param.vel + 3, g_vel.getspeed().v_tcp);
-		std::fill(param.vel + 3, param.vel + 6, g_vel.getspeed().w_tcp);
+				param.increase_count = std::stoi(cmd_params.at("increase_count"));
+				if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
 
-		mat = target.model->calculator().calculateExpression(cmd_params.at("acc"));
-		if (mat.size() != 6)THROW_FILE_LINE("");
-		std::copy(mat.begin(), mat.end(), param.acc);
+				param.cor_system = std::stoi(cmd_params.at("cor"));
+				auto velocity = std::stoi(cmd_params.at("vel_percent"));
+				velocity = std::max(std::min(100, velocity), 0);
+				param.vel_percent = velocity;
 
-		mat = target.model->calculator().calculateExpression(cmd_params.at("dec"));
-		if (mat.size() != 6)THROW_FILE_LINE("");
-		std::copy(mat.begin(), mat.end(), param.dec);
+				auto mat = target.model->calculator().calculateExpression(cmd_params.at("vel"));
+				if (mat.size() != 6)THROW_FILE_LINE("");
+				std::copy(mat.begin(), mat.end(), param.vel);
+				std::fill(param.vel, param.vel + 3, g_vel.getspeed().v_tcp);
+				std::fill(param.vel + 3, param.vel + 6, g_vel.getspeed().w_tcp);
 
-		param.increase_status[param.moving_type] = std::max(std::min(1, std::stoi(cmd_params.at("direction"))), -1);
+				mat = target.model->calculator().calculateExpression(cmd_params.at("acc"));
+				if (mat.size() != 6)THROW_FILE_LINE("");
+				std::copy(mat.begin(), mat.end(), param.acc);
 
+				mat = target.model->calculator().calculateExpression(cmd_params.at("dec"));
+				if (mat.size() != 6)THROW_FILE_LINE("");
+				std::copy(mat.begin(), mat.end(), param.dec);
+
+				param.increase_status[param.moving_type] = std::max(std::min(1, std::stoi(cmd_params.at("direction"))), -1);
+
+				std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
+
+				//当前有指令在执行//
+				if (planptr && planptr->plan != this_p)throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + "Other command is running");
+
+				if (j_count.exchange(param.increase_count))
+				{
+					target.option |= aris::plan::Plan::Option::NOT_RUN_EXECUTE_FUNCTION | aris::plan::Plan::Option::NOT_RUN_COLLECT_FUNCTION;
+				}
+				else
+				{
+					std::fill(target.mot_options.begin(), target.mot_options.end(), aris::plan::Plan::MotionOption::NOT_CHECK_POS_FOLLOWING_ERROR | aris::plan::Plan::MotionOption::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | aris::plan::Plan::MotionOption::USE_TARGET_POS);
+				}
+			}
+			else if (p.first == "stop")
+			{
+				j_count.exchange(0);
+				target.option |= aris::plan::Plan::Option::NOT_RUN_EXECUTE_FUNCTION | aris::plan::Plan::Option::NOT_RUN_COLLECT_FUNCTION;
+			}
+		}
 	}
 	std::atomic_int32_t JCParam::jx_count = 0;
 	auto JX::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
-		auto&cs = aris::server::ControlServer::instance();
-		auto c = target.controller;
 		JCParam param;
 
 		param.pm_target.resize(16, 0.0);
 		param.moving_type = 0;//0,1,2,3,4,5分别表示沿x,y,z,Rx,Ry,Rz动作//
 
-		auto t = params.at("tool");
-		std::cout << "tool:" << t << std::endl;
-
 		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
 
-		set_jogc_input_param(params, target, param);
+		set_jogc_input_param(this, params, target, param, param.jx_count);
 
-		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
-		
-		//当前有指令在执行//
-        if (planptr && planptr->plan != this)throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + "Other command is running");
-
-		if (param.jx_count.exchange(param.increase_count))
-		{
-			target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION;
-		}
-		else
-		{
-            std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS);
-		}
 		target.param = param;
 
 	}
@@ -4187,17 +4117,7 @@ namespace kaanh
 	{
 		command().loadXmlStr(
 			"<Command name=\"jx\">"
-			"	<GroupParam>"
-			"		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"{0.05,0.05,0.05,0.25,0.25,0.25}\"/>"
-			"		<Param name=\"acc\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
-			"		<Param name=\"dec\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
-			"		<Param name=\"cor\" default=\"0\"/>"
-			"		<Param name=\"tool\" default=\"tool0\"/>"
-			"		<Param name=\"wobj\" default=\"wobj0\"/>"
-			"		<Param name=\"vel_percent\" default=\"20\"/>"
-			"		<Param name=\"direction\" default=\"1\"/>"
-			"	</GroupParam>"
+				JOGC_PARAM_STRING
 			"</Command>");
 	}
 	
@@ -4206,8 +4126,6 @@ namespace kaanh
 	std::atomic_int32_t JCParam::jy_count = 0;
 	auto JY::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
-		auto&cs = aris::server::ControlServer::instance();
-		auto c = target.controller;
 		JCParam param;
 
 		param.pm_target.resize(16, 0.0);
@@ -4216,20 +4134,8 @@ namespace kaanh
 		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
 
-		set_jogc_input_param(params, target, param);
+		set_jogc_input_param(this, params, target, param, param.jy_count);
 
-		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
-		//当前有指令在执行//
-        if (planptr && planptr->plan != this)throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + "Other command is running");
-
-		if (param.jy_count.exchange(param.increase_count))
-		{
-			target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION;
-		}
-		else
-		{
-            std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS);
-		}
 		target.param = param;
 
 	}
@@ -4369,17 +4275,7 @@ namespace kaanh
 	{
 		command().loadXmlStr(
 			"<Command name=\"jy\">"
-			"	<GroupParam>"
-			"		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"{0.05,0.05,0.05,0.25,0.25,0.25}\"/>"
-			"		<Param name=\"acc\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
-			"		<Param name=\"dec\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
-			"		<Param name=\"cor\" default=\"0\"/>"
-			"		<Param name=\"tool\" default=\"tool0\"/>"
-			"		<Param name=\"wobj\" default=\"wobj0\"/>"
-			"		<Param name=\"vel_percent\" default=\"20\"/>"
-			"		<Param name=\"direction\" default=\"1\"/>"
-			"	</GroupParam>"
+				JOGC_PARAM_STRING
 			"</Command>");
 	}
 
@@ -4388,8 +4284,6 @@ namespace kaanh
 	std::atomic_int32_t JCParam::jz_count = 0;
 	auto JZ::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
-		auto&cs = aris::server::ControlServer::instance();
-		auto c = target.controller;
 		JCParam param;
 
 		param.pm_target.resize(16, 0.0);
@@ -4398,21 +4292,8 @@ namespace kaanh
 		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
 
-		set_jogc_input_param(params, target, param);
+		set_jogc_input_param(this, params, target, param, param.jz_count);
 
-		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
-
-		//当前有指令在执行//
-        if (planptr && planptr->plan != this)throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + "Other command is running");
-
-		if (param.jz_count.exchange(param.increase_count))
-		{
-			target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION;
-		}
-		else
-		{
-            std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS);
-		}
 		target.param = param;
 
 	}
@@ -4552,17 +4433,7 @@ namespace kaanh
 	{
 		command().loadXmlStr(
 			"<Command name=\"jz\">"
-			"	<GroupParam>"
-			"		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"{0.05,0.05,0.05,0.25,0.25,0.25}\"/>"
-			"		<Param name=\"acc\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
-			"		<Param name=\"dec\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
-			"		<Param name=\"cor\" default=\"0\"/>"
-			"		<Param name=\"tool\" default=\"tool0\"/>"
-			"		<Param name=\"wobj\" default=\"wobj0\"/>"
-			"		<Param name=\"vel_percent\" default=\"20\"/>"
-			"		<Param name=\"direction\" default=\"1\"/>"
-			"	</GroupParam>"
+				JOGC_PARAM_STRING
 			"</Command>");
 	}
 
@@ -4571,8 +4442,6 @@ namespace kaanh
 	std::atomic_int32_t JCParam::jrx_count = 0;
 	auto JRX::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
-		auto&cs = aris::server::ControlServer::instance();
-		auto c = target.controller;
 		JCParam param;
 
 		param.pm_target.resize(16, 0.0);
@@ -4581,21 +4450,8 @@ namespace kaanh
 		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
 
-		set_jogc_input_param(params, target, param);
+		set_jogc_input_param(this, params, target, param, param.jrx_count);
 
-		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
-
-		//当前有指令在执行//
-        if (planptr && planptr->plan != this)throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + "Other command is running");
-
-		if (param.jrx_count.exchange(param.increase_count))
-		{
-			target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION;
-		}
-		else
-		{
-            std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS);
-		}
 		target.param = param;
 
 	}
@@ -4735,17 +4591,7 @@ namespace kaanh
 	{
 		command().loadXmlStr(
 			"<Command name=\"jrx\">"
-			"	<GroupParam>"
-			"		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"{0.05,0.05,0.05,0.25,0.25,0.25}\"/>"
-			"		<Param name=\"acc\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
-			"		<Param name=\"dec\" default=\"{0.2,0.2,0.2,3,3,3}\"/>"
-			"		<Param name=\"cor\" default=\"0\"/>"
-			"		<Param name=\"tool\" default=\"tool0\"/>"
-			"		<Param name=\"wobj\" default=\"wobj0\"/>"
-			"		<Param name=\"vel_percent\" default=\"20\"/>"
-			"		<Param name=\"direction\" default=\"1\"/>"
-			"	</GroupParam>"
+				JOGC_PARAM_STRING
 			"</Command>");
 	}
 
@@ -4754,8 +4600,6 @@ namespace kaanh
 	std::atomic_int32_t JCParam::jry_count = 0;
 	auto JRY::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
-		auto&cs = aris::server::ControlServer::instance();
-		auto c = target.controller;
 		JCParam param;
 
 		param.pm_target.resize(16, 0.0);
@@ -4764,28 +4608,8 @@ namespace kaanh
 		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
 
-		for (aris::Size i = 0; i < 6; i++)
-		{
-			param.vel[i] = c->motionPool().at(i).maxVel();
-			param.acc[i] = c->motionPool().at(i).maxAcc();
-			param.dec[i] = c->motionPool().at(i).maxAcc();
-		}
+		set_jogc_input_param(this, params, target, param, param.jry_count);
 
-		set_jogc_input_param(params, target, param);
-
-		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
-
-		//当前有指令在执行//
-        if (planptr && planptr->plan != this)throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + "Other command is running");
-
-		if (param.jry_count.exchange(param.increase_count))
-		{
-			target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION;
-		}
-		else
-		{
-            std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS);
-		}
 		target.param = param;
 
 	}
@@ -4925,17 +4749,7 @@ namespace kaanh
 	{
 		command().loadXmlStr(
 			"<Command name=\"jry\">"
-			"	<GroupParam>"
-			"		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"{0.2,0.2,0.2,0.25,0.25,0.25}\"/>"
-			"		<Param name=\"acc\" default=\"{1,1,1,1,1,1}\"/>"
-			"		<Param name=\"dec\" default=\"{1,1,1,1,1,1}\"/>"
-			"		<Param name=\"cor\" default=\"0\"/>"
-			"		<Param name=\"tool\" default=\"tool0\"/>"
-			"		<Param name=\"wobj\" default=\"wobj0\"/>"
-			"		<Param name=\"vel_percent\" default=\"20\"/>"
-			"		<Param name=\"direction\" default=\"1\"/>"
-			"	</GroupParam>"
+				JOGC_PARAM_STRING
 			"</Command>");
 	}
 
@@ -4944,8 +4758,6 @@ namespace kaanh
 	std::atomic_int32_t JCParam::jrz_count = 0;
 	auto JRZ::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
-		auto&cs = aris::server::ControlServer::instance();
-		auto c = target.controller;
 		JCParam param;
 
 		param.pm_target.resize(16, 0.0);
@@ -4954,21 +4766,8 @@ namespace kaanh
 		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
 
-		set_jogc_input_param(params, target, param);
+		set_jogc_input_param(this, params, target, param, param.jrz_count);
 
-		std::shared_ptr<aris::plan::PlanTarget> planptr = cs.currentExecuteTarget();
-
-		//当前有指令在执行//
-        if (planptr && planptr->plan != this)throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + "Other command is running");
-
-		if (param.jrz_count.exchange(param.increase_count))
-		{
-			target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION;
-		}
-		else
-		{
-            std::fill(target.mot_options.begin(), target.mot_options.end(), NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | USE_TARGET_POS);
-		}
 		target.param = param;
 
 	}
@@ -5108,17 +4907,7 @@ namespace kaanh
 	{
 		command().loadXmlStr(
 			"<Command name=\"jrz\">"
-			"	<GroupParam>"
-			"		<Param name=\"increase_count\" default=\"100\"/>"
-			"		<Param name=\"vel\" default=\"{0.2,0.2,0.2,0.25,0.25,0.25}\"/>"
-			"		<Param name=\"acc\" default=\"{1,1,1,1,1,1}\"/>"
-			"		<Param name=\"dec\" default=\"{1,1,1,1,1,1}\"/>"
-			"		<Param name=\"cor\" default=\"0\"/>"
-			"		<Param name=\"tool\" default=\"tool0\"/>"
-			"		<Param name=\"wobj\" default=\"wobj0\"/>"
-			"		<Param name=\"vel_percent\" default=\"20\"/>"
-			"		<Param name=\"direction\" default=\"1\"/>"
-			"	</GroupParam>"
+				JOGC_PARAM_STRING
 			"</Command>");
 	}
 	
