@@ -1159,6 +1159,16 @@ namespace kaanh
 				}
 			}
 			
+			//g_is_error//
+			if (target->ret_code == 0)
+			{
+				g_is_error.store(false);
+			}
+			else
+			{
+				g_is_error.store(true);
+			}
+
 			//state machine//
 			auto s = std::any_cast<GetParam &>(data);
 			if (s.motion_state[0] && s.motion_state[1] && s.motion_state[2] && s.motion_state[3] && s.motion_state[4] && s.motion_state[5])
@@ -6003,7 +6013,8 @@ namespace kaanh
 
 			}
 			else if (p.first == "start")
-			{		
+			{	
+				g_is_auto.store(true);
 				//有指令在执行//
 				if (is_auto_executing())
 				{
@@ -6050,7 +6061,8 @@ namespace kaanh
 										cmdparam.current_cmd_id += 1;
 										const bool is_not_start = false;
 										set_is_auto_executing(is_not_start);
-									}								
+									}
+									g_is_auto.store(false);
 								});
 							}
 						}
@@ -6334,6 +6346,34 @@ namespace kaanh
 			"</Command>");
 	}
 
+
+	// 手动、自动模式切换, manual=1，手动//
+	struct SwitchParam
+	{
+		bool is_manual;
+	};
+	auto Switch::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		SwitchParam param;
+		for (auto &p : params)
+		{
+			if (p.first == "manual")
+			{
+				param.is_manual = std::stoi(p.second);
+			}
+		}
+		g_is_manual.store(param.is_manual);
+
+		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
+	}
+	Switch::Switch(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"switch\">"
+			"		<Param name=\"manual\" default=\"1\"/>"
+			"</Command>");
+	}
+
     auto createPlanRootRokaeXB4()->std::unique_ptr<aris::plan::PlanRoot>
 	{
         std::unique_ptr<aris::plan::PlanRoot> plan_root(new aris::plan::PlanRoot);
@@ -6403,6 +6443,7 @@ namespace kaanh
 		plan_root->planPool().add<kaanh::Run>();
 		plan_root->planPool().add<kaanh::StartCS>();
 		plan_root->planPool().add<kaanh::MoveF>();
+		plan_root->planPool().add<kaanh::Switch>();
 
 		plan_root->planPool().add<MoveXYZ>();
 		plan_root->planPool().add<MoveJoint>();

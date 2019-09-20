@@ -631,6 +631,14 @@ namespace kaanh
 		explicit MoveSt(const std::string &name = "MoveSt_plan");
 		ARIS_REGISTER_TYPE(MoveSt);
 	};
+
+	class Switch : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		explicit Switch(const std::string &name = "Switch_plan");
+		ARIS_REGISTER_TYPE(Switch);
+	};
 }
 
 #endif
