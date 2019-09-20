@@ -20,7 +20,7 @@ extern std::atomic_int g_vel_percent;
 //global vel//
 
 //state machine flag//
-extern std::atomic_bool g_error;
+extern std::atomic_bool g_is_error;
 extern std::atomic_bool g_is_manual;
 extern std::atomic_bool g_is_auto;
 //state machine flag//
@@ -1141,7 +1141,6 @@ namespace kaanh
 				std::any_cast<GetParam &>(data).ai[i] = 1.0;
 				std::any_cast<GetParam &>(data).di[i] = false;
 			}
-			std::any_cast<GetParam &>(data).state_code = 0;
 			
 			auto ec = dynamic_cast<aris::control::EthercatController*>(&cs.controller());
 			ec->getLinkState(&std::any_cast<GetParam &>(data).mls, std::any_cast<GetParam &>(data).sls);
@@ -1159,6 +1158,40 @@ namespace kaanh
 					std::any_cast<GetParam &>(data).motion_state[i] = 1;
 				}
 			}
+			
+			//state machine//
+			auto s = std::any_cast<GetParam &>(data);
+			if (s.motion_state[0] && s.motion_state[1] && s.motion_state[2] && s.motion_state[3] && s.motion_state[4] && s.motion_state[5])
+			{
+				if (g_is_error.load())
+				{
+					std::any_cast<GetParam &>(data).state_code = 500;
+				}
+				else
+				{
+					if (g_is_manual.load())
+					{
+						std::any_cast<GetParam &>(data).state_code = 200;
+					}
+					else
+					{
+						if (!g_is_auto.load())
+						{
+							std::any_cast<GetParam &>(data).state_code = 300;
+						}
+						else
+						{
+							std::any_cast<GetParam &>(data).state_code = 400;
+						}
+					}
+				}
+			}
+			else
+			{
+				std::any_cast<GetParam &>(data).state_code = 100;
+			}
+			//state machine//
+
 			if (target == nullptr)
 			{
 				std::any_cast<GetParam &>(data).currentplan = "none";
@@ -1712,9 +1745,11 @@ namespace kaanh
 					param->axis_vel_vec[i] / 1000, param->axis_acc_vec[i] / 1000 / 1000, param->axis_dec_vec[i] / 1000 / 1000,
 					p, v, a, t_count);
 				target.controller->motionPool()[i].setTargetPos(p);
+				target.model->motionPool()[i].setMp(p);
 				total_count = std::max(total_count, t_count);
 			}
 		}
+		if (target.model->solverPool().at(1).kinPos())return -1;
 
 		if (g_move_stop)
 		{
@@ -1808,6 +1843,7 @@ namespace kaanh
 	{
 		std::vector<double> joint_vel, joint_acc, joint_dec, ee_pq, joint_pos_begin, joint_pos_end;
 		std::vector<Size> total_count;
+		aris::dynamic::Marker *tool, *wobj;
 	};
 	struct MoveJ::Imp {};
 	auto MoveJ::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
@@ -1824,6 +1860,12 @@ namespace kaanh
 		mvj_param.joint_pos_end.resize(target.model->motionPool().size(), 0.0);
 		mvj_param.total_count.resize(target.model->motionPool().size(), 0);
 
+		auto tool_is_string = params.at("tool");
+		auto wobj_is_string = params.at("wobj");
+
+		mvj_param.tool = &*target.model->generalMotionPool()[0].makI().fatherPart().markerPool().findByName(params.at("tool"));
+		mvj_param.wobj = &*target.model->generalMotionPool()[0].makJ().fatherPart().markerPool().findByName(params.at("wobj"));
+		
 		// find joint acc/vel/dec/
 		for (auto cmd_param : params)
 		{
@@ -1899,7 +1941,10 @@ namespace kaanh
 			// inverse kinematic //
 			double end_pm[16];
 			aris::dynamic::s_pq2pm(mvj_param->ee_pq.data(), end_pm);
-			target.model->generalMotionPool().at(0).setMpm(end_pm);
+			//target.model->generalMotionPool().at(0).setMpm(end_pm);
+			mvj_param->tool->setPm(*mvj_param->wobj, end_pm);
+			target.model->generalMotionPool().at(0).updMpm();
+
 			if (target.model->solverPool().at(0).kinPos())return -1;
 
 			// init joint_pos //
@@ -1952,6 +1997,8 @@ namespace kaanh
 			"		<Param name=\"joint_acc\" default=\"0.1\"/>"
 			"		<Param name=\"joint_vel\" default=\"0.1\"/>"
 			"		<Param name=\"joint_dec\" default=\"0.1\"/>"
+			"		<Param name=\"tool\" default=\"tool0\"/>"
+			"		<Param name=\"wobj\" default=\"wobj0\"/>"
 			CHECK_PARAM_STRING
 			"	</GroupParam>"
 			"</Command>");
@@ -1965,6 +2012,7 @@ namespace kaanh
 
 		double acc, vel, dec;
 		double angular_acc, angular_vel, angular_dec;
+		aris::dynamic::Marker *tool, *wobj;
 	};
 	struct MoveL::Imp {};
 	auto MoveL::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
@@ -1974,6 +2022,12 @@ namespace kaanh
 		MoveLParam mvl_param;
 		mvl_param.ee_pq.resize(7);
 		if (!find_pq(params, target, mvl_param.ee_pq.data()))THROW_FILE_LINE("");
+
+		auto tool_is_string = params.at("tool");
+		auto wobj_is_string = params.at("wobj");
+
+		mvl_param.tool = &*target.model->generalMotionPool()[0].makI().fatherPart().markerPool().findByName(params.at("tool"));
+		mvl_param.wobj = &*target.model->generalMotionPool()[0].makJ().fatherPart().markerPool().findByName(params.at("wobj"));
 
 		for (auto cmd_param : params)
 		{
@@ -2023,8 +2077,10 @@ namespace kaanh
 			double end_pm[16];
 			aris::dynamic::s_pq2pm(mvl_param->ee_pq.data(), end_pm);
 			target.model->generalMotionPool().at(0).updMpm();
-			target.model->generalMotionPool().at(0).getMpm(begin_pm);
+			//target.model->generalMotionPool().at(0).getMpm(begin_pm);
+			mvl_param->tool->getPm(*mvl_param->wobj, begin_pm);
 			aris::dynamic::s_inv_pm_dot_pm(begin_pm, end_pm, relative_pm);
+
 
 			// relative_pa //
 			aris::dynamic::s_pm2pa(relative_pm, relative_pa);
@@ -2054,7 +2110,9 @@ namespace kaanh
 		aris::dynamic::s_pm_dot_pm(begin_pm, pm, pm2);
 
 		// 反解计算电机位置 //
-		target.model->generalMotionPool().at(0).setMpm(pm2);
+		//target.model->generalMotionPool().at(0).setMpm(pm2);
+		mvl_param->tool->setPm(*mvl_param->wobj, pm2);
+		target.model->generalMotionPool().at(0).updMpm();
 		if (target.model->solverPool().at(0).kinPos())return -1;
 
 		////////////////////////////////////// log ///////////////////////////////////////
@@ -2097,6 +2155,8 @@ namespace kaanh
 			"		<Param name=\"angular_acc\" default=\"0.1\"/>"
 			"		<Param name=\"angular_vel\" default=\"0.1\"/>"
 			"		<Param name=\"angular_dec\" default=\"0.1\"/>"
+			"		<Param name=\"tool\" default=\"tool0\"/>"
+			"		<Param name=\"wobj\" default=\"wobj0\"/>"
 			CHECK_PARAM_STRING
 			"	</GroupParam>"
 			"</Command>");
@@ -2257,6 +2317,7 @@ namespace kaanh
 		Size total_count[6];
 		double acc, vel, dec;
 		double angular_acc, angular_vel, angular_dec;
+		aris::dynamic::Marker *tool, *wobj;
 	};
 	struct MoveC::Imp {};
 	auto MoveC::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
@@ -2267,6 +2328,12 @@ namespace kaanh
 		mvc_param.ee_end_pq.resize(7);
 		if (!find_mid_pq(params, target, mvc_param.ee_mid_pq.data()))THROW_FILE_LINE("");
 		if (!find_end_pq(params, target, mvc_param.ee_end_pq.data()))THROW_FILE_LINE("");
+
+		auto tool_is_string = params.at("tool");
+		auto wobj_is_string = params.at("wobj");
+
+		mvc_param.tool = &*target.model->generalMotionPool()[0].makI().fatherPart().markerPool().findByName(params.at("tool"));
+		mvc_param.wobj = &*target.model->generalMotionPool()[0].makJ().fatherPart().markerPool().findByName(params.at("wobj"));
 
 		for (auto cmd_param : params)
 		{
@@ -2316,7 +2383,8 @@ namespace kaanh
 
 		if (target.count == 1)
 		{
-			target.model->generalMotionPool().at(0).getMpq(mvc_param.ee_begin_pq.data());
+			//target.model->generalMotionPool().at(0).getMpq(mvc_param.ee_begin_pq.data());
+			mvc_param.tool->getPq(*mvc_param.wobj, mvc_param.ee_begin_pq.data());
 
 			//排除3点共线的情况//		
 			std::vector<double> mul_cross(3);
@@ -2428,7 +2496,10 @@ namespace kaanh
 		}
 
 		// set目标位置，并进行运动学反解 //
-		target.model->generalMotionPool().at(0).setMpq(pqt);
+		//target.model->generalMotionPool().at(0).setMpq(pqt);
+		mvc_param.tool->setPq(*mvc_param.wobj, pqt);
+		target.model->generalMotionPool().at(0).updMpm();
+
 		if (target.model->solverPool().at(0).kinPos())return -1;
 
 		////////////////////////////////////// log ///////////////////////////////////////
@@ -2483,6 +2554,8 @@ namespace kaanh
 			"		<Param name=\"angular_acc\" default=\"0.1\"/>"
 			"		<Param name=\"angular_vel\" default=\"0.1\"/>"
 			"		<Param name=\"angular_dec\" default=\"0.1\"/>"
+			"		<Param name=\"tool\" default=\"tool0\"/>"
+			"		<Param name=\"wobj\" default=\"wobj0\"/>"
 			"	</GroupParam>"
 			"</Command>");
 	}
