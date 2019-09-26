@@ -7,7 +7,7 @@
 //using namespace std;
 using namespace aris::plan;
 using namespace aris::dynamic;
-using namespace PLANGK;
+using namespace traplan;
 /// \brief
 
 planconfig planoperator;
@@ -54,13 +54,13 @@ void ReSetLimit0(PlanTarget &target)
 
 }
 
-void RealU(const int count, const int count_change, const double u0, const double u1, double *u)
+void RealU(const int count, const int count_change, const double u0, const double u1, double &u)
 {
     double tau = (count - count_change) / 100.0;
 	if (tau > 1)
 		tau = 1;
 
-    u[0] = u0 + (u1 - u0)*(3 * tau*tau - 2 * tau*tau*tau);
+	u = u0 + (u1 - u0)*(3 * tau*tau - 2 * tau*tau*tau);
 
 }
 
@@ -154,8 +154,8 @@ auto DoubleSPlan::executeRT(PlanTarget &target)->int
 	if (target.model->solverPool().at(1).kinPos())return -1;
 
     double st = 0, vt = 0, at = 0, jt = 0;
-    static double ut[1] = {1};
-    static double ut0 = ut[0], ut1 = ut[0];
+    static double ut = 1;
+	static double ut0 = ut, ut1 = ut;
 	static int count_change=0;
 	static double time_SVEL = 0;
 
@@ -163,16 +163,16 @@ auto DoubleSPlan::executeRT(PlanTarget &target)->int
 	if (target.count == 400)
 	{
 		count_change = target.count;
-        ut0 = ut[0];ut1 = 1.0;
+        ut0 = ut;ut1 = 1.0;
 	}
     if (target.count == 600)
 	{
 		count_change = target.count;
-        ut0 = ut[0];ut1 = 2.0;
+        ut0 = ut;ut1 = 2.0;
     }
 
 	RealU(target.count, count_change, ut0, ut1, ut);
-    time_SVEL = time_SVEL + ut[0] * 0.001;
+	time_SVEL = time_SVEL + ut * 0.001;
 
 
 	static int finish_count = round(param.T[3] * 1000.0);
