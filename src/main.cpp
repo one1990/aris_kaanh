@@ -6,16 +6,18 @@
 #include<filesystem>
 
 
-std::atomic_bool is_automatic = false;
 using namespace aris::dynamic;
 
-double fce_data[buffer_length], fce_send[buffer_length];
-int data_num = 0, data_num_send = 0;
-std::vector<std::vector<std::string>> plantrack(6, std::vector<std::string>());
-std::atomic_int which_di = 0;
-
+//global vel//
 kaanh::Speed g_vel;
 std::atomic_int g_vel_percent = 0;
+//global vel//
+
+//state machine flag//
+std::atomic_bool g_error = false;
+std::atomic_bool g_is_manual = false;
+std::atomic_bool g_is_auto = false;
+//state machine flag//
 
 auto xmlpath = std::filesystem::absolute(".");//获取当前工程所在的路径
 auto uixmlpath = std::filesystem::absolute(".");
@@ -34,7 +36,7 @@ int main(int argc, char *argv[])
 	auto&cs = aris::server::ControlServer::instance();
 	auto port = argc < 2 ? 5866 : std::stoi(argv[1]);
 
-/*
+	
 	//生成kaanh.xml文档
     //-------for rokae robot begin//
     cs.resetController(kaanh::createControllerRokaeXB4().release());
@@ -43,14 +45,14 @@ int main(int argc, char *argv[])
     cs.resetPlanRoot(kaanh::createPlanRootRokaeXB4().release());
     //cs.interfacePool().add<aris::server::WebInterface>("", "5866", aris::core::Socket::WEB);
 	cs.interfacePool().add<kaanh::ProInterface>("", "5866", aris::core::Socket::WEB);
-	//cs.interfacePool().add<aris::server::WebInterface>("", "5867", aris::core::Socket::TCP);
+	cs.interfacePool().add<aris::server::WebInterface>("", "5867", aris::core::Socket::TCP);
     cs.resetSensorRoot(new aris::sensor::SensorRoot);
 	cs.interfaceRoot().loadXmlFile(uixmlpath.string().c_str());
 	//cs.model().saveXmlFile(modelxmlpath.string().c_str());	//for new model
 	//cs.model().loadXmlFile(modelxmlpath.string().c_str());
 	cs.saveXmlFile(xmlpath.string().c_str());
     //-------for rokae robot end// 
-
+	
 
     /*
     //-------for sanxiang robot begin//

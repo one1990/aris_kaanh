@@ -68,6 +68,18 @@ public:
 	ARIS_REGISTER_TYPE(MoveJoint);
 };
 
+class Replay : public aris::plan::Plan
+{
+public:
+    auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+    auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+    auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+
+    explicit Replay(const std::string &name = "Replay");
+    ARIS_REGISTER_TYPE(Replay);
+};
+
+
 class ForceDirect : public aris::plan::Plan
 {
 public:
@@ -190,6 +202,16 @@ public:
 
 	explicit MoveFeed(const std::string &name = "MoveFeed");
     ARIS_REGISTER_TYPE(MoveFeed);
+};
+
+
+
+class FCStop : public aris::plan::Plan
+{
+public:
+    auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+    explicit FCStop(const std::string &name = "FCStop");
+    ARIS_REGISTER_TYPE(FCStop);
 };
 
 
