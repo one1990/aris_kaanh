@@ -53,7 +53,7 @@ namespace kaanh
 	auto createControllerEA()->std::unique_ptr<aris::control::Controller>;
 	auto createModelRokaeXB4(const double *robot_pm = nullptr)->std::unique_ptr<aris::dynamic::Model>;
 	auto createControllerRokaeXB4()->std::unique_ptr<aris::control::Controller>;
-	auto createPlanRootRokaeXB4()->std::unique_ptr<aris::plan::PlanRoot>;
+	auto createPlanRoot()->std::unique_ptr<aris::plan::PlanRoot>;
 	auto createModelRokae()->std::unique_ptr<aris::dynamic::Model>;
 	
 	auto createControllerSanXiang()->std::unique_ptr<aris::control::Controller>;
@@ -237,20 +237,15 @@ namespace kaanh
 		ARIS_REGISTER_TYPE(MoveF);
 	};
 
-	class MoveAbsJ :public aris::plan::Plan
+	class MvaJ :public aris::plan::Plan
 	{
 	public:
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
 		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
 
-		virtual ~MoveAbsJ();
-		explicit MoveAbsJ(const std::string &name = "move_abs_j");
-		ARIS_REGISTER_TYPE(MoveAbsJ);
-		ARIS_DECLARE_BIG_FOUR(MoveAbsJ);
-
-	private:
-		struct Imp;
-		aris::core::ImpPtr<Imp> imp_;
+		virtual ~MvaJ();
+		explicit MvaJ(const std::string &name = "MvaJ");
+		ARIS_REGISTER_TYPE(MvaJ);
 	};
 	
 	class MoveJ : public aris::plan::Plan

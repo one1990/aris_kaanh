@@ -978,6 +978,7 @@ namespace kaanh
 		std::vector<double> axis_vel_vec;
 		std::vector<double> axis_acc_vec;
 		std::vector<double> axis_dec_vec;
+		std::vector<double> axis_jerk_vec;
 	};
 #define SET_INPUT_MOVEMENT_STRING \
 		"		<Param name=\"pos\" default=\"0.5\"/>"\
@@ -1057,6 +1058,23 @@ namespace kaanh
 					THROW_FILE_LINE("");
 				}
 			}
+			else if (cmd_param.first == "jerk")
+			{
+				auto d = target.model->calculator().calculateExpression(cmd_param.second);
+
+				if (d.size() == 1)
+				{
+					param.axis_jerk_vec.resize(target.controller->motionPool().size(), d.toDouble());
+				}
+				else if (d.size() == target.controller->motionPool().size())
+				{
+					param.axis_jerk_vec.assign(d.begin(), d.end());
+				}
+				else
+				{
+					THROW_FILE_LINE("");
+				}
+			}
 		}
 	}
 	auto check_input_movement(const std::map<std::string, std::string> &cmd_params, PlanTarget &target, SetInputMovement &param, SetActiveMotor &active)->void
@@ -1076,6 +1094,9 @@ namespace kaanh
 					THROW_FILE_LINE("input acc beyond range");
 
 				if (param.axis_dec_vec[i] > c->motionPool()[i].maxAcc() || param.axis_dec_vec[i] <= 0.0)
+					THROW_FILE_LINE("input dec beyond range");
+
+				if (param.axis_jerk_vec[i] > 1000*c->motionPool()[i].maxAcc() || param.axis_jerk_vec[i] <= 0.0)
 					THROW_FILE_LINE("input dec beyond range");
 			}
 		}
@@ -1710,10 +1731,11 @@ namespace kaanh
 	ARIS_DEFINE_BIG_FOUR_CPP(Sleep);
 
 
-	struct MoveAbsJParam :public SetActiveMotor, SetInputMovement {};
-	auto MoveAbsJ::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	struct MvaJParam :public SetActiveMotor, SetInputMovement {};
+	auto MvaJ::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
-		MoveAbsJParam param;
+		std::cout << "mvaj:" << std::endl;
+		MvaJParam param;
 
 		set_check_option(params, target);
 		set_active_motor(params, target, param);
@@ -1722,15 +1744,16 @@ namespace kaanh
 
 		param.axis_begin_pos_vec.resize(target.controller->motionPool().size());
 		target.param = param;
-		std::fill(target.mot_options.begin(), target.mot_options.end(), Plan::USE_TARGET_POS);
+		//std::fill(target.mot_options.begin(), target.mot_options.end(), Plan::USE_TARGET_POS);
 		for (auto &option : target.mot_options) option |= aris::plan::Plan::NOT_CHECK_ENABLE;
 
 		std::vector<std::pair<std::string, std::any>> ret_value;
 		target.ret = ret_value;
 	}
-	auto MoveAbsJ::executeRT(PlanTarget &target)->int
+	auto MvaJ::executeRT(PlanTarget &target)->int
 	{
-		auto param = std::any_cast<MoveAbsJParam>(&target.param);
+		auto controller = target.controller;
+		auto param = std::any_cast<MvaJParam>(&target.param);
 
 		if (target.count == 1)
 		{
@@ -1751,18 +1774,26 @@ namespace kaanh
 			{
 				double p, v, a, j;
 				aris::Size t_count;
-				aris::plan::moveAbsolute(target.count,
-					param->axis_begin_pos_vec[i], param->axis_pos_vec[i] + param->axis_begin_pos_vec[i],
-					param->axis_vel_vec[i] / 1000, param->axis_acc_vec[i] / 1000 / 1000, param->axis_dec_vec[i] / 1000 / 1000,
-					p, v, a, t_count);
+				//aris::plan::moveAbsolute(target.count,
+				//	param->axis_begin_pos_vec[i], param->axis_pos_vec[i],
+				//	param->axis_vel_vec[i] / 1000, param->axis_acc_vec[i] / 1000 / 1000, param->axis_dec_vec[i] / 1000 / 1000,
+				//	p, v, a, t_count);
 				
 				//s形规划//
-				//traplan::sCurve(target.count, param->axis_begin_pos_vec[i], param->axis_pos_vec[i],
-				//	param->axis_vel_vec[i] / 1000, param->axis_acc_vec[i] / 1000 / 1000, 10.0*param->axis_acc_vec[i] / 1000 / 1000 / 1000,
-				//	p, v, a, j, t_count);
-				//target.controller->motionPool()[i].setTargetPos(p);
+				traplan::sCurve(target.count, param->axis_begin_pos_vec[i], param->axis_pos_vec[i],
+					param->axis_vel_vec[i] / 1000, param->axis_acc_vec[i] / 1000 / 1000, param->axis_jerk_vec[i] / 1000 / 1000 / 1000,
+					p, v, a, j, t_count);
+				target.controller->motionPool()[i].setTargetPos(p);
 				target.model->motionPool()[i].setMp(p);
 				total_count = std::max(total_count, t_count);
+
+				// log //
+				auto &lout = controller->lout();
+				lout << p << " ";
+				lout << v << " ";
+				lout << a << " ";
+				lout << j << " ";	
+				lout << std::endl;
 			}
 		}
 		if (target.model->solverPool().at(1).kinPos())return -1;
@@ -1771,11 +1802,11 @@ namespace kaanh
 		{
 			return -4;
 		}
+
 		return total_count - target.count;
 	}
-	struct MoveAbsJ::Imp {};
-	MoveAbsJ::~MoveAbsJ() = default;
-	MoveAbsJ::MoveAbsJ(const std::string &name) : Plan(name)
+	MvaJ::~MvaJ() = default;
+	MvaJ::MvaJ(const std::string &name) : Plan(name)
 	{
 		command().loadXmlStr(
 			"<Command name=\"mvaj\">"
@@ -1784,12 +1815,13 @@ namespace kaanh
 			"		<Param name=\"vel\" default=\"1.0\"/>"
 			"		<Param name=\"acc\" default=\"1.0\"/>"
 			"		<Param name=\"dec\" default=\"1.0\"/>"
+			"		<Param name=\"jerk\" default=\"10.0\"/>"
 			SELECT_MOTOR_STRING
 			CHECK_PARAM_STRING
 			"	</GroupParam>"
 			"</Command>");
 	}
-	ARIS_DEFINE_BIG_FOUR_CPP(MoveAbsJ);
+
 
 	auto check_eul_validity(const std::string &eul_type)->bool
 	{
@@ -1857,7 +1889,7 @@ namespace kaanh
 	}
 	struct MoveJParam
 	{
-		std::vector<double> joint_vel, joint_acc, joint_dec, ee_pq, joint_pos_begin, joint_pos_end;
+		std::vector<double> joint_vel, joint_acc, joint_dec, joint_jerk, ee_pq, joint_pos_begin, joint_pos_end;
 		std::vector<Size> total_count;
 		aris::dynamic::Marker *tool, *wobj;
 	};
@@ -1937,6 +1969,23 @@ namespace kaanh
 					if (mvj_param.joint_dec[i] <= 0 || mvj_param.joint_dec[i] > c->motionPool()[i].maxAcc())
 						THROW_FILE_LINE("");
 			}
+			else if (cmd_param.first == "joint_jerk")
+			{
+				mvj_param.joint_jerk.clear();
+				mvj_param.joint_jerk.resize(target.model->motionPool().size(), 0.0);
+
+				auto dec_mat = target.model->calculator().calculateExpression(cmd_param.second);
+				if (dec_mat.size() == 1)std::fill(mvj_param.joint_jerk.begin(), mvj_param.joint_jerk.end(), dec_mat.toDouble());
+				else if (dec_mat.size() == target.model->motionPool().size()) std::copy(dec_mat.begin(), dec_mat.end(), mvj_param.joint_jerk.begin());
+				else THROW_FILE_LINE("");
+
+				for (int i = 0; i < 6; ++i) mvj_param.joint_jerk[i] *= mvj_param.joint_acc[i];
+
+				// check value validity //
+				for (Size i = 0; i < std::min(target.model->motionPool().size(), c->motionPool().size()); ++i)
+					if (mvj_param.joint_jerk[i] <= 0 || mvj_param.joint_jerk[i] > 1000*c->motionPool()[i].maxAcc())
+						THROW_FILE_LINE("");
+			}
 		}
 
 		target.param = mvj_param;
@@ -1950,7 +1999,7 @@ namespace kaanh
 		auto controller = target.controller;
 
 		// 取得起始位置 //
-		double p, v, a;
+		double p, v, a, j;
 		static Size max_total_count;
 		if (target.count == 1)
 		{
@@ -1968,9 +2017,15 @@ namespace kaanh
 			{
 				mvj_param->joint_pos_begin[i] = controller->motionPool()[i].targetPos();
 				mvj_param->joint_pos_end[i] = target.model->motionPool()[i].mp();
-				aris::plan::moveAbsolute(target.count, mvj_param->joint_pos_begin[i], mvj_param->joint_pos_end[i]
-					, mvj_param->joint_vel[i] / 1000, mvj_param->joint_acc[i] / 1000 / 1000, mvj_param->joint_dec[i] / 1000 / 1000
-					, p, v, a, mvj_param->total_count[i]);
+				//梯形轨迹规划//
+				//aris::plan::moveAbsolute(target.count, mvj_param->joint_pos_begin[i], mvj_param->joint_pos_end[i]
+				//	, mvj_param->joint_vel[i] / 1000, mvj_param->joint_acc[i] / 1000 / 1000, mvj_param->joint_dec[i] / 1000 / 1000
+				//	, p, v, a, mvj_param->total_count[i]);
+
+				//S形轨迹规划//
+				traplan::sCurve(target.count, mvj_param->joint_pos_begin[i], mvj_param->joint_pos_end[i],
+					mvj_param->joint_vel[i] / 1000, mvj_param->joint_acc[i] / 1000 / 1000, mvj_param->joint_jerk[i] / 1000 / 1000 / 1000,
+					p, v, a, j, mvj_param->total_count[i]);
 			}
 
 			max_total_count = *std::max_element(mvj_param->total_count.begin(), mvj_param->total_count.end());
@@ -1978,10 +2033,17 @@ namespace kaanh
 
 		for (Size i = 0; i < std::min(controller->motionPool().size(), target.model->motionPool().size()); ++i)
 		{
-			aris::plan::moveAbsolute(static_cast<double>(target.count) * mvj_param->total_count[i] / max_total_count,
+			//梯形轨迹规划//
+			//aris::plan::moveAbsolute(static_cast<double>(target.count) * mvj_param->total_count[i] / max_total_count,
+			//	mvj_param->joint_pos_begin[i], mvj_param->joint_pos_end[i],
+			//	mvj_param->joint_vel[i] / 1000, mvj_param->joint_acc[i] / 1000 / 1000, mvj_param->joint_dec[i] / 1000 / 1000,
+			//	p, v, a, mvj_param->total_count[i]);
+
+			//S形轨迹规划//
+			traplan::sCurve(static_cast<double>(target.count) * mvj_param->total_count[i] / max_total_count,
 				mvj_param->joint_pos_begin[i], mvj_param->joint_pos_end[i],
-				mvj_param->joint_vel[i] / 1000, mvj_param->joint_acc[i] / 1000 / 1000, mvj_param->joint_dec[i] / 1000 / 1000,
-				p, v, a, mvj_param->total_count[i]);
+				mvj_param->joint_vel[i] / 1000, mvj_param->joint_acc[i] / 1000 / 1000, mvj_param->joint_jerk[i] / 1000 / 1000 / 1000,
+				p, v, a, j, mvj_param->total_count[i]);
 
 			controller->motionPool()[i].setTargetPos(p);
 			target.model->motionPool()[i].setMp(p);
@@ -2013,6 +2075,7 @@ namespace kaanh
 			"		<Param name=\"joint_acc\" default=\"0.1\"/>"
 			"		<Param name=\"joint_vel\" default=\"0.1\"/>"
 			"		<Param name=\"joint_dec\" default=\"0.1\"/>"
+			"		<Param name=\"joint_jerk\" default=\"10.0\"/>"
 			"		<Param name=\"tool\" default=\"tool0\"/>"
 			"		<Param name=\"wobj\" default=\"wobj0\"/>"
 			CHECK_PARAM_STRING
@@ -2023,11 +2086,11 @@ namespace kaanh
 
 	struct MoveLParam
 	{
-		std::vector<double> joint_vel, joint_acc, joint_dec, ee_pq, joint_pos_begin, joint_pos_end;
+		std::vector<double> joint_vel, joint_acc, joint_dec, joint_jerk, ee_pq, joint_pos_begin, joint_pos_end;
 		Size total_count[6];
 
-		double acc, vel, dec;
-		double angular_acc, angular_vel, angular_dec;
+		double acc, vel, dec, jerk;
+		double angular_acc, angular_vel, angular_dec, angular_jerk;
 		aris::dynamic::Marker *tool, *wobj;
 	};
 	struct MoveL::Imp {};
@@ -2059,6 +2122,10 @@ namespace kaanh
 			{
 				mvl_param.dec = std::stod(cmd_param.second);
 			}
+			else if (cmd_param.first == "jerk")
+			{
+				mvl_param.jerk = std::stod(cmd_param.second)*mvl_param.acc;
+			}
 			else if (cmd_param.first == "angular_acc")
 			{
 				mvl_param.angular_acc = std::stod(cmd_param.second);
@@ -2070,6 +2137,10 @@ namespace kaanh
 			else if (cmd_param.first == "angular_dec")
 			{
 				mvl_param.angular_dec = std::stod(cmd_param.second);
+			}
+			else if (cmd_param.first == "angular_jerk")
+			{
+				mvl_param.angular_jerk = std::stod(cmd_param.second)*mvl_param.angular_acc;
 			}
 		}
 
@@ -2086,7 +2157,7 @@ namespace kaanh
 
 		// 取得起始位置 //
 		static double begin_pm[16], relative_pm[16], relative_pa[6], pos_ratio, ori_ratio, norm_pos, norm_ori;
-		double p, v, a;
+		double p, v, a, j;
 		aris::Size pos_total_count, ori_total_count;
 		if (target.count == 1)
 		{
@@ -2104,22 +2175,31 @@ namespace kaanh
 			norm_pos = aris::dynamic::s_norm(3, relative_pa);
 			norm_ori = aris::dynamic::s_norm(3, relative_pa + 3);
 
-			aris::plan::moveAbsolute(target.count, 0.0, norm_pos, mvl_param->vel / 1000, mvl_param->acc / 1000 / 1000, mvl_param->dec / 1000 / 1000, p, v, a, pos_total_count);
-			aris::plan::moveAbsolute(target.count, 0.0, norm_ori, mvl_param->angular_vel / 1000, mvl_param->angular_acc / 1000 / 1000, mvl_param->angular_dec / 1000 / 1000, p, v, a, ori_total_count);
+			//aris::plan::moveAbsolute(target.count, 0.0, norm_pos, mvl_param->vel / 1000, mvl_param->acc / 1000 / 1000, mvl_param->dec / 1000 / 1000, p, v, a, pos_total_count);
+			//aris::plan::moveAbsolute(target.count, 0.0, norm_ori, mvl_param->angular_vel / 1000, mvl_param->angular_acc / 1000 / 1000, mvl_param->angular_dec / 1000 / 1000, p, v, a, ori_total_count);
+
+			traplan::sCurve(target.count, 0.0, norm_pos, mvl_param->vel / 1000, mvl_param->acc / 1000 / 1000, mvl_param->jerk / 1000 / 1000 / 1000, p, v, a, j, pos_total_count);
+			traplan::sCurve(target.count, 0.0, norm_ori, mvl_param->angular_vel / 1000, mvl_param->angular_acc / 1000 / 1000, mvl_param->angular_jerk / 1000 / 1000 / 1000, p, v, a, j, ori_total_count);
 
 			pos_ratio = pos_total_count < ori_total_count ? double(pos_total_count) / ori_total_count : 1.0;
 			ori_ratio = ori_total_count < pos_total_count ? double(ori_total_count) / pos_total_count : 1.0;
 
-			aris::plan::moveAbsolute(target.count, 0.0, norm_pos, mvl_param->vel / 1000 * pos_ratio, mvl_param->acc / 1000 / 1000 * pos_ratio* pos_ratio, mvl_param->dec / 1000 / 1000 * pos_ratio* pos_ratio, p, v, a, pos_total_count);
-			aris::plan::moveAbsolute(target.count, 0.0, norm_ori, mvl_param->angular_vel / 1000 * ori_ratio, mvl_param->angular_acc / 1000 / 1000 * ori_ratio * ori_ratio, mvl_param->angular_dec / 1000 / 1000 * ori_ratio * ori_ratio, p, v, a, ori_total_count);
+			//aris::plan::moveAbsolute(target.count, 0.0, norm_pos, mvl_param->vel / 1000 * pos_ratio, mvl_param->acc / 1000 / 1000 * pos_ratio* pos_ratio, mvl_param->dec / 1000 / 1000 * pos_ratio* pos_ratio, p, v, a, pos_total_count);
+			//aris::plan::moveAbsolute(target.count, 0.0, norm_ori, mvl_param->angular_vel / 1000 * ori_ratio, mvl_param->angular_acc / 1000 / 1000 * ori_ratio * ori_ratio, mvl_param->angular_dec / 1000 / 1000 * ori_ratio * ori_ratio, p, v, a, ori_total_count);
+		
+			traplan::sCurve(target.count, 0.0, norm_pos, mvl_param->vel / 1000 * pos_ratio, mvl_param->acc / 1000 / 1000 * pos_ratio * pos_ratio, mvl_param->jerk / 1000 / 1000 / 1000 * pos_ratio* pos_ratio* pos_ratio, p, v, a, j, pos_total_count);
+			traplan::sCurve(target.count, 0.0, norm_ori, mvl_param->angular_vel / 1000 * ori_ratio, mvl_param->angular_acc / 1000 / 1000 * ori_ratio * ori_ratio, mvl_param->angular_jerk / 1000 / 1000 / 1000 * ori_ratio * ori_ratio* ori_ratio, p, v, a, j, ori_total_count);
+		
 		}
 
 		double pa[6]{ 0,0,0,0,0,0 }, pm[16], pm2[16];
 
-		aris::plan::moveAbsolute(target.count, 0.0, norm_pos, mvl_param->vel / 1000 * pos_ratio, mvl_param->acc / 1000 / 1000 * pos_ratio* pos_ratio, mvl_param->dec / 1000 / 1000 * pos_ratio* pos_ratio, p, v, a, pos_total_count);
+		//aris::plan::moveAbsolute(target.count, 0.0, norm_pos, mvl_param->vel / 1000 * pos_ratio, mvl_param->acc / 1000 / 1000 * pos_ratio* pos_ratio, mvl_param->dec / 1000 / 1000 * pos_ratio* pos_ratio, p, v, a, pos_total_count);
+		traplan::sCurve(target.count, 0.0, norm_pos, mvl_param->vel / 1000 * pos_ratio, mvl_param->acc / 1000 / 1000 * pos_ratio* pos_ratio, mvl_param->jerk / 1000 / 1000 /1000 * pos_ratio* pos_ratio* pos_ratio, p, v, a, j, pos_total_count);
 		if (norm_pos > 1e-10)aris::dynamic::s_vc(3, p / norm_pos, relative_pa, pa);
 
-		aris::plan::moveAbsolute(target.count, 0.0, norm_ori, mvl_param->angular_vel / 1000 * ori_ratio, mvl_param->angular_acc / 1000 / 1000 * ori_ratio * ori_ratio, mvl_param->angular_dec / 1000 / 1000 * ori_ratio * ori_ratio, p, v, a, ori_total_count);
+		//aris::plan::moveAbsolute(target.count, 0.0, norm_ori, mvl_param->angular_vel / 1000 * ori_ratio, mvl_param->angular_acc / 1000 / 1000 * ori_ratio * ori_ratio, mvl_param->angular_dec / 1000 / 1000 * ori_ratio * ori_ratio, p, v, a, ori_total_count);
+		traplan::sCurve(target.count, 0.0, norm_ori, mvl_param->angular_vel / 1000 * ori_ratio, mvl_param->angular_acc / 1000 / 1000 * ori_ratio * ori_ratio, mvl_param->angular_jerk / 1000 / 1000 /1000 * ori_ratio * ori_ratio * ori_ratio, p, v, a, j, ori_total_count);
 		if (norm_ori > 1e-10)aris::dynamic::s_vc(3, p / norm_ori, relative_pa + 3, pa + 3);
 
 		aris::dynamic::s_pa2pm(pa, pm);
@@ -2168,9 +2248,11 @@ namespace kaanh
 			"		<Param name=\"acc\" default=\"0.1\"/>"
 			"		<Param name=\"vel\" default=\"0.1\"/>"
 			"		<Param name=\"dec\" default=\"0.1\"/>"
+			"		<Param name=\"jerk\" default=\"10.0\"/>"
 			"		<Param name=\"angular_acc\" default=\"0.1\"/>"
 			"		<Param name=\"angular_vel\" default=\"0.1\"/>"
 			"		<Param name=\"angular_dec\" default=\"0.1\"/>"
+			"		<Param name=\"angular_jerk\" default=\"10.0\"/>"
 			"		<Param name=\"tool\" default=\"tool0\"/>"
 			"		<Param name=\"wobj\" default=\"wobj0\"/>"
 			CHECK_PARAM_STRING
@@ -2394,7 +2476,7 @@ namespace kaanh
 		// 取得起始位置 //
 		static double pos_ratio, ori_ratio;
 		static double A[9], b[3], C[3], R, theta, ori_theta;
-		double p, v, a;
+		double p, v, a, j;
 		aris::Size pos_total_count, ori_total_count;
 
 		if (target.count == 1)
@@ -2474,8 +2556,11 @@ namespace kaanh
 
 			ori_theta = std::abs((mvc_param.ee_begin_pq[3] * mvc_param.ee_end_pq[3] + mvc_param.ee_begin_pq[4] * mvc_param.ee_end_pq[4] + mvc_param.ee_begin_pq[5] * mvc_param.ee_end_pq[5] + mvc_param.ee_begin_pq[6] * mvc_param.ee_end_pq[6])/ (normv_begin_pq* normv_end_pq));
 
-			aris::plan::moveAbsolute(target.count, 0.0, theta, mvc_param.vel / 1000 / R, mvc_param.acc / 1000 / 1000 / R, mvc_param.dec / 1000 / 1000 / R, p, v, a, pos_total_count);
-			aris::plan::moveAbsolute(target.count, 0.0, 1.0, mvc_param.angular_vel / 1000 / ori_theta / 2.0, mvc_param.angular_acc / 1000 / 1000 / ori_theta / 2.0, mvc_param.angular_dec / 1000 / 1000 / ori_theta / 2.0, p, v, a, ori_total_count);
+			//aris::plan::moveAbsolute(target.count, 0.0, theta, mvc_param.vel / 1000 / R, mvc_param.acc / 1000 / 1000 / R, mvc_param.dec / 1000 / 1000 / R, p, v, a, pos_total_count);
+			//aris::plan::moveAbsolute(target.count, 0.0, 1.0, mvc_param.angular_vel / 1000 / ori_theta / 2.0, mvc_param.angular_acc / 1000 / 1000 / ori_theta / 2.0, mvc_param.angular_dec / 1000 / 1000 / ori_theta / 2.0, p, v, a, ori_total_count);
+
+			traplan::sCurve(target.count, 0.0, theta, mvc_param.vel / 1000 / R, mvc_param.acc / 1000 / 1000 / R, 10*mvc_param.acc / 1000 / 1000 /1000 / R, p, v, a, j, pos_total_count);
+			traplan::sCurve(target.count, 0.0, 1.0, mvc_param.angular_vel / 1000 / ori_theta / 2.0, mvc_param.angular_acc / 1000 / 1000 / ori_theta / 2.0, 10*mvc_param.angular_acc / 1000 / 1000 /1000 / ori_theta / 2.0, p, v, a, j, ori_total_count);
 
 			pos_ratio = pos_total_count < ori_total_count ? double(pos_total_count) / ori_total_count : 1.0;
 			ori_ratio = ori_total_count < pos_total_count ? double(ori_total_count) / pos_total_count : 1.0;
@@ -2486,15 +2571,17 @@ namespace kaanh
 		aris::dynamic::s_vc(3, A + 6, w);
 		auto normv = aris::dynamic::s_norm(3, w);
 		if (std::abs(normv) > 1e-10)aris::dynamic::s_nv(3, 1 / normv, w); //数乘
-		aris::plan::moveAbsolute(target.count, 0.0, theta, mvc_param.vel / 1000 / R * pos_ratio, mvc_param.acc / 1000 / 1000 / R * pos_ratio * pos_ratio, mvc_param.dec / 1000 / 1000 / R * pos_ratio* pos_ratio, p, v, a, pos_total_count);
-		
+		//aris::plan::moveAbsolute(target.count, 0.0, theta, mvc_param.vel / 1000 / R * pos_ratio, mvc_param.acc / 1000 / 1000 / R * pos_ratio * pos_ratio, mvc_param.dec / 1000 / 1000 / R * pos_ratio* pos_ratio, p, v, a, pos_total_count);
+		traplan::sCurve(target.count, 0.0, theta, mvc_param.vel / 1000 / R * pos_ratio, mvc_param.acc / 1000 / 1000 / R * pos_ratio * pos_ratio, 10*mvc_param.acc / 1000 / 1000 / 1000 / R * pos_ratio* pos_ratio* pos_ratio, p, v, a, j, pos_total_count);
+
 		double pqr[7]{ C[0], C[1], C[2], w[0] * sin(p / 2.0), w[1] * sin(p / 2.0), w[2] * sin(p / 2.0), cos(p / 2.0) };
 		double pos[4]{ mvc_param.ee_begin_pq[0] - C[0], mvc_param.ee_begin_pq[1] - C[1], mvc_param.ee_begin_pq[2] - C[2], 1};
 		aris::dynamic::s_pq2pm(pqr, pmr);
 		s_mm(4, 1, 4, pmr, aris::dynamic::RowMajor{ 4 }, pos, 1, pqt, 1);
 
 		//姿态规划//
-		aris::plan::moveAbsolute(target.count, 0.0, 1.0, mvc_param.angular_vel / 1000 / ori_theta / 2.0 * ori_ratio, mvc_param.angular_acc / 1000 / 1000 / ori_theta / 2.0 * ori_ratio * ori_ratio, mvc_param.angular_dec / 1000 / 1000 / ori_theta / 2.0* ori_ratio * ori_ratio, p, v, a, ori_total_count);
+		//aris::plan::moveAbsolute(target.count, 0.0, 1.0, mvc_param.angular_vel / 1000 / ori_theta / 2.0 * ori_ratio, mvc_param.angular_acc / 1000 / 1000 / ori_theta / 2.0 * ori_ratio * ori_ratio, mvc_param.angular_dec / 1000 / 1000 / ori_theta / 2.0* ori_ratio * ori_ratio, p, v, a, ori_total_count);
+		traplan::sCurve(target.count, 0.0, 1.0, mvc_param.angular_vel / 1000 / ori_theta / 2.0 * ori_ratio, mvc_param.angular_acc / 1000 / 1000 / ori_theta / 2.0 * ori_ratio * ori_ratio, 10*mvc_param.angular_acc / 1000 / 1000 /1000 / ori_theta / 2.0* ori_ratio * ori_ratio* ori_ratio, p, v, a, j, ori_total_count);
 		slerp(mvc_param.ee_begin_pq.data() + 3, mvc_param.ee_end_pq.data() + 3, pqt + 3, p);
 		
 		//雅克比矩阵判断奇异点//
@@ -2532,7 +2619,7 @@ namespace kaanh
 			*/
 			lout << std::endl;
 		}
-		//////////////////////////////////////////////////////////////////////////////////
+		
 		if (g_move_stop)
 		{
 			return -4;
@@ -6354,7 +6441,7 @@ namespace kaanh
 	}
 
 
-	// 手动、自动模式切换, manual=1，手动//
+	// 手动--自动模式切换； manual=1，手动//
 	struct SwitchParam
 	{
 		bool is_manual;
@@ -6381,7 +6468,7 @@ namespace kaanh
 			"</Command>");
 	}
 
-    auto createPlanRootRokaeXB4()->std::unique_ptr<aris::plan::PlanRoot>
+    auto createPlanRoot()->std::unique_ptr<aris::plan::PlanRoot>
 	{
         std::unique_ptr<aris::plan::PlanRoot> plan_root(new aris::plan::PlanRoot);
 
@@ -6389,7 +6476,6 @@ namespace kaanh
         plan_root->planPool().add<kaanh::Disable>();
         plan_root->planPool().add<kaanh::Home>();
         plan_root->planPool().add<kaanh::Mode>();
-        plan_root->planPool().add<aris::plan::Show>();
         plan_root->planPool().add<kaanh::Sleep>();
         plan_root->planPool().add<kaanh::Recover>();
         auto &rs = plan_root->planPool().add<kaanh::Reset>();
@@ -6398,7 +6484,7 @@ namespace kaanh
         //qifan//
         //rs.command().findParam("pos")->setDefaultValue("{0.5,0.353,0.5,0.5,0.5,0.5}");
 
-        plan_root->planPool().add<kaanh::MoveAbsJ>();
+        plan_root->planPool().add<kaanh::MvaJ>();
         plan_root->planPool().add<kaanh::MoveL>();
         plan_root->planPool().add<kaanh::MoveJ>();
 		plan_root->planPool().add<kaanh::MoveSt>();

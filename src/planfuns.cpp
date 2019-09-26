@@ -481,7 +481,7 @@ namespace traplan
 		double jmin = -0;
 		//比较q_start和q_end，修改约束条件
 		double sigma;
-		if (q_start < q_end)
+		if (q_start <= q_end)
 		{
 			sigma = 1;
 		}
@@ -506,6 +506,7 @@ namespace traplan
 		alimd = -alim;
 		jlima = jlim;
 		jlimd = -jlim;
+		T = ta + tv + td;
 		//开始计算轨迹，时间t的单位是ms
 		if (t <= taj)
 		{
@@ -562,14 +563,14 @@ namespace traplan
 		a_crt = sigma * a_crt;
 		j_crt = sigma * j_crt;
 
-
+		/*
 		std::cout << t << ",";
 		std::cout << q_crt << ",";
 		std::cout << v_crt * 1000 << ",";
 		std::cout << a_crt * 1000 * 1000 << ",";
 		std::cout << j_crt * 1000 * 1000 * 1000;
 		std::cout << std::endl;
-		
+		*/
 	}
 
 

@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
     cs.resetController(kaanh::createControllerRokaeXB4().release());
     //cs.resetModel(aris::robot::createModelRokaeXB4().release());
     cs.resetModel(kaanh::createModelRokae().release());
-    cs.resetPlanRoot(kaanh::createPlanRootRokaeXB4().release());
+    cs.resetPlanRoot(kaanh::createPlanRoot().release());
     //cs.interfacePool().add<aris::server::WebInterface>("", "5866", aris::core::Socket::WEB);
 	cs.interfacePool().add<kaanh::ProInterface>("", "5866", aris::core::Socket::WEB);
 	cs.interfacePool().add<aris::server::WebInterface>("", "5867", aris::core::Socket::TCP);
