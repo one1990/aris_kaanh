@@ -1110,6 +1110,16 @@ namespace kaanh
 		std::any param = par;
 		//std::any param = std::make_any<GetParam>();
 
+		//g_is_error//	
+		if (target.ret_code != 0)
+		{
+			g_is_error.store(true);
+		}
+		else
+		{
+			g_is_error.store(false);
+		}
+
 		target.server->getRtData([&](aris::server::ControlServer& cs, const aris::plan::PlanTarget *target, std::any& data)->void
 		{
 			for (aris::Size i(-1); ++i < cs.model().partPool().size();)
@@ -1159,16 +1169,6 @@ namespace kaanh
 				}
 			}
 			
-			//g_is_error//
-			if (target->ret_code == 0)
-			{
-				g_is_error.store(false);
-			}
-			else
-			{
-				g_is_error.store(true);
-			}
-
 			//state machine//
 			auto s = std::any_cast<GetParam &>(data);
 			if (s.motion_state[0] && s.motion_state[1] && s.motion_state[2] && s.motion_state[3] && s.motion_state[4] && s.motion_state[5])
@@ -1200,7 +1200,6 @@ namespace kaanh
 			{
 				std::any_cast<GetParam &>(data).state_code = 100;
 			}
-			//state machine//
 
 			if (target == nullptr)
 			{
@@ -1723,6 +1722,7 @@ namespace kaanh
 
 		param.axis_begin_pos_vec.resize(target.controller->motionPool().size());
 		target.param = param;
+		std::fill(target.mot_options.begin(), target.mot_options.end(), Plan::USE_TARGET_POS);
 		for (auto &option : target.mot_options) option |= aris::plan::Plan::NOT_CHECK_ENABLE;
 
 		std::vector<std::pair<std::string, std::any>> ret_value;
@@ -1739,6 +1739,7 @@ namespace kaanh
 				if (param->active_motor[i])
 				{
 					param->axis_begin_pos_vec[i] = target.controller->motionPool()[i].targetPos();
+					//param->axis_begin_pos_vec[i] = target.model->motionPool()[i].mp();
 				}
 			}
 		}
@@ -1748,13 +1749,18 @@ namespace kaanh
 		{
 			if (param->active_motor[i])
 			{
-				double p, v, a;
+				double p, v, a, j;
 				aris::Size t_count;
 				aris::plan::moveAbsolute(target.count,
-					param->axis_begin_pos_vec[i], param->axis_pos_vec[i],
+					param->axis_begin_pos_vec[i], param->axis_pos_vec[i] + param->axis_begin_pos_vec[i],
 					param->axis_vel_vec[i] / 1000, param->axis_acc_vec[i] / 1000 / 1000, param->axis_dec_vec[i] / 1000 / 1000,
 					p, v, a, t_count);
-				target.controller->motionPool()[i].setTargetPos(p);
+				
+				//s形规划//
+				//traplan::sCurve(target.count, param->axis_begin_pos_vec[i], param->axis_pos_vec[i],
+				//	param->axis_vel_vec[i] / 1000, param->axis_acc_vec[i] / 1000 / 1000, 10.0*param->axis_acc_vec[i] / 1000 / 1000 / 1000,
+				//	p, v, a, j, t_count);
+				//target.controller->motionPool()[i].setTargetPos(p);
 				target.model->motionPool()[i].setMp(p);
 				total_count = std::max(total_count, t_count);
 			}
