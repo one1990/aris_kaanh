@@ -88,7 +88,7 @@ void GetYuLi(PlanTarget &target,double* FT)
     conSensor->slavePool().at(6).readPdo(0x6030, 0x05, &FTtemp[4], 32);
     conSensor->slavePool().at(6).readPdo(0x6030, 0x06, &FTtemp[5], 32);
     #endif
-
+   //std::cout<<FTtemp[0]<<"***"<<FTtemp[1]<<std::endl;
     for(int i=0;i<6;i++)
         FT[i]=FTtemp[i];
 
@@ -197,6 +197,16 @@ void RepeatTrapezoidal(PlanTarget &target,double *begin_pjs,double *step_pjs)
     static aris::Size t_count[6] = { 0 };
     static int CountOffsetPos[6] = { 1,1,1,1,1,1 }, CountOffsetNeg[6] = { 1,1,1,1,1,1 };
     int temp[6] = { 0 };
+    if(target.count==1)
+    {
+        for(int i=0;i<6;i++)
+        {
+            flag[i]=true;
+            t_count[i]=0;
+            CountOffsetPos[i]=1;
+            CountOffsetNeg[i]=1;
+        }
+    }
     for (int i = 0;i < 6;i++)
     {
 
@@ -435,7 +445,7 @@ auto MoveXYZ::executeRT(PlanTarget &target)->int
 	static double begin_pjs[6];
 	static double step_pjs[6];
 	static double stateTor0[6][3], stateTor1[6][3];
-	static float FT0[6], FT_be[6];
+    static double FT0[6], FT_be[6];
 
 	// 访问主站 //
 	auto controller = target.controller;
@@ -821,6 +831,7 @@ auto MoveDistal::executeRT(PlanTarget &target)->int
 	// 获取当前起始点位置 //
 	if (target.count == 1)
 	{
+        CollectNum = 1;
 		for (int i = 0; i < 6; i++)
 		{
 			begin_pjs[i] = target.model->motionPool()[i].mp();
@@ -1402,7 +1413,7 @@ auto MovePressure::executeRT(PlanTarget &target)->int
 	static double begin_pjs[6];
 	static double step_pjs[6];
 	static double stateTor0[6][3], stateTor1[6][3];
-	static float FT0[6], FT_be[6];
+    static double FT0[6], FT_be[6];
 	static double SumFtErr[6];
 	// 访问主站 //
 	auto controller = target.controller;
@@ -1431,7 +1442,7 @@ auto MovePressure::executeRT(PlanTarget &target)->int
 	double dX[6] = { 0.00000, -0.0000, -0.0000, -0.0000, -0.0000, -0.0000 };
 	double dTheta[6] = { 0 };
 
-	float FT[6];
+    double FT[6];
 	uint16_t FTnum;
 	auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.controller);
 	conSensor->slavePool().at(6).readPdo(0x6030, 0x00, &FTnum, 16);
@@ -2550,7 +2561,7 @@ auto MovePressureToolXY::executeRT(PlanTarget &target)->int
 	static double step_pjs[6];
 	static double stateTor0[6][3], stateTor1[6][3], EndP0[3];
 	static double sT0[6][3], sT1[6][3];
-    static float FT0[6];
+    static double FT0[6];
 
 	// 访问主站 //
 	auto controller = target.controller;
@@ -3096,7 +3107,7 @@ auto MovePressureToolXLine::executeRT(PlanTarget &target)->int
     static double step_pjs[6];
     static double stateTor0[6][3], stateTor1[6][3], EndP0[3];
     static double sT0[6][3], sT1[6][3];
-    static float FT0[6];
+    static double FT0[6];
 
     // 访问主站 //
     auto controller = target.controller;
@@ -3511,7 +3522,7 @@ auto MovePressureToolYLine::executeRT(PlanTarget &target)->int
 	static double step_pjs[6];
 	static double stateTor0[6][3], stateTor1[6][3], EndP0[3];
 	static double sT0[6][3], sT1[6][3];
-	static float FT0[6];
+    static double FT0[6];
 
 	// 访问主站 //
 	auto controller = target.controller;
@@ -3939,7 +3950,7 @@ auto MoveFeed::executeRT(PlanTarget &target)->int
 	static double begin_pjs[6];
 	static double step_pjs[6];
 	static double stateTor0[6][3], stateTor1[6][3];
-	static float FT0[6], FT_be[6];
+    static double FT0[6], FT_be[6];
 	static double SumFtErr[6];
 	// 访问主站 //
 	auto controller = target.controller;
@@ -3968,7 +3979,7 @@ auto MoveFeed::executeRT(PlanTarget &target)->int
 	double dX[6] = { 0.00000, -0.0000, -0.0000, -0.0000, -0.0000, -0.0000 };
 	double dTheta[6] = { 0 };
 
-	float FT[6];
+    double FT[6];
 	uint16_t FTnum;
 	auto conSensor = dynamic_cast<aris::control::EthercatController*>(target.controller);
 	conSensor->slavePool().at(6).readPdo(0x6030, 0x00, &FTnum, 16);
@@ -4316,7 +4327,7 @@ auto f(aris::dynamic::Model *m, double *A)->void
 
 
 
-
+static std::atomic_bool enable_FCPressL = true;
 struct ForceDirectParam
 {
 	double PressF;
@@ -4338,7 +4349,7 @@ auto ForceDirect::prepairNrt(const std::map<std::string, std::string> &params, P
     }
 	target.param = param;
     target.ret = std::vector<std::pair<std::string, std::any>>();
-
+    enable_FCPressL=true;
 
 	for (auto &option : target.mot_options) option |=
 		Plan::USE_TARGET_POS |
@@ -4346,7 +4357,7 @@ auto ForceDirect::prepairNrt(const std::map<std::string, std::string> &params, P
 		Plan::NOT_CHECK_ENABLE;
 
 
-    SetLimit(target,4.0);
+
 
 
 }
@@ -4360,7 +4371,7 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
     static double begin_t0[6];
     static double stateTor0[6], stateTor1[6];
 
-    static float FT0[6];
+    static double FT0[6];
     static double PqEnd0[7] = { 0 }, PqEnd[7] = { 0 },pe0[6] = { 0 },pe[6] = { 0 };
 	// 访问主站 //
 	auto controller = target.controller;
@@ -4390,6 +4401,8 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 
     if (target.count == 1)
     {
+        enable_FCPressL=true;
+        SetLimit(target,4.0);
         for (int j = 0; j < 6; j++)
         {
             FT0[j]=FT[j];
@@ -4428,6 +4441,7 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
         {
             step_pjs[i] = 0;
             begin_t0[i] = 0;
+            begin_pjs[i] = 0;
 		}
 
         target.model->generalMotionPool().at(0).getMpe(pe0);
@@ -4438,13 +4452,13 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
     RepeatTrapezoidal(target,begin_pjs,step_pjs);
 
 
-
     aris::dynamic::s_vc(6, pe0, pe);
     pe[0]-=step_pjs[1]*0.08;
     //pe[3]+=step_pjs[1];
     //pe[4]+=step_pjs[1]*0.8;
     //pe[5]-=step_pjs[1]*0.2;
     aris::dynamic::s_pe2pq(pe, PqEnd0);
+
 
 
 
@@ -4567,6 +4581,13 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
 
     // fce control //
     static double SumdX=0, SumFt=0;
+
+    if(target.count==1)
+    {
+        SumdX=0;
+        SumFt=0;
+    }
+
     double Vmin=-0.02;
     const double KPF=5, KIF=5, vis = 500;
     //const double KPF=15, KIF=5, vis = 1000;
@@ -4628,20 +4649,43 @@ auto ForceDirect::executeRT(PlanTarget &target)->int
     if (target.count % 300 == 0)
     {
         double err=(PqEnd0[2] - PqEnd[2]);
-        cout<<ft[motion]<<"****"<<stateTor1[motion]<<"****"<<dX[motion]<<"****"<<at[motion]<<"****"<<err_sum_fce_vt<<std::endl;
+        cout<<step_pjs[1]<<"****"<<stateTor1[motion]<<"****"<<dX[motion]<<"****"<<at[motion]<<"****"<<err_sum_fce_vt<<std::endl;
     }
-/*
+
     lout << target.count << ","
-         << PqEnd0[0] << ","
+         << step_pjs[1] << ","
          << PqEnd[1] << ","
          << ft[motion] << ","
          << dX[motion] << ","
          << step_pjs[1] << ","
          << std::endl;
-*/
 
+    bool ds_is_all_finished{ true };
+    if (!enable_FCPressL)
+        for (int i = 0; i < 6; ++i)
+        {
+            auto ret = controller->motionPool().at(i).disable();
+            if (ret)
+            {
+                ds_is_all_finished = false;
+            }
+        }
 
-    return 2000000 - target.count;
+    //将目标电机由电流模式切换到位置模式
+    if (target.count==28000)
+    {
+        for (int i = 0; i < 6; ++i)
+        {
+
+                auto &cm = controller->motionPool().at(i);
+                controller->motionPool().at(i).setModeOfOperation(8);
+                auto ret = cm.mode(8);
+                cm.setTargetPos(cm.actualPos());
+
+        }
+    }
+
+    return 28000 - target.count;
 }
 
 auto ForceDirect::collectNrt(aris::plan::PlanTarget &target)->void
@@ -4668,7 +4712,7 @@ ForceDirect::ForceDirect(const std::string &name) :Plan(name)
 
 
 
-
+static std::atomic_bool enable_mvJoint = true;
 struct MoveJointParam
 {
     double PressF;
@@ -4694,10 +4738,11 @@ auto MoveJoint::prepairNrt(const std::map<std::string, std::string> &params, Pla
 
     for (auto &option : target.mot_options) option |=
         Plan::USE_TARGET_POS |
-        Plan::NOT_CHECK_VEL_CONTINUOUS |
-        Plan::NOT_CHECK_ENABLE;
+        Plan::NOT_CHECK_VEL_CONTINUOUS;
 
-    SetLimit(target,4.0);
+
+    enable_mvJoint=true;
+
     //读取动力学参数
     auto mat0 = dynamic_cast<aris::dynamic::MatrixVariable*>(&*target.model->variablePool().findByName("estParasFT"));
     for (int i = 0;i < GroupDim;i++)
@@ -4730,13 +4775,14 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
     // 获取当前起始点位置 //
     if (target.count == 1)
     {
+        SetLimit(target,4.0);
         for (int i = 0; i < 6; ++i)
         {
             step_pjs[i] = target.model->motionPool()[i].mp();
             begin_pjs[i] = target.model->motionPool()[i].mp();
             controller->motionPool().at(i).setModeOfOperation(10);	//切换到电流控制
         }
-
+        target.controller->logFileRawName("motion_replay");
     }
 
     if (target.model->solverPool().at(1).kinPos())return -1;
@@ -4871,18 +4917,18 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
      controller->motionAtAbs(i).setTargetToq(ft_offset[i]);
      
     }
-
+/*
     lout << FTemp[0] << ",";lout << FTemp[1] << ",";
     lout << FTemp[2] << ",";lout << FTemp[3] << ",";
     lout << FTemp[4] << ",";lout << FTemp[5] << ",";
-/*
+
     lout << FT_YANG[0] << ",";lout << FT_YANG[1] << ",";
     lout << FT_YANG[2] << ",";lout << FT_YANG[3] << ",";
     lout << FT_YANG[4] << ",";lout << FT_YANG[5] << ","
-
-    lout << va[0] << ",";lout << va[1] << ",";
-    lout << va[2] << ",";lout << va[3] << ",";
-    lout << va[4] << ",";lout << va[5] << ",";*/
+*/
+    lout << pa[0] << " ";lout << pa[1] << " ";
+    lout << pa[2] << " ";lout << pa[3] << " ";
+    lout << pa[4] << " ";lout << pa[5] << " ";
     lout << std::endl;
 
 
@@ -4890,6 +4936,14 @@ auto MoveJoint::executeRT(PlanTarget &target)->int
     {
         cout<<ft_offset[0]<<"***"<< ft_offset[1]<<"***"<< ft_offset[2]<<"***"<<ft_offset[3]<<"***"<<ft_offset[4]<<std::endl;
     }
+
+
+    if (!enable_mvJoint)
+        for (int i = 0; i < 6; ++i)
+            auto ret = controller->motionPool().at(i).disable();
+
+
+
 
     return 150000000 - target.count;
 }
@@ -4913,6 +4967,153 @@ MoveJoint::MoveJoint(const std::string &name) :Plan(name)
         "</Command>");
 
 }
+
+
+//复现文件位置//
+struct ReplayParam
+{
+    std::vector<aris::Size> total_count_vec;
+    std::vector<double> axis_begin_pos_vec;
+    std::vector<double> axis_first_pos_vec;
+    std::vector<std::vector<double>> pos_vec;
+    double vel, acc, dec;
+    std::string path;
+};
+auto Replay::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+{
+    ReplayParam param;
+    param.vel = std::stod(params.at("vel"));
+    param.acc = std::stod(params.at("acc"));
+    param.dec = std::stod(params.at("dec"));
+    param.path = params.at("path");
+
+    param.total_count_vec.resize(6, 0);
+    param.axis_begin_pos_vec.resize(6, 0.0);
+    param.axis_first_pos_vec.resize(6, 0.0);
+
+    param.pos_vec.resize(6, std::vector<double>(1, 0.0));
+    //std::cout << "size:" << param.pos_vec.size() << std::endl;
+    //初始化pos_vec//
+    for (int j = 0; j < param.pos_vec.size(); j++)
+    {
+        param.pos_vec[j].clear();
+    }
+
+    //定义读取log文件的输入流oplog//
+    std::ifstream oplog;
+    int cal = 0;
+    oplog.open(param.path);
+
+    //以下检查是否成功读取文件//
+    if (!oplog)
+    {
+        throw std::runtime_error("fail to open the file");
+    }
+    while (!oplog.eof())
+    {
+        for (int j = 0; j < param.pos_vec.size(); j++)
+        {
+            double data;
+            oplog >> data;
+            param.pos_vec[j].push_back(data);
+        }
+    }
+    oplog.close();
+    //oplog.clear();
+    for (int j = 0; j < param.pos_vec.size(); j++)
+    {
+        param.pos_vec[j].pop_back();
+        param.axis_first_pos_vec[j] = param.pos_vec[j][0];
+    }
+
+    target.param = param;
+    std::fill(target.mot_options.begin(), target.mot_options.end(),
+        Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER|
+        Plan::NOT_CHECK_POS_FOLLOWING_ERROR);
+    std::vector<std::pair<std::string, std::any>> ret;
+    target.ret = ret;
+}
+auto Replay::executeRT(PlanTarget &target)->int
+{
+    auto controller = target.controller;
+    auto &param = std::any_cast<ReplayParam&>(target.param);
+
+    double p, v, a;
+    aris::Size t_count;
+    static aris::Size first_total_count = 1;
+    aris::Size total_count = 1;
+    aris::Size return_value = 0;
+
+    // 获取6个电机初始位置 //
+    if (target.count == 1)
+    {
+        for (int i = 0; i < 6; i++)
+        {
+            param.axis_begin_pos_vec[i] = target.model->motionPool().at(i).mp();
+        }
+        for (int i = 0; i < 6; i++)
+        {
+            // 梯形规划到log开始点 //
+            aris::plan::moveAbsolute(target.count, param.axis_begin_pos_vec[i], param.axis_first_pos_vec[i], param.vel / 1000, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
+            first_total_count = std::max(first_total_count, t_count);
+        }
+    }
+
+    // 机械臂走到log开始点 //
+    if (target.count <= first_total_count)
+    {
+        for (int i = 0; i < 6; i++)
+        {
+            // 在第一个周期走梯形规划复位
+            aris::plan::moveAbsolute(target.count, param.axis_begin_pos_vec[i], param.axis_first_pos_vec[i], param.vel / 1000, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
+            controller->motionAtAbs(i).setTargetPos(p);
+            target.model->motionPool().at(i).setMp(p);
+        }
+    }
+
+    // 机械臂开始从头到尾复现log中点 //
+    if (target.count > first_total_count)
+    {
+        for (int i = 0; i < 6; i++)
+        {
+            controller->motionAtAbs(i).setTargetPos(param.pos_vec[i][target.count - first_total_count]);
+            target.model->motionPool().at(i).setMp(param.pos_vec[i][target.count - first_total_count]);
+        }
+    }
+    if (target.model->solverPool().at(1).kinPos())return -1;
+
+    //输出6个轴的实时位置log文件//
+    auto &lout = controller->lout();
+    for (int i = 0; i < 6; i++)
+    {
+        lout << controller->motionAtAbs(i).actualPos() << " ";//第一列数字必须是位置
+    }
+    lout << std::endl;
+
+    return target.count > (first_total_count - 2 + param.pos_vec[0].size()) ? 0 : 1;
+
+}
+auto Replay::collectNrt(PlanTarget &target)->void {}
+Replay::Replay(const std::string &name) :Plan(name)
+{
+    command().loadXmlStr(
+        "<Command name=\"MotionReplay\">"
+        "	<GroupParam>"
+        "		<Param name=\"path\" default=\"C:\\Users\\kevin\\Desktop\\file\\rt_log--2019-09-06--19-14-16--moveJR.txt\"/>"
+        "		<Param name=\"vel\" default=\"0.05\" abbreviation=\"v\"/>"
+        "		<Param name=\"acc\" default=\"0.1\" abbreviation=\"a\"/>"
+        "		<Param name=\"dec\" default=\"0.1\" abbreviation=\"d\"/>"
+        "	</GroupParam>"
+        "</Command>");
+}
+
+
+
+
+
+
+
+
 
 
 struct MovePressureToolXSineParam
@@ -4954,7 +5155,7 @@ auto MovePressureToolXSine::executeRT(PlanTarget &target)->int
 	static double step_pjs[6];
     static double stateTor0[6], stateTor1[6], EndP0[3];
     static double sT0[6]={0}, sT1[6]={0};
-	static float FT0[6];
+    static double FT0[6];
 
     int FTnum=50;
     static double FTten[50]={0};
@@ -5222,7 +5423,7 @@ auto MoveForceXSine::executeRT(PlanTarget &target)->int
 	static double step_pjs[6];
 	static double stateTor0[6][3], stateTor1[6][3], EndP0[3];
 	static double sT0[6][3], sT1[6][3];
-	static float FT0[6];
+    static double FT0[6];
 
 	// 访问主站 //
 	auto controller = target.controller;
@@ -5447,7 +5648,7 @@ auto MoveForceCircle::executeRT(PlanTarget &target)->int
 	static double step_pjs[6];
 	static double stateTor0[6][3], stateTor1[6][3], EndP0[3];
 	static double sT0[6][3], sT1[6][3];
-	static float FT0[6];
+    static double FT0[6];
 
 	// 访问主站 //
 	auto controller = target.controller;
@@ -5640,50 +5841,54 @@ double P2[7] = { 0.34893612065625784,-0.41170589555940784,0.27707736,-0.7070685,
 double P3[7] = { 0.30910799,-0.34915346,0.27707300,-0.707084,-0.7071295,0,0 };
 double P4[7] = { 0.2563542,-0.3824533,0.2770473,-0.707082,-0.70713,0,0};
 double P5[7] = { 0.25856243,-0.42001145,0.284604726,-0.7070756,-0.707137,0,0};
+static long start_count = 0;
 
-void PressLine(PlanTarget &target, const int start_count, const double *FmInWorld, const double *P1, const double *P2, const double addLength,double *dX,bool &flag)
+void PressLine(PlanTarget &target, const double *FmInWorld, const double *P1, const double *P2, const double addLength,double *dX,bool &flag)
 {
-    static double pArc, vArc, aArc, vArcMax = 0.025;
-	static aris::Size t_count = { 0 };
+    double pArc, vArc, aArc, vArcMax = 0.025;
+    aris::Size t_count = 0;
 
-	double dir[3] = { 0 }, vertic[3] = { 0 }, zbase[3] = { 0,0,1 };
-	double length = 0;
+    double dir[3] = { 0 }, vertic[3] = { 0 }, zbase[3] = { 0,0,1 };
+    double length = 0;
 
-	length = sqrt((P2[0] - P1[0])*(P2[0] - P1[0]) + (P2[1] - P1[1])*(P2[1] - P1[1]));
-	dir[0] = (P2[0] - P1[0]) / length;
-	dir[1] = (P2[1] - P1[1]) / length;
-	length = sqrt((P2[0] - P1[0])*(P2[0] - P1[0]) + (P2[1] - P1[1])*(P2[1] - P1[1])) + addLength;
-    aris::plan::moveAbsolute(target.count-start_count, 0, length, vArcMax / 1000, 0.02 / 1000 / 1000, 0.02 / 1000 / 1000, pArc, vArc, aArc, t_count);
+    length = sqrt((P2[0] - P1[0])*(P2[0] - P1[0]) + (P2[1] - P1[1])*(P2[1] - P1[1]));
+    dir[0] = (P2[0] - P1[0]) / length;
+    dir[1] = (P2[1] - P1[1]) / length;
+    length = sqrt((P2[0] - P1[0])*(P2[0] - P1[0]) + (P2[1] - P1[1])*(P2[1] - P1[1])) + addLength;
+    aris::plan::moveAbsolute(target.count-start_count+1, 0, length, vArcMax / 1000, 0.02 / 1000 / 1000, 0.02 / 1000 / 1000, pArc, vArc, aArc, t_count);
 
-	if ((target.count - start_count) == t_count)
-		flag = true;
+    if ((target.count - start_count-t_count) < 0.5&&(target.count - start_count-t_count) >- 0.5)
+      {
+        flag = true;
+    }
 
-	double dX0[6] = { 0 };
-	dX0[0] = vArc * dir[0];
-	dX0[1] = vArc * dir[1];
-	dX0[2] = 0;
+    double dX0[6] = { 0 };
+    dX0[0] = vArc * dir[0];
+    dX0[1] = vArc * dir[1];
+    dX0[2] = 0;
 
 
-	crossVector(zbase, dir, vertic);
-	double xy_desired[2] = { 0 };
+    crossVector(zbase, dir, vertic);
+    double xy_desired[2] = { 0 };
     xy_desired[0] = 10 * vertic[0];
     xy_desired[1] = 10 * vertic[1];
 
-	//if(PqEnd[1]>-0.393&&PqEnd[1]<-0.385)
-		//xy_desired[0] = 0;
+    //if(PqEnd[1]>-0.393&&PqEnd[1]<-0.385)
+        //xy_desired[0] = 0;
 
 
-	double dXpid[6] = { 0,0,0,0,0,0 };
+    double dXpid[6] = { 0,0,0,0,0,0 };
     dXpid[0] = 1 * (FmInWorld[0] - xy_desired[0]) / 720000;
     dXpid[1] = 1 * (FmInWorld[1] - xy_desired[1]) / 720000;
 
-	for (int i = 0;i < 6;i++)
+    for (int i = 0;i < 6;i++)
         dX[i] = dX0[i] + dXpid[i];
 
 
 }
 
 
+static std::atomic_bool enable_FCPressP = true;
 struct MoveForceCurveParam
 {
 	double PressF;
@@ -5716,14 +5921,15 @@ auto MoveForceCurve::prepairNrt(const std::map<std::string, std::string> &params
 
 	target.param = param;
 	target.ret = std::vector<std::pair<std::string, std::any>>();
-
+    enable_FCPressP=true;
 	for (auto &option : target.mot_options) option |=
 		Plan::USE_TARGET_POS |
 		Plan::NOT_CHECK_VEL_CONTINUOUS |
-		Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-		Plan::NOT_CHECK_ENABLE;
+        Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER|
+            Plan::NOT_CHECK_ENABLE;
 
-    SetLimit(target, 4.0);
+
+
 
 
 }
@@ -5733,7 +5939,7 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
 
 	static double step_pjs[6];
 	static double stateTor0[6][3], stateTor1[6][3], EndP0[3];
-	static float FT0[6];
+    static double FT0[6];
 
 	// 访问主站 //
 	auto controller = target.controller;
@@ -5754,7 +5960,7 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
 	double dTheta[6] = { 0 };
 
 //////////////////////////////////////////////////Get FT in World Framework, Filter////////////////////////////////////////////
-	double FT[6];
+    double FT[6]={0};
 	if (param.SensorType > 0)
 		GetATI(target, FT);
 	else
@@ -5764,6 +5970,8 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
 	// 获取当前起始点位置 //
 	if (target.count == 1)
 	{
+        enable_FCPressP=true;
+         SetLimit(target, 4.0);
 		for (int j = 0; j < 6; j++)
 		{
 			stateTor0[j][0] = FT[j];
@@ -5774,15 +5982,15 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
 	}
 
 
-    SecondOrderFilter(FT, stateTor0, stateTor1, 280);
+    //SecondOrderFilter(FT, stateTor0, stateTor1, 280);
 
 
-	double FT_KAI[6];
+    double FT_KAI[6]={0};
 	for (int i = 0; i < 6; i++)
 	{
         FT_KAI[i] = FT[i] - FT0[i];//In KAI Coordinate
 	}
-
+/*
 	double zero_check[6] = { 1,1,1,0.05,0.05,0.05 };
 	for (int i = 0; i < 6; i++)
 	{
@@ -5790,115 +5998,122 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
 			FT_KAI[i] = 1 / zero_check[i] * FT_KAI[i] * FT_KAI[i];//In KAI Coordinate
 		else if (FT_KAI[i]<0 && FT_KAI[i]>-zero_check[i])
 			FT_KAI[i] = -1 / zero_check[i] * FT_KAI[i] * FT_KAI[i];//In KAI Coordinate
-	}
+    }*/
 
 	double FmInWorld[6];
 	FT2World(target, FT_KAI, FmInWorld);
 	
-////////////////////////////////////////////////////////Press Profile Determined by P1-P2-P3-P4-P5////////////////////////////
-	static char line_mark = 'A';
-	static int start_count = 0;
-	static bool begin_flag = true;
-	static bool finish_flag = false;
-    //static double addLength[5] = { -0.018,-0.025,-0.010,-0.015,0.01 };
-    //static double addLength[5] = { 0.008,0.001,0.023,0.005,0.025};
-    static double addLength[5] = { -0.00,-0.00,0.000,0.000,0.000};
-	switch (line_mark)
-	{
-	case 'A':
-		if (begin_flag)
-		{
-			start_count = target.count;
-			begin_flag = false;
-		}
-			PressLine(target, start_count,FmInWorld, P1, P2, addLength[0], dX,finish_flag);
-			if (finish_flag)
-			{
-				begin_flag = true;
-				finish_flag = false;
-				line_mark = 'B';
-		     }
-			break;
-	case 'B':
-		if (begin_flag)
-		{
-			start_count = target.count;
-			begin_flag = false;
-		}
-		PressLine(target, start_count, FmInWorld, P2, P3, addLength[1], dX, finish_flag);
-		if (finish_flag)
-		{
-			begin_flag = true;
-			finish_flag = false;
-			line_mark = 'C';
-		}
-			break;
-	case 'C':
-		if (begin_flag)
-		{
-			start_count = target.count;
-			begin_flag = false;
-		}
-		PressLine(target, start_count, FmInWorld, P3, P4, addLength[2], dX, finish_flag);
-		if (finish_flag)
-		{
-			begin_flag = true;
-			finish_flag = false;
-			line_mark = 'D';
-		}
-			break;
-	case 'D':
-		if (begin_flag)
-		{
-			start_count = target.count;
-			begin_flag = false;
-		}
-		PressLine(target, start_count, FmInWorld, P4, P5, addLength[3], dX, finish_flag);
-		if (finish_flag)
-		{
-			begin_flag = true;
-			finish_flag = false;
-			line_mark = 'E';
-		}
-			break;
-	case 'E':
-		if (begin_flag)
-		{
-			start_count = target.count;
-			begin_flag = false;
-		}
-		PressLine(target, start_count, FmInWorld, P5, P1, addLength[4], dX, finish_flag);
-		if (finish_flag)
-		{
-			begin_flag = true;
-			finish_flag = false;
+    ////////////////////////////////////////////////////////Press Profile Determined by P1-P2-P3-P4-P5////////////////////////////
+        static char line_mark = 'A';
+        static bool begin_flag = true;
+        if(target.count==1)
+        {
             line_mark = 'A';
-		}
-			break;
-	default:
-		cout << "curve finished" << std::endl;
+            begin_flag = true;
+            start_count=0;
+        }
 
-	}
 
-	
+        bool finish_flag = false;
+        //static double addLength[5] = { -0.018,-0.025,-0.010,-0.015,0.01 };
+        //static double addLength[5] = { 0.008,0.001,0.023,0.005,0.025};
+        double addLength[5] = { -0.00,-0.00,0.000,0.000,0.000};
+        switch (line_mark)
+        {
+        case 'A':
+            if (begin_flag)
+            {
+                start_count = target.count;
+                begin_flag = false;
+            }
+                PressLine(target, FmInWorld, P1, P2, addLength[0], dX,finish_flag);
+                if (finish_flag)
+                {
+                    begin_flag = true;
+                    finish_flag = false;
+                    line_mark = 'B';
+                 }
+                break;
+        case 'B':
+            if (begin_flag)
+            {
+                start_count = target.count;
+                begin_flag = false;
+            }
+            PressLine(target, FmInWorld, P2, P3, addLength[1], dX, finish_flag);
+            if (finish_flag)
+            {
+                begin_flag = true;
+                finish_flag = false;
+                line_mark = 'C';
+            }
+                break;
+        case 'C':
+            if (begin_flag)
+            {
+                start_count = target.count;
+                begin_flag = false;
+            }
+            PressLine(target, FmInWorld, P3, P4, addLength[2], dX, finish_flag);
+            if (finish_flag)
+            {
+                begin_flag = true;
+                finish_flag = false;
+                line_mark = 'D';
+            }
+                break;
+        case 'D':
+            if (begin_flag)
+            {
+                start_count = target.count;
+                begin_flag = false;
+            }
+            PressLine(target, FmInWorld, P4, P5, addLength[3], dX, finish_flag);
+            if (finish_flag)
+            {
+                begin_flag = true;
+                finish_flag = false;
+                line_mark = 'E';
+            }
+                break;
+        case 'E':
+            if (begin_flag)
+            {
+                start_count = target.count;
+                begin_flag = false;
+            }
+            PressLine(target, FmInWorld, P5, P1, addLength[4], dX, finish_flag);
+            if (finish_flag)
+            {
+                begin_flag = true;
+                finish_flag = false;
+                line_mark = 'A';
+            }
+                break;
+        default:
+            cout << "curve finished" << std::endl;
+
+        }
+
+
 
 /////////////////////////////////////////////////////dX to dTheta, Generate Motor Position/////////////////////////////////////////////////
 	for (int j = 0; j < 6; j++)
 	{
-        if (dX[j] > 0.00035)
-            dX[j] = 0.00035;
-        if (dX[j] < -0.00035)
-            dX[j] = -0.00035;
+        if (dX[j] > 0.00025)
+            dX[j] = 0.00025;
+        if (dX[j] < -0.00025)
+            dX[j] = -0.00025;
 	}
 
 	dX2dTheta(target, dX, dTheta);
 
 	for (int i = 0; i < 6; i++)
 	{
-        if (dTheta[i] > 0.005)
-            dTheta[i] = 0.005;
-        if (dTheta[i] < -0.005)
-            dTheta[i] = -0.005;
+        if (dTheta[i] > 0.0025)
+            dTheta[i] = 0.0025;
+        if (dTheta[i] < -0.0025)
+            dTheta[i] = -0.0025;
 		//lout << dTheta[i] << ",";
 	}
 
@@ -5940,16 +6155,16 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
 	// log 电流 //
 	auto &lout = controller->lout();
 
-    lout << FT[0] << ",";lout << FT[1] << ",";
+    lout << target.count << ",";lout << FT[1] << ",";
 	lout << dX[0] << ",";lout << dX[1] << ",";
 	lout << FmInWorld[0] << ",";lout << FmInWorld[1] << ",";
 	lout << PqEnd[0] << ",";lout << PqEnd[1] << ",";
 	lout << std::endl;
-	if (target.count % 300 == 0)
+    //if (target.count % 100 == 0)
 	{
 
-        cout << FmInWorld[0]  << "*" << FmInWorld[1]  << "*"<<PressF1[0] << "*" <<dX[0]<<"*"<<line_mark<<std::endl;
-		cout << std::endl;
+        cout << target.count  << "*" << FmInWorld[0]  << "**"<<FmInWorld[1]<<"**"<<FmInWorld[2]<<"*" << FT0[0]  << "**"<<FT0[1]<<"**"<<FT0[2]<<std::endl;
+        //cout << std::endl;
 
 	}
 
@@ -5959,7 +6174,12 @@ auto MoveForceCurve::executeRT(PlanTarget &target)->int
 	if (line_mark == 'F')
 		return 0;
 
-    return 1900000 - target.count;
+
+    if (!enable_FCPressP)
+        for (int i = 0; i < 6; ++i)
+            auto ret = controller->motionPool().at(i).disable();
+
+    return 28000 - target.count;
 
 }
 
@@ -5987,6 +6207,30 @@ MoveForceCurve::MoveForceCurve(const std::string &name) :Plan(name)
 		"</Command>");
 
 }
+
+
+
+
+// 力控停止指令——停止FCStop，去使能电机 //
+
+auto FCStop::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+    {
+        enable_mvJoint = false;
+        enable_FCPressL=false;
+        enable_FCPressP=false;
+        target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
+
+    }
+FCStop::FCStop(const std::string &name) :Plan(name)
+    {
+        command().loadXmlStr(
+            "<Command name=\"FCStop\">"
+            "</Command>");
+    }
+
+
+
+
 
 
 // 获取part_pq，end_pq，end_pe等 //
@@ -6030,4 +6274,6 @@ GetForce::GetForce(const std::string &name) : Plan(name)
         "<Command name=\"get\">"
         "</Command>");
 }
+
+
 

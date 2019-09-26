@@ -97,6 +97,7 @@ auto JointDyna::executeRT(PlanTarget &target)->int
 	// 获取当前起始点位置 //
 	if (target.count == 1)
 	{
+        CollectNum = 1;
 		for (int i = 0; i < RobotAxis; i++)
 		{
 			begin_pjs[i] = target.model->motionPool()[i].mp();
@@ -344,8 +345,8 @@ JointDyna::JointDyna(const std::string &name) :Plan(name)
         "		<Param name=\"A1N\" default=\"-1\"/>"
         "		<Param name=\"A2P\"default=\"0.5\"/>"
         "		<Param name=\"A2N\" default=\"-0.5\"/>"
-        "		<Param name=\"A3P\"default=\"0.5\"/>"
-        "		<Param name=\"A3N\" default=\"-0.5\"/>"
+        "		<Param name=\"A3P\"default=\"0.3\"/>"
+        "		<Param name=\"A3N\" default=\"-0.3\"/>"
         "		<Param name=\"A4P\"default=\"0.5\"/>"
         "		<Param name=\"A4N\" default=\"-0.5\"/>"
         "		<Param name=\"A5P\"default=\"0.5\"/>"

@@ -7,7 +7,7 @@
 //using namespace std;
 using namespace aris::plan;
 using namespace aris::dynamic;
-using namespace PLANGK;
+using namespace traplan;
 /// \brief
 
 planconfig planoperator;
