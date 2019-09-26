@@ -14,7 +14,7 @@ std::atomic_int g_vel_percent = 0;
 //global vel//
 
 //state machine flag//
-std::atomic_bool g_error = false;
+std::atomic_bool g_is_error = false;
 std::atomic_bool g_is_manual = false;
 std::atomic_bool g_is_auto = false;
 //state machine flag//

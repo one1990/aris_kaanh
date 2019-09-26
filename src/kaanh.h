@@ -8,14 +8,22 @@
 #include"CJsonObject.hpp"
 #include "kinematic.h"
 
-//statemachine//
+//statemachine old//
 # define M_RUN 0	//手动单步执行
 # define READ_RT_DATA 1		//监控实时数据
 # define READ_XML 2		//监控实时数据
 # define A_RUN 3	//自动执行
 # define A_QUIT 4	//退出自动执行，返回到手动模式
 # define buffer_length 800
-//statemachine//
+//statemachine old//
+
+//statemachine new//
+# define DISABLED 100	//去使能
+# define MANUAL 200		//手动模式
+# define PRE_AUTO 300	//准自动模式
+# define AUTO 400		//自动模式
+# define ERROR 500		//错误模式
+//statemachine new//
 
 // \brief 机器人命名空间
 // \ingroup aris
@@ -622,6 +630,14 @@ namespace kaanh
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
 		explicit MoveSt(const std::string &name = "MoveSt_plan");
 		ARIS_REGISTER_TYPE(MoveSt);
+	};
+
+	class Switch : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		explicit Switch(const std::string &name = "Switch_plan");
+		ARIS_REGISTER_TYPE(Switch);
 	};
 }
 
