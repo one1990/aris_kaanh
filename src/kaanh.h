@@ -65,6 +65,9 @@ namespace kaanh
     auto createControllerDaye()->std::unique_ptr<aris::control::Controller>;
     auto createModelDaye(const double *robot_pm = nullptr)->std::unique_ptr<aris::dynamic::Model>;
 
+	auto update_state(aris::server::ControlServer &cs)->void;
+	auto get_state_code()->std::int32_t;
+
 	struct CmdListParam
 	{
 		std::vector<std::pair<std::string, std::string>> cmd_vec;

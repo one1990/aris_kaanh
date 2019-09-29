@@ -14,6 +14,7 @@ std::atomic_int g_vel_percent = 0;
 //global vel//
 
 //state machine flag//
+std::atomic_bool g_is_enabled = false;
 std::atomic_bool g_is_error = false;
 std::atomic_bool g_is_manual = false;
 std::atomic_bool g_is_auto = false;
@@ -25,6 +26,7 @@ auto modelxmlpath = std::filesystem::absolute(".");
 const std::string xmlfile = "kaanh.xml";
 const std::string uixmlfile = "interface_kaanh.xml";
 const std::string modelxmlfile = "model_rokae.xml";
+
 
 int main(int argc, char *argv[])
 {
@@ -52,7 +54,6 @@ int main(int argc, char *argv[])
 	//cs.model().loadXmlFile(modelxmlpath.string().c_str());
 	cs.saveXmlFile(xmlpath.string().c_str());
     //-------for rokae robot end// 
-	
 
     /*
     //-------for sanxiang robot begin//
@@ -103,14 +104,15 @@ int main(int argc, char *argv[])
 	
 	cs.start();
 
+	//实时回调函数，每个实时周期调用一次//
+	cs.setRtPlanPostCallback(kaanh::update_state);
+
 	//加载v100的速度值//
 	auto &getspeed = dynamic_cast<aris::dynamic::MatrixVariable &>(*cs.model().variablePool().findByName("v100"));
 	kaanh::SpeedParam speed;
 	std::copy(getspeed.data().begin(), getspeed.data().end(), &speed.w_percent);
 	speed.w_tcp = speed.w_tcp * speed.w_percent;
 	g_vel.setspeed(speed);
-
-	std::cout << "w_percent:" << g_vel.getspeed().w_percent << std::endl;
 
 	//Start Web Socket//
     cs.open();

@@ -20,6 +20,7 @@ extern std::atomic_int g_vel_percent;
 //global vel//
 
 //state machine flag//
+extern std::atomic_bool g_is_enabled;
 extern std::atomic_bool g_is_error;
 extern std::atomic_bool g_is_manual;
 extern std::atomic_bool g_is_auto;
@@ -728,6 +729,81 @@ namespace kaanh
 		return std::move(model);
 	}
 
+	//更新实时状态：使能、报错//
+	auto update_state(aris::server::ControlServer &cs)->void
+	{
+		static bool motion_state[6] = { false, false, false, false, false, false };
+
+		//获取motion的使能状态，0表示去使能状态，1表示使能状态//
+		for (aris::Size i = 0; i < 6; i++)
+		{
+			auto cm = dynamic_cast<aris::control::EthercatMotion*>(&cs.controller().motionPool()[i]);
+			if ((cm->statusWord() & 0x6f) != 0x27)
+			{
+				motion_state[i] = 0;
+			}
+			else
+			{
+				motion_state[i] = 1;
+			}
+		}
+
+		//获取ret_code的值，判断是否报错//
+		/*
+		if (target.ret_code != 0)
+		{
+			g_is_error.store(true);
+		}
+		else
+		{
+			g_is_error.store(false);
+		}
+		*/
+
+		if (motion_state[0] && motion_state[1] && motion_state[2] && motion_state[3] && motion_state[4] && motion_state[5])
+		{
+			g_is_enabled.store(true);
+		}
+		else
+		{
+			g_is_enabled.store(false);
+		}
+	}
+
+	//获取状态字——100:去使能,200:手动,300:准自动,400:自动,500:错误//
+	auto get_state_code()->std::int32_t
+	{
+		if (g_is_enabled.load())
+		{
+			if (g_is_error.load())
+			{
+				return 500;
+			}
+			else
+			{
+				if (g_is_manual.load())
+				{
+					return 200;
+				}
+				else
+				{
+					if (!g_is_auto.load())
+					{
+						return 300;
+					}
+					else
+					{
+						return 400;
+					}
+				}
+			}
+		}
+		else
+		{
+			return 100;
+		}
+	}
+
 
 #define CHECK_PARAM_STRING \
 		"		<UniqueParam default=\"check_all\">" \
@@ -1131,16 +1207,6 @@ namespace kaanh
 		std::any param = par;
 		//std::any param = std::make_any<GetParam>();
 
-		//g_is_error//	
-		if (target.ret_code != 0)
-		{
-			g_is_error.store(true);
-		}
-		else
-		{
-			g_is_error.store(false);
-		}
-
 		target.server->getRtData([&](aris::server::ControlServer& cs, const aris::plan::PlanTarget *target, std::any& data)->void
 		{
 			for (aris::Size i(-1); ++i < cs.model().partPool().size();)
@@ -1190,38 +1256,6 @@ namespace kaanh
 				}
 			}
 			
-			//state machine//
-			auto s = std::any_cast<GetParam &>(data);
-			if (s.motion_state[0] && s.motion_state[1] && s.motion_state[2] && s.motion_state[3] && s.motion_state[4] && s.motion_state[5])
-			{
-				if (g_is_error.load())
-				{
-					std::any_cast<GetParam &>(data).state_code = 500;
-				}
-				else
-				{
-					if (g_is_manual.load())
-					{
-						std::any_cast<GetParam &>(data).state_code = 200;
-					}
-					else
-					{
-						if (!g_is_auto.load())
-						{
-							std::any_cast<GetParam &>(data).state_code = 300;
-						}
-						else
-						{
-							std::any_cast<GetParam &>(data).state_code = 400;
-						}
-					}
-				}
-			}
-			else
-			{
-				std::any_cast<GetParam &>(data).state_code = 100;
-			}
-
 			if (target == nullptr)
 			{
 				std::any_cast<GetParam &>(data).currentplan = "none";
@@ -1240,6 +1274,7 @@ namespace kaanh
 			slave_online[i] = int(out_data.sls[i].online);
 			slave_al_state[i] = int(out_data.sls[i].al_state);
 		}
+		out_data.state_code = get_state_code();
 
 		std::vector<std::pair<std::string, std::any>> out_param;
 		out_param.push_back(std::make_pair<std::string, std::any>("part_pq", out_data.part_pq));
@@ -2413,8 +2448,8 @@ namespace kaanh
 	{
 		std::vector<double> joint_vel, joint_acc, joint_dec, ee_begin_pq, ee_mid_pq, ee_end_pq, joint_pos_begin, joint_pos_end;
 		Size total_count[6];
-		double acc, vel, dec;
-		double angular_acc, angular_vel, angular_dec;
+		double acc, vel, dec, jerk;
+		double angular_acc, angular_vel, angular_dec, angular_jerk;
 		aris::dynamic::Marker *tool, *wobj;
 	};
 	struct MoveC::Imp {};
@@ -2447,6 +2482,10 @@ namespace kaanh
 			{
 				mvc_param.dec = std::stod(cmd_param.second);
 			}
+			else if (cmd_param.first == "jerk")
+			{
+				mvc_param.jerk = std::stod(cmd_param.second);
+			}
 			else if (cmd_param.first == "angular_acc")
 			{
 				mvc_param.angular_acc = std::stod(cmd_param.second);
@@ -2458,6 +2497,10 @@ namespace kaanh
 			else if (cmd_param.first == "angular_dec")
 			{
 				mvc_param.angular_dec = std::stod(cmd_param.second);
+			}
+			else if (cmd_param.first == "angular_jerk")
+			{
+				mvc_param.angular_jerk = std::stod(cmd_param.second);
 			}
 		}
 
@@ -2559,8 +2602,8 @@ namespace kaanh
 			//aris::plan::moveAbsolute(target.count, 0.0, theta, mvc_param.vel / 1000 / R, mvc_param.acc / 1000 / 1000 / R, mvc_param.dec / 1000 / 1000 / R, p, v, a, pos_total_count);
 			//aris::plan::moveAbsolute(target.count, 0.0, 1.0, mvc_param.angular_vel / 1000 / ori_theta / 2.0, mvc_param.angular_acc / 1000 / 1000 / ori_theta / 2.0, mvc_param.angular_dec / 1000 / 1000 / ori_theta / 2.0, p, v, a, ori_total_count);
 
-			traplan::sCurve(target.count, 0.0, theta, mvc_param.vel / 1000 / R, mvc_param.acc / 1000 / 1000 / R, 10*mvc_param.acc / 1000 / 1000 /1000 / R, p, v, a, j, pos_total_count);
-			traplan::sCurve(target.count, 0.0, 1.0, mvc_param.angular_vel / 1000 / ori_theta / 2.0, mvc_param.angular_acc / 1000 / 1000 / ori_theta / 2.0, 10*mvc_param.angular_acc / 1000 / 1000 /1000 / ori_theta / 2.0, p, v, a, j, ori_total_count);
+			traplan::sCurve(target.count, 0.0, theta, mvc_param.vel / 1000 / R, mvc_param.acc / 1000 / 1000 / R, mvc_param.jerk / 1000 / 1000 /1000 / R, p, v, a, j, pos_total_count);
+			traplan::sCurve(target.count, 0.0, 1.0, mvc_param.angular_vel / 1000 / ori_theta / 2.0, mvc_param.angular_acc / 1000 / 1000 / ori_theta / 2.0, mvc_param.angular_jerk / 1000 / 1000 /1000 / ori_theta / 2.0, p, v, a, j, ori_total_count);
 
 			pos_ratio = pos_total_count < ori_total_count ? double(pos_total_count) / ori_total_count : 1.0;
 			ori_ratio = ori_total_count < pos_total_count ? double(ori_total_count) / pos_total_count : 1.0;
@@ -2572,7 +2615,7 @@ namespace kaanh
 		auto normv = aris::dynamic::s_norm(3, w);
 		if (std::abs(normv) > 1e-10)aris::dynamic::s_nv(3, 1 / normv, w); //数乘
 		//aris::plan::moveAbsolute(target.count, 0.0, theta, mvc_param.vel / 1000 / R * pos_ratio, mvc_param.acc / 1000 / 1000 / R * pos_ratio * pos_ratio, mvc_param.dec / 1000 / 1000 / R * pos_ratio* pos_ratio, p, v, a, pos_total_count);
-		traplan::sCurve(target.count, 0.0, theta, mvc_param.vel / 1000 / R * pos_ratio, mvc_param.acc / 1000 / 1000 / R * pos_ratio * pos_ratio, 10*mvc_param.acc / 1000 / 1000 / 1000 / R * pos_ratio* pos_ratio* pos_ratio, p, v, a, j, pos_total_count);
+		traplan::sCurve(target.count, 0.0, theta, mvc_param.vel / 1000 / R * pos_ratio, mvc_param.acc / 1000 / 1000 / R * pos_ratio * pos_ratio, mvc_param.jerk / 1000 / 1000 / 1000 / R * pos_ratio* pos_ratio* pos_ratio, p, v, a, j, pos_total_count);
 
 		double pqr[7]{ C[0], C[1], C[2], w[0] * sin(p / 2.0), w[1] * sin(p / 2.0), w[2] * sin(p / 2.0), cos(p / 2.0) };
 		double pos[4]{ mvc_param.ee_begin_pq[0] - C[0], mvc_param.ee_begin_pq[1] - C[1], mvc_param.ee_begin_pq[2] - C[2], 1};
@@ -2581,7 +2624,7 @@ namespace kaanh
 
 		//姿态规划//
 		//aris::plan::moveAbsolute(target.count, 0.0, 1.0, mvc_param.angular_vel / 1000 / ori_theta / 2.0 * ori_ratio, mvc_param.angular_acc / 1000 / 1000 / ori_theta / 2.0 * ori_ratio * ori_ratio, mvc_param.angular_dec / 1000 / 1000 / ori_theta / 2.0* ori_ratio * ori_ratio, p, v, a, ori_total_count);
-		traplan::sCurve(target.count, 0.0, 1.0, mvc_param.angular_vel / 1000 / ori_theta / 2.0 * ori_ratio, mvc_param.angular_acc / 1000 / 1000 / ori_theta / 2.0 * ori_ratio * ori_ratio, 10*mvc_param.angular_acc / 1000 / 1000 /1000 / ori_theta / 2.0* ori_ratio * ori_ratio* ori_ratio, p, v, a, j, ori_total_count);
+		traplan::sCurve(target.count, 0.0, 1.0, mvc_param.angular_vel / 1000 / ori_theta / 2.0 * ori_ratio, mvc_param.angular_acc / 1000 / 1000 / ori_theta / 2.0 * ori_ratio * ori_ratio, mvc_param.angular_jerk / 1000 / 1000 /1000 / ori_theta / 2.0* ori_ratio * ori_ratio* ori_ratio, p, v, a, j, ori_total_count);
 		slerp(mvc_param.ee_begin_pq.data() + 3, mvc_param.ee_end_pq.data() + 3, pqt + 3, p);
 		
 		//雅克比矩阵判断奇异点//
@@ -2654,9 +2697,11 @@ namespace kaanh
 			"		<Param name=\"acc\" default=\"0.1\"/>"
 			"		<Param name=\"vel\" default=\"0.1\"/>"
 			"		<Param name=\"dec\" default=\"0.1\"/>"
+			"		<Param name=\"jerk\" default=\"0.1\"/>"
 			"		<Param name=\"angular_acc\" default=\"0.1\"/>"
 			"		<Param name=\"angular_vel\" default=\"0.1\"/>"
 			"		<Param name=\"angular_dec\" default=\"0.1\"/>"
+			"		<Param name=\"angular_jerk\" default=\"0.1\"/>"
 			"		<Param name=\"tool\" default=\"tool0\"/>"
 			"		<Param name=\"wobj\" default=\"wobj0\"/>"
 			"	</GroupParam>"
@@ -6248,15 +6293,17 @@ namespace kaanh
 	auto onReceivedMsg(aris::core::Socket *socket, aris::core::Msg &msg)->int
 	{
 		std::string msg_data = msg.toString();
-
-		LOG_INFO << "receive cmd:"
-			<< msg.header().msg_size_ << "&"
-			<< msg.header().msg_id_ << "&"
-			<< msg.header().msg_type_ << "&"
-			<< msg.header().reserved1_ << "&"
-			<< msg.header().reserved2_ << "&"
-			<< msg.header().reserved3_ << ":"
-			<< msg_data << std::endl;
+		
+		{
+			LOG_INFO << "receive cmd:"
+				<< msg.header().msg_size_ << "&"
+				<< msg.header().msg_id_ << "&"
+				<< msg.header().msg_type_ << "&"
+				<< msg.header().reserved1_ << "&"
+				<< msg.header().reserved2_ << "&"
+				<< msg.header().reserved3_ << ":"
+				<< msg_data << std::endl;
+		}
 
 		//std::string data = "collectcmd --cmdlist = {1:moveJ\r\n2:moveJ\r\n3:moveL\r\n}";
 		std::string s = " --";
