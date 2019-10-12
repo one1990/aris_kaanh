@@ -240,15 +240,15 @@ namespace kaanh
 		ARIS_REGISTER_TYPE(MoveF);
 	};
 
-	class MvaJ :public aris::plan::Plan
+	class MoveAbsJ :public aris::plan::Plan
 	{
 	public:
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
 		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
 
-		virtual ~MvaJ();
-		explicit MvaJ(const std::string &name = "MvaJ");
-		ARIS_REGISTER_TYPE(MvaJ);
+		virtual ~MoveAbsJ();
+		explicit MoveAbsJ(const std::string &name = "MoveAbsJ");
+		ARIS_REGISTER_TYPE(kaanh::MoveAbsJ);
 	};
 	
 	class MoveJ : public aris::plan::Plan
@@ -259,7 +259,7 @@ namespace kaanh
 
 		virtual ~MoveJ();
 		explicit MoveJ(const std::string &name = "move_j");
-		ARIS_REGISTER_TYPE(MoveJ);
+		ARIS_REGISTER_TYPE(kaanh::MoveJ);
 		ARIS_DECLARE_BIG_FOUR(MoveJ);
 
 	private:
@@ -275,7 +275,7 @@ namespace kaanh
 
 		virtual ~MoveL();
 		explicit MoveL(const std::string &name = "move_l");
-		ARIS_REGISTER_TYPE(MoveL);
+		ARIS_REGISTER_TYPE(kaanh::MoveL);
 		ARIS_DECLARE_BIG_FOUR(MoveL);
 
 	private:
@@ -411,6 +411,18 @@ namespace kaanh
 		virtual ~JogJ6();
 		explicit JogJ6(const std::string &name = "JogJ6_plan");
 		ARIS_REGISTER_TYPE(JogJ6);
+	};
+
+	class JogJ7 : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+
+		virtual ~JogJ7();
+		explicit JogJ7(const std::string &name = "JogJ7_plan");
+		ARIS_REGISTER_TYPE(JogJ7);
 	};
 
 	class JX : public aris::plan::Plan

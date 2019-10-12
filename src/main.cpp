@@ -101,7 +101,7 @@ int main(int argc, char *argv[])
 	*/
 	
 	cs.loadXmlFile(xmlpath.string().c_str());
-	
+
 	cs.start();
 
 	//实时回调函数，每个实时周期调用一次//
