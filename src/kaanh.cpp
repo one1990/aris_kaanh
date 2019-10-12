@@ -4348,7 +4348,7 @@ namespace kaanh
 
 				param.tool = &*target.model->generalMotionPool()[0].makI().fatherPart().markerPool().findByName(cmd_params.at("tool"));
 				param.wobj = &*target.model->generalMotionPool()[0].makJ().fatherPart().markerPool().findByName(cmd_params.at("wobj"));
-
+				
 				param.increase_count = std::stoi(cmd_params.at("increase_count"));
 				if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
 
@@ -5900,45 +5900,6 @@ namespace kaanh
 	}
 
 
-	// 保存配置 //
-	struct SaveXmlParam
-	{
-		std::string path;
-	};
-	auto SaveXml::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
-	{
-		auto&cs = aris::server::ControlServer::instance();
-		if (cs.running())throw std::runtime_error("cs is running, please stop the cs using cs_stop!");
-		
-		SaveXmlParam param;
-		for (auto &p : params)
-		{
-			if (p.first == "path")
-			{
-				param.path = p.second;
-			}
-		}
-		const std::string xmlfile = "kaanh.xml";
-		param.path = param.path + '/' + xmlfile;
-
-		std::cout << "path:" << param.path << std::endl;
-		cs.saveXmlFile(param.path.c_str());
-
-		std::vector<std::pair<std::string, std::any>> ret;
-		target.ret = ret;
-		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
-	}
-	SaveXml::SaveXml(const std::string &name) :Plan(name)
-	{
-		command().loadXmlStr(
-			"<Command name=\"savexml\">"
-			"	<GroupParam>"
-			"		<Param name=\"path\" default=\"\"/>"
-			"	</GroupParam>"
-			"</Command>");
-	}
-
-
 	// 从硬件扫描从站 //
 	auto ScanSlave::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
@@ -6058,57 +6019,6 @@ namespace kaanh
 	}
 
 
-	// 开启controller server //
-	auto StartCS::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
-	{	
-		/*
-        std::cout<<0<<std::endl;
-		auto&cs = aris::server::ControlServer::instance();
-		if (cs.running())throw std::runtime_error("cs is already running!");
-        std::cout<<1<<std::endl;
-        cs.start();
-		
-        std::cout<<2<<std::endl;
-		*/
-		std::string data = "collectcmd --cmdlist={1:moveJ\r\n2:moveJ\r\n3:moveL\r\n}";
-		auto begin_pos = data.find("{");
-		auto end_pos = data.rfind("}");
-		auto cmd_str = data.substr(begin_pos + 1, end_pos - 1 - begin_pos);
-		std::cout << "cmd_str:" << cmd_str << std::endl;
-		char *s_input = (char *)cmd_str.c_str();
-		std::ifstream infile(s_input);
-
-		const char *split = "\r\n";
-		// 以‘ ’为分隔符拆分字符串
-		char *sp_input = strtok(s_input, split);
-		//std::string mid = sp_input;
-		std::cout << "sp_input:" << sp_input << std::endl;
-		if (strcmp(sp_input, "collectcmd") == 0)
-		{
-			std::cout << "sp_input=" << "collectcmd" << std::endl;
-		}
-
-		double data_input;
-		int i = 0;
-		while (sp_input != NULL)
-		{
-			std::string str = sp_input;
-			std::cout << "str:" << str << std::endl;
-			sp_input = strtok(NULL, split);
-		}
-
-		std::vector<std::pair<std::string, std::any>> ret;
-		target.ret = ret;
-		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
-	}
-	StartCS::StartCS(const std::string &name) :Plan(name)
-	{
-		command().loadXmlStr(
-			"<Command name=\"startCS\">"
-			"</Command>");
-	}
-
-
 	// update controller //
 	auto Update::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
@@ -6125,24 +6035,117 @@ namespace kaanh
 	}
 
 
-	// 关闭controller server //
-	auto StopCS::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	// 保存配置 //
+	struct SaveXmlParam
+	{
+		std::string path;
+	};
+	auto SaveXml::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
 		auto&cs = aris::server::ControlServer::instance();
-		if (!cs.running())throw std::runtime_error("cs is already stopping!");
-		cs.stop();
+		if (cs.running())throw std::runtime_error("cs is running, please stop the cs using cs_stop!");
+
+		SaveXmlParam param;
+		for (auto &p : params)
+		{
+			if (p.first == "path")
+			{
+				param.path = p.second;
+			}
+		}
+		const std::string xmlfile = "kaanh.xml";
+		param.path = param.path + '/' + xmlfile;
+
+		std::cout << "path:" << param.path << std::endl;
+		cs.saveXmlFile(param.path.c_str());
+
 		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
 		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
 	}
-	StopCS::StopCS(const std::string &name) :Plan(name)
+	SaveXml::SaveXml(const std::string &name) :Plan(name)
 	{
 		command().loadXmlStr(
-			"<Command name=\"stopCS\">"
+			"<Command name=\"savexml\">"
+			"	<GroupParam>"
+			"		<Param name=\"path\" default=\"\"/>"
+			"	</GroupParam>"
 			"</Command>");
 	}
 
+
+	auto GetXml::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		std::vector<std::pair<std::string, std::any>> ret_value;
+		ret_value.push_back(std::make_pair(std::string("configure_xml"), target.server->xmlString()));
+		target.ret = ret_value;
+		target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION;
+	}
+	GetXml::~GetXml() = default;
+	GetXml::GetXml(const std::string &name) : Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"get_xml\">"
+			"</Command>");
+	}
+
+
+	auto SetXml::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		// remove all symbols "{" "}"
+		if (target.server->running())THROW_FILE_LINE("server is running, can't set xml");
+		auto xml_str = params.at("xml").substr(1, params.at("xml").size() - 2);
+		// 这一句要小心，此时 this 已被销毁，后面不能再调用this了 //
+		target.server->loadXmlStr(xml_str);
+		target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION;
+
+		std::vector<std::pair<std::string, std::any>> ret_value;
+		target.ret = ret_value;
+	}
+	SetXml::~SetXml() = default;
+	SetXml::SetXml(const std::string &name) : Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"set_xml\">"
+			"	<Param name=\"xml\"/>"
+			"</Command>");
+	}
+
+
+	auto Start::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		target.server->start();
+		target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION;
+
+		std::vector<std::pair<std::string, std::any>> ret_value;
+		target.ret = ret_value;
+	}
+	Start::~Start() = default;
+	Start::Start(const std::string &name) : Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"cs_start\">"
+			"</Command>");
+	}
+
+
+	auto Stop::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		target.server->stop();
+		target.option |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION;
+
+		std::vector<std::pair<std::string, std::any>> ret_value;
+		target.ret = ret_value;
+	}
+	Stop::~Stop() = default;
+	Stop::Stop(const std::string &name) : Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"cs_stop\">"
+			"</Command>");
+	}
 	
+
 	// set cycle_time for driver with SDO //
 	struct SetCTParam
 	{
@@ -6748,11 +6751,6 @@ namespace kaanh
         plan_root->planPool().add<kaanh::MoveJ>();
 		plan_root->planPool().add<kaanh::MoveSt>();
 
-        plan_root->planPool().add<aris::plan::GetXml>();
-        plan_root->planPool().add<aris::plan::SetXml>();
-        plan_root->planPool().add<aris::plan::Start>();
-        plan_root->planPool().add<aris::plan::Stop>();
-
 		plan_root->planPool().add<kaanh::Get>();
 		plan_root->planPool().add<forcecontrol::MoveJRC>();
 		plan_root->planPool().add<forcecontrol::MovePQCrash>();
@@ -6791,10 +6789,13 @@ namespace kaanh
 		plan_root->planPool().add<kaanh::ScanSlave>();
 		plan_root->planPool().add<kaanh::GetEsiPdoList>();
 		plan_root->planPool().add<kaanh::SetEsiPath>();
+		plan_root->planPool().add<kaanh::GetXml>();
+		plan_root->planPool().add<kaanh::SetXml>();
+		plan_root->planPool().add<kaanh::Start>();
+		plan_root->planPool().add<kaanh::Stop>();
 		plan_root->planPool().add<kaanh::SetCT>();
 		plan_root->planPool().add<kaanh::SetVel>();
 		plan_root->planPool().add<kaanh::Run>();
-		plan_root->planPool().add<kaanh::StartCS>();
 		plan_root->planPool().add<kaanh::MoveF>();
 		plan_root->planPool().add<kaanh::Switch>();
 

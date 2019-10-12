@@ -585,14 +585,6 @@ namespace kaanh
 		ARIS_REGISTER_TYPE(ClearCon);
 	};
 
-	class StartCS : public aris::plan::Plan
-	{
-	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		explicit StartCS(const std::string &name = "StartCS_plan");
-		ARIS_REGISTER_TYPE(StartCS);
-	};
-
 	class Update : public aris::plan::Plan
 	{
 	public:
@@ -601,12 +593,44 @@ namespace kaanh
 		ARIS_REGISTER_TYPE(Update);
 	};
 
-	class StopCS : public aris::plan::Plan
+	class GetXml :public aris::plan::Plan
 	{
 	public:
 		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		explicit StopCS(const std::string &name = "StopCS_plan");
-		ARIS_REGISTER_TYPE(StopCS);
+
+		virtual ~GetXml();
+		explicit GetXml(const std::string &name = "GetXml");
+		ARIS_REGISTER_TYPE(kaanh::GetXml);
+	};
+
+	class SetXml :public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+
+		virtual ~SetXml();
+		explicit SetXml(const std::string &name = "SetXml");
+		ARIS_REGISTER_TYPE(kaanh::SetXml);
+	};
+
+	class Start :public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+
+		virtual ~Start();
+		explicit Start(const std::string &name = "Start");
+		ARIS_REGISTER_TYPE(kaanh::Start);
+	};
+
+	class Stop :public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+
+		virtual ~Stop();
+		explicit Stop(const std::string &name = "Stop");
+		ARIS_REGISTER_TYPE(kaanh::Stop);
 	};
 
 	class SetCT : public aris::plan::Plan
