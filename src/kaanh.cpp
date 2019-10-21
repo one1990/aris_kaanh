@@ -6217,6 +6217,40 @@ namespace kaanh
 	}
 
 
+	//var//
+	struct VarParam
+	{
+		int vel_percent;
+	};
+	auto Var::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
+	{
+		VarParam param;
+		for (auto &p : params)
+		{
+			if (p.first == "vel_percent")
+			{
+				param.vel_percent = std::stoi(p.second);
+			}
+		}
+		g_vel_percent.store(param.vel_percent);
+
+		std::vector<std::pair<std::string, std::any>> ret;
+		target.ret = ret;
+		target.option = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
+	}
+	Var::Var(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"var\">"
+			"	<GroupParam>"
+			"		<Param name=\"name\" default=\"0\"/>"
+			"		<Param name=\"value\" default=\"0\"/>"
+			"		<Param name=\"type\" default=\"0\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
+
+
 	//运行指令//
 	struct RunParam
 	{
