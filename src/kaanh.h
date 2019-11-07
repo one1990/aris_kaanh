@@ -70,7 +70,7 @@ namespace kaanh
 
 	struct CmdListParam
 	{
-		std::vector<std::pair<std::string, std::string>> cmd_vec;
+		std::map<int, std::string> cmd_vec;
 		int current_cmd_id = 0;
 		int current_plan_id = -1;
 	};

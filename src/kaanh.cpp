@@ -6220,19 +6220,37 @@ namespace kaanh
 	//var//
 	struct VarParam
 	{
-		int vel_percent;
+		std::string name;
+		std::string value;
+		std::string type;
 	};
 	auto Var::prepairNrt(const std::map<std::string, std::string> &params, PlanTarget &target)->void
 	{
 		VarParam param;
 		for (auto &p : params)
 		{
-			if (p.first == "vel_percent")
+			if(p.first == "name")
 			{
-				param.vel_percent = std::stoi(p.second);
+				param.name = p.second;
+			}
+			else if (p.first == "value")
+			{
+				param.value = p.second;
+			}
+			else if (p.first == "type")
+			{
+				param.type = p.second;
 			}
 		}
-		g_vel_percent.store(param.vel_percent);
+		aris::core::Calculator c;
+		if ((param.type == "int") || (param.type == "double") || (param.type == "bool") || (param.type == "array"))
+		{
+			c.addVariable(param.name, target.model->calculator().calculateExpression(param.value));
+		}
+		else if (param.type == "string")
+		{
+
+		}
 
 		std::vector<std::pair<std::string, std::any>> ret;
 		target.ret = ret;
@@ -6298,29 +6316,32 @@ namespace kaanh
 							auto&cs = aris::server::ControlServer::instance();
 							{
 								std::unique_lock<std::mutex> run_lock(mymutex);
-								if ((cmdparam.current_cmd_id >= cmdparam.cmd_vec.size()) || (cmdparam.current_cmd_id < 0))
+								auto iter = cmdparam.cmd_vec.find(cmdparam.current_cmd_id);
+								if (iter == cmdparam.cmd_vec.end())
 								{
 									set_is_auto_executing(false);
 									return;
 								}
 								else
 								{
-									cmdparam.current_plan_id = std::stoi(cmdparam.cmd_vec[cmdparam.current_cmd_id].first);
+									cmdparam.current_plan_id = iter->first;
 								}			
 							}
-							cs.executeCmd(aris::core::Msg(cmdparam.cmd_vec[cmdparam.current_cmd_id].second), [&](aris::plan::PlanTarget &target)->void
+							cs.executeCmd(aris::core::Msg(cmdparam.cmd_vec[cmdparam.current_cmd_id]), [&](aris::plan::PlanTarget &target)->void
 							{
 								std::unique_lock<std::mutex> run_lock(mymutex);
-								std::cout << "current_cmd_id:" << cmdparam.current_cmd_id << std::endl;
-								if (cmdparam.current_cmd_id >= cmdparam.cmd_vec.size() - 1)
+								auto iter = cmdparam.cmd_vec.find(cmdparam.current_cmd_id);
+								iter++;
+								std::cout << "current_cmd_id:" << iter->second << std::endl;
+								if (iter != cmdparam.cmd_vec.end())
 								{
-									cmdparam.current_plan_id = std::stoi(cmdparam.cmd_vec[cmdparam.cmd_vec.size() - 1].first) + 1;
+									cmdparam.current_plan_id = iter->first;
+									cmdparam.current_cmd_id = iter->first;
 								}
 								else
 								{
-									cmdparam.current_plan_id = std::stoi(cmdparam.cmd_vec[cmdparam.current_cmd_id + 1].first);
+									cmdparam.current_plan_id = cmdparam.cmd_vec.rbegin()->first + 1;
 								}
-								cmdparam.current_cmd_id += 1;
 								set_is_auto_executing(false);
 							});
 						}
@@ -6334,6 +6355,7 @@ namespace kaanh
 			}
 			else if (p.first == "goto")
 			{
+				param->goto_cmd_id = std::stoi(p.second);
 				//有指令在执行//
 				if (is_auto_executing())
 				{
@@ -6346,18 +6368,19 @@ namespace kaanh
 					set_is_auto_executing(is_goto);
 					param->run = std::thread([&]()->void
 					{
-						param->goto_cmd_id = std::stoi(p.second);
 						bool is_existed = false;
 						{
 							std::unique_lock<std::mutex> run_lock(mymutex);
-							for (int i = 0; i < cmdparam.cmd_vec.size(); i++)
+							for (auto iter = cmdparam.cmd_vec.begin(); iter != cmdparam.cmd_vec.end(); ++iter)
 							{
-								if ((std::stoi(cmdparam.cmd_vec[i].first) == param->goto_cmd_id) && (cmdparam.current_cmd_id != i))
+								if ((iter->first == param->goto_cmd_id) && (cmdparam.current_cmd_id != iter->first))
 								{
-									cmdparam.current_cmd_id = i - 1;
+									auto temp_iter = iter;
+									temp_iter--;
+									cmdparam.current_cmd_id = temp_iter->first;
 									cmdparam.current_cmd_id = std::max(cmdparam.current_cmd_id, 0);
 									is_existed = true;
-									cmdparam.current_plan_id = std::stoi(cmdparam.cmd_vec[cmdparam.current_cmd_id].first);
+									cmdparam.current_plan_id = cmdparam.cmd_vec.find(cmdparam.current_cmd_id)->first;
 								}
 							}
 						}
@@ -6370,18 +6393,19 @@ namespace kaanh
 						{
 							try
 							{	
-								aris::server::ControlServer::instance().executeCmd(aris::core::Msg(cmdparam.cmd_vec[cmdparam.current_cmd_id].second), [&](aris::plan::PlanTarget &target)->void
+								aris::server::ControlServer::instance().executeCmd(aris::core::Msg(cmdparam.cmd_vec[cmdparam.current_cmd_id]), [&](aris::plan::PlanTarget &target)->void
 								{
 									std::unique_lock<std::mutex> run_lock(mymutex);
-									if (cmdparam.current_cmd_id >= cmdparam.cmd_vec.size() - 1)
+									auto iter = cmdparam.cmd_vec.find(cmdparam.current_cmd_id);
+									iter++;
+									if (iter != cmdparam.cmd_vec.end())
 									{
-										cmdparam.current_plan_id = std::stoi(cmdparam.cmd_vec[cmdparam.cmd_vec.size() - 1].first) + 1;
-										cmdparam.current_cmd_id = cmdparam.cmd_vec.size() - 1;
+										cmdparam.current_plan_id = iter->first;
+										cmdparam.current_cmd_id = iter->first;
 									}
 									else
 									{
-										cmdparam.current_plan_id = std::stoi(cmdparam.cmd_vec[cmdparam.current_cmd_id + 1].first);
-										cmdparam.current_cmd_id += 1;
+										cmdparam.current_plan_id = cmdparam.cmd_vec.rbegin()->first + 1;
 									}
 									const bool is_not_goto = false;
 									set_is_auto_executing(is_not_goto);
@@ -6418,32 +6442,32 @@ namespace kaanh
 							auto&cs = aris::server::ControlServer::instance();
 							{
 								std::unique_lock<std::mutex> run_lock(mymutex);
-								if ((cmdparam.current_cmd_id >= cmdparam.cmd_vec.size()) || (cmdparam.current_cmd_id < 0))
+								auto iter = cmdparam.cmd_vec.find(cmdparam.current_cmd_id);
+								if (iter == cmdparam.cmd_vec.end())
 								{
 									set_is_auto_executing(false);
 									return;
 								}
 								else
 								{
-									cmdparam.current_plan_id = std::stoi(cmdparam.cmd_vec[cmdparam.current_cmd_id].first);
-									begin_cmd_id = cmdparam.current_cmd_id;
-									end_cmd_id = cmdparam.cmd_vec.size();
+									cmdparam.current_plan_id = iter->first;
 								}
 							}
-							for (int i = begin_cmd_id; i < end_cmd_id; i++)
+							for (auto iter = cmdparam.cmd_vec.find(cmdparam.current_cmd_id); iter != cmdparam.cmd_vec.end(); ++iter)
 							{
-								cs.executeCmd(aris::core::Msg(cmdparam.cmd_vec[i].second), [i](aris::plan::PlanTarget &target)->void
+								cs.executeCmd(aris::core::Msg(iter->second), [iter](aris::plan::PlanTarget &target)->void
 								{
 									std::unique_lock<std::mutex> run_lock(mymutex);
-									if (i < cmdparam.cmd_vec.size() - 1)
+									auto temp_iter = iter;
+									temp_iter++;
+									if (temp_iter != cmdparam.cmd_vec.end())
 									{
-										cmdparam.current_plan_id = std::stoi(cmdparam.cmd_vec[i + 1].first);	
-										cmdparam.current_cmd_id += 1;
+										cmdparam.current_plan_id = temp_iter->first;
+										cmdparam.current_cmd_id = temp_iter->first;
 									}
 									else
 									{
-										cmdparam.current_plan_id = std::stoi(cmdparam.cmd_vec[i].first) + 1;
-										cmdparam.current_cmd_id += 1;
+										cmdparam.current_plan_id = cmdparam.cmd_vec.rbegin()->first + 1;
 										const bool is_not_start = false;
 										set_is_auto_executing(is_not_start);
 									}
@@ -6504,7 +6528,7 @@ namespace kaanh
 
 
 	//编程界面指令//
-	bool splitString(std::string spCharacter, const std::string& objString, std::vector<std::pair<std::string, std::string>>& stringVector)
+	bool splitString(std::string spCharacter, const std::string& objString, std::map<int, std::string>& stringVector)
 	{
 		if (objString.length() == 0)
 		{
@@ -6531,7 +6555,7 @@ namespace kaanh
 			auto sep_pos = str.find(":");
 			auto id = str.substr(0, sep_pos);
 			auto command = str.substr(sep_pos + 1);
-			stringVector.push_back(std::make_pair<std::string, std::string>(id.c_str(), command.c_str()));
+			stringVector.insert(std::pair<int, std::string>(std::stoi(id), command.c_str()));
 			posEnd += spCharacter.size();
 		}
 		return true;
@@ -6607,7 +6631,17 @@ namespace kaanh
 					cmd = strtok(NULL, split);
 				}
 				*/
-				std::cout << "cmd_vec:" << cmdparam.cmd_vec[0].first << std::endl;
+				
+				auto iter = cmdparam.cmd_vec.begin();
+				if (iter != cmdparam.cmd_vec.end())
+				{
+					cmdparam.current_cmd_id = iter->first;
+					std::cout << "cmd_vec:" << iter->second << std::endl;
+				}
+				else
+				{
+					std::cout << "cmd_vec is null" << std::endl;
+				}	
 			}
 			else
 			{

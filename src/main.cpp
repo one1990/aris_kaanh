@@ -55,12 +55,12 @@ int main(int argc, char *argv[])
 	cs.saveXmlFile(xmlpath.string().c_str());
     //-------for rokae robot end// 
 
-	/*
+	
 	aris::core::Calculator c;
 	c.addVariable("tool.pq", aris::core::Matrix({1.0,2.0}));
 	auto ret_mat = c.calculateExpression("{tool.pq,0.3}*0.5 + 0.1");
 	std::cout << ret_mat.toString() << std::endl;
-	*/
+	
 
     /*
     //-------for sanxiang robot begin//
