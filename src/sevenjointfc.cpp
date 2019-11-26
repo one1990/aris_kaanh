@@ -180,7 +180,7 @@ auto SevenJointDyna::executeRT(PlanTarget &target)->int
 	for (int i = 0; i < 7; i++)
 	{
 		std::int16_t data;
-		dynamic_cast<aris::control::EthercatMotion&>(controller->motionAtAbs(i)).readPdo(0x6077, 0x00, data);
+		dynamic_cast<aris::control::EthercatMotor&>(controller->motionAtAbs(i)).readPdo(0x6077, 0x00, data);
 		TorJoint[i] = data / 1000.0*f2c_index[i];
 
 		//cout << "vel" << i + 1 << ":" << target.model->motionPool()[i].mv() << "  ";
@@ -419,7 +419,7 @@ auto SevenJointTest::executeRT(PlanTarget &target)->int
 	for (int i = 0;i < 7;i++)
 	{
 		std::int16_t data;
-		dynamic_cast<aris::control::EthercatMotion&>(controller->motionAtAbs(i)).readPdo(0x6077, 0x00, data);
+		dynamic_cast<aris::control::EthercatMotor&>(controller->motionAtAbs(i)).readPdo(0x6077, 0x00, data);
 		ts[i] = data / 1000.0*f2c_index[i];
 	}
 
@@ -591,7 +591,7 @@ auto SevenDragTeach::executeRT(PlanTarget &target)->int
 	for (int i = 0;i < 7;i++)
 	{
 		std::int16_t data;
-		dynamic_cast<aris::control::EthercatMotion&>(controller->motionAtAbs(i)).readPdo(0x6077, 0x00, data);
+		dynamic_cast<aris::control::EthercatMotor&>(controller->motionAtAbs(i)).readPdo(0x6077, 0x00, data);
 		ts[i] = data / 1000.0*f2c_index[i];
 	}
 

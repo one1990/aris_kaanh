@@ -3,10 +3,6 @@
 
 #include <memory>
 #include <aris.hpp>
-#include"forcecontrol.h"
-#include"iir.h"
-#include"CJsonObject.hpp"
-#include "kinematic.h"
 
 //statemachine old//
 # define M_RUN 0	//手动单步执行
@@ -113,8 +109,8 @@ namespace kaanh
 	class Get : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+		auto virtual prepairNrt(aris::plan::Plan &target)->void;
+		auto virtual collectNrt()->void;
 
 		explicit Get(const std::string &name = "Get_plan");
 		ARIS_REGISTER_TYPE(Get);
@@ -123,8 +119,8 @@ namespace kaanh
 	class Enable : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void override;
-		auto virtual executeRT(aris::plan::PlanTarget &target)->int override;
+		auto virtual prepairNrt()->void override;
+		auto virtual executeRT()->int override;
 
 		virtual ~Enable();
 		explicit Enable(const std::string &name = "enable_plan");
@@ -139,8 +135,8 @@ namespace kaanh
 	class Disable : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+		auto virtual prepairNrt()->void;
+		auto virtual executeRT()->int;
 
 		virtual ~Disable();
 		explicit Disable(const std::string &name = "enable_plan");
@@ -155,8 +151,8 @@ namespace kaanh
 	class Home : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+		auto virtual prepairNrt()->void;
+		auto virtual executeRT()->int;
 
 		virtual ~Home();
 		explicit Home(const std::string &name = "home_plan");
@@ -171,8 +167,8 @@ namespace kaanh
 	class Mode : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+		auto virtual prepairNrt()->void;
+		auto virtual executeRT()->int;
 
 		virtual ~Mode();
 		explicit Mode(const std::string &name = "mode_plan");
@@ -187,8 +183,8 @@ namespace kaanh
 	class Reset : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+		auto virtual prepairNrt()->void;
+		auto virtual executeRT()->int;
 
 		virtual ~Reset();
 		explicit Reset(const std::string &name = "reset_plan");
@@ -203,9 +199,9 @@ namespace kaanh
 	class Recover : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
-		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+		auto virtual prepairNrt()->void;
+		auto virtual executeRT()->int;
+		auto virtual collectNrt()->void;
 
 		virtual ~Recover();
 		explicit Recover(const std::string &name = "recover_plan");
@@ -216,8 +212,8 @@ namespace kaanh
 	class Sleep : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+		auto virtual prepairNrt()->void;
+		auto virtual executeRT()->int;
 
 		virtual ~Sleep();
 		explicit Sleep(const std::string &name = "sleep_plan");
@@ -232,9 +228,9 @@ namespace kaanh
 	class MoveF : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
-		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+		auto virtual prepairNrt()->void;
+		auto virtual executeRT()->int;
+		auto virtual collectNrt()->void;
 
 		explicit MoveF(const std::string &name = "MoveF_plan");
 		ARIS_REGISTER_TYPE(MoveF);
@@ -243,8 +239,8 @@ namespace kaanh
 	class MoveAbsJ :public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+		auto virtual prepairNrt()->void;
+		auto virtual executeRT()->int;
 
 		virtual ~MoveAbsJ();
 		explicit MoveAbsJ(const std::string &name = "MoveAbsJ");
@@ -254,8 +250,8 @@ namespace kaanh
 	class MoveJ : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+		auto virtual prepairNrt()->void;
+		auto virtual executeRT()->int;
 
 		virtual ~MoveJ();
 		explicit MoveJ(const std::string &name = "move_j");
@@ -270,8 +266,8 @@ namespace kaanh
 	class MoveL : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+		auto virtual prepairNrt()->void;
+		auto virtual executeRT()->int;
 
 		virtual ~MoveL();
 		explicit MoveL(const std::string &name = "move_l");
@@ -286,8 +282,8 @@ namespace kaanh
 	class MoveC : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void override;
-		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
+		auto virtual prepairNrt()->void override;
+		auto virtual executeRT()->int;
 
 		virtual ~MoveC();
 		explicit MoveC(const std::string &name = "MoveC_plan");
@@ -302,9 +298,9 @@ namespace kaanh
 	class JogC : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
-		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+		auto virtual prepairNrt()->void;
+		auto virtual executeRT()->int;
+		auto virtual collectNrt()->void;
 
 		virtual ~JogC();
 		explicit JogC(const std::string &name = "JogC_plan");
@@ -323,9 +319,9 @@ namespace kaanh
 	class JogJ : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
-		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+		auto virtual prepairNrt()->void;
+		auto virtual executeRT()->int;
+		auto virtual collectNrt()->void;
 
 		virtual ~JogJ();
 		explicit JogJ(const std::string &name = "JogJ_plan");
@@ -344,9 +340,9 @@ namespace kaanh
 	class JogJ1 : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
-		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+		auto virtual prepairNrt()->void;
+		auto virtual executeRT()->int;
+		auto virtual collectNrt()->void;
 
 		virtual ~JogJ1();
 		explicit JogJ1(const std::string &name = "JogJ1_plan");
@@ -356,9 +352,9 @@ namespace kaanh
 	class JogJ2 : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
-		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+		auto virtual prepairNrt()->void;
+		auto virtual executeRT()->int;
+		auto virtual collectNrt()->void;
 
 		virtual ~JogJ2();
 		explicit JogJ2(const std::string &name = "JogJ2_plan");
@@ -368,9 +364,9 @@ namespace kaanh
 	class JogJ3 : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
-		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+		auto virtual prepairNrt()->void;
+		auto virtual executeRT()->int;
+		auto virtual collectNrt()->void;
 
 		virtual ~JogJ3();
 		explicit JogJ3(const std::string &name = "JogJ3_plan");
@@ -380,9 +376,9 @@ namespace kaanh
 	class JogJ4 : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
-		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+		auto virtual prepairNrt()->void;
+		auto virtual executeRT()->int;
+		auto virtual collectNrt()->void;
 
 		virtual ~JogJ4();
 		explicit JogJ4(const std::string &name = "JogJ4_plan");
@@ -392,9 +388,9 @@ namespace kaanh
 	class JogJ5 : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
-		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+		auto virtual prepairNrt()->void;
+		auto virtual executeRT()->int;
+		auto virtual collectNrt()->void;
 
 		virtual ~JogJ5();
 		explicit JogJ5(const std::string &name = "JogJ5_plan");
@@ -404,9 +400,9 @@ namespace kaanh
 	class JogJ6 : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
-		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+		auto virtual prepairNrt()->void;
+		auto virtual executeRT()->int;
+		auto virtual collectNrt()->void;
 
 		virtual ~JogJ6();
 		explicit JogJ6(const std::string &name = "JogJ6_plan");
@@ -416,9 +412,9 @@ namespace kaanh
 	class JogJ7 : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
-		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+		auto virtual prepairNrt()->void;
+		auto virtual executeRT()->int;
+		auto virtual collectNrt()->void;
 
 		virtual ~JogJ7();
 		explicit JogJ7(const std::string &name = "JogJ7_plan");
@@ -428,9 +424,9 @@ namespace kaanh
 	class JX : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
-		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+		auto virtual prepairNrt()->void;
+		auto virtual executeRT()->int;
+		auto virtual collectNrt()->void;
 
 		virtual ~JX();
 		explicit JX(const std::string &name = "JX_plan");
@@ -440,9 +436,9 @@ namespace kaanh
 	class JY : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
-		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+		auto virtual prepairNrt()->void;
+		auto virtual executeRT()->int;
+		auto virtual collectNrt()->void;
 
 		virtual ~JY();
 		explicit JY(const std::string &name = "JY_plan");
@@ -452,9 +448,9 @@ namespace kaanh
 	class JZ : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
-		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+		auto virtual prepairNrt()->void;
+		auto virtual executeRT()->int;
+		auto virtual collectNrt()->void;
 
 		virtual ~JZ();
 		explicit JZ(const std::string &name = "JZ_plan");
@@ -464,9 +460,9 @@ namespace kaanh
 	class JRX : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
-		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+		auto virtual prepairNrt()->void;
+		auto virtual executeRT()->int;
+		auto virtual collectNrt()->void;
 
 		virtual ~JRX();
 		explicit JRX(const std::string &name = "JRX_plan");
@@ -476,9 +472,9 @@ namespace kaanh
 	class JRY : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
-		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+		auto virtual prepairNrt()->void;
+		auto virtual executeRT()->int;
+		auto virtual collectNrt()->void;
 
 		virtual ~JRY();
 		explicit JRY(const std::string &name = "JRY_plan");
@@ -488,9 +484,9 @@ namespace kaanh
 	class JRZ : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		auto virtual executeRT(aris::plan::PlanTarget &target)->int;
-		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+		auto virtual prepairNrt()->void;
+		auto virtual executeRT()->int;
+		auto virtual collectNrt()->void;
 
 		virtual ~JRZ();
 		explicit JRZ(const std::string &name = "JRZ_plan");
@@ -500,7 +496,7 @@ namespace kaanh
 	class SetCon : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual prepairNrt()->void;
 		explicit SetCon(const std::string &name = "SetCon_plan");
 		ARIS_REGISTER_TYPE(SetCon);
 	};
@@ -508,7 +504,7 @@ namespace kaanh
 	class SetDH : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual prepairNrt()->void;
 		explicit SetDH(const std::string &name = "SetDH_plan");
 		ARIS_REGISTER_TYPE(SetDH);
 	};
@@ -516,7 +512,7 @@ namespace kaanh
 	class SetPG : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual prepairNrt()->void;
 		explicit SetPG(const std::string &name = "SetPG_plan");
 		ARIS_REGISTER_TYPE(SetPG);
 	};
@@ -524,7 +520,7 @@ namespace kaanh
 	class SetPPath : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual prepairNrt()->void;
 		explicit SetPPath(const std::string &name = "SetPPath_plan");
 		ARIS_REGISTER_TYPE(SetPPath);
 	};
@@ -532,7 +528,7 @@ namespace kaanh
 	class SetUI : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual prepairNrt()->void;
 		explicit SetUI(const std::string &name = "SetUI_plan");
 		ARIS_REGISTER_TYPE(SetUI);
 	};
@@ -540,7 +536,7 @@ namespace kaanh
 	class SetDriver : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual prepairNrt()->void;
 		explicit SetDriver(const std::string &name = "SetDriver_plan");
 		ARIS_REGISTER_TYPE(SetDriver);
 	};
@@ -548,7 +544,7 @@ namespace kaanh
 	class SaveXml : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual prepairNrt()->void;
 		explicit SaveXml(const std::string &name = "SaveXml_plan");
 		ARIS_REGISTER_TYPE(SaveXml);
 	};
@@ -556,7 +552,7 @@ namespace kaanh
 	class ScanSlave : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual prepairNrt()->void;
 		explicit ScanSlave(const std::string &name = "ScanSlave_plan");
 		ARIS_REGISTER_TYPE(ScanSlave);
 	};
@@ -564,7 +560,7 @@ namespace kaanh
 	class GetEsiPdoList : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual prepairNrt()->void;
 		explicit GetEsiPdoList(const std::string &name = "GetEsiPdoList_plan");
 		ARIS_REGISTER_TYPE(GetEsiPdoList);
 	};
@@ -572,7 +568,7 @@ namespace kaanh
 	class SetEsiPath : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual prepairNrt()->void;
 		explicit SetEsiPath(const std::string &name = "SetEsiPath_plan");
 		ARIS_REGISTER_TYPE(SetEsiPath);
 	};
@@ -580,7 +576,7 @@ namespace kaanh
 	class ClearCon : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual prepairNrt()->void;
 		explicit ClearCon(const std::string &name = "ClearCon_plan");
 		ARIS_REGISTER_TYPE(ClearCon);
 	};
@@ -588,7 +584,7 @@ namespace kaanh
 	class Update : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual prepairNrt()->void;
 		explicit Update(const std::string &name = "Update_plan");
 		ARIS_REGISTER_TYPE(Update);
 	};
@@ -596,7 +592,7 @@ namespace kaanh
 	class GetXml :public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual prepairNrt()->void;
 
 		virtual ~GetXml();
 		explicit GetXml(const std::string &name = "GetXml");
@@ -606,7 +602,7 @@ namespace kaanh
 	class SetXml :public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual prepairNrt()->void;
 
 		virtual ~SetXml();
 		explicit SetXml(const std::string &name = "SetXml");
@@ -616,7 +612,7 @@ namespace kaanh
 	class Start :public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual prepairNrt()->void;
 
 		virtual ~Start();
 		explicit Start(const std::string &name = "Start");
@@ -626,7 +622,7 @@ namespace kaanh
 	class Stop :public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual prepairNrt()->void;
 
 		virtual ~Stop();
 		explicit Stop(const std::string &name = "Stop");
@@ -636,7 +632,7 @@ namespace kaanh
 	class SetCT : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual prepairNrt()->void;
 		explicit SetCT(const std::string &name = "SetCT_plan");
 		ARIS_REGISTER_TYPE(SetCT);
 	};
@@ -644,7 +640,7 @@ namespace kaanh
 	class SetVel : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual prepairNrt()->void;
 		explicit SetVel(const std::string &name = "SetVel_plan");
 		ARIS_REGISTER_TYPE(SetVel);
 	};
@@ -652,7 +648,7 @@ namespace kaanh
 	class Var : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual prepairNrt()->void;
 		explicit Var(const std::string &name = "Var_plan");
 		ARIS_REGISTER_TYPE(Var);
 	};
@@ -660,8 +656,8 @@ namespace kaanh
 	class Run : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
-		auto virtual collectNrt(aris::plan::PlanTarget &target)->void;
+		auto virtual prepairNrt()->void;
+		auto virtual collectNrt()->void;
 		explicit Run(const std::string &name = "Run_plan");
 		ARIS_REGISTER_TYPE(Run);
 	};
@@ -669,7 +665,7 @@ namespace kaanh
 	class MoveSt : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual prepairNrt()->void;
 		explicit MoveSt(const std::string &name = "MoveSt_plan");
 		ARIS_REGISTER_TYPE(MoveSt);
 	};
@@ -677,7 +673,7 @@ namespace kaanh
 	class Switch : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(const std::map<std::string, std::string> &params, aris::plan::PlanTarget &target)->void;
+		auto virtual prepairNrt()->void;
 		explicit Switch(const std::string &name = "Switch_plan");
 		ARIS_REGISTER_TYPE(Switch);
 	};

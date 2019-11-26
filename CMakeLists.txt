@@ -15,11 +15,11 @@ IF(WIN32)
 endif(WIN32)
 include_directories(${aris_INCLUDE_DIRS})
 
-
 message(${aris_DIR})
 
 
-add_library(kaanh_lib STATIC src/kaanh.cpp src/iir.cpp src/forcecontrol.cpp src/kaanh.h src/iir.h src/forcecontrol.h src/cplan.cpp src/cplan.h src/robotconfig.cpp src/robotconfig.h src/sixdistalfc.cpp src/sixdistalfc.h src/sixdistaldynamics.cpp src/sixdistaldynamics.h src/jointdynamics.cpp src/jointdynamics.h src/jointfc.cpp src/jointfc.h src/sevenjointdynamics.cpp src/sevenjointdynamics.h src/sevenjointfc.cpp src/sevenjointfc.h src/tempvariables.h src/move_series.cpp src/move_series.h src/kinematic.cpp src/kinematic.h src/planfuns.cpp src/planfuns.h src/robotplan.cpp src/robotplan.h)
+# add_library(kaanh_lib STATIC src/kaanh.cpp src/iir.cpp src/forcecontrol.cpp src/kaanh.h src/iir.h src/forcecontrol.h src/cplan.cpp src/cplan.h src/robotconfig.cpp src/robotconfig.h src/sixdistalfc.cpp src/sixdistalfc.h src/sixdistaldynamics.cpp src/sixdistaldynamics.h src/jointdynamics.cpp src/jointdynamics.h src/jointfc.cpp src/jointfc.h src/sevenjointdynamics.cpp src/sevenjointdynamics.h src/sevenjointfc.cpp src/sevenjointfc.h src/tempvariables.h src/move_series.cpp src/move_series.h src/kinematic.cpp src/kinematic.h src/planfuns.cpp src/planfuns.h src/robotplan.cpp src/robotplan.h)
+add_library(kaanh_lib STATIC src/kaanh.cpp src/kaanh.h src/planfuns.cpp src/planfuns.h)
 
 
 # user program started...
