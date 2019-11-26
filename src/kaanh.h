@@ -109,7 +109,7 @@ namespace kaanh
 	class Get : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt(aris::plan::Plan &target)->void;
+		auto virtual prepairNrt()->void;
 		auto virtual collectNrt()->void;
 
 		explicit Get(const std::string &name = "Get_plan");

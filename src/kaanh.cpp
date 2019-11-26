@@ -1184,7 +1184,7 @@ namespace kaanh
 		std::string currentplan;
 		int vel_percent;
 	};
-	auto Get::prepairNrt(Plan &plan)->void
+	auto Get::prepairNrt()->void
 	{		
 		GetParam par;
 		par.part_pq.resize(model()->partPool().size() * 7, 0.0);
@@ -1200,7 +1200,7 @@ namespace kaanh
 		std::any param = par;
 		//std::any param = std::make_any<GetParam>();
 
-		plan.controlServer()->getRtData([&](aris::server::ControlServer& cs, const aris::plan::Plan *target, std::any& data)->void
+		controlServer()->getRtData([&](aris::server::ControlServer& cs, const aris::plan::Plan *target, std::any& data)->void
 		{
 			for (aris::Size i(-1); ++i < cs.model().partPool().size();)
 			{
@@ -1288,8 +1288,8 @@ namespace kaanh
 		out_param.push_back(std::make_pair<std::string, std::any>("current_plan", out_data.currentplan));
 		out_param.push_back(std::make_pair<std::string, std::any>("current_plan_id", cmdparam.current_plan_id));
 
-		plan.ret() = out_param;
-		plan.option() |= NOT_RUN_EXECUTE_FUNCTION | NOT_PRINT_CMD_INFO | NOT_PRINT_CMD_INFO;
+		ret() = out_param;
+		option() |= NOT_RUN_EXECUTE_FUNCTION | NOT_PRINT_CMD_INFO | NOT_PRINT_CMD_INFO;
 	}
 	auto Get::collectNrt()->void {}
 	Get::Get(const std::string &name) : Plan(name)
