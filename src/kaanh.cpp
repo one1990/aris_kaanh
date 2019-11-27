@@ -5265,11 +5265,16 @@ std::cout << "3" <<std::endl;
 		auto&cs = aris::server::ControlServer::instance();
 		if (cs.running())throw std::runtime_error("cs is running, please stop the cs using cs_stop!");
 
-        aris::control::EthercatController mst;
+#ifdef UNIX
+		aris::control::EthercatController mst;
 		mst.scan();
-
 		std::vector<std::pair<std::string, std::any>> ret_value;
 		ret_value.push_back(std::make_pair<std::string, std::any>("controller_xml", mst.xmlString()));
+#endif
+#ifdef WIN32
+		std::vector<std::pair<std::string, std::any>> ret_value;
+		ret_value.push_back(std::make_pair<std::string, std::any>("controller_xml", cs.controller().xmlString()));
+#endif // WIN32
 
 		ret() = ret_value;
 		option() = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
