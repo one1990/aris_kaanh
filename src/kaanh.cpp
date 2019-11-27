@@ -1053,7 +1053,8 @@ namespace kaanh
 		"		<Param name=\"pos\" default=\"0.5\"/>"\
 		"		<Param name=\"acc\" default=\"0.1\"/>"\
 		"		<Param name=\"vel\" default=\"0.1\"/>"\
-		"		<Param name=\"dec\" default=\"0.1\"/>"
+        "		<Param name=\"dec\" default=\"0.1\"/>"\
+        "		<Param name=\"jerk\" default=\"0.1\"/>"
 	auto set_input_movement(const std::map<std::string, std::string> &cmd_params, Plan &plan, SetInputMovement &param)->void
 	{
 		param.axis_begin_pos_vec.resize(plan.controller()->motionPool().size(), 0.0);
@@ -1300,107 +1301,6 @@ namespace kaanh
 	}
 
 
-	struct Enable::Imp :public SetActiveMotor { std::int32_t limit_time; };
-	auto Enable::prepairNrt()->void
-	{
-		set_check_option(cmdParams(), *this);
-		set_active_motor(cmdParams(), *this, *imp_);
-		imp_->limit_time = std::stoi(cmdParams().at("limit_time"));
-
-		for (auto &option : motorOptions()) option |= aris::plan::Plan::NOT_CHECK_ENABLE | aris::plan::Plan::NOT_CHECK_POS_MAX | aris::plan::Plan::NOT_CHECK_POS_MIN;
-
-		std::vector<std::pair<std::string, std::any>> ret_value;
-		ret() = ret_value;
-	}
-	auto Enable::executeRT()->int
-	{
-		bool is_all_finished = true;
-		for (std::size_t i = 0; i < controller()->motionPool().size(); ++i)
-		{
-			if (imp_->active_motor[i])
-			{
-				auto &cm = controller()->motionPool().at(i);
-				auto ret = cm.enable();
-				if (ret)
-				{
-					is_all_finished = false;
-
-					if (count() % 1000 == 0)
-					{
-						controller()->mout() << "Unenabled motor, slave id: " << cm.id()
-							<< ", absolute id: " << i << ", ret: " << ret << std::endl;
-					}
-				}
-			}
-		}
-
-		return is_all_finished ? 0 : (count() < imp_->limit_time ? 1 : aris::plan::Plan::PLAN_OVER_TIME);
-	}
-	Enable::~Enable() = default;
-	Enable::Enable(const std::string &name) :Plan(name)
-	{
-		command().loadXmlStr(
-			"<Command name=\"en\">"
-			"	<GroupParam>"
-			"		<Param name=\"limit_time\" default=\"5000\"/>"
-			SELECT_MOTOR_STRING
-			CHECK_PARAM_STRING
-			"	</GroupParam>"
-			"</Command>");
-	}
-	ARIS_DEFINE_BIG_FOUR_CPP(Enable);
-
-
-	struct Disable::Imp :public SetActiveMotor { std::int32_t limit_time; };
-	auto Disable::prepairNrt()->void
-	{
-		set_check_option(cmdParams(), *this);
-		set_active_motor(cmdParams(), *this, *imp_);
-		imp_->limit_time = std::stoi(cmdParams().at("limit_time"));
-
-		for (auto &option : motorOptions()) option |= aris::plan::Plan::NOT_CHECK_ENABLE | aris::plan::Plan::NOT_CHECK_POS_MAX | aris::plan::Plan::NOT_CHECK_POS_MIN;
-
-		std::vector<std::pair<std::string, std::any>> ret_value;
-		ret() = ret_value;
-	}
-	auto Disable::executeRT()->int
-	{
-		bool is_all_finished = true;
-		for (std::size_t i = 0; i < controller()->motionPool().size(); ++i)
-		{
-			if (imp_->active_motor[i])
-			{
-				auto &cm = controller()->motionPool().at(i);
-				auto ret = cm.disable();
-				if (ret)
-				{
-					is_all_finished = false;
-
-					if (count() % 1000 == 0)
-					{
-						controller()->mout() << "Undisabled motor, slave id: " << cm.id()
-							<< ", absolute id: " << i << ", ret: " << ret << std::endl;
-					}
-				}
-			}
-		}
-
-		return is_all_finished ? 0 : (count() < imp_->limit_time ? 1 : aris::plan::Plan::PLAN_OVER_TIME);
-	}
-	Disable::~Disable() = default;
-	Disable::Disable(const std::string &name) :Plan(name)
-	{
-		command().loadXmlStr(
-			"<Command name=\"ds\">"
-			"	<GroupParam>"
-			"		<Param name=\"limit_time\" default=\"5000\"/>"
-			SELECT_MOTOR_STRING
-			CHECK_PARAM_STRING
-			"	</GroupParam>"
-			"</Command>");
-	}
-	ARIS_DEFINE_BIG_FOUR_CPP(Disable);
-
 	struct Home::Imp :public SetActiveMotor
 	{
 		std::int32_t limit_time;
@@ -1501,214 +1401,142 @@ namespace kaanh
 	ARIS_DEFINE_BIG_FOUR_CPP(Home);
 
 
-	struct Mode::Imp :public SetActiveMotor { std::int32_t limit_time, mode; };
-	auto Mode::prepairNrt()->void
-	{
-		set_check_option(cmdParams(), *this);
-		set_active_motor(cmdParams(), *this, *imp_);
-		imp_->limit_time = std::stoi(cmdParams().at("limit_time"));
-		imp_->mode = std::stoi(cmdParams().at("mode"));
+    struct Reset::Imp :public SetActiveMotor, SetInputMovement { std::vector<Size> total_count_vec; };
+    auto Reset::prepairNrt()->void
+    {
+        set_check_option(cmdParams(), *this);
+        set_active_motor(cmdParams(), *this, *imp_);
+        set_input_movement(cmdParams(), *this, *imp_);
 
-		if (imp_->mode > 10 && imp_->mode < 8)THROW_FILE_LINE("invalid mode, aris now only support mode 8,9,10");
+        for (Size i = 0; i < controller()->motionPool().size(); ++i)
+        {
+            auto &cm = controller()->motionPool()[i];
+            imp_->axis_pos_vec[i] = imp_->axis_pos_vec[i] * (cm.maxPos() - cm.minPos()) + cm.minPos();
+            imp_->axis_acc_vec[i] = imp_->axis_acc_vec[i] * cm.maxAcc();
+            imp_->axis_vel_vec[i] = imp_->axis_vel_vec[i] * cm.maxVel();
+            imp_->axis_dec_vec[i] = imp_->axis_dec_vec[i] * cm.maxAcc();
+        }
+        check_input_movement(cmdParams(), *this, *imp_, *imp_);
 
-		for (auto &option : motorOptions()) option |= aris::plan::Plan::NOT_CHECK_ENABLE | aris::plan::Plan::NOT_CHECK_POS_MAX | aris::plan::Plan::NOT_CHECK_POS_MIN;
+        imp_->total_count_vec.resize(controller()->motionPool().size(), 1);
 
-		std::vector<std::pair<std::string, std::any>> ret_value;
-		ret() = ret_value;
-	}
-	auto Mode::executeRT()->int
-	{
-		bool is_all_finished = true;
-		for (std::size_t i = 0; i < controller()->motionPool().size(); ++i)
-		{
-			if (imp_->active_motor[i])
-			{
-				auto &cm = controller()->motionPool().at(i);
-				auto ret = cm.mode(imp_->mode);
-				if (count() == 1)
-				{
-					switch (imp_->mode)
-					{
-					case 8:
-						cm.setTargetPos(cm.actualPos());
-						break;
-					case 9:
-						cm.setTargetVel(0.0);
-						break;
-					case 10:
-						cm.setTargetToq(0.0);
-						break;
-					default:
-						break;
-					}
-				}
+        std::vector<std::pair<std::string, std::any>> ret_value;
+        ret() = ret_value;
+    }
+    auto Reset::executeRT()->int
+    {
+        // 取得起始位置 //
+        if (count() == 1)
+        {
+            for (Size i = 0; i < controller()->motionPool().size(); ++i)
+            {
+                if (imp_->active_motor[i])
+                {
+                    imp_->axis_begin_pos_vec[i] = controller()->motionPool().at(i).actualPos();
+                }
+            }
+        }
 
-				if (ret)
-				{
-					is_all_finished = false;
+        // 设置驱动器的位置 //
+        for (Size i = 0; i < controller()->motionPool().size(); ++i)
+        {
+            if (imp_->active_motor[i])
+            {
+                double p, v, a;
+                aris::plan::moveAbsolute(static_cast<double>(count()), imp_->axis_begin_pos_vec[i], imp_->axis_pos_vec[i], imp_->axis_vel_vec[i] / 1000
+                    , imp_->axis_acc_vec[i] / 1000 / 1000, imp_->axis_dec_vec[i] / 1000 / 1000, p, v, a, imp_->total_count_vec[i]);
+                controller()->motionAtAbs(i).setTargetPos(p);
+            }
+        }
 
-					if (count() % 1000 == 0)
-					{
-						controller()->mout() << "Unmoded motor, slave id: " << cm.id()
-							<< ", absolute id: " << i << ", ret: " << ret << std::endl;
-					}
-				}
-			}
-		}
-
-		return is_all_finished ? 0 : (count() <imp_->limit_time ? 1 : aris::plan::Plan::PLAN_OVER_TIME);
-	}
-	Mode::~Mode() = default;
-	Mode::Mode(const std::string &name) :Plan(name)
-	{
-		command().loadXmlStr(
-			"<Command name=\"md\">"
-			"	<GroupParam>"
-			"		<Param name=\"limit_time\" default=\"5000\"/>"
-			"       <Param name=\"mode\" abbreviation=\"d\" default=\"8\"/>"
-			SELECT_MOTOR_STRING
-			CHECK_PARAM_STRING
-			"	</GroupParam>"
-			"</Command>");
-	}
-	ARIS_DEFINE_BIG_FOUR_CPP(Mode);
+        return (static_cast<int>(*std::max_element(imp_->total_count_vec.begin(), imp_->total_count_vec.end())) > count()) ? 1 : 0;
+    }
+    Reset::~Reset() = default;
+    Reset::Reset(const std::string &name) :Plan(name), imp_(new Imp)
+    {
+        command().loadXmlStr(
+            "<Command name=\"rs\">"
+            "	<GroupParam>"
+                    SET_INPUT_MOVEMENT_STRING
+                    SELECT_MOTOR_STRING
+                    CHECK_PARAM_STRING
+            "	</GroupParam>"
+            "</Command>");
+    }
+    ARIS_DEFINE_BIG_FOUR_CPP(Reset);
 
 
-	struct Reset::Imp :public SetActiveMotor, SetInputMovement { std::vector<Size> total_count_vec; };
-	auto Reset::prepairNrt()->void
-	{
-		set_check_option(cmdParams(), *this);
-		set_active_motor(cmdParams(), *this, *imp_);
-		set_input_movement(cmdParams(), *this, *imp_);
+    struct RecoverParam
+    {
+        std::atomic_bool is_kinematic_ready_;
+        std::atomic_bool is_rt_waiting_ready_;
+        std::future<void> fut;
+        int kin_ret;
+    };
+    auto Recover::prepairNrt()->void
+    {
+        auto p = std::make_shared<RecoverParam>();
 
-		for (Size i = 0; i < controller()->motionPool().size(); ++i)
-		{
-			auto &cm = controller()->motionPool()[i];
-			imp_->axis_pos_vec[i] = imp_->axis_pos_vec[i] * (cm.maxPos() - cm.minPos()) + cm.minPos();
-			imp_->axis_acc_vec[i] = imp_->axis_acc_vec[i] * cm.maxAcc();
-			imp_->axis_vel_vec[i] = imp_->axis_vel_vec[i] * cm.maxVel();
-			imp_->axis_dec_vec[i] = imp_->axis_dec_vec[i] * cm.maxAcc();
-		}
-		check_input_movement(cmdParams(), *this, *imp_, *imp_);
+        p->is_kinematic_ready_ = false;
+        p->is_rt_waiting_ready_ = false;
+        p->fut = std::async(std::launch::async, [this](std::shared_ptr<RecoverParam> p)
+        {
+            // 等待正解求解的需求 //
+            while (!p->is_rt_waiting_ready_.load())std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
-		imp_->total_count_vec.resize(controller()->motionPool().size(), 1);
+            // 求正解 //
+            p->kin_ret = model()->solverPool()[1].kinPos();
 
-		std::vector<std::pair<std::string, std::any>> ret_value;
-		ret() = ret_value;
-	}
-	auto Reset::executeRT()->int
-	{
-		// 取得起始位置 //
-		if (count() == 1)
-		{
-			for (Size i = 0; i < controller()->motionPool().size(); ++i)
-			{
-				if (imp_->active_motor[i])
-				{
-					imp_->axis_begin_pos_vec[i] = controller()->motionPool().at(i).actualPos();
-				}
-			}
-		}
+            // 通知实时线程 //
+            p->is_kinematic_ready_.store(true);
+        }, p);
 
-		// 设置驱动器的位置 //
-		for (Size i = 0; i < controller()->motionPool().size(); ++i)
-		{
-			if (imp_->active_motor[i])
-			{
-				double p, v, a;
-				aris::plan::moveAbsolute(static_cast<double>(count()), imp_->axis_begin_pos_vec[i], imp_->axis_pos_vec[i], imp_->axis_vel_vec[i] / 1000
-					, imp_->axis_acc_vec[i] / 1000 / 1000, imp_->axis_dec_vec[i] / 1000 / 1000, p, v, a, imp_->total_count_vec[i]);
-				controller()->motionAtAbs(i).setTargetPos(p);
-			}
-		}
+        this->param() = p;
+        for (auto &option : motorOptions()) option |= NOT_CHECK_ENABLE | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |NOT_CHECK_POS_CONTINUOUS;
 
-		return (static_cast<int>(*std::max_element(imp_->total_count_vec.begin(), imp_->total_count_vec.end())) > count()) ? 1 : 0;
-	}
-	Reset::~Reset() = default;
-	Reset::Reset(const std::string &name) :Plan(name)
-	{
-		command().loadXmlStr(
-			"<Command name=\"rs\">"
-			"	<GroupParam>"
-			SET_INPUT_MOVEMENT_STRING
-			SELECT_MOTOR_STRING
-			CHECK_PARAM_STRING
-			"	</GroupParam>"
-			"</Command>");
-	}
-	ARIS_DEFINE_BIG_FOUR_CPP(Reset);
+        std::vector<std::pair<std::string, std::any>> ret_value;
+        ret() = ret_value;
+    }
+    auto Recover::executeRT()->int
+    {
+        auto param = std::any_cast<std::shared_ptr<RecoverParam> &>(this->param());
 
-	struct RecoverParam
-	{
-		std::atomic_bool is_kinematic_ready_;
-		std::atomic_bool is_rt_waiting_ready_;
-		std::future<void> fut;
-		int kin_ret;
-	};
-	auto Recover::prepairNrt()->void
-	{
-		auto p = std::make_shared<RecoverParam>();
+        if (count() < 3)
+        {
+            for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
+            {
+                controller()->motionPool()[i].setTargetPos(controller()->motionPool().at(i).actualPos());
+                model()->motionPool()[i].setMp(controller()->motionPool().at(i).actualPos());
+            }
 
-		p->is_kinematic_ready_ = false;
-		p->is_rt_waiting_ready_ = false;
-		p->fut = std::async(std::launch::async, [this](std::shared_ptr<RecoverParam> p)
-		{
-			// 等待正解求解的需求 //
-			while (!p->is_rt_waiting_ready_.load())std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            param->is_rt_waiting_ready_.store(true);
 
-			// 求正解 //
-			p->kin_ret = model()->solverPool()[1].kinPos();
+            return 1;
+        }
 
-			// 通知实时线程 //
-			p->is_kinematic_ready_.store(true);
-		}, p);
-
-		this->param() = p;
-		for (auto &option : motorOptions()) option |= NOT_CHECK_ENABLE | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER;
-
-		std::vector<std::pair<std::string, std::any>> ret_value;
-		ret() = ret_value;
-	}
-	auto Recover::executeRT()->int
-	{
-		auto param = std::any_cast<std::shared_ptr<RecoverParam> &>(this->param());
-
-		if (count() < 3)
-		{
-			for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
-			{
-				controller()->motionPool()[i].setTargetPos(controller()->motionPool().at(i).actualPos());
-				model()->motionPool()[i].setMp(controller()->motionPool().at(i).actualPos());
-			}
-
-			param->is_rt_waiting_ready_.store(true);
-
-			return 1;
-		}
-
-		return param->is_kinematic_ready_.load() ? param->kin_ret : 1;
-	}
-	auto Recover::collectNrt()->void
-	{
-		if (count())
-		{
-			std::any_cast<std::shared_ptr<RecoverParam>&>(this->param())->fut.get();
-		}
-		else
-		{
-			// 此时前面指令出错，系统清理了该命令，这时设置一下 //
-			std::any_cast<std::shared_ptr<RecoverParam>&>(this->param())->is_rt_waiting_ready_.store(true);
-			std::any_cast<std::shared_ptr<RecoverParam>&>(this->param())->fut.get();
-		}
-	}
-	Recover::~Recover() = default;
-	Recover::Recover(const std::string &name) :Plan(name)
-	{
-		command().loadXmlStr(
-			"<Command name=\"rc\">"
-			"</Command>");
-	}
-	ARIS_DEFINE_BIG_FOUR_CPP(Recover);
+        return param->is_kinematic_ready_.load() ? param->kin_ret : 1;
+    }
+    auto Recover::collectNrt()->void
+    {
+        if (count())
+        {
+            std::any_cast<std::shared_ptr<RecoverParam>&>(this->param())->fut.get();
+        }
+        else
+        {
+            // 此时前面指令出错，系统清理了该命令，这时设置一下 //
+            std::any_cast<std::shared_ptr<RecoverParam>&>(this->param())->is_rt_waiting_ready_.store(true);
+            std::any_cast<std::shared_ptr<RecoverParam>&>(this->param())->fut.get();
+        }
+    }
+    Recover::~Recover() = default;
+    Recover::Recover(const std::string &name) :Plan(name)
+    {
+        command().loadXmlStr(
+            "<Command name=\"rc\">"
+            "</Command>");
+    }
+    ARIS_DEFINE_BIG_FOUR_CPP(Recover);
 
 	struct Sleep::Imp { int count; };
 	auto Sleep::prepairNrt()->void
@@ -1745,7 +1573,7 @@ namespace kaanh
 		param.axis_begin_pos_vec.resize(controller()->motionPool().size());
 		this->param() = param;
 		//std::fill(plan.motorOptions().begin(), plan.motorOptions().end(), Plan::USE_TARGET_POS);
-		for (auto &option : motorOptions()) option |= aris::plan::Plan::NOT_CHECK_ENABLE;
+        for (auto &option : motorOptions()) option |= aris::plan::Plan::NOT_CHECK_ENABLE;
 
 		std::vector<std::pair<std::string, std::any>> ret_value;
 		ret() = ret_value;
@@ -6329,10 +6157,10 @@ namespace kaanh
 	{
         std::unique_ptr<aris::plan::PlanRoot> plan_root(new aris::plan::PlanRoot);
 
-        plan_root->planPool().add<kaanh::Enable>();
-        plan_root->planPool().add<kaanh::Disable>();
+        plan_root->planPool().add<aris::plan::Enable>();
+        plan_root->planPool().add<aris::plan::Disable>();
         plan_root->planPool().add<kaanh::Home>();
-        plan_root->planPool().add<kaanh::Mode>();
+        plan_root->planPool().add<aris::plan::Mode>();
         plan_root->planPool().add<kaanh::Sleep>();
         plan_root->planPool().add<kaanh::Recover>();
         auto &rs = plan_root->planPool().add<kaanh::Reset>();

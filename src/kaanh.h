@@ -116,69 +116,23 @@ namespace kaanh
 		ARIS_REGISTER_TYPE(Get);
 	};
 
-	class Enable : public aris::plan::Plan
-	{
-	public:
-		auto virtual prepairNrt()->void override;
-		auto virtual executeRT()->int override;
 
-		virtual ~Enable();
-		explicit Enable(const std::string &name = "enable_plan");
-		ARIS_REGISTER_TYPE(Enable);
-		ARIS_DECLARE_BIG_FOUR(Enable);
+    class Home : public aris::plan::Plan
+    {
+    public:
+        auto virtual prepairNrt()->void;
+        auto virtual executeRT()->int;
 
-	private:
-		struct Imp;
-		aris::core::ImpPtr<Imp> imp_;
-	};
+        virtual ~Home();
+        explicit Home(const std::string &name = "home_plan");
+        ARIS_REGISTER_TYPE(Home);
+        ARIS_DECLARE_BIG_FOUR(Home);
 
-	class Disable : public aris::plan::Plan
-	{
-	public:
-		auto virtual prepairNrt()->void;
-		auto virtual executeRT()->int;
+    private:
+        struct Imp;
+        aris::core::ImpPtr<Imp> imp_;
+    };
 
-		virtual ~Disable();
-		explicit Disable(const std::string &name = "enable_plan");
-		ARIS_REGISTER_TYPE(Disable);
-		ARIS_DECLARE_BIG_FOUR(Disable);
-
-	private:
-		struct Imp;
-		aris::core::ImpPtr<Imp> imp_;
-	};
-	
-	class Home : public aris::plan::Plan
-	{
-	public:
-		auto virtual prepairNrt()->void;
-		auto virtual executeRT()->int;
-
-		virtual ~Home();
-		explicit Home(const std::string &name = "home_plan");
-		ARIS_REGISTER_TYPE(Home);
-		ARIS_DECLARE_BIG_FOUR(Home);
-
-	private:
-		struct Imp;
-		aris::core::ImpPtr<Imp> imp_;
-	};
-
-	class Mode : public aris::plan::Plan
-	{
-	public:
-		auto virtual prepairNrt()->void;
-		auto virtual executeRT()->int;
-
-		virtual ~Mode();
-		explicit Mode(const std::string &name = "mode_plan");
-		ARIS_REGISTER_TYPE(Mode);
-		ARIS_DECLARE_BIG_FOUR(Mode);
-
-	private:
-		struct Imp;
-		aris::core::ImpPtr<Imp> imp_;
-	};
 	
 	class Reset : public aris::plan::Plan
 	{
@@ -188,8 +142,8 @@ namespace kaanh
 
 		virtual ~Reset();
 		explicit Reset(const std::string &name = "reset_plan");
-		ARIS_REGISTER_TYPE(Reset);
-		ARIS_DECLARE_BIG_FOUR(Reset);
+        ARIS_REGISTER_TYPE(kaanh::Reset);
+        ARIS_DECLARE_BIG_FOUR(Reset);
 
 	private:
 		struct Imp;
@@ -205,8 +159,8 @@ namespace kaanh
 
 		virtual ~Recover();
 		explicit Recover(const std::string &name = "recover_plan");
-		ARIS_REGISTER_TYPE(Recover);
-		ARIS_DECLARE_BIG_FOUR(Recover);
+        ARIS_REGISTER_TYPE(kaanh::Recover);
+        ARIS_DECLARE_BIG_FOUR(Recover);
 	};
 	
 	class Sleep : public aris::plan::Plan
