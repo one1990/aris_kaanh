@@ -1203,6 +1203,7 @@ namespace kaanh
 
 		controlServer()->getRtData([&](aris::server::ControlServer& cs, const aris::plan::Plan *target, std::any& data)->void
 		{
+            update_state(cs);
 			for (aris::Size i(-1); ++i < cs.model().partPool().size();)
 			{
 				cs.model().partPool().at(i).getPq(std::any_cast<GetParam &>(data).part_pq.data() + i * 7);
@@ -1269,6 +1270,7 @@ namespace kaanh
 			slave_online[i] = int(out_data.sls[i].online);
 			slave_al_state[i] = int(out_data.sls[i].al_state);
 		}
+
 		out_data.state_code = get_state_code();
 
 		std::vector<std::pair<std::string, std::any>> out_param;
@@ -1720,6 +1722,7 @@ namespace kaanh
 
 		MoveJParam mvj_param;
 
+        std::cout << "1" <<std::endl;
 		// find ee pq //
 		mvj_param.ee_pq.resize(7);
 		find_pq(cmdParams(), *this, mvj_param.ee_pq.data());
@@ -1733,7 +1736,7 @@ namespace kaanh
 
 		mvj_param.tool = &*model()->generalMotionPool()[0].makI().fatherPart().markerPool().findByName(cmdParams().at("tool"));
 		mvj_param.wobj = &*model()->generalMotionPool()[0].makJ().fatherPart().markerPool().findByName(cmdParams().at("wobj"));
-		
+        std::cout << "2" <<std::endl;
 		// find joint acc/vel/dec/
 		for (auto cmd_param : cmdParams())
 		{
@@ -1809,7 +1812,7 @@ namespace kaanh
 		}
 
 		this->param() = mvj_param;
-
+std::cout << "3" <<std::endl;
 		std::vector<std::pair<std::string, std::any>> ret_value;
 		ret() = ret_value;
 	}
@@ -5262,7 +5265,7 @@ namespace kaanh
 		auto&cs = aris::server::ControlServer::instance();
 		if (cs.running())throw std::runtime_error("cs is running, please stop the cs using cs_stop!");
 
-		aris::control::EthercatMaster mst;
+        aris::control::EthercatController mst;
 		mst.scan();
 
 		std::vector<std::pair<std::string, std::any>> ret_value;
