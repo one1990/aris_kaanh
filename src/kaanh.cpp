@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string>
 #include"planfuns.h"
+#include"sixdistalfc.h"
 #include <bitset>
 
 
@@ -23,6 +24,8 @@ extern std::atomic_bool g_is_auto;
 //state machine flag//
 
 kaanh::CmdListParam cmdparam;
+std::vector<std::map<std::string, int>> if_vec;
+std::vector<std::map<std::string, int>> while_vec;
 
 
 namespace kaanh
@@ -1722,7 +1725,6 @@ namespace kaanh
 
 		MoveJParam mvj_param;
 
-        std::cout << "1" <<std::endl;
 		// find ee pq //
 		mvj_param.ee_pq.resize(7);
 		find_pq(cmdParams(), *this, mvj_param.ee_pq.data());
@@ -1736,7 +1738,7 @@ namespace kaanh
 
 		mvj_param.tool = &*model()->generalMotionPool()[0].makI().fatherPart().markerPool().findByName(cmdParams().at("tool"));
 		mvj_param.wobj = &*model()->generalMotionPool()[0].makJ().fatherPart().markerPool().findByName(cmdParams().at("wobj"));
-        std::cout << "2" <<std::endl;
+
 		// find joint acc/vel/dec/
 		for (auto cmd_param : cmdParams())
 		{
@@ -1812,7 +1814,7 @@ namespace kaanh
 		}
 
 		this->param() = mvj_param;
-std::cout << "3" <<std::endl;
+
 		std::vector<std::pair<std::string, std::any>> ret_value;
 		ret() = ret_value;
 	}
@@ -5591,6 +5593,26 @@ std::cout << "3" <<std::endl;
 	}
 
 
+	auto IF::prepairNrt()->void
+	{
+		
+
+
+		option() |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION;
+		std::vector<std::pair<std::string, std::any>> ret_value;
+		ret() = ret_value;
+	}
+	IF::IF(const std::string &name) : Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"IF\">"
+			"	<GroupParam>"
+			"		<Param name=\"value\" default=\"0\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
+
+
 	//var//
 	struct VarParam
 	{
@@ -5617,15 +5639,48 @@ std::cout << "3" <<std::endl;
 			}
 		}
 		aris::core::Calculator c;
-		if ((param.type == "int") || (param.type == "double") || (param.type == "bool") || (param.type == "array"))
+		if ((param.type == "int") || (param.type == "double") || (param.type == "bool") || (param.type == "array"))//di1,di2,do1,do2,ai1,ai2,int counter
 		{
 			c.addVariable(param.name, model()->calculator().calculateExpression(param.value));
 		}
-		else if (param.type == "string")
+		else if (param.type == "string")//string="kaanh"
 		{
-
+			c.addVariable(param.name, param.value);
 		}
-
+		else if (param.type == "load")//load1={mass,cogx,cogy,cogz,q1,q2,q3,q4,ix,iy,iz}
+		{
+			c.addVariable(param.name, model()->calculator().calculateExpression(param.value));
+		}
+		else if (param.type == "pose")//pose1={x,y,z,q1,q2,q3,q4}
+		{
+			c.addVariable(param.name, model()->calculator().calculateExpression(param.value));
+		}
+		else if (param.type == "jointtarget")//jointtarget={j1,j2,j3,j4,j5,j6,ej1}
+		{
+			c.addVariable(param.name, model()->calculator().calculateExpression(param.value));
+		}
+		else if (param.type == "robtarget")//robtarget={x,y,z,q1,q2,q3,q4}
+		{
+			c.addVariable(param.name, model()->calculator().calculateExpression(param.value));
+		}
+		else if (param.type == "zone")//zone={dis,per}
+		{
+			c.addVariable(param.name, model()->calculator().calculateExpression(param.value));
+		}
+		else if (param.type == "speed")	//speed={per,tcp,ori,exj_r,exj_l}
+		{
+			c.addVariable(param.name, model()->calculator().calculateExpression(param.value));
+		}
+		else if (param.type == "tool")//tool={x,y,z,a,b,c}
+		{
+			c.addVariable(param.name, model()->calculator().calculateExpression(param.value));
+		}
+		else if (param.type == "wobj")//wobj={x,y,z,a,b,c}
+		{
+			c.addVariable(param.name, model()->calculator().calculateExpression(param.value));
+		}
+		auto ret_mat = c.calculateExpression("v90");
+		std::cout << ret_mat.toString() << std::endl;
 		std::vector<std::pair<std::string, std::any>> ret_value;
 		ret() = ret_value;
 		option() = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
@@ -5701,7 +5756,7 @@ std::cout << "3" <<std::endl;
 									cmdparam.current_plan_id = iter->first;
 								}			
 							}
-							cs.executeCmd(aris::core::Msg(cmdparam.cmd_vec[cmdparam.current_cmd_id]), [&](aris::plan::Plan &plan)->void
+							cs.executeCmd(aris::core::Msg(cmdparam.cmd_vec[cmdparam.current_cmd_id].), [&](aris::plan::Plan &plan)->void
 							{
 								std::unique_lock<std::mutex> run_lock(mymutex);
 								auto iter = cmdparam.cmd_vec.find(cmdparam.current_cmd_id);
@@ -5902,15 +5957,18 @@ std::cout << "3" <<std::endl;
 
 
 	//编程界面指令//
-	bool splitString(std::string spCharacter, const std::string& objString, std::map<int, std::string>& stringVector)
+
+	bool splitString(std::string spCharacter, const std::string& objString, std::map<int, cmd_struct>& stringVector)
 	{
+		//传入字符串为空
 		if (objString.length() == 0)
 		{
 			return true;
 		}
 		size_t posBegin = 0;
 		size_t posEnd = 0;
-
+		
+		//提取指令信息
 		while (posEnd != std::string::npos)
 		{
 			posBegin = posEnd;
@@ -5929,9 +5987,58 @@ std::cout << "3" <<std::endl;
 			auto sep_pos = str.find(":");
 			auto id = str.substr(0, sep_pos);
 			auto command = str.substr(sep_pos + 1);
-			stringVector.insert(std::pair<int, std::string>(std::stoi(id), command.c_str()));
+			cmd_struct temp = { command, -1, std::stoi(id) + 1 };
+			stringVector.insert(std::pair<int, cmd_struct>(std::stoi(id), temp));
 			posEnd += spCharacter.size();
 		}
+		//对提取的指令进行预处理，包括if,elseif,else,endif,while,endwhile,以及普通指令
+		auto iter = stringVector.begin();
+		std::vector<int32_t> if_vec;
+		std::vector<int32_t> elseif_vec;
+		std::vector<int32_t> else_vec;
+		std::vector<int32_t> endif_vec;
+		for (auto iter = stringVector.begin(); iter != stringVector.end(); iter++)
+		{
+			auto if_pos = iter->second.name.find(" ");
+			auto temp = iter->second.name.substr(0, if_pos);
+			if (temp == "IF")
+			{
+				auto begin_iter = iter;
+				auto temp_iter = iter;
+				iter->second.p1 = (temp_iter++)->first;
+				while(1)
+				{
+					iter++;
+					auto if_pos = iter->second.name.find(" ");
+					if (iter->second.name.substr(0, if_pos) == "ENDIF")
+					{
+						break;
+					}
+					else if (iter->second.name.substr(0, if_pos) == "IF")
+					{
+						continue;
+					}
+					else
+					{
+						continue;
+					}
+				}
+			}
+			else
+			{
+				iter->second.p1 = -1;
+				auto temp = iter;
+				temp++;
+				if (temp != stringVector.end())
+				{
+					iter->second.p2 = temp->first;
+				}
+			}
+			iter++;
+		}
+
+
+
 		return true;
 	}
 	auto onReceivedMsg(aris::core::Socket *socket, aris::core::Msg &msg)->int
@@ -6036,7 +6143,6 @@ std::cout << "3" <<std::endl;
 							js->push_back(std::make_pair<std::string, std::any>("return_message", std::string(plan.retMsg())));
 							ret_msg.copy(aris::server::parse_ret_value(*js));
 						}
-
 						// return back to source
 						try
 						{
@@ -6172,6 +6278,7 @@ std::cout << "3" <<std::endl;
 			"</Command>");
 	}
 
+
     auto createPlanRoot()->std::unique_ptr<aris::plan::PlanRoot>
 	{
         std::unique_ptr<aris::plan::PlanRoot> plan_root(new aris::plan::PlanRoot);
@@ -6194,18 +6301,8 @@ std::cout << "3" <<std::endl;
 		plan_root->planPool().add<kaanh::MoveSt>();
 
 		plan_root->planPool().add<kaanh::Get>();
-		/*
-		plan_root->planPool().add<forcecontrol::MoveJRC>();
-		plan_root->planPool().add<forcecontrol::MovePQCrash>();
-		plan_root->planPool().add<forcecontrol::MovePQB>();
-		plan_root->planPool().add<forcecontrol::MoveJCrash>();
-		plan_root->planPool().add<forcecontrol::MoveJF>();
-		plan_root->planPool().add<forcecontrol::MoveJFB>();
-		plan_root->planPool().add<forcecontrol::MoveJPID>();
-		plan_root->planPool().add<forcecontrol::MoveEAC>();
-		plan_root->planPool().add<forcecontrol::MoveStop>();
-		plan_root->planPool().add<forcecontrol::MoveSPQ>();
-		*/
+		plan_root->planPool().add<kaanh::Var>();
+
 		plan_root->planPool().add<kaanh::MoveC>();
 		plan_root->planPool().add<kaanh::JogC>();
 		plan_root->planPool().add<kaanh::JogJ>();
@@ -6243,49 +6340,12 @@ std::cout << "3" <<std::endl;
 		plan_root->planPool().add<kaanh::MoveF>();
 		plan_root->planPool().add<kaanh::Switch>();
 
-		/*
-		plan_root->planPool().add<MoveXYZ>();
 		plan_root->planPool().add<MoveJoint>();
-		plan_root->planPool().add<MoveDistal>();
-        plan_root->planPool().add<DistalTest>();
-		plan_root->planPool().add<MovePressure>();
-		plan_root->planPool().add<MoveFeed>();
-		plan_root->planPool().add<MovePressureToolYZ>();
-		plan_root->planPool().add<MovePressureToolXY>();
-
-		plan_root->planPool().add<MovePressureToolXLine>();
-		plan_root->planPool().add<MovePressureToolYLine>();
-		plan_root->planPool().add<MovePressureToolXSine>();
-		plan_root->planPool().add<MoveForceXSine>();
-		plan_root->planPool().add<MoveForceCircle>();
-		plan_root->planPool().add<MoveForceCurve>();
-
-		plan_root->planPool().add<GetForce>();
-        plan_root->planPool().add<MoveSeriesGK>();
+		plan_root->planPool().add<Replay>();
         plan_root->planPool().add<ForceDirect>();
-
-		//plan_root->planPool().add<GetError>();
-		plan_root->planPool().add<JointDyna>();
-		plan_root->planPool().add<JointTest>();
-		plan_root->planPool().add<DragTeach>();
-		plan_root->planPool().add<LoadDyna>();
-		plan_root->planPool().add<SaveYYbase>();
-		plan_root->planPool().add<SaveFile>();	
-
-		plan_root->planPool().add<SevenJointDyna>();
-		plan_root->planPool().add<SevenJointTest>();
-        plan_root->planPool().add<SevenDragTeach>();
-		plan_root->planPool().add<SevenLoadDyna>();
-
-		plan_root->planPool().add<DoubleSPlan>();
-
-		plan_root->planPool().add<cplan::MoveCircle>();
-		plan_root->planPool().add<cplan::MoveTroute>();
-		plan_root->planPool().add<cplan::RemoveFile>();
-		plan_root->planPool().add<cplan::MoveinModel>();
-		plan_root->planPool().add<cplan::FMovePath>();
-		plan_root->planPool().add<cplan::OpenFile>();
+		plan_root->planPool().add<FCStop>();
 		
+		/*
 		plan_root->planPool().add<CalibT4P>();
 		plan_root->planPool().add<CalibT5P>();
 		plan_root->planPool().add<CalibT6P>();

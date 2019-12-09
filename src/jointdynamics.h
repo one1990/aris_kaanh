@@ -4,9 +4,6 @@
 #include <array>
 
 
-	
-
-
 namespace JointDynamicsInt
 { 
     const int LoadTotalParas = 40;
