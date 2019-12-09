@@ -732,10 +732,10 @@ namespace kaanh
 	//更新实时状态：使能、报错//
 	auto update_state(aris::server::ControlServer &cs)->void
 	{
-		static bool motion_state[6] = { false, false, false, false, false, false };
-		
+		static bool motion_state[256] = { false };
+
 		//获取motion的使能状态，0表示去使能状态，1表示使能状态//
-		for (aris::Size i = 0; i < 6; i++)
+		for (aris::Size i = 0; i < cs.controller().motionPool().size(); i++)
 		{
 			auto cm = dynamic_cast<aris::control::EthercatMotor*>(&cs.controller().motionPool()[i]);
 			if ((cm->statusWord() & 0x6f) != 0x27)
@@ -748,22 +748,14 @@ namespace kaanh
 			}
 			//motion_state[i] = 1;
 		}
-		
+
 		//获取ret_code的值，判断是否报错，if条件可以初始化变量，并且取变量进行条件判断//
 		if (auto target = cs.currentExecutePlanRt(); target)
 		{
 			g_is_error.store(target->retCode());
 		}
-		
-		if (motion_state[0] && motion_state[1] && motion_state[2] && motion_state[3] && motion_state[4] && motion_state[5])
-		{
-			g_is_enabled.store(true);
-		}
-		else
-		{
-			g_is_enabled.store(false);
-		}
-		
+
+		g_is_enabled.store(std::all_of(motion_state, motion_state + cs.controller().motionPool().size(), [](bool i) {return i; }));
 	}
 
 	//获取状态字——100:去使能,200:手动,300:准自动,400:自动,500:错误//
@@ -1215,23 +1207,36 @@ namespace kaanh
 			cs.model().generalMotionPool().at(0).getMpq(std::any_cast<GetParam &>(data).end_pq.data());
 			cs.model().generalMotionPool().at(0).getMpe(std::any_cast<GetParam &>(data).end_pe.data(), "321");
 
-			for (aris::Size i = 0; i < 6; i++)
-			{
 #ifdef WIN32
+			for (aris::Size i = 0; i < cs.model().motionPool().size(); i++)
+			{
 				std::any_cast<GetParam &>(data).motion_pos[i] = cs.model().motionPool()[i].mp();
 				std::any_cast<GetParam &>(data).motion_vel[i] = cs.model().motionPool()[i].mv();
 				std::any_cast<GetParam &>(data).motion_acc[i] = cs.model().motionPool()[i].ma();
 				std::any_cast<GetParam &>(data).motion_toq[i] = cs.model().motionPool()[i].ma();
+			}
 #endif // WIN32
 
 #ifdef UNIX
+			if (cs.model().partPool().size())
+			{
+				for (aris::Size i = 0; i < cs.model().motionPool().size(); i++)
+				{
+					std::any_cast<GetParam &>(data).motion_pos[i] = cs.controller().motionPool()[i].actualPos();
+					std::any_cast<GetParam &>(data).motion_vel[i] = cs.controller().motionPool()[i].actualVel();
+					std::any_cast<GetParam &>(data).motion_acc[i] = cs.model().motionPool()[i].ma();
+					std::any_cast<GetParam &>(data).motion_toq[i] = cs.controller().motionPool()[i].actualToq();
+				}
+			}
+			for (aris::Size i = 0; i < cs.controller().motionPool().size(); i++)
+			{
 				std::any_cast<GetParam &>(data).motion_pos[i] = cs.controller().motionPool()[i].actualPos();
 				std::any_cast<GetParam &>(data).motion_vel[i] = cs.controller().motionPool()[i].actualVel();
-				std::any_cast<GetParam &>(data).motion_acc[i] = cs.model().motionPool()[i].ma();
+				std::any_cast<GetParam &>(data).motion_acc[i] = 0.0;
 				std::any_cast<GetParam &>(data).motion_toq[i] = cs.controller().motionPool()[i].actualToq();
-#endif // UNIX
 			}
-
+#endif // UNIX
+		
 			for (aris::Size i = 0; i < 100; i++)
 			{
 				std::any_cast<GetParam &>(data).ai[i] = 1.0;
@@ -1242,7 +1247,7 @@ namespace kaanh
 			ec->getLinkState(&std::any_cast<GetParam &>(data).mls, std::any_cast<GetParam &>(data).sls);
 
 			//获取motion的使能状态，0表示去使能状态，1表示使能状态//
-			for (aris::Size i = 0; i < 6; i++)
+			for (aris::Size i = 0; i < cs.controller().motionPool().size(); i++)
 			{
 				auto cm = dynamic_cast<aris::control::EthercatMotor*>(&cs.controller().motionPool()[i]);
 				if ((cm->statusWord() & 0x6f) != 0x27)
@@ -1267,8 +1272,9 @@ namespace kaanh
 		}, param);
 
 		auto out_data = std::any_cast<GetParam &>(param);
-		std::vector<int> slave_online(6, 0), slave_al_state(6, 0);
-		for (aris::Size i = 0; i < 6; i++)
+		auto&cs = aris::server::ControlServer::instance();
+		std::vector<int> slave_online(cs.controller().motionPool().size(), 0), slave_al_state(cs.controller().motionPool().size(), 0);
+		for (aris::Size i = 0; i < cs.controller().motionPool().size(); i++)
 		{
 			slave_online[i] = int(out_data.sls[i].online);
 			slave_al_state[i] = int(out_data.sls[i].al_state);
