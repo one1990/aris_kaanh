@@ -1183,6 +1183,7 @@ namespace kaanh
 	auto Get::prepairNrt()->void
 	{		
 		GetParam par;
+        auto&cs = aris::server::ControlServer::instance();
 		par.part_pq.resize(model()->partPool().size() * 7, 0.0);
 		par.end_pq.resize(7, 0.0);
 		par.end_pe.resize(6, 0.0);
@@ -1199,13 +1200,16 @@ namespace kaanh
 		controlServer()->getRtData([&](aris::server::ControlServer& cs, const aris::plan::Plan *target, std::any& data)->void
 		{
             update_state(cs);
-			for (aris::Size i(-1); ++i < cs.model().partPool().size();)
-			{
-				cs.model().partPool().at(i).getPq(std::any_cast<GetParam &>(data).part_pq.data() + i * 7);
-			}
 
-			cs.model().generalMotionPool().at(0).getMpq(std::any_cast<GetParam &>(data).end_pq.data());
-			cs.model().generalMotionPool().at(0).getMpe(std::any_cast<GetParam &>(data).end_pe.data(), "321");
+            if (!cs.model().motionPool().empty())
+            {
+                for (aris::Size i(-1); ++i < cs.model().partPool().size();)
+                {
+                    cs.model().partPool().at(i).getPq(std::any_cast<GetParam &>(data).part_pq.data() + i * 7);
+                }
+                cs.model().generalMotionPool().at(0).getMpq(std::any_cast<GetParam &>(data).end_pq.data());
+                cs.model().generalMotionPool().at(0).getMpe(std::any_cast<GetParam &>(data).end_pe.data(), "321");
+            }
 
 #ifdef WIN32
 			for (aris::Size i = 0; i < cs.model().motionPool().size(); i++)
@@ -1272,7 +1276,7 @@ namespace kaanh
 		}, param);
 
 		auto out_data = std::any_cast<GetParam &>(param);
-		auto&cs = aris::server::ControlServer::instance();
+
 		std::vector<int> slave_online(cs.controller().motionPool().size(), 0), slave_al_state(cs.controller().motionPool().size(), 0);
 		for (aris::Size i = 0; i < cs.controller().motionPool().size(); i++)
 		{
