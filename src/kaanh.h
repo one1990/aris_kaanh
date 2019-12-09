@@ -69,10 +69,17 @@ namespace kaanh
 		int32_t p1;	//cmd为条件指令时，结果为真对应的下一条指令号;cmd为普通指令时，为-1;
 		int32_t p2;	//cmd为条件指令时，结果为假对应的下一条指令号;cmd为普通指令时，为下一条指令号，一般是本条指令+1;
 	};
-
+	/*
 	struct CmdListParam
 	{
 		std::map<int, cmd_struct> cmd_vec;
+		int current_cmd_id = 0;
+		int current_plan_id = -1;
+	};
+	*/
+	struct CmdListParam
+	{
+		std::map<int, std::string> cmd_vec;
 		int current_cmd_id = 0;
 		int current_plan_id = -1;
 	};

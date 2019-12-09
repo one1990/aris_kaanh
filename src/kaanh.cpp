@@ -5722,7 +5722,7 @@ namespace kaanh
 	auto Run::prepairNrt()->void
 	{
 		std::vector<std::pair<std::string, std::any>> run_ret;
-		auto param = std::make_shared<RunParam>();		
+		auto param = std::make_shared<RunParam>();
 
 		for (auto &p : cmdParams())
 		{
@@ -5731,7 +5731,7 @@ namespace kaanh
 				//有指令在执行//
 				if (is_auto_executing())
 				{
-					option() = Plan::NOT_RUN_COLLECT_FUNCTION| Plan::NOT_RUN_EXECUTE_FUNCTION;
+					option() = Plan::NOT_RUN_COLLECT_FUNCTION | Plan::NOT_RUN_EXECUTE_FUNCTION;
 				}
 				//没有指令在执行//
 				else
@@ -5754,9 +5754,9 @@ namespace kaanh
 								else
 								{
 									cmdparam.current_plan_id = iter->first;
-								}			
+								}
 							}
-							cs.executeCmd(aris::core::Msg(cmdparam.cmd_vec[cmdparam.current_cmd_id].), [&](aris::plan::Plan &plan)->void
+							cs.executeCmd(aris::core::Msg(cmdparam.cmd_vec[cmdparam.current_cmd_id]), [&](aris::plan::Plan &plan)->void
 							{
 								std::unique_lock<std::mutex> run_lock(mymutex);
 								auto iter = cmdparam.cmd_vec.find(cmdparam.current_cmd_id);
@@ -5780,7 +5780,7 @@ namespace kaanh
 							LOG_ERROR << e.what() << std::endl;
 						}
 					});
-				}	
+				}
 			}
 			else if (p.first == "goto")
 			{
@@ -5821,7 +5821,7 @@ namespace kaanh
 						else
 						{
 							try
-							{	
+							{
 								aris::server::ControlServer::instance().executeCmd(aris::core::Msg(cmdparam.cmd_vec[cmdparam.current_cmd_id]), [&](aris::plan::Plan &plan)->void
 								{
 									std::unique_lock<std::mutex> run_lock(mymutex);
@@ -5851,7 +5851,7 @@ namespace kaanh
 
 			}
 			else if (p.first == "start")
-			{	
+			{
 				g_is_auto.store(true);
 				//有指令在执行//
 				if (is_auto_executing())
@@ -5865,7 +5865,7 @@ namespace kaanh
 					set_is_auto_executing(is_start);
 					param->run = std::thread([&]()->void
 					{
-						try 
+						try
 						{
 							int begin_cmd_id = 0, end_cmd_id = 0;
 							auto&cs = aris::server::ControlServer::instance();
@@ -5910,10 +5910,10 @@ namespace kaanh
 							LOG_ERROR << e.what() << std::endl;
 						}
 					});
-				}	
+				}
 			}
-			else if (p.first == "pause") 
-			{ 
+			else if (p.first == "pause")
+			{
 				std::unique_lock<std::mutex> run_lock(mymutex);
 				const bool is_pause = false;
 				set_is_auto_executing(is_pause);
@@ -5957,18 +5957,15 @@ namespace kaanh
 
 
 	//编程界面指令//
-
-	bool splitString(std::string spCharacter, const std::string& objString, std::map<int, cmd_struct>& stringVector)
+	bool splitString(std::string spCharacter, const std::string& objString, std::map<int, std::string>& stringVector)
 	{
-		//传入字符串为空
 		if (objString.length() == 0)
 		{
 			return true;
 		}
 		size_t posBegin = 0;
 		size_t posEnd = 0;
-		
-		//提取指令信息
+
 		while (posEnd != std::string::npos)
 		{
 			posBegin = posEnd;
@@ -5987,64 +5984,15 @@ namespace kaanh
 			auto sep_pos = str.find(":");
 			auto id = str.substr(0, sep_pos);
 			auto command = str.substr(sep_pos + 1);
-			cmd_struct temp = { command, -1, std::stoi(id) + 1 };
-			stringVector.insert(std::pair<int, cmd_struct>(std::stoi(id), temp));
+			stringVector.insert(std::pair<int, std::string>(std::stoi(id), command.c_str()));
 			posEnd += spCharacter.size();
 		}
-		//对提取的指令进行预处理，包括if,elseif,else,endif,while,endwhile,以及普通指令
-		auto iter = stringVector.begin();
-		std::vector<int32_t> if_vec;
-		std::vector<int32_t> elseif_vec;
-		std::vector<int32_t> else_vec;
-		std::vector<int32_t> endif_vec;
-		for (auto iter = stringVector.begin(); iter != stringVector.end(); iter++)
-		{
-			auto if_pos = iter->second.name.find(" ");
-			auto temp = iter->second.name.substr(0, if_pos);
-			if (temp == "IF")
-			{
-				auto begin_iter = iter;
-				auto temp_iter = iter;
-				iter->second.p1 = (temp_iter++)->first;
-				while(1)
-				{
-					iter++;
-					auto if_pos = iter->second.name.find(" ");
-					if (iter->second.name.substr(0, if_pos) == "ENDIF")
-					{
-						break;
-					}
-					else if (iter->second.name.substr(0, if_pos) == "IF")
-					{
-						continue;
-					}
-					else
-					{
-						continue;
-					}
-				}
-			}
-			else
-			{
-				iter->second.p1 = -1;
-				auto temp = iter;
-				temp++;
-				if (temp != stringVector.end())
-				{
-					iter->second.p2 = temp->first;
-				}
-			}
-			iter++;
-		}
-
-
-
 		return true;
 	}
 	auto onReceivedMsg(aris::core::Socket *socket, aris::core::Msg &msg)->int
 	{
 		std::string msg_data = msg.toString();
-		
+
 		{
 			LOG_INFO << "receive cmd:"
 				<< msg.header().msg_size_ << "&"
@@ -6112,7 +6060,7 @@ namespace kaanh
 					cmd = strtok(NULL, split);
 				}
 				*/
-				
+
 				auto iter = cmdparam.cmd_vec.begin();
 				if (iter != cmdparam.cmd_vec.end())
 				{
@@ -6122,7 +6070,7 @@ namespace kaanh
 				else
 				{
 					std::cout << "cmd_vec is null" << std::endl;
-				}	
+				}
 			}
 			else
 			{
@@ -6143,6 +6091,7 @@ namespace kaanh
 							js->push_back(std::make_pair<std::string, std::any>("return_message", std::string(plan.retMsg())));
 							ret_msg.copy(aris::server::parse_ret_value(*js));
 						}
+
 						// return back to source
 						try
 						{
