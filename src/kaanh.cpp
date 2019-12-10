@@ -494,10 +494,10 @@ namespace kaanh
         par.part_pq.resize(model()->partPool().size() * 7, 0.0);
         par.end_pq.resize(7, 0.0);
         par.end_pe.resize(6, 0.0);
-        par.motion_pos.resize(6, 0.0);
-        par.motion_vel.resize(6, 0.0);
-        par.motion_acc.resize(6, 0.0);
-        par.motion_toq.resize(6, 0.0);
+        par.motion_pos.clear();
+        par.motion_vel.clear();
+        par.motion_acc.clear();
+        par.motion_toq.clear();
         par.ai.resize(100, 1.0);
         par.di.resize(100, false);
         par.motion_state.resize(6, 0);
@@ -519,24 +519,25 @@ namespace kaanh
                 cs.model().generalMotionPool().at(0).getMpe(std::any_cast<GetParam &>(data).end_pe.data(), "321");
             }
 
-            for (aris::Size i = 0; i < cs.controller().motionPool().size(); i++)
-            {
 #ifdef WIN32
-                std::any_cast<GetParam &>(data).motion_pos[i] = cs.model().motionPool()[i].mp();
-                std::any_cast<GetParam &>(data).motion_vel[i] = cs.model().motionPool()[i].mv();
-                std::any_cast<GetParam &>(data).motion_acc[i] = cs.model().motionPool()[i].ma();
-                std::any_cast<GetParam &>(data).motion_toq[i] = cs.model().motionPool()[i].ma();
-
+            for (aris::Size i = 0; i < cs.model().motionPool().size(); i++)
+            {
+                std::any_cast<GetParam &>(data).motion_pos.push_back(cs.model().motionPool()[i].mp());
+                std::any_cast<GetParam &>(data).motion_vel.push_back(cs.model().motionPool()[i].mv());
+                std::any_cast<GetParam &>(data).motion_acc.push_back(cs.model().motionPool()[i].ma());
+                std::any_cast<GetParam &>(data).motion_toq.push_back(cs.model().motionPool()[i].ma());
+            }
 #endif // WIN32
 
 #ifdef UNIX
-                std::any_cast<GetParam &>(data).motion_pos[i] = cs.controller().motionPool()[i].actualPos();
-                std::any_cast<GetParam &>(data).motion_vel[i] = cs.controller().motionPool()[i].actualVel();
-                //std::any_cast<GetParam &>(data).motion_acc[i] = cs.model().motionPool()[i].ma();
-                std::any_cast<GetParam &>(data).motion_acc[i] = 0.0;
-                std::any_cast<GetParam &>(data).motion_toq[i] = cs.controller().motionPool()[i].actualToq();
-#endif // UNIX
+            for (aris::Size i = 0; i < cs.controller().motionPool().size(); i++)
+            {
+                std::any_cast<GetParam &>(data).motion_pos.push_back(cs.controller().motionPool()[i].actualPos());
+                std::any_cast<GetParam &>(data).motion_vel.push_back(cs.controller().motionPool()[i].actualVel());
+                std::any_cast<GetParam &>(data).motion_acc.push_back(cs.model().motionPool()[i].ma());
+                std::any_cast<GetParam &>(data).motion_toq.push_back(cs.controller().motionPool()[i].actualToq());
             }
+#endif // UNIX
 
             for (aris::Size i = 0; i < 100; i++)
             {

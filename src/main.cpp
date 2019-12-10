@@ -65,7 +65,7 @@ int main(int argc, char *argv[])
 	std::cout << ret_mat.toString() << std::endl;
 	std::cout << is_true << std::endl;
 
-    
+    /*
     //-------for sanxiang robot begin//
     cs.resetController(kaanhconfig::createControllerSanXiang().release());
     cs.resetModel(kaanhconfig::createModelSanXiang().release());
@@ -78,8 +78,9 @@ int main(int argc, char *argv[])
 	cs.model().loadXmlFile(modelxmlpath.string().c_str());
 	cs.saveXmlFile(xmlpath.string().c_str());
     //-------for sanxiang robot end//
-    
+    */
 
+    /*
     //-------for daye robot begin//
     cs.resetController(kaanhconfig::createControllerDaye().release());
     cs.resetModel(kaanhconfig::createModelDaye().release());
@@ -92,8 +93,9 @@ int main(int argc, char *argv[])
 	cs.model().loadXmlFile(modelxmlpath.string().c_str());
 	cs.saveXmlFile(xmlpath.string().c_str());
     //-------for daye robot end//
-	
+    */
 
+    /*
 	//-------for qifan robot begin//
 	cs.resetController(kaanhconfig::createControllerQifan().release());
 	cs.resetModel(kaanhconfig::createModelQifan().release());
@@ -106,7 +108,8 @@ int main(int argc, char *argv[])
 	cs.model().loadXmlFile(modelxmlpath.string().c_str());
 	cs.saveXmlFile(xmlpath.string().c_str());
 	//-------for qifan robot end// 
-	
+    */
+
 	cs.loadXmlFile(xmlpath.string().c_str());
 
     //cs.start();
