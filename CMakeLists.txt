@@ -16,18 +16,9 @@ endif(WIN32)
 include_directories(${aris_INCLUDE_DIRS})
 
 message(${aris_DIR})
-
-
-# add_library(kaanh_lib STATIC src/kaanh.cpp src/iir.cpp src/forcecontrol.cpp src/kaanh.h src/iir.h src/forcecontrol.h src/cplan.cpp src/cplan.h src/robotconfig.cpp src/robotconfig.h src/sixdistalfc.cpp src/sixdistalfc.h src/sixdistaldynamics.cpp src/sixdistaldynamics.h src/jointdynamics.cpp src/jointdynamics.h src/jointfc.cpp src/jointfc.h src/sevenjointdynamics.cpp src/sevenjointdynamics.h src/sevenjointfc.cpp src/sevenjointfc.h src/tempvariables.h src/move_series.cpp src/move_series.h src/kinematic.cpp src/kinematic.h src/planfuns.cpp src/planfuns.h src/robotplan.cpp src/robotplan.h)
-add_library(kaanh_lib STATIC src/kaanh.cpp src/kaanh.h src/planfuns.cpp src/planfuns.h src/sixdistalfc.cpp src/sixdistalfc.h src/jointdynamics.cpp src/jointdynamics.h src/sixdistaldynamics.cpp src/sixdistaldynamics.h)
-
-
-# user program started...
-#set(SOURCE_FILES src/main.cpp)
-#add_executable(kaanh ${SOURCE_FILES})
+add_library(kaanh_lib STATIC src/kaanh.cpp src/kaanh.h src/kaanhconfig.cpp src/kaanhconfig.h src/planfuns.cpp src/planfuns.h src/sixdistalfc.cpp src/sixdistalfc.h src/jointdynamics.cpp src/jointdynamics.h src/sixdistaldynamics.cpp src/sixdistaldynamics.h)
 add_executable(kaanh src/main.cpp)
 target_link_libraries(kaanh kaanh_lib)
-
 
 if(UNIX)
 	target_link_libraries(kaanh ${aris_LIBRARIES} atomic)
@@ -35,3 +26,14 @@ endif(UNIX)
 IF(WIN32)
 	target_link_libraries(kaanh ${aris_LIBRARIES})
 endif(WIN32)
+
+project(jmc)
+set(SOURCE_FILES src/oneaxis_jmc.cpp src/oneaxis_jmc.h)
+add_executable(jmc ${SOURCE_FILES})
+if(UNIX)
+	target_link_libraries(jmc ${aris_LIBRARIES} atomic)
+endif(UNIX)
+IF(WIN32)
+	target_link_libraries(jmc ${aris_LIBRARIES})
+endif(WIN32)
+

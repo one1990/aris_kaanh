@@ -44,22 +44,6 @@ namespace kaanh
 		double v_ext;	//外部轴线速度mm/s
 	};
 
-	auto createInterface()->std::unique_ptr<aris::server::InterfaceRoot>;
-	auto createControllerEA()->std::unique_ptr<aris::control::Controller>;
-	auto createModelRokaeXB4(const double *robot_pm = nullptr)->std::unique_ptr<aris::dynamic::Model>;
-	auto createControllerRokaeXB4()->std::unique_ptr<aris::control::Controller>;
-	auto createPlanRoot()->std::unique_ptr<aris::plan::PlanRoot>;
-	auto createModelRokae()->std::unique_ptr<aris::dynamic::Model>;
-	
-	auto createControllerSanXiang()->std::unique_ptr<aris::control::Controller>;
-	auto createModelSanXiang()->std::unique_ptr<aris::dynamic::Model>;
-
-	auto createControllerQifan()->std::unique_ptr<aris::control::Controller>;
-	auto createModelQifan()->std::unique_ptr<aris::dynamic::Model>;
-
-    auto createControllerDaye()->std::unique_ptr<aris::control::Controller>;
-    auto createModelDaye(const double *robot_pm = nullptr)->std::unique_ptr<aris::dynamic::Model>;
-
 	auto update_state(aris::server::ControlServer &cs)->void;
 	auto get_state_code()->std::int32_t;
 
