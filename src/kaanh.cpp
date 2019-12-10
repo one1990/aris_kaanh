@@ -474,147 +474,151 @@ namespace kaanh
 
 
 	// 获取part_pq，end_pq，end_pe等 //
-	struct GetParam
-	{
-		std::vector<double> part_pq, end_pq, end_pe, motion_pos, motion_vel, motion_acc, motion_toq, ai;
-		std::vector<bool> di;
-		std::int32_t state_code;
-		aris::control::EthercatController::SlaveLinkState sls[6];
-		aris::control::EthercatController::MasterLinkState mls{};
-		std::vector<int> motion_state;
-		std::string currentplan;
-		int vel_percent;
-	};
-	auto Get::prepairNrt()->void
-	{		
-		GetParam par;
-		par.part_pq.resize(model()->partPool().size() * 7, 0.0);
-		par.end_pq.resize(7, 0.0);
-		par.end_pe.resize(6, 0.0);
-		par.motion_pos.resize(6, 0.0);
-		par.motion_vel.resize(6, 0.0);
-		par.motion_acc.resize(6, 0.0);
-		par.motion_toq.resize(6, 0.0);
-		par.ai.resize(100, 1.0);
-		par.di.resize(100, false);
-		par.motion_state.resize(6, 0);
-		std::any param = par;
-		//std::any param = std::make_any<GetParam>();
+    // 获取part_pq，end_pq，end_pe等 //
+    std::atomic_bool having_model=false;
+    struct GetParam
+    {
+        std::vector<double> part_pq, end_pq, end_pe, motion_pos, motion_vel, motion_acc, motion_toq, ai;
+        std::vector<bool> di;
+        std::int32_t state_code;
+        aris::control::EthercatController::SlaveLinkState sls[6];
+        aris::control::EthercatController::MasterLinkState mls{};
+        std::vector<int> motion_state;
+        std::string currentplan;
+        int vel_percent;
+    };
+    auto Get::prepairNrt()->void
+    {
+        auto is_model = having_model.load();
+        GetParam par;
+        par.part_pq.resize(model()->partPool().size() * 7, 0.0);
+        par.end_pq.resize(7, 0.0);
+        par.end_pe.resize(6, 0.0);
+        par.motion_pos.resize(6, 0.0);
+        par.motion_vel.resize(6, 0.0);
+        par.motion_acc.resize(6, 0.0);
+        par.motion_toq.resize(6, 0.0);
+        par.ai.resize(100, 1.0);
+        par.di.resize(100, false);
+        par.motion_state.resize(6, 0);
+        std::any param = par;
+        //std::any param = std::make_any<GetParam>();
 
-		controlServer()->getRtData([&](aris::server::ControlServer& cs, const aris::plan::Plan *target, std::any& data)->void
-		{
+        controlServer()->getRtData([&](aris::server::ControlServer& cs, const aris::plan::Plan *target, std::any& data)->void
+        {
             update_state(cs);
-			for (aris::Size i(-1); ++i < cs.model().partPool().size();)
-			{
-				cs.model().partPool().at(i).getPq(std::any_cast<GetParam &>(data).part_pq.data() + i * 7);
-			}
+            if(is_model)
+            {
+                for (aris::Size i(-1); ++i < cs.model().partPool().size();)
+                {
+                    cs.model().partPool().at(i).getPq(std::any_cast<GetParam &>(data).part_pq.data() + i * 7);
+                }
 
-			cs.model().generalMotionPool().at(0).getMpq(std::any_cast<GetParam &>(data).end_pq.data());
-			cs.model().generalMotionPool().at(0).getMpe(std::any_cast<GetParam &>(data).end_pe.data(), "321");
+                cs.model().generalMotionPool().at(0).getMpq(std::any_cast<GetParam &>(data).end_pq.data());
+                cs.model().generalMotionPool().at(0).getMpe(std::any_cast<GetParam &>(data).end_pe.data(), "321");
+            }
 
+            for (aris::Size i = 0; i < cs.controller().motionPool().size(); i++)
+            {
 #ifdef WIN32
-			for (aris::Size i = 0; i < cs.model().motionPool().size(); i++)
-			{
-				std::any_cast<GetParam &>(data).motion_pos[i] = cs.model().motionPool()[i].mp();
-				std::any_cast<GetParam &>(data).motion_vel[i] = cs.model().motionPool()[i].mv();
-				std::any_cast<GetParam &>(data).motion_acc[i] = cs.model().motionPool()[i].ma();
-				std::any_cast<GetParam &>(data).motion_toq[i] = cs.model().motionPool()[i].ma();
-			}
+                if(is_model)
+                {
+                    std::any_cast<GetParam &>(data).motion_pos[i] = cs.model().motionPool()[i].mp();
+                    std::any_cast<GetParam &>(data).motion_vel[i] = cs.model().motionPool()[i].mv();
+                    std::any_cast<GetParam &>(data).motion_acc[i] = cs.model().motionPool()[i].ma();
+                    std::any_cast<GetParam &>(data).motion_toq[i] = cs.model().motionPool()[i].ma();
+                }
+
 #endif // WIN32
 
 #ifdef UNIX
-			if (cs.model().partPool().size())
-			{
-				for (aris::Size i = 0; i < cs.model().motionPool().size(); i++)
-				{
-					std::any_cast<GetParam &>(data).motion_pos[i] = cs.controller().motionPool()[i].actualPos();
-					std::any_cast<GetParam &>(data).motion_vel[i] = cs.controller().motionPool()[i].actualVel();
-					std::any_cast<GetParam &>(data).motion_acc[i] = cs.model().motionPool()[i].ma();
-					std::any_cast<GetParam &>(data).motion_toq[i] = cs.controller().motionPool()[i].actualToq();
-				}
-			}
-			for (aris::Size i = 0; i < cs.controller().motionPool().size(); i++)
-			{
-				std::any_cast<GetParam &>(data).motion_pos[i] = cs.controller().motionPool()[i].actualPos();
-				std::any_cast<GetParam &>(data).motion_vel[i] = cs.controller().motionPool()[i].actualVel();
-				std::any_cast<GetParam &>(data).motion_acc[i] = 0.0;
-				std::any_cast<GetParam &>(data).motion_toq[i] = cs.controller().motionPool()[i].actualToq();
-			}
+                std::any_cast<GetParam &>(data).motion_pos[i] = cs.controller().motionPool()[i].actualPos();
+                std::any_cast<GetParam &>(data).motion_vel[i] = cs.controller().motionPool()[i].actualVel();
+                if(is_model)
+                {
+                    std::any_cast<GetParam &>(data).motion_acc[i] = cs.model().motionPool()[i].ma();
+                }
+                else
+                {
+                    std::any_cast<GetParam &>(data).motion_acc[i] = 0.0;
+                }
+                std::any_cast<GetParam &>(data).motion_toq[i] = cs.controller().motionPool()[i].actualToq();
 #endif // UNIX
-		
-			for (aris::Size i = 0; i < 100; i++)
-			{
-				std::any_cast<GetParam &>(data).ai[i] = 1.0;
-				std::any_cast<GetParam &>(data).di[i] = false;
-			}
-			
-			auto ec = dynamic_cast<aris::control::EthercatController*>(&cs.controller());
-			ec->getLinkState(&std::any_cast<GetParam &>(data).mls, std::any_cast<GetParam &>(data).sls);
+            }
 
-			//获取motion的使能状态，0表示去使能状态，1表示使能状态//
-			for (aris::Size i = 0; i < cs.controller().motionPool().size(); i++)
-			{
-				auto cm = dynamic_cast<aris::control::EthercatMotor*>(&cs.controller().motionPool()[i]);
-				if ((cm->statusWord() & 0x6f) != 0x27)
-				{
-					std::any_cast<GetParam &>(data).motion_state[i] = 0;
-				}
-				else
-				{
-					std::any_cast<GetParam &>(data).motion_state[i] = 1;
-				}
-			}
-			
-			if (target == nullptr)
-			{
-				std::any_cast<GetParam &>(data).currentplan = "none";
-			}
-			else
-			{
-				std::any_cast<GetParam &>(data).currentplan = target->command().name();
-			}
+            for (aris::Size i = 0; i < 100; i++)
+            {
+                std::any_cast<GetParam &>(data).ai[i] = 1.0;
+                std::any_cast<GetParam &>(data).di[i] = false;
+            }
 
-		}, param);
+            auto ec = dynamic_cast<aris::control::EthercatController*>(&cs.controller());
+            ec->getLinkState(&std::any_cast<GetParam &>(data).mls, std::any_cast<GetParam &>(data).sls);
 
-		auto out_data = std::any_cast<GetParam &>(param);
-		auto&cs = aris::server::ControlServer::instance();
-		std::vector<int> slave_online(cs.controller().motionPool().size(), 0), slave_al_state(cs.controller().motionPool().size(), 0);
-		for (aris::Size i = 0; i < cs.controller().motionPool().size(); i++)
-		{
-			slave_online[i] = int(out_data.sls[i].online);
-			slave_al_state[i] = int(out_data.sls[i].al_state);
-		}
+            //获取motion的使能状态，0表示去使能状态，1表示使能状态//
+            for (aris::Size i = 0; i < cs.controller().motionPool().size(); i++)
+            {
+                auto cm = dynamic_cast<aris::control::EthercatMotor*>(&cs.controller().motionPool()[i]);
+                if ((cm->statusWord() & 0x6f) != 0x27)
+                {
+                    std::any_cast<GetParam &>(data).motion_state[i] = 0;
+                }
+                else
+                {
+                    std::any_cast<GetParam &>(data).motion_state[i] = 1;
+                }
+            }
 
-		out_data.state_code = get_state_code();
+            if (target == nullptr)
+            {
+                std::any_cast<GetParam &>(data).currentplan = "none";
+            }
+            else
+            {
+                std::any_cast<GetParam &>(data).currentplan = target->command().name();
+            }
 
-		std::vector<std::pair<std::string, std::any>> out_param;
-		out_param.push_back(std::make_pair<std::string, std::any>("part_pq", out_data.part_pq));
-		out_param.push_back(std::make_pair<std::string, std::any>("end_pq", out_data.end_pq));
-		out_param.push_back(std::make_pair<std::string, std::any>("end_pe", out_data.end_pe));
-		out_param.push_back(std::make_pair<std::string, std::any>("motion_pos", out_data.motion_pos));
-		out_param.push_back(std::make_pair<std::string, std::any>("motion_vel", out_data.motion_vel));
-		out_param.push_back(std::make_pair<std::string, std::any>("motion_acc", out_data.motion_acc));
-		out_param.push_back(std::make_pair<std::string, std::any>("motion_toq", out_data.motion_toq));
-		out_param.push_back(std::make_pair<std::string, std::any>("ai", out_data.ai));
-		out_param.push_back(std::make_pair<std::string, std::any>("di", out_data.di));
-		out_param.push_back(std::make_pair<std::string, std::any>("state_code", out_data.state_code));
-		out_param.push_back(std::make_pair<std::string, std::any>("slave_link_num", std::int32_t(out_data.mls.slaves_responding)));
-		out_param.push_back(std::make_pair<std::string, std::any>("slave_online_state", slave_online));
-		out_param.push_back(std::make_pair<std::string, std::any>("slave_al_state", slave_al_state));
-		out_param.push_back(std::make_pair<std::string, std::any>("motion_state", out_data.motion_state));
-		out_param.push_back(std::make_pair<std::string, std::any>("current_plan", out_data.currentplan));
-		out_param.push_back(std::make_pair<std::string, std::any>("current_plan_id", cmdparam.current_plan_id));
+        }, param);
 
-		ret() = out_param;
-		option() |= NOT_RUN_EXECUTE_FUNCTION | NOT_PRINT_CMD_INFO | NOT_PRINT_CMD_INFO;
-	}
-	auto Get::collectNrt()->void {}
-	Get::Get(const std::string &name) : Plan(name)
-	{
-		command().loadXmlStr(
-			"<Command name=\"get\">"
-			"</Command>");
-	}
+        auto out_data = std::any_cast<GetParam &>(param);
+        std::vector<int> slave_online(controller()->motionPool().size(), 0), slave_al_state(controller()->motionPool().size(), 0);
+        for (aris::Size i = 0; i < controller()->motionPool().size(); i++)
+        {
+            slave_online[i] = int(out_data.sls[i].online);
+            slave_al_state[i] = int(out_data.sls[i].al_state);
+        }
+
+        out_data.state_code = get_state_code();
+
+        std::vector<std::pair<std::string, std::any>> out_param;
+
+        out_param.push_back(std::make_pair<std::string, std::any>("part_pq", out_data.part_pq));
+        out_param.push_back(std::make_pair<std::string, std::any>("end_pq", out_data.end_pq));
+        out_param.push_back(std::make_pair<std::string, std::any>("end_pe", out_data.end_pe));
+        out_param.push_back(std::make_pair<std::string, std::any>("motion_pos", out_data.motion_pos));
+        out_param.push_back(std::make_pair<std::string, std::any>("motion_vel", out_data.motion_vel));
+        out_param.push_back(std::make_pair<std::string, std::any>("motion_acc", out_data.motion_acc));
+        out_param.push_back(std::make_pair<std::string, std::any>("motion_toq", out_data.motion_toq));
+        out_param.push_back(std::make_pair<std::string, std::any>("ai", out_data.ai));
+        out_param.push_back(std::make_pair<std::string, std::any>("di", out_data.di));
+        out_param.push_back(std::make_pair<std::string, std::any>("state_code", out_data.state_code));
+        out_param.push_back(std::make_pair<std::string, std::any>("slave_link_num", std::int32_t(out_data.mls.slaves_responding)));
+        out_param.push_back(std::make_pair<std::string, std::any>("slave_online_state", slave_online));
+        out_param.push_back(std::make_pair<std::string, std::any>("slave_al_state", slave_al_state));
+        out_param.push_back(std::make_pair<std::string, std::any>("motion_state", out_data.motion_state));
+        out_param.push_back(std::make_pair<std::string, std::any>("current_plan", out_data.currentplan));
+        out_param.push_back(std::make_pair<std::string, std::any>("current_plan_id", cmdparam.current_plan_id));
+
+        ret() = out_param;
+        option() |= NOT_RUN_EXECUTE_FUNCTION | NOT_PRINT_CMD_INFO | NOT_PRINT_CMD_INFO;
+    }
+    auto Get::collectNrt()->void {}
+    Get::Get(const std::string &name) : Plan(name)
+    {
+        command().loadXmlStr(
+            "<Command name=\"get\">"
+            "</Command>");
+    }
 
 
 	struct Home::Imp :public SetActiveMotor
@@ -4222,7 +4226,7 @@ namespace kaanh
 		xmlpath = xmlpath / xmlfile;
 		cs.saveXmlFile(xmlpath.string().c_str());
 		*/
-
+        having_model.store(true);
 		std::vector<std::pair<std::string, std::any>> ret_value;
 		ret() = ret_value;
 		option() = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
