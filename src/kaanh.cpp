@@ -1202,13 +1202,14 @@ namespace kaanh
         controlServer()->getRtData([&](aris::server::ControlServer& cs, const aris::plan::Plan *target, std::any& data)->void
         {
             update_state(cs);
-            if(is_model)
-            {
-                for (aris::Size i(-1); ++i < cs.model().partPool().size();)
-                {
-                    cs.model().partPool().at(i).getPq(std::any_cast<GetParam &>(data).part_pq.data() + i * 7);
-                }
 
+            for (aris::Size i(-1); ++i < cs.model().partPool().size();)
+            {
+                cs.model().partPool().at(i).getPq(std::any_cast<GetParam &>(data).part_pq.data() + i * 7);
+            }
+
+            for (aris::Size i(0); i < cs.model().generalMotionPool().size();i++)
+            {
                 cs.model().generalMotionPool().at(0).getMpq(std::any_cast<GetParam &>(data).end_pq.data());
                 cs.model().generalMotionPool().at(0).getMpe(std::any_cast<GetParam &>(data).end_pe.data(), "321");
             }
@@ -1216,27 +1217,18 @@ namespace kaanh
             for (aris::Size i = 0; i < cs.controller().motionPool().size(); i++)
             {
 #ifdef WIN32
-                if(is_model)
-                {
-                    std::any_cast<GetParam &>(data).motion_pos[i] = cs.model().motionPool()[i].mp();
-                    std::any_cast<GetParam &>(data).motion_vel[i] = cs.model().motionPool()[i].mv();
-                    std::any_cast<GetParam &>(data).motion_acc[i] = cs.model().motionPool()[i].ma();
-                    std::any_cast<GetParam &>(data).motion_toq[i] = cs.model().motionPool()[i].ma();
-                }
+                std::any_cast<GetParam &>(data).motion_pos[i] = cs.model().motionPool()[i].mp();
+                std::any_cast<GetParam &>(data).motion_vel[i] = cs.model().motionPool()[i].mv();
+                std::any_cast<GetParam &>(data).motion_acc[i] = cs.model().motionPool()[i].ma();
+                std::any_cast<GetParam &>(data).motion_toq[i] = cs.model().motionPool()[i].ma();
 
 #endif // WIN32
 
 #ifdef UNIX
                 std::any_cast<GetParam &>(data).motion_pos[i] = cs.controller().motionPool()[i].actualPos();
                 std::any_cast<GetParam &>(data).motion_vel[i] = cs.controller().motionPool()[i].actualVel();
-                if(is_model)
-                {
-                    std::any_cast<GetParam &>(data).motion_acc[i] = cs.model().motionPool()[i].ma();
-                }
-                else
-                {
-                    std::any_cast<GetParam &>(data).motion_acc[i] = 0.0;
-                }
+                //std::any_cast<GetParam &>(data).motion_acc[i] = cs.model().motionPool()[i].ma();
+                std::any_cast<GetParam &>(data).motion_acc[i] = 0.0;
                 std::any_cast<GetParam &>(data).motion_toq[i] = cs.controller().motionPool()[i].actualToq();
 #endif // UNIX
             }
@@ -1286,7 +1278,6 @@ namespace kaanh
         out_data.state_code = get_state_code();
 
         std::vector<std::pair<std::string, std::any>> out_param;
-
         out_param.push_back(std::make_pair<std::string, std::any>("part_pq", out_data.part_pq));
         out_param.push_back(std::make_pair<std::string, std::any>("end_pq", out_data.end_pq));
         out_param.push_back(std::make_pair<std::string, std::any>("end_pe", out_data.end_pe));
@@ -6086,7 +6077,7 @@ namespace kaanh
 			{
 				try
 				{
-					aris::server::ControlServer::instance().executeCmd(aris::core::Msg(msg), [socket, msg](aris::plan::Plan &plan)->void
+                    aris::server::ControlServer::instance().executeCmdInCmdLine(aris::core::Msg(msg), [socket, msg](aris::plan::Plan &plan)->void
 					{
 						// make return msg
 						aris::core::Msg ret_msg(msg);
