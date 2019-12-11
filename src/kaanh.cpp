@@ -758,9 +758,10 @@ namespace kaanh
                 aris::plan::moveAbsolute(static_cast<double>(count()), imp_->axis_begin_pos_vec[i], imp_->axis_pos_vec[i], imp_->axis_vel_vec[i] / 1000
                     , imp_->axis_acc_vec[i] / 1000 / 1000, imp_->axis_dec_vec[i] / 1000 / 1000, p, v, a, imp_->total_count_vec[i]);
                 controller()->motionAtAbs(i).setTargetPos(p);
+                model()->motionPool().at(i).setMp(p);
             }
         }
-
+        if (model()->solverPool().at(1).kinPos())return -1;
         return (static_cast<int>(*std::max_element(imp_->total_count_vec.begin(), imp_->total_count_vec.end())) > count()) ? 1 : 0;
     }
     Reset::~Reset() = default;
@@ -5063,7 +5064,7 @@ namespace kaanh
 									cmdparam.current_plan_id = iter->first;
 								}
 							}
-							cs.executeCmd(aris::core::Msg(cmdparam.cmd_vec[cmdparam.current_cmd_id]), [&](aris::plan::Plan &plan)->void
+                            cs.executeCmdInCmdLine(aris::core::Msg(cmdparam.cmd_vec[cmdparam.current_cmd_id]), [&](aris::plan::Plan &plan)->void
 							{
 								std::unique_lock<std::mutex> run_lock(mymutex);
 								auto iter = cmdparam.cmd_vec.find(cmdparam.current_cmd_id);
@@ -5129,7 +5130,7 @@ namespace kaanh
 						{
 							try
 							{
-								aris::server::ControlServer::instance().executeCmd(aris::core::Msg(cmdparam.cmd_vec[cmdparam.current_cmd_id]), [&](aris::plan::Plan &plan)->void
+                                aris::server::ControlServer::instance().executeCmdInCmdLine(aris::core::Msg(cmdparam.cmd_vec[cmdparam.current_cmd_id]), [&](aris::plan::Plan &plan)->void
 								{
 									std::unique_lock<std::mutex> run_lock(mymutex);
 									auto iter = cmdparam.cmd_vec.find(cmdparam.current_cmd_id);
@@ -5191,7 +5192,7 @@ namespace kaanh
 							}
 							for (auto iter = cmdparam.cmd_vec.find(cmdparam.current_cmd_id); iter != cmdparam.cmd_vec.end(); ++iter)
 							{
-								cs.executeCmd(aris::core::Msg(iter->second), [iter](aris::plan::Plan &plan)->void
+                                cs.executeCmdInCmdLine(aris::core::Msg(iter->second), [iter](aris::plan::Plan &plan)->void
 								{
 									std::unique_lock<std::mutex> run_lock(mymutex);
 									auto temp_iter = iter;
@@ -5208,6 +5209,7 @@ namespace kaanh
 										set_is_auto_executing(is_not_start);
 									}
 									g_is_auto.store(false);
+
 								});
 							}
 						}
@@ -5493,7 +5495,7 @@ namespace kaanh
 	// 停止指令 //
 	auto MoveSt::prepairNrt()->void
 	{
-		g_move_stop = true;
+        g_move_stop.store(true);
 		std::vector<std::pair<std::string, std::any>> ret_value;
 		ret() = ret_value;
 		option() = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;

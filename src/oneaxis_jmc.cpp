@@ -11,7 +11,7 @@ auto createController()->std::unique_ptr<aris::control::Controller>
 {
 	std::unique_ptr<aris::control::Controller> controller(new aris::control::EthercatController);
 	std::string xml_str =
-        "<EthercatMotion phy_id=\"0\" product_code=\"0x20181302\""
+        "<EthercatMotor phy_id=\"0\" product_code=\"0x20181302\""
         " vendor_id=\"0x66668888\" revision_num=\"0x20181011\" dc_assign_activate=\"0x0300\""
         " min_pos=\"-536870\" max_pos=\"536870\" max_vel=\"6.28\" min_vel=\"-6.28\""
         " max_acc=\"31.4\" min_acc=\"-31.4\" max_pos_following_error=\"0.1\" max_vel_following_error=\"0.01\""
@@ -44,7 +44,7 @@ auto createController()->std::unique_ptr<aris::control::Controller>
         "           </Pdo>"
         "       </SyncManager>"
 		"	</SyncManagerPoolObject>"
-        "</EthercatMotion>";
+        "</EthercatMotor>";
 	controller->slavePool().add<aris::control::EthercatMotor>().loadXmlStr(xml_str);
 	return controller;
 };
