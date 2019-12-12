@@ -4734,6 +4734,10 @@ namespace kaanh
 				param.path = p.second;
 			}
 		}
+		if (param.path != " ")
+		{
+			param.path = std::filesystem::absolute(".").string();
+		}
 		const std::string xmlfile = "kaanh.xml";
 		param.path = param.path + '/' + xmlfile;
 
@@ -5295,10 +5299,12 @@ namespace kaanh
 				posEnd += spCharacter.size();
 				continue;
 			}
+
 			if (posEnd == std::string::npos)
 			{
 				break;
 			}
+
 			std::string str = objString.substr(posBegin, posEnd - posBegin);
 			auto sep_pos = str.find(":");
 			auto id = str.substr(0, sep_pos);
@@ -5357,7 +5363,6 @@ namespace kaanh
 					cmdparam.current_cmd_id = 0;
 					cmdparam.current_plan_id = -1;
 				}
-
 				auto begin_pos = msg_data.find("{");
 				auto end_pos = msg_data.rfind("}");
 				auto cmd_str = msg_data.substr(begin_pos + 1, end_pos - 1 - begin_pos);
@@ -5394,8 +5399,7 @@ namespace kaanh
 							js->push_back(std::make_pair<std::string, std::any>("return_message", std::string(plan.retMsg())));
 							ret_msg.copy(aris::server::parse_ret_value(*js));
 						}
-
-						// return back to source
+						// return back to source//
 						try
 						{
 							socket->sendMsg(ret_msg);
@@ -5431,7 +5435,6 @@ namespace kaanh
 				}
 			}
 		}
-
 		return 0;
 	}
 	auto onReceivedConnection(aris::core::Socket *sock, const char *ip, int port)->int
@@ -5479,7 +5482,6 @@ namespace kaanh
 	ProInterface::ProInterface(const std::string &name, const std::string &port, aris::core::Socket::TYPE type) :Interface(name)
 	{
 		sock_ = &add<aris::core::Socket>("socket", "", port, type);
-
 		sock_->setOnReceivedMsg(onReceivedMsg);
 		sock_->setOnReceivedConnection(onReceivedConnection);
 		sock_->setOnLoseConnection(onLoseConnection);
