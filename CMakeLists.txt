@@ -36,4 +36,3 @@ endif(UNIX)
 IF(WIN32)
 	target_link_libraries(kaanh_jmc ${aris_LIBRARIES})
 endif(WIN32)
-
