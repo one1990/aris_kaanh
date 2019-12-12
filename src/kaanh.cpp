@@ -24,7 +24,14 @@ extern std::atomic_bool g_is_manual;
 extern std::atomic_bool g_is_auto;
 //state machine flag//
 
-kaanh::CmdListParam cmdparam;
+struct CmdListParam
+{
+	std::map<int, std::string> cmd_vec;
+	int current_cmd_id = 0;
+	int current_plan_id = -1;
+}cmdparam;
+
+
 std::vector<std::map<std::string, int>> if_vec;
 std::vector<std::map<std::string, int>> while_vec;
 
@@ -5031,6 +5038,7 @@ namespace kaanh
 	{
 		std::vector<std::pair<std::string, std::any>> run_ret;
 		auto param = std::make_shared<RunParam>();
+		static CmdListParam cmdparam;
 
 		for (auto &p : cmdParams())
 		{
@@ -5064,7 +5072,8 @@ namespace kaanh
 									cmdparam.current_plan_id = iter->first;
 								}
 							}
-                            cs.executeCmdInCmdLine(aris::core::Msg(cmdparam.cmd_vec[cmdparam.current_cmd_id]), [&](aris::plan::Plan &plan)->void
+
+							cs.executeCmdInCmdLine(aris::core::Msg(cmdparam.cmd_vec[cmdparam.current_cmd_id]), [&](aris::plan::Plan &plan)->void
 							{
 								std::unique_lock<std::mutex> run_lock(mymutex);
 								auto iter = cmdparam.cmd_vec.find(cmdparam.current_cmd_id);
@@ -5130,7 +5139,8 @@ namespace kaanh
 						{
 							try
 							{
-                                aris::server::ControlServer::instance().executeCmdInCmdLine(aris::core::Msg(cmdparam.cmd_vec[cmdparam.current_cmd_id]), [&](aris::plan::Plan &plan)->void
+
+								aris::server::ControlServer::instance().executeCmdInCmdLine(aris::core::Msg(cmdparam.cmd_vec[cmdparam.current_cmd_id]), [&](aris::plan::Plan &plan)->void
 								{
 									std::unique_lock<std::mutex> run_lock(mymutex);
 									auto iter = cmdparam.cmd_vec.find(cmdparam.current_cmd_id);
@@ -5353,22 +5363,6 @@ namespace kaanh
 				auto cmd_str = msg_data.substr(begin_pos + 1, end_pos - 1 - begin_pos);
 				const std::string split = "\\r\\n";
 				splitString(split, cmd_str, cmdparam.cmd_vec);
-
-				/*
-				char *cmd_input = (char *)cmd_str.c_str();
-				const char *split = "\\r\\n";
-				char *cmd = strtok(cmd_input, split);
-				int i = 0;
-				while (cmd != NULL)
-				{
-					std::string str = cmd;
-					auto sep_pos = str.find(":");
-					auto id = str.substr(0, sep_pos);
-					auto command = str.substr(sep_pos + 1);
-					cmdparam.cmd_vec.push_back(std::make_pair<std::string, std::string>(id.c_str(), command.c_str()));
-					cmd = strtok(NULL, split);
-				}
-				*/
 
 				auto iter = cmdparam.cmd_vec.begin();
 				if (iter != cmdparam.cmd_vec.end())
