@@ -264,8 +264,6 @@ auto JointDyna::executeRT(PlanTarget &target)->int
 
 	return (SampleNum+150) - CollectNum;
 }
-
-
 auto JointDyna::collectNrt(aris::plan::PlanTarget &target)->void
 {
 	std::vector<double> link_params, torque_error;
@@ -333,8 +331,6 @@ auto JointDyna::collectNrt(aris::plan::PlanTarget &target)->void
 
 
 }
-
-
 JointDyna::JointDyna(const std::string &name) :Plan(name)
 {
 
@@ -358,6 +354,7 @@ JointDyna::JointDyna(const std::string &name) :Plan(name)
 		"</Command>");
 
 }
+
 
 struct JointDynaSaveParam
 {
@@ -697,8 +694,6 @@ JointDynaSave::JointDynaSave(const std::string &name) :Plan(name)
 		"</Command>");
 
 }
-
-
 
 
 struct JointTestParam

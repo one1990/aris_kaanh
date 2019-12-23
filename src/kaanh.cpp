@@ -24,16 +24,14 @@ extern std::atomic_bool g_is_manual;
 extern std::atomic_bool g_is_auto;
 //state machine flag//
 
+extern aris::core::Calculator g_cal;
+
 struct CmdListParam
 {
 	std::map<int, std::string> cmd_vec;
 	int current_cmd_id = 0;
 	int current_plan_id = -1;
 }cmdparam;
-
-
-std::vector<std::map<std::string, int>> if_vec;
-std::vector<std::map<std::string, int>> while_vec;
 
 
 namespace kaanh
@@ -4912,26 +4910,6 @@ namespace kaanh
 	}
 
 
-	auto IF::prepairNrt()->void
-	{
-		
-
-
-		option() |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION;
-		std::vector<std::pair<std::string, std::any>> ret_value;
-		ret() = ret_value;
-	}
-	IF::IF(const std::string &name) : Plan(name)
-	{
-		command().loadXmlStr(
-			"<Command name=\"IF\">"
-			"	<GroupParam>"
-			"		<Param name=\"value\" default=\"0\"/>"
-			"	</GroupParam>"
-			"</Command>");
-	}
-
-
 	//var//
 	struct VarParam
 	{
@@ -4956,49 +4934,54 @@ namespace kaanh
 			{
 				param.type = p.second;
 			}
+			else if (p.first == "clear")
+			{
+				g_cal.clearVariables();
+			}
 		}
-		aris::core::Calculator c;
-		if ((param.type == "int") || (param.type == "double") || (param.type == "bool") || (param.type == "array"))//di1,di2,do1,do2,ai1,ai2,int counter
+		if ((param.type == "int") || (param.type == "double") || (param.type == "bool"))//di1,di2,do1,do2,ai1,ai2,int counter
 		{
-			c.addVariable(param.name, model()->calculator().calculateExpression(param.value));
+			g_cal.addVariable(param.name, model()->calculator().calculateExpression(param.value));
+			std::cout << "lnc:" << this->cmdString() << std::endl;
 		}
 		else if (param.type == "string")//string="kaanh"
 		{
-			c.addVariable(param.name, param.value);
+			g_cal.addVariable(param.name, param.value);
 		}
 		else if (param.type == "load")//load1={mass,cogx,cogy,cogz,q1,q2,q3,q4,ix,iy,iz}
 		{
-			c.addVariable(param.name, model()->calculator().calculateExpression(param.value));
+			g_cal.addVariable(param.name, model()->calculator().calculateExpression(param.value));
 		}
 		else if (param.type == "pose")//pose1={x,y,z,q1,q2,q3,q4}
 		{
-			c.addVariable(param.name, model()->calculator().calculateExpression(param.value));
+			g_cal.addVariable(param.name, model()->calculator().calculateExpression(param.value));
 		}
 		else if (param.type == "jointtarget")//jointtarget={j1,j2,j3,j4,j5,j6,ej1}
 		{
-			c.addVariable(param.name, model()->calculator().calculateExpression(param.value));
+			g_cal.addVariable(param.name, model()->calculator().calculateExpression(param.value));
 		}
 		else if (param.type == "robtarget")//robtarget={x,y,z,q1,q2,q3,q4}
 		{
-			c.addVariable(param.name, model()->calculator().calculateExpression(param.value));
+			g_cal.addVariable(param.name, model()->calculator().calculateExpression(param.value));
 		}
 		else if (param.type == "zone")//zone={dis,per}
 		{
-			c.addVariable(param.name, model()->calculator().calculateExpression(param.value));
+			g_cal.addVariable(param.name, model()->calculator().calculateExpression(param.value));
 		}
 		else if (param.type == "speed")	//speed={per,tcp,ori,exj_r,exj_l}
 		{
-			c.addVariable(param.name, model()->calculator().calculateExpression(param.value));
+			g_cal.addVariable(param.name, model()->calculator().calculateExpression(param.value));
 		}
 		else if (param.type == "tool")//tool={x,y,z,a,b,c}
 		{
-			c.addVariable(param.name, model()->calculator().calculateExpression(param.value));
+			g_cal.addVariable(param.name, model()->calculator().calculateExpression(param.value));
 		}
 		else if (param.type == "wobj")//wobj={x,y,z,a,b,c}
 		{
-			c.addVariable(param.name, model()->calculator().calculateExpression(param.value));
+			g_cal.addVariable(param.name, model()->calculator().calculateExpression(param.value));
 		}
-		auto ret_mat = c.calculateExpression("v90");
+		
+		auto ret_mat = g_cal.calculateExpression("tool.pq");
 		std::cout << ret_mat.toString() << std::endl;
 		std::vector<std::pair<std::string, std::any>> ret_value;
 		ret() = ret_value;
@@ -5009,9 +4992,42 @@ namespace kaanh
 		command().loadXmlStr(
 			"<Command name=\"var\">"
 			"	<GroupParam>"
-			"		<Param name=\"name\" default=\"0\"/>"
+			"		<UniqueParam>"
+			"			<GroupParam>"
+			"				<Param name=\"name\" default=\"0\"/>"
+			"				<Param name=\"value\" default=\"0\"/>"
+			"				<Param name=\"type\" default=\"0\"/>"
+			"			</GroupParam>"
+			"			<Param name=\"clear\"/>"
+			"		</UniqueParam>"
+			"	</GroupParam>"
+			"</Command>");
+	}
+
+
+	//Evaluate//
+	auto Evaluate::prepairNrt()->void
+	{
+		std::string value;
+		for (auto &p : cmdParams())
+		{
+			if (p.first == "value")
+			{
+				value = p.second;
+			}
+		}
+		aris::core::Calculator c;
+		auto ret_mat = c.calculateExpression(value);
+		std::cout << ret_mat.toString() << std::endl;
+		std::vector<std::pair<std::string, std::any>> ret_value;
+		ret() = ret_value;
+	}
+	Evaluate::Evaluate(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"evaluate\">"
+			"	<GroupParam>"
 			"		<Param name=\"value\" default=\"0\"/>"
-			"		<Param name=\"type\" default=\"0\"/>"
 			"	</GroupParam>"
 			"</Command>");
 	}
@@ -5366,6 +5382,10 @@ namespace kaanh
 				auto begin_pos = msg_data.find("{");
 				auto end_pos = msg_data.rfind("}");
 				auto cmd_str = msg_data.substr(begin_pos + 1, end_pos - 1 - begin_pos);
+				
+				
+				std::cout << "aaaaaaaaaaaaaaa\r\nbbbbbbbbbbbbbbbb" << std::endl;
+				std::cout << cmd_str << std::endl;
 				const std::string split = "\\r\\n";
 				splitString(split, cmd_str, cmdparam.cmd_vec);
 

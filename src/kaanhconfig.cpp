@@ -719,7 +719,8 @@ namespace kaanhconfig
 
 		plan_root->planPool().add<kaanh::Get>();
 		plan_root->planPool().add<kaanh::Var>();
-
+		plan_root->planPool().add<kaanh::Evaluate>();
+		
 		plan_root->planPool().add<kaanh::MoveC>();
 		plan_root->planPool().add<kaanh::JogC>();
 		plan_root->planPool().add<kaanh::JogJ>();

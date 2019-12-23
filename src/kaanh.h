@@ -594,20 +594,20 @@ namespace kaanh
 		ARIS_REGISTER_TYPE(SetVel);
 	};
 
-	class IF : public aris::plan::Plan
-	{
-	public:
-		auto virtual prepairNrt()->void;
-		explicit IF(const std::string &name = "IF_plan");
-		ARIS_REGISTER_TYPE(IF);
-	};
-
 	class Var : public aris::plan::Plan
 	{
 	public:
 		auto virtual prepairNrt()->void;
 		explicit Var(const std::string &name = "Var_plan");
 		ARIS_REGISTER_TYPE(Var);
+	};
+
+	class Evaluate : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt()->void;
+		explicit Evaluate(const std::string &name = "Evaluate_plan");
+		ARIS_REGISTER_TYPE(Evaluate);
 	};
 
 	class Run : public aris::plan::Plan

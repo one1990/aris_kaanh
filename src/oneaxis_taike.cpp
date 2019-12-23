@@ -374,6 +374,11 @@ auto Status::prepairNrt()->void
     uint8_t modeofoperation = 0;
     ecController()->motionPool().at(0).readSdo(0x6061, 0x00, &modeofoperation, 1);
     std::cout << "modeofoperation:" << uint16_t(modeofoperation) << std::endl;
+
+    int16_t input;
+    ecController()->motionPool().at(0).readSdo(0x2200, 0x00, &input, 2);
+    controller()->mout() << "force sensor:" <<"\t"<< input << std::endl;
+
     for (auto &option : motorOptions())	option |= CHECK_NONE ;
     std::vector<std::pair<std::string, std::any>> ret_value;
     ret() = ret_value;
