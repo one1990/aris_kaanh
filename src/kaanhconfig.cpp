@@ -212,6 +212,34 @@ namespace kaanhconfig
 		};
 
 		auto model = aris::dynamic::createModelPuma(param);
+		// add velocity variables
+		model->variablePool().add<aris::dynamic::MatrixVariable>("v400", aris::core::Matrix({ 0.4, 0.4, 200 * aris::PI / 180, 0.0, 0.0 }));
+		model->variablePool().add<aris::dynamic::MatrixVariable>("v500", aris::core::Matrix({ 0.5, 0.5, 200 * aris::PI / 180, 0.0, 0.0 }));
+		model->variablePool().add<aris::dynamic::MatrixVariable>("v600", aris::core::Matrix({ 0.6, 0.6, 200 * aris::PI / 180, 0.0, 0.0 }));
+		model->variablePool().add<aris::dynamic::MatrixVariable>("v800", aris::core::Matrix({ 0.8, 0.8, 200 * aris::PI / 180, 0.0, 0.0 }));
+		model->variablePool().add<aris::dynamic::MatrixVariable>("v1000", aris::core::Matrix({ 1.0, 1.0, 200 * aris::PI / 180, 0.0, 0.0 }));
+		model->variablePool().add<aris::dynamic::MatrixVariable>("v1500", aris::core::Matrix({ 1.0, 1.5, 200 * aris::PI / 180, 0.0, 0.0 }));
+		model->variablePool().add<aris::dynamic::MatrixVariable>("v2000", aris::core::Matrix({ 1.0, 2.0, 200 * aris::PI / 180, 0.0, 0.0 }));
+		model->variablePool().add<aris::dynamic::MatrixVariable>("v3000", aris::core::Matrix({ 1.0, 3.0, 200 * aris::PI / 180, 0.0, 0.0 }));
+		model->variablePool().add<aris::dynamic::MatrixVariable>("v4000", aris::core::Matrix({ 1.0, 4.0, 200 * aris::PI / 180, 0.0, 0.0 }));
+		model->variablePool().add<aris::dynamic::MatrixVariable>("v5000", aris::core::Matrix({ 1.0, 5.0, 200 * aris::PI / 180, 0.0, 0.0 }));
+		model->variablePool().add<aris::dynamic::MatrixVariable>("v6000", aris::core::Matrix({ 1.0, 6.0, 200 * aris::PI / 180, 0.0, 0.0 }));
+
+		// add zone variables
+		model->variablePool().add<aris::dynamic::MatrixVariable>("fine", aris::core::Matrix({ 0.0, 0.0 }));
+		model->variablePool().add<aris::dynamic::MatrixVariable>("z1", aris::core::Matrix({ 0.001, 0.01 }));
+		model->variablePool().add<aris::dynamic::MatrixVariable>("z5", aris::core::Matrix({ 0.005, 0.03 }));
+		model->variablePool().add<aris::dynamic::MatrixVariable>("z10", aris::core::Matrix({ 0.01, 0.05 }));
+		model->variablePool().add<aris::dynamic::MatrixVariable>("z15", aris::core::Matrix({ 0.015, 0.08 }));
+		model->variablePool().add<aris::dynamic::MatrixVariable>("z20", aris::core::Matrix({ 0.02, 0.1 }));
+		model->variablePool().add<aris::dynamic::MatrixVariable>("z30", aris::core::Matrix({ 0.03, 0.15 }));
+		model->variablePool().add<aris::dynamic::MatrixVariable>("z40", aris::core::Matrix({ 0.04, 0.2 }));
+		model->variablePool().add<aris::dynamic::MatrixVariable>("z50", aris::core::Matrix({ 0.05, 0.25 }));
+		model->variablePool().add<aris::dynamic::MatrixVariable>("z60", aris::core::Matrix({ 0.06, 0.3 }));
+		model->variablePool().add<aris::dynamic::MatrixVariable>("z80", aris::core::Matrix({ 0.08, 0.4 }));
+		model->variablePool().add<aris::dynamic::MatrixVariable>("z100", aris::core::Matrix({ 0.1, 0.5 }));
+		model->variablePool().add<aris::dynamic::MatrixVariable>("z150", aris::core::Matrix({ 0.15, 0.75 }));
+		model->variablePool().add<aris::dynamic::MatrixVariable>("z200", aris::core::Matrix({ 0.2, 1.0 }));
 		/*
 		//根据tool0，添加一个tool1，tool1相对于tool0在x方向加上0.1m//
 		auto &tool0 = model->partPool().back().markerPool().findByName("general_motion_0_i");//获取tool0

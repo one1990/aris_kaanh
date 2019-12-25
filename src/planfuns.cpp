@@ -562,15 +562,15 @@ namespace traplan
 		v_crt = sigma * v_crt;
 		a_crt = sigma * a_crt;
 		j_crt = sigma * j_crt;
-
-		/*
-		std::cout << t << ",";
-		std::cout << q_crt << ",";
-		std::cout << v_crt * 1000 << ",";
-		std::cout << a_crt * 1000 * 1000 << ",";
-		std::cout << j_crt * 1000 * 1000 * 1000;
-		std::cout << std::endl;
-		*/
+		//目标位置太小情况处理//
+		if (abs(q_end - q_start)<=1e-9)
+		{
+			T = 0;
+			q_crt = q_end;
+			v_crt = 0;
+			a_crt = 0;
+			j_crt = 0;
+		}
 	}
 
 

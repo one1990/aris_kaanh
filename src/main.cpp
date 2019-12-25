@@ -54,7 +54,7 @@ int main(int argc, char *argv[])
 	cs.interfaceRoot().loadXmlFile(uixmlpath.string().c_str());
 	//cs.model().saveXmlFile(modelxmlpath.string().c_str());	//for new model
 	//cs.model().loadXmlFile(modelxmlpath.string().c_str());
-	cs.saveXmlFile(xmlpath.string().c_str());
+	//cs.saveXmlFile(xmlpath.string().c_str());
     //-------for rokae robot end// 
     
 
@@ -124,6 +124,15 @@ int main(int argc, char *argv[])
 	std::copy(getspeed.data().begin(), getspeed.data().end(), &speed.w_percent);
 	speed.w_tcp = speed.w_tcp * speed.w_percent;
 	g_vel.setspeed(speed);
+
+	
+#ifdef WIN32
+	for (auto &m : cs.controller().slavePool())
+	{
+		dynamic_cast<aris::control::EthercatMotor&>(m).setVirtual(true);
+	}
+#endif // WIN32
+
 
 	//Start Web Socket//
     cs.open();

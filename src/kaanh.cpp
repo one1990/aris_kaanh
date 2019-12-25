@@ -7,6 +7,7 @@
 #include"planfuns.h"
 #include"sixdistalfc.h"
 #include <bitset>
+#include "json.hpp"
 
 
 using namespace aris::dynamic;
@@ -33,6 +34,7 @@ struct CmdListParam
 	int current_plan_id = -1;
 }cmdparam;
 
+kaanh::ZonePlan g_zp;
 
 namespace kaanh
 {
@@ -60,10 +62,7 @@ namespace kaanh
 		}
 
 		//获取ret_code的值，判断是否报错，if条件可以初始化变量，并且取变量进行条件判断//
-		if (auto target = cs.currentExecutePlanRt(); target)
-		{
-			g_is_error.store(target->retCode());
-		}
+		g_is_error.store(cs.errorCode());
 
 		g_is_enabled.store(std::all_of(motion_state, motion_state + cs.controller().motionPool().size(), [](bool i) {return i; }));
 	}
@@ -814,6 +813,11 @@ namespace kaanh
 
         std::vector<std::pair<std::string, std::any>> ret_value;
         ret() = ret_value;
+
+		std::cout << "error code:" << aris::server::ControlServer::instance().errorCode() << std::endl;
+		std::cout << "error msg :" << aris::server::ControlServer::instance().errorMsg() << std::endl;
+
+		aris::server::ControlServer::instance().clearError();
     }
     auto Recover::executeRT()->int
     {
@@ -880,7 +884,6 @@ namespace kaanh
 	struct MoveAbsJParam :public SetActiveMotor, SetInputMovement {};
 	auto MoveAbsJ::prepairNrt()->void
 	{
-		std::cout << "mvaj:" << std::endl;
 		MoveAbsJParam param;
 
 		set_check_option(cmdParams(), *this);
@@ -944,7 +947,7 @@ namespace kaanh
 		return total_count - count();
 	}
 	MoveAbsJ::~MoveAbsJ() = default;
-	MoveAbsJ::MoveAbsJ(const std::string &name) : Plan(name)
+	MoveAbsJ::MoveAbsJ(const std::string &name) : MoveBase(name)
 	{
 		command().loadXmlStr(
 			"<Command name=\"mvaj\">"
@@ -1027,9 +1030,10 @@ namespace kaanh
 	}
 	struct MoveJParam
 	{
-		std::vector<double> joint_vel, joint_acc, joint_dec, joint_jerk, ee_pq, joint_pos_begin, joint_pos_end;
+		std::vector<double> joint_vel, joint_acc, joint_dec, joint_jerk, ee_pq, joint_pos_begin, joint_pos_end, zone;
 		std::vector<Size> total_count;
 		aris::dynamic::Marker *tool, *wobj;
+		ZonePlan zp;
 	};
 	struct MoveJ::Imp {};
 	auto MoveJ::prepairNrt()->void
@@ -1037,6 +1041,7 @@ namespace kaanh
 		set_check_option(cmdParams(), *this);
 
 		MoveJParam mvj_param;
+		mvj_param.zp = g_zp;
 
 		// find ee pq //
 		mvj_param.ee_pq.resize(7);
@@ -1052,7 +1057,7 @@ namespace kaanh
 		mvj_param.tool = &*model()->generalMotionPool()[0].makI().fatherPart().markerPool().findByName(cmdParams().at("tool"));
 		mvj_param.wobj = &*model()->generalMotionPool()[0].makJ().fatherPart().markerPool().findByName(cmdParams().at("wobj"));
 
-		// find joint acc/vel/dec/
+		// find joint acc/vel/dec/jerk/zone
 		for (auto cmd_param : cmdParams())
 		{
 			auto c = controller();
@@ -1124,7 +1129,110 @@ namespace kaanh
 					if (mvj_param.joint_jerk[i] <= 0 || mvj_param.joint_jerk[i] > 1000*c->motionPool()[i].maxAcc())
 						THROW_FILE_LINE("");
 			}
+			else if (cmd_param.first == "zone")
+			{
+				mvj_param.zone.clear();
+				mvj_param.zone.resize(2, 0.0);
+				if (cmd_param.second == "fine")//不设置转弯区
+				{
+					mvj_param.zp.zone_enabled = 0;
+				}
+				else//设置转弯区
+				{
+					auto z = model()->calculator().calculateExpression(cmd_param.second);
+					std::copy(z.begin(), z.end(), mvj_param.zone.begin());
+					mvj_param.zp.zone_enabled = 1;
+				}
+			}
 		}
+
+		// zone //
+		double p, v, a, j;
+		Size max_total_count;
+		double end_pm[16];
+		if (mvj_param.zp.pre_plan == nullptr)//转弯第一条指令
+		{
+			for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
+			{
+				mvj_param.joint_pos_begin[i] = controller()->motionPool()[i].targetPos();
+			}		
+			//更新本plan的targetzone//
+			this->settargetzone(max_total_count*mvj_param.zone[1]);
+		}
+		else if (mvj_param.zp.pre_plan->cmdName() == this->cmdName())//转弯第二或第n条指令
+		{
+			//获取起始点位置//
+			aris::dynamic::s_pq2pm(mvj_param.zp.cur_pq, end_pm);
+			mvj_param.tool->setPm(*mvj_param.wobj, end_pm);
+			model()->generalMotionPool().at(0).updMpm();
+			if (model()->solverPool().at(0).kinPos())THROW_FILE_LINE("");
+			for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
+			{
+				mvj_param.joint_pos_begin[i] = model()->motionPool()[i].mp();
+			}
+			//更新本plan的targetzone//
+			this->settargetzone(max_total_count*mvj_param.zone[1]);
+
+			//更新上一条转弯指令的realzone//
+			Size max_zone = max_total_count / 2;//当前指令所需count数/2
+			mvj_param.zp.pre_plan->setrealzone(max_zone);
+		}
+		else//上一个转弯指令结束
+		{
+			//获取起始点位置//
+			aris::dynamic::s_pq2pm(mvj_param.zp.cur_pq, end_pm);
+			mvj_param.tool->setPm(*mvj_param.wobj, end_pm);
+			model()->generalMotionPool().at(0).updMpm();
+			if (model()->solverPool().at(0).kinPos())THROW_FILE_LINE("");
+			for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
+			{
+				mvj_param.joint_pos_begin[i] = model()->motionPool()[i].mp();
+			}
+			mvj_param.zp.pre_plan->setrealzone(0);
+		}
+
+		//获取终止点位置//
+		aris::dynamic::s_pq2pm(mvj_param.ee_pq.data(), end_pm);
+		mvj_param.tool->setPm(*mvj_param.wobj, end_pm);
+		model()->generalMotionPool().at(0).updMpm();
+		if (model()->solverPool().at(0).kinPos())THROW_FILE_LINE("");
+		// init joint_pos //
+		for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
+		{
+			mvj_param.joint_pos_end[i] = model()->motionPool()[i].mp();
+
+			//S形轨迹规划//
+			traplan::sCurve(count(), mvj_param.joint_pos_begin[i], mvj_param.joint_pos_end[i],
+				mvj_param.joint_vel[i] / 1000, mvj_param.joint_acc[i] / 1000 / 1000, mvj_param.joint_jerk[i] / 1000 / 1000 / 1000,
+				p, v, a, j, mvj_param.total_count[i]);
+		}
+		max_total_count = *std::max_element(mvj_param.total_count.begin(), mvj_param.total_count.end());
+		
+		//更新转弯区//
+		if (mvj_param.zp.pre_plan == nullptr)//转弯第一条指令
+		{
+			//更新本plan的targetzone//
+			this->settargetzone(max_total_count*mvj_param.zone[1]);
+		}
+		else if (mvj_param.zp.pre_plan->cmdName() == this->cmdName())//转弯第二或第n条指令
+		{
+			//更新本plan的targetzone//
+			this->settargetzone(max_total_count*mvj_param.zone[1]);
+			//更新上一条转弯指令的realzone//
+			Size max_zone = max_total_count / 2;//当前指令所需count数/2
+			mvj_param.zp.pre_plan->setrealzone(max_zone);
+		}
+		else//上一个转弯指令结束
+		{
+			//更新本plan的targetzone//
+			this->settargetzone(max_total_count*mvj_param.zone[1]);
+			//上一条指令不进行转弯//
+			mvj_param.zp.pre_plan->setrealzone(0);
+		}
+		
+		//更新全局变量g_zp//
+		g_zp.upd_plan(this);
+		g_zp.upd_pq(mvj_param.ee_pq);
 
 		this->param() = mvj_param;
 
@@ -1194,7 +1302,7 @@ namespace kaanh
 		return max_total_count == 0 ? 0 : max_total_count - count();
 	}
 	MoveJ::~MoveJ() = default;
-	MoveJ::MoveJ(const std::string &name) :Plan(name)
+	MoveJ::MoveJ(const std::string &name) :MoveBase(name)
 	{
 		command().loadXmlStr(
 			"<Command name=\"mvj\">"
@@ -1213,6 +1321,7 @@ namespace kaanh
 			"		<Param name=\"joint_vel\" default=\"0.1\"/>"
 			"		<Param name=\"joint_dec\" default=\"0.1\"/>"
 			"		<Param name=\"joint_jerk\" default=\"10.0\"/>"
+			"		<Param name=\"zone\" default=\"{0.01,0.05}\"/>"
 			"		<Param name=\"tool\" default=\"tool0\"/>"
 			"		<Param name=\"wobj\" default=\"wobj0\"/>"
 			CHECK_PARAM_STRING
@@ -1221,6 +1330,7 @@ namespace kaanh
 	}
 	ARIS_DEFINE_BIG_FOUR_CPP(MoveJ);
 
+	//走直线//
 	struct MoveLParam
 	{
 		std::vector<double> joint_vel, joint_acc, joint_dec, joint_jerk, ee_pq, joint_pos_begin, joint_pos_end;
@@ -1366,7 +1476,7 @@ namespace kaanh
 		return std::max(pos_total_count, ori_total_count) > count() ? 1 : 0;
 	}
 	MoveL::~MoveL() = default;
-	MoveL::MoveL(const std::string &name) :Plan(name)
+	MoveL::MoveL(const std::string &name) :MoveBase(name)
 	{
 		command().loadXmlStr(
 			"<Command name=\"mvl\">"
@@ -1770,7 +1880,7 @@ namespace kaanh
 		return std::max(pos_total_count, ori_total_count) > count() ? 1 : 0;
 	}
 	MoveC::~MoveC() = default;
-	MoveC::MoveC(const std::string &name) :Plan(name)
+	MoveC::MoveC(const std::string &name) :MoveBase(name)
 	{
 		command().loadXmlStr(
 			"<Command name=\"mvc\">"
@@ -2592,7 +2702,7 @@ namespace kaanh
 	}
 	auto JogJ1::collectNrt()->void 
 	{
-		JogJParam::j1_count = 0;
+		JogJParam::j1_count=0;
 		if (retCode() < 0)
 		{
 			JogJParam::j1_count.store(0);
@@ -4981,8 +5091,6 @@ namespace kaanh
 			g_cal.addVariable(param.name, model()->calculator().calculateExpression(param.value));
 		}
 		
-		auto ret_mat = g_cal.calculateExpression("tool.pq");
-		std::cout << ret_mat.toString() << std::endl;
 		std::vector<std::pair<std::string, std::any>> ret_value;
 		ret() = ret_value;
 		option() = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
@@ -5016,10 +5124,11 @@ namespace kaanh
 				value = p.second;
 			}
 		}
-		aris::core::Calculator c;
-		auto ret_mat = c.calculateExpression(value);
+
+		auto ret_mat = g_cal.calculateExpression(value);
 		std::cout << ret_mat.toString() << std::endl;
 		std::vector<std::pair<std::string, std::any>> ret_value;
+		ret_value.push_back(std::pair<std::string, std::any>("evaluate", ret_mat));
 		ret() = ret_value;
 	}
 	Evaluate::Evaluate(const std::string &name) :Plan(name)
@@ -5093,7 +5202,7 @@ namespace kaanh
 								}
 							}
 
-							cs.executeCmdInCmdLine(aris::core::Msg(cmdparam.cmd_vec[cmdparam.current_cmd_id]), [&](aris::plan::Plan &plan)->void
+							cs.executeCmdInCmdLine(cmdparam.cmd_vec[cmdparam.current_cmd_id], [&](aris::plan::Plan &plan)->void
 							{
 								std::unique_lock<std::mutex> run_lock(mymutex);
 								auto iter = cmdparam.cmd_vec.find(cmdparam.current_cmd_id);
@@ -5160,7 +5269,7 @@ namespace kaanh
 							try
 							{
 
-								aris::server::ControlServer::instance().executeCmdInCmdLine(aris::core::Msg(cmdparam.cmd_vec[cmdparam.current_cmd_id]), [&](aris::plan::Plan &plan)->void
+								aris::server::ControlServer::instance().executeCmdInCmdLine(aris::core::Msg(cmdparam.cmd_vec[cmdparam.current_cmd_id]).data(), [&](aris::plan::Plan &plan)->void
 								{
 									std::unique_lock<std::mutex> run_lock(mymutex);
 									auto iter = cmdparam.cmd_vec.find(cmdparam.current_cmd_id);
@@ -5222,7 +5331,7 @@ namespace kaanh
 							}
 							for (auto iter = cmdparam.cmd_vec.find(cmdparam.current_cmd_id); iter != cmdparam.cmd_vec.end(); ++iter)
 							{
-                                cs.executeCmdInCmdLine(aris::core::Msg(iter->second), [iter](aris::plan::Plan &plan)->void
+                                cs.executeCmdInCmdLine(aris::core::Msg(iter->second).data(), [iter](aris::plan::Plan &plan)->void
 								{
 									std::unique_lock<std::mutex> run_lock(mymutex);
 									auto temp_iter = iter;
@@ -5404,7 +5513,7 @@ namespace kaanh
 			{
 				try
 				{
-                    aris::server::ControlServer::instance().executeCmdInCmdLine(aris::core::Msg(msg), [socket, msg](aris::plan::Plan &plan)->void
+                    aris::server::ControlServer::instance().executeCmdInCmdLine(aris::core::Msg(msg).data(), [socket, msg](aris::plan::Plan &plan)->void
 					{
 						// make return msg
 						aris::core::Msg ret_msg(msg);
@@ -5507,6 +5616,434 @@ namespace kaanh
 		sock_->setOnLoseConnection(onLoseConnection);
 	}
 
+	
+	struct ProgramWebInterface::Imp
+	{
+		aris::core::CommandParser command_parser_;
+		aris::plan::LanguageParser language_parser_;
+		std::thread auto_thread_;
+		std::atomic<int> current_line_;
+		bool is_auto_mode_{ false };
+
+		std::atomic_bool is_stop_{ false }, is_pause_{ false };
+
+		std::function<int(aris::core::Socket*, aris::core::Msg &)> onReceiveMsg_;
+		std::function<int(aris::core::Socket*, const char *data, int size)> onReceiveConnection_;
+		std::function<int(aris::core::Socket*)> onLoseConnection_;
+	};
+	auto ProgramWebInterface::open()->void { sock_->startServer(); }
+	auto ProgramWebInterface::close()->void { sock_->stop(); }
+	auto ProgramWebInterface::loadXml(const aris::core::XmlElement &xml_ele)->void
+	{
+		Interface::loadXml(xml_ele);
+		this->sock_ = findOrInsertType<aris::core::Socket>("socket", "", "5866", aris::core::Socket::WEB);
+
+		sock_->setOnReceivedMsg(imp_->onReceiveMsg_);
+		sock_->setOnReceivedConnection(imp_->onReceiveConnection_);
+		sock_->setOnLoseConnection(imp_->onLoseConnection_);
+	}
+	auto ProgramWebInterface::isAutoRunning()->bool { return imp_->auto_thread_.joinable(); }
+	auto ProgramWebInterface::isAutoMode()->bool { return imp_->is_auto_mode_; }
+	auto ProgramWebInterface::currentLine()->int { return imp_->current_line_.load(); }
+	ProgramWebInterface::ProgramWebInterface(const std::string &name, const std::string &port, aris::core::Socket::TYPE type) :Interface(name), imp_(new Imp)
+	{
+		aris::core::Command program;
+		program.loadXmlStr(
+			"<Command name=\"program\">"
+			"	<Param name=\"set_auto\"/>"
+			"	<Param name=\"set_manual\"/>"
+			"	<Param name=\"content\"/>"
+			"	<Param name=\"goto\" default=\"2\"/>"
+			"	<Param name=\"goto_main\"/>"
+			"	<Param name=\"start\"/>"
+			"	<Param name=\"pause\"/>"
+			"	<Param name=\"stop\"/>"
+			"	<Param name=\"forward\"/>"
+			"</Command>");
+		imp_->command_parser_.commandPool().add<aris::core::Command>(program);
+
+		sock_ = &add<aris::core::Socket>("socket", "", port, type);
+
+		imp_->onReceiveMsg_ = [this](aris::core::Socket *socket, aris::core::Msg &msg)->int
+		{
+			auto send_ret = [socket](aris::core::Msg &ret_msg)->void
+			{
+				try
+				{
+					socket->sendMsg(ret_msg);
+				}
+				catch (std::exception &e)
+				{
+					std::cout << e.what() << std::endl;
+					LOG_ERROR << e.what() << std::endl;
+				}
+			};
+			auto send_code_and_msg = [&](int code, const std::string& ret_msg_str)
+			{
+				nlohmann::json js;
+				js["return_code"] = code;///////////////////////////////////////////////////////////
+				js["return_message"] = ret_msg_str;
+
+				aris::core::Msg ret_msg = msg;
+				ret_msg.copy(js.dump(2));
+
+				std::cout << ret_msg.toString() << std::endl;
+
+				send_ret(ret_msg);
+			};
+
+			std::string msg_data = msg.toString();
+
+			LOG_INFO << "receive cmd:"
+				<< msg.header().msg_size_ << "&"
+				<< msg.header().msg_id_ << "&"
+				<< msg.header().msg_type_ << "&"
+				<< msg.header().reserved1_ << "&"
+				<< msg.header().reserved2_ << "&"
+				<< msg.header().reserved3_ << ":"
+				<< msg_data << std::endl;
+
+			std::string cmd;
+			std::map<std::string, std::string> params;
+			try { imp_->command_parser_.parse(msg_data, cmd, params); }
+			catch (std::exception &) {};
+
+			if (cmd == "program")
+			{
+				for (auto &[param, value] : params)
+				{
+					if (param == "set_auto")
+					{
+						imp_->is_auto_mode_ = true;
+						send_code_and_msg(0, "");
+						return 0;
+					}
+					else if (param == "set_manual")
+					{
+						if (isAutoRunning())
+						{
+							send_code_and_msg(-4, "can not set manual when auto running");
+							return 0;
+						}
+						else
+						{
+							imp_->is_auto_mode_ = false;
+							send_code_and_msg(0, "");
+							return 0;
+						}
+					}
+					else if (param == "content")
+					{
+						if (isAutoRunning())
+						{
+							send_code_and_msg(-4, "can not set content when auto running");
+							return 0;
+						}
+						else
+						{
+							auto begin_pos = value.find("{");
+							auto end_pos = value.rfind("}");
+							auto cmd_str = value.substr(begin_pos + 1, end_pos - 1 - begin_pos);
+
+							try
+							{
+								imp_->language_parser_.setProgram(cmd_str);
+								imp_->language_parser_.parseLanguage();
+
+								for (auto &str : imp_->language_parser_.varPool())
+								{
+									aris::server::ControlServer::instance().executeCmd(aris::core::Msg(str).data());
+								}
+								send_code_and_msg(0, std::string());
+								return 0;
+							}
+							catch (std::exception &e)
+							{
+								std::cout << e.what() << std::endl;
+								send_code_and_msg(-4, e.what());
+								return 0;
+							}
+						}
+					}
+					else if (param == "goto")
+					{
+						if (!isAutoMode())
+						{
+							send_code_and_msg(-4, "can not goto in manual mode");
+							return 0;
+						}
+						else if (isAutoRunning())
+						{
+							send_code_and_msg(-4, "can not goto when running");
+							return 0;
+						}
+						else
+						{
+							imp_->language_parser_.gotoLine(std::stoi(value));
+							send_code_and_msg(0, "");
+							return 0;
+						}
+					}
+					else if (param == "goto_main")
+					{
+						if (!isAutoMode())
+						{
+							send_code_and_msg(-4, "can not goto in manual mode");
+							return 0;
+						}
+						else if (isAutoRunning())
+						{
+							send_code_and_msg(-4, "can not goto when running");
+							return 0;
+						}
+						else
+						{
+							imp_->language_parser_.gotoMain();
+							send_code_and_msg(0, "");
+							return 0;
+						}
+					}
+					else if (param == "forward")
+					{
+					}
+					else if (param == "start")
+					{
+						if (!isAutoMode())
+						{
+							send_code_and_msg(-4, "can not start program in manual mode");
+							return 0;
+						}
+						else if (isAutoRunning())
+						{
+							imp_->is_pause_.store(false);
+							send_code_and_msg(0, "");
+							return 0;
+						}
+						else
+						{
+							imp_->is_pause_.store(false);
+							imp_->is_stop_.store(false);
+
+							imp_->auto_thread_ = std::thread([&]()->void
+							{
+								auto&cs = aris::server::ControlServer::instance();
+								imp_->current_line_.store(imp_->language_parser_.currentLine());
+
+								for (; !imp_->language_parser_.isEnd();)
+								{
+									if (imp_->is_stop_.load() == true)
+									{
+										break;
+									}
+									else if (imp_->is_pause_.load() == true)
+									{
+										std::this_thread::sleep_for(std::chrono::milliseconds(1));
+										continue;
+									}
+
+									if (imp_->language_parser_.isCurrentLineKeyWord())
+									{
+										cs.waitForAllCollection();
+
+										std::cout << imp_->language_parser_.currentCmd() << std::endl;
+
+										auto cmd_name = imp_->language_parser_.currentCmd().substr(0, imp_->language_parser_.currentCmd().find_first_of(" \t\n\r\f\v("));
+										auto cmd_value = imp_->language_parser_.currentCmd().find_first_of(" \t\n\r\f\v(") == std::string::npos ? "" :
+											imp_->language_parser_.currentCmd().substr(imp_->language_parser_.currentCmd().find_first_of(" \t\n\r\f\v("), std::string::npos);
+
+										if (cmd_name == "if" || cmd_name == "while")
+										{
+											std::promise<aris::core::Matrix> promise_value;
+											std::future<aris::core::Matrix> future_value = promise_value.get_future();
+
+											// 这里把evaluate这个指令写好 //
+											try
+											{
+												aris::server::ControlServer::instance().executeCmd(aris::core::Msg("evaluate --value={" + cmd_value + "}").data(), [&](aris::plan::Plan& plan)->void
+												{
+													//aris::core::Matrix m(1.0);
+													//ret_value.push_back(std::pair<std::string, std::any>("evaluate", ret_mat)); 
+													
+													if (plan.retCode() == 0)
+													{
+														auto ret = std::any_cast<std::vector<std::pair<std::string, std::any>>&>(plan.ret());
+														auto m = std::any_cast<aris::core::Matrix&>(ret[0].second);
+														promise_value.set_value(m);
+													}
+													else
+													{
+														aris::core::Matrix m(1.0);
+														promise_value.set_value(m);
+													}
+												});
+											}
+											catch (std::exception &e)
+											{
+												
+											}
+											// 计算完毕 //
+
+											auto value = future_value.get();
+											imp_->language_parser_.forward(value.toDouble() != 0.0);
+										}
+										else
+										{
+											imp_->language_parser_.forward();
+										}
+									}
+									else if (imp_->language_parser_.isCurrentLineFunction())
+									{
+										cs.waitForAllCollection();
+										imp_->language_parser_.forward();
+									}
+									else
+									{
+										auto cmd = imp_->language_parser_.currentCmd();
+										imp_->language_parser_.forward();
+
+										try
+										{
+											auto current_line = imp_->language_parser_.currentLine();
+											cs.executeCmd(aris::core::Msg(cmd).data(), [&, current_line](aris::plan::Plan &plan)->void
+											{
+												imp_->current_line_.store(current_line);
+											});
+										}
+										catch (std::exception &e)
+										{
+											std::cout << e.what() << std::endl;
+										}
+									}
+								}
+
+								cs.waitForAllCollection();
+
+								std::cout << (imp_->is_stop_.load() ? "program stopped" : "program finished") << std::endl;
+
+								while (!imp_->auto_thread_.joinable());
+								imp_->auto_thread_.detach();
+							});
+							send_code_and_msg(0, "");
+							return 0;
+						}
+					}
+					else if (param == "stop")
+					{
+						if (!isAutoMode())
+						{
+							send_code_and_msg(-4, "can not stop program in manual mode");
+							return 0;
+						}
+						else
+						{
+							imp_->is_stop_.store(true);
+							send_code_and_msg(0, "");
+							return 0;
+						}
+					}
+					else if (param == "pause")
+					{
+						if (!isAutoMode())
+						{
+							send_code_and_msg(-4, "can not stop program in manual mode");
+							return 0;
+						}
+						else if (!isAutoRunning())
+						{
+							send_code_and_msg(-4, "can not stop program when not running");
+							return 0;
+						}
+						else
+						{
+							imp_->is_pause_.store(true);
+							send_code_and_msg(0, "");
+							return 0;
+						}
+					}
+				}
+			}
+			else
+			{
+				try
+				{
+					aris::server::ControlServer::instance().executeCmdInCmdLine(aris::core::Msg(msg).data(), [socket, msg, send_ret](aris::plan::Plan &plan)->void
+					{
+						// make return msg
+						aris::core::Msg ret_msg(msg);
+						// only copy if it is a str
+						if (auto str = std::any_cast<std::string>(&plan.ret()))
+						{
+							ret_msg.copy(*str);
+						}
+						else if (auto js = std::any_cast<std::vector<std::pair<std::string, std::any>>>(&plan.ret()))
+						{
+							js->push_back(std::make_pair<std::string, std::any>("return_code", plan.retCode()));
+							js->push_back(std::make_pair<std::string, std::any>("return_message", std::string(plan.retMsg())));
+							ret_msg.copy(aris::server::parse_ret_value(*js));
+						}
+
+						// return back to source
+						send_ret(ret_msg);
+					});
+				}
+				catch (std::exception &e)
+				{
+					std::vector<std::pair<std::string, std::any>> ret_pair;
+					ret_pair.push_back(std::make_pair<std::string, std::any>("return_code", int(aris::plan::Plan::PARSE_EXCEPTION)));
+					ret_pair.push_back(std::make_pair<std::string, std::any>("return_message", std::string(e.what())));
+					std::string ret_str = aris::server::parse_ret_value(ret_pair);
+
+					//std::cout << ret_str << std::endl;
+					LOG_ERROR << ret_str << std::endl;
+
+					aris::core::Msg m = msg;
+					m.copy(ret_str);
+
+					send_ret(m);
+				}
+			}
+
+			return 0;
+		};
+		imp_->onReceiveConnection_ = [](aris::core::Socket *sock, const char *ip, int port)->int
+		{
+			std::cout << "socket receive connection" << std::endl;
+			LOG_INFO << "socket receive connection:\n"
+				<< std::setw(aris::core::LOG_SPACE_WIDTH) << "|" << "  ip:" << ip << "\n"
+				<< std::setw(aris::core::LOG_SPACE_WIDTH) << "|" << "port:" << port << std::endl;
+			return 0;
+		};
+		imp_->onLoseConnection_ = [](aris::core::Socket *socket)->int
+		{
+			std::cout << "socket lose connection" << std::endl;
+			LOG_INFO << "socket lose connection" << std::endl;
+			for (;;)
+			{
+				try
+				{
+					socket->startServer(socket->port());
+					break;
+				}
+				catch (std::runtime_error &e)
+				{
+					std::cout << e.what() << std::endl << "will try to restart server socket in 1s" << std::endl;
+					LOG_ERROR << e.what() << std::endl << "will try to restart server socket in 1s" << std::endl;
+					std::this_thread::sleep_for(std::chrono::seconds(1));
+				}
+			}
+			std::cout << "socket restart successful" << std::endl;
+			LOG_INFO << "socket restart successful" << std::endl;
+
+			return 0;
+		};
+
+		sock_->setOnReceivedMsg(imp_->onReceiveMsg_);
+		sock_->setOnReceivedConnection(imp_->onReceiveConnection_);
+		sock_->setOnLoseConnection(imp_->onLoseConnection_);
+	}
+	ProgramWebInterface::ProgramWebInterface(ProgramWebInterface && other) = default;
+	ProgramWebInterface& ProgramWebInterface::operator=(ProgramWebInterface&& other) = default;
+	
 
 	// 停止指令 //
 	auto MoveSt::prepairNrt()->void

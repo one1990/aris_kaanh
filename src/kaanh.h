@@ -34,7 +34,42 @@ namespace kaanh
 	//其他参数和函数声明 
 	using Size = std::size_t;
 	constexpr double PI = 3.141592653589793;
-	
+
+	class MoveBase : public aris::plan::Plan
+	{
+	public:
+		aris::Size realzone = 0;
+		aris::Size targetzone = 0;
+		//设置当前plan的zone大小，以count数来表示//
+		auto settargetzone(aris::Size tzone)->void
+		{
+			targetzone = tzone;
+		};
+		//与下一条指令总count数的一半进行取小，更新真实zone的大小//
+		auto setrealzone(aris::Size maxzone)->void
+		{
+			realzone = std::min(targetzone, maxzone);
+		};
+
+		explicit MoveBase(const std::string &name) :Plan(name) {};
+	};
+
+	class ZonePlan
+	{
+	public:
+		bool zone_enabled = 0;
+		MoveBase* pre_plan = nullptr;
+		double cur_pq[7] = { 0.0 };
+		auto upd_pq(std::vector<double> pq)->void
+		{
+			std::copy(pq.begin(), pq.end(), cur_pq);
+		}
+		auto upd_plan(MoveBase* p)->void
+		{
+			pre_plan = p;
+		}
+	};
+
 	struct SpeedParam
 	{
 		double w_percent;	//关节速度百分比
@@ -185,7 +220,7 @@ namespace kaanh
 		ARIS_REGISTER_TYPE(MoveF);
 	};
 
-	class MoveAbsJ :public aris::plan::Plan
+	class MoveAbsJ :public MoveBase
 	{
 	public:
 		auto virtual prepairNrt()->void;
@@ -196,7 +231,7 @@ namespace kaanh
 		ARIS_REGISTER_TYPE(kaanh::MoveAbsJ);
 	};
 	
-	class MoveJ : public aris::plan::Plan
+	class MoveJ : public MoveBase
 	{
 	public:
 		auto virtual prepairNrt()->void;
@@ -212,7 +247,7 @@ namespace kaanh
 		aris::core::ImpPtr<Imp> imp_;
 	};
 	
-	class MoveL : public aris::plan::Plan
+	class MoveL : public MoveBase
 	{
 	public:
 		auto virtual prepairNrt()->void;
@@ -228,7 +263,7 @@ namespace kaanh
 		aris::core::ImpPtr<Imp> imp_;
 	};
 
-	class MoveC : public aris::plan::Plan
+	class MoveC : public MoveBase
 	{
 	public:
 		auto virtual prepairNrt()->void override;
@@ -634,6 +669,28 @@ namespace kaanh
 		explicit Switch(const std::string &name = "Switch_plan");
 		ARIS_REGISTER_TYPE(Switch);
 	};
+	
+	class ProgramWebInterface :public aris::server::Interface
+	{
+	public:
+		auto virtual open()->void override;
+		auto virtual close()->void override;
+		auto virtual loadXml(const aris::core::XmlElement &xml_ele)->void override;
+		auto isAutoRunning()->bool;
+		auto isAutoMode()->bool;
+		auto currentLine()->int;
+
+		ProgramWebInterface(const std::string &name = "pro_interface", const std::string &port = "5866", aris::core::Socket::TYPE type = aris::core::Socket::WEB);
+		ProgramWebInterface(ProgramWebInterface && other);
+		ProgramWebInterface& operator=(ProgramWebInterface&& other);
+		ARIS_REGISTER_TYPE(ProgramWebInterface);
+
+	private:
+		struct Imp;
+		aris::core::ImpPtr<Imp> imp_;
+		aris::core::Socket *sock_;
+	};
+	
 }
 
 #endif

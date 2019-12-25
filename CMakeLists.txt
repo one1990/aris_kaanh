@@ -16,7 +16,7 @@ endif(WIN32)
 include_directories(${aris_INCLUDE_DIRS})
 
 message(${aris_DIR})
-add_library(kaanh_lib STATIC src/kaanh.cpp src/kaanh.h src/kaanhconfig.cpp src/kaanhconfig.h src/planfuns.cpp src/planfuns.h src/sixdistalfc.cpp src/sixdistalfc.h src/jointdynamics.cpp src/jointdynamics.h src/sixdistaldynamics.cpp src/sixdistaldynamics.h)
+add_library(kaanh_lib STATIC src/json.hpp src/kaanh.cpp src/kaanh.h src/kaanhconfig.cpp src/kaanhconfig.h src/planfuns.cpp src/planfuns.h src/sixdistalfc.cpp src/sixdistalfc.h src/jointdynamics.cpp src/jointdynamics.h src/sixdistaldynamics.cpp src/sixdistaldynamics.h)
 add_executable(kaanh src/main.cpp)
 target_link_libraries(kaanh kaanh_lib)
 
