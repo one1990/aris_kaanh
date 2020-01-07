@@ -99,7 +99,7 @@ namespace kaanhconfig
 		model->environment().setGravity(gravity);
 
 		// 添加变量 //
-		model->calculator().addVariable("PI", aris::core::Matrix(PI));
+		model->calculator().addVariable("PI", "string" , aris::core::Matrix(PI));
 
 		// add part //
 		auto &p1 = model->partPool().add<Part>("L1");
@@ -732,11 +732,13 @@ namespace kaanhconfig
 		plan_root->planPool().add<aris::plan::Disable>();
 		plan_root->planPool().add<kaanh::Home>();
 		plan_root->planPool().add<aris::plan::Mode>();
+		plan_root->planPool().add<aris::plan::Clear>();
 		plan_root->planPool().add<kaanh::Sleep>();
 		plan_root->planPool().add<kaanh::Recover>();
 		auto &rs = plan_root->planPool().add<kaanh::Reset>();
 		rs.command().findParam("pos")->setDefaultValue("{0.5,0.3925,0.7899,0.5,0.5,0.5}");
 
+		plan_root->planPool().add<aris::server::GetInfo>();
 		//qifan//
 		//rs.command().findParam("pos")->setDefaultValue("{0.5,0.353,0.5,0.5,0.5,0.5}");
 
@@ -778,7 +780,7 @@ namespace kaanhconfig
 		plan_root->planPool().add<kaanh::SetEsiPath>();
 		plan_root->planPool().add<kaanh::GetXml>();
 		plan_root->planPool().add<kaanh::SetXml>();
-		plan_root->planPool().add<kaanh::Start>();
+		plan_root->planPool().add<kaanh::Start> ();
 		plan_root->planPool().add<kaanh::Stop>();
 		plan_root->planPool().add<kaanh::SetCT>();
 		plan_root->planPool().add<kaanh::SetVel>();

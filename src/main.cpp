@@ -28,6 +28,7 @@ const std::string xmlfile = "kaanh.xml";
 const std::string uixmlfile = "interface_kaanh.xml";
 const std::string modelxmlfile = "model_rokae.xml";
 
+//添加var类型
 aris::core::Calculator g_cal;
 
 
@@ -52,17 +53,17 @@ int main(int argc, char *argv[])
 	cs.interfacePool().add<aris::server::WebInterface>("", "5867", aris::core::Socket::TCP);
     cs.resetSensorRoot(new aris::sensor::SensorRoot);
 	cs.interfaceRoot().loadXmlFile(uixmlpath.string().c_str());
-	//cs.model().saveXmlFile(modelxmlpath.string().c_str());	//for new model
-	//cs.model().loadXmlFile(modelxmlpath.string().c_str());
-	//cs.saveXmlFile(xmlpath.string().c_str());
+	//cs.model().saveXmlFile(modelxmlpath.string().c_str());	//when creat new model
+	cs.model().loadXmlFile(modelxmlpath.string().c_str());
+	cs.saveXmlFile(xmlpath.string().c_str());
     //-------for rokae robot end// 
     
-
-	g_cal.addVariable("tool.pq", aris::core::Matrix({1.0}));
-	g_cal.addVariable("test", "test");
-
-	auto ret_mat = g_cal.calculateExpression("({tool.pq,0.3}*0.5 + 0.1)+0.1");
-	auto is_true = g_cal.evaluateExpression("tool.pq>0.1");
+	
+	g_cal.addVariable("tool_pq", "Matrix", aris::core::Matrix(1.0));
+	g_cal.addVariable("test", "String", std::string("1121"));
+	//({ tool_pq,0.3 }*0.5 + 0.1) + 0.1;
+	auto ret_mat = std::any_cast<aris::core::Matrix>(g_cal.calculateExpression("tool_pq").second);
+	auto is_true = std::any_cast<std::string>(g_cal.calculateExpression("test").second);
 	std::cout << ret_mat.toString() << std::endl;
 	std::cout << is_true << std::endl;
 
@@ -125,14 +126,12 @@ int main(int argc, char *argv[])
 	speed.w_tcp = speed.w_tcp * speed.w_percent;
 	g_vel.setspeed(speed);
 
-	
 #ifdef WIN32
 	for (auto &m : cs.controller().slavePool())
 	{
 		dynamic_cast<aris::control::EthercatMotor&>(m).setVirtual(true);
 	}
 #endif // WIN32
-
 
 	//Start Web Socket//
     cs.open();

@@ -49,7 +49,7 @@ struct MoveJSParam
 	double time;
 	uint32_t timenum;
 };
-auto MoveJS::prepairNrt()->void
+auto MoveJS::prepareNrt()->void
 {
 	MoveJSParam param;
 
@@ -67,17 +67,17 @@ auto MoveJS::prepairNrt()->void
 			}
 			else
 			{
-				param.j1 = std::stod(p.second);
+				param.j1 = doubleParam(p.first);
 			}
 
 		}
 		else if (p.first == "time")
 		{
-			param.time = std::stod(p.second);
+			param.time = doubleParam(p.first);
 		}
 		else if (p.first == "timenum")
 		{
-			param.timenum = std::stoi(p.second);
+			param.timenum = int32Param(p.first);
 		}
 	}
 	this->param() = param;
@@ -167,7 +167,7 @@ struct MoveEAPParam
 	double axis_dec;
 	bool abs;
 };
-auto MoveEAP::prepairNrt()->void
+auto MoveEAP::prepareNrt()->void
 {
     auto c = controller();
 	MoveEAPParam param;
@@ -177,23 +177,23 @@ auto MoveEAP::prepairNrt()->void
 	{
 		if (p.first == "pos")
 		{
-			param.axis_pos = std::stod(p.second);
+			param.axis_pos = doubleParam(p.first);
 		}
 		else if (p.first == "vel")
 		{	
-			param.axis_vel = std::stod(p.second);
+			param.axis_vel = doubleParam(p.first);
 		}
 		else if (p.first == "acc")
 		{
-			param.axis_acc = std::stod(p.second);
+			param.axis_acc = doubleParam(p.first);
 		}
 		else if (p.first == "dec")
 		{
-			param.axis_dec = std::stod(p.second);
+			param.axis_dec = doubleParam(p.first);
 		}
 		else if (p.first == "ab")
 		{
-			param.abs = std::stoi(p.second);
+			param.abs = int32Param(p.first);
 		}
 	}
 

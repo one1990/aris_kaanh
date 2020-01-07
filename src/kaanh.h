@@ -35,10 +35,12 @@ namespace kaanh
 	using Size = std::size_t;
 	constexpr double PI = 3.141592653589793;
 
+
 	class MoveBase : public aris::plan::Plan
 	{
 	public:
-		aris::Size realzone = 0;
+		std::atomic_uint32_t planid = 0;
+		std::atomic_uint32_t realzone = 0;
 		aris::Size targetzone = 0;
 		//设置当前plan的zone大小，以count数来表示//
 		auto settargetzone(aris::Size tzone)->void
@@ -48,23 +50,24 @@ namespace kaanh
 		//与下一条指令总count数的一半进行取小，更新真实zone的大小//
 		auto setrealzone(aris::Size maxzone)->void
 		{
-			realzone = std::min(targetzone, maxzone);
+			realzone.store(std::min(targetzone, maxzone));
 		};
 
 		explicit MoveBase(const std::string &name) :Plan(name) {};
+		MoveBase(const MoveBase &other);
 	};
 
 	class ZonePlan
 	{
 	public:
 		bool zone_enabled = 0;
-		MoveBase* pre_plan = nullptr;
+		std::shared_ptr<MoveBase> pre_plan;
 		double cur_pq[7] = { 0.0 };
 		auto upd_pq(std::vector<double> pq)->void
 		{
 			std::copy(pq.begin(), pq.end(), cur_pq);
 		}
-		auto upd_plan(MoveBase* p)->void
+		auto upd_plan(std::shared_ptr<MoveBase> p)->void
 		{
 			pre_plan = p;
 		}
@@ -141,7 +144,7 @@ namespace kaanh
 	class Get : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		auto virtual collectNrt()->void;
 
 		explicit Get(const std::string &name = "Get_plan");
@@ -151,7 +154,7 @@ namespace kaanh
     class Home : public aris::plan::Plan
     {
     public:
-        auto virtual prepairNrt()->void;
+        auto virtual prepareNrt()->void;
         auto virtual executeRT()->int;
 
         virtual ~Home();
@@ -167,7 +170,7 @@ namespace kaanh
 	class Reset : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		auto virtual executeRT()->int;
 
 		virtual ~Reset();
@@ -183,7 +186,7 @@ namespace kaanh
 	class Recover : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		auto virtual executeRT()->int;
 		auto virtual collectNrt()->void;
 
@@ -196,7 +199,7 @@ namespace kaanh
 	class Sleep : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		auto virtual executeRT()->int;
 
 		virtual ~Sleep();
@@ -212,7 +215,7 @@ namespace kaanh
 	class MoveF : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		auto virtual executeRT()->int;
 		auto virtual collectNrt()->void;
 
@@ -223,8 +226,9 @@ namespace kaanh
 	class MoveAbsJ :public MoveBase
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		auto virtual executeRT()->int;
+		auto virtual collectNrt()->void;
 
 		virtual ~MoveAbsJ();
 		explicit MoveAbsJ(const std::string &name = "MoveAbsJ");
@@ -234,13 +238,14 @@ namespace kaanh
 	class MoveJ : public MoveBase
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		auto virtual executeRT()->int;
+		auto virtual collectNrt()->void;
 
 		virtual ~MoveJ();
 		explicit MoveJ(const std::string &name = "move_j");
+		MoveJ(const MoveJ &other);
 		ARIS_REGISTER_TYPE(kaanh::MoveJ);
-		ARIS_DECLARE_BIG_FOUR(MoveJ);
 
 	private:
 		struct Imp;
@@ -250,13 +255,14 @@ namespace kaanh
 	class MoveL : public MoveBase
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		auto virtual executeRT()->int;
+		auto virtual collectNrt()->void;
 
 		virtual ~MoveL();
 		explicit MoveL(const std::string &name = "move_l");
+		MoveL(const MoveL &other);
 		ARIS_REGISTER_TYPE(kaanh::MoveL);
-		ARIS_DECLARE_BIG_FOUR(MoveL);
 
 	private:
 		struct Imp;
@@ -266,13 +272,14 @@ namespace kaanh
 	class MoveC : public MoveBase
 	{
 	public:
-		auto virtual prepairNrt()->void override;
+		auto virtual prepareNrt()->void;
 		auto virtual executeRT()->int;
+		auto virtual collectNrt()->void;
 
 		virtual ~MoveC();
 		explicit MoveC(const std::string &name = "MoveC_plan");
-		ARIS_REGISTER_TYPE(MoveC);
-		ARIS_DECLARE_BIG_FOUR(MoveC);
+		MoveC(const MoveC &other);
+		ARIS_REGISTER_TYPE(kaanh::MoveC);
 
 	private:
 		struct Imp;
@@ -282,7 +289,7 @@ namespace kaanh
 	class JogC : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		auto virtual executeRT()->int;
 		auto virtual collectNrt()->void;
 
@@ -303,7 +310,7 @@ namespace kaanh
 	class JogJ : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		auto virtual executeRT()->int;
 		auto virtual collectNrt()->void;
 
@@ -324,7 +331,7 @@ namespace kaanh
 	class JogJ1 : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		auto virtual executeRT()->int;
 		auto virtual collectNrt()->void;
 
@@ -336,7 +343,7 @@ namespace kaanh
 	class JogJ2 : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		auto virtual executeRT()->int;
 		auto virtual collectNrt()->void;
 
@@ -348,7 +355,7 @@ namespace kaanh
 	class JogJ3 : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		auto virtual executeRT()->int;
 		auto virtual collectNrt()->void;
 
@@ -360,7 +367,7 @@ namespace kaanh
 	class JogJ4 : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		auto virtual executeRT()->int;
 		auto virtual collectNrt()->void;
 
@@ -372,7 +379,7 @@ namespace kaanh
 	class JogJ5 : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		auto virtual executeRT()->int;
 		auto virtual collectNrt()->void;
 
@@ -384,7 +391,7 @@ namespace kaanh
 	class JogJ6 : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		auto virtual executeRT()->int;
 		auto virtual collectNrt()->void;
 
@@ -396,7 +403,7 @@ namespace kaanh
 	class JogJ7 : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		auto virtual executeRT()->int;
 		auto virtual collectNrt()->void;
 
@@ -408,7 +415,7 @@ namespace kaanh
 	class JX : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		auto virtual executeRT()->int;
 		auto virtual collectNrt()->void;
 
@@ -420,7 +427,7 @@ namespace kaanh
 	class JY : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		auto virtual executeRT()->int;
 		auto virtual collectNrt()->void;
 
@@ -432,7 +439,7 @@ namespace kaanh
 	class JZ : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		auto virtual executeRT()->int;
 		auto virtual collectNrt()->void;
 
@@ -444,7 +451,7 @@ namespace kaanh
 	class JRX : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		auto virtual executeRT()->int;
 		auto virtual collectNrt()->void;
 
@@ -456,7 +463,7 @@ namespace kaanh
 	class JRY : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		auto virtual executeRT()->int;
 		auto virtual collectNrt()->void;
 
@@ -468,7 +475,7 @@ namespace kaanh
 	class JRZ : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		auto virtual executeRT()->int;
 		auto virtual collectNrt()->void;
 
@@ -480,7 +487,7 @@ namespace kaanh
 	class SetCon : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		explicit SetCon(const std::string &name = "SetCon_plan");
 		ARIS_REGISTER_TYPE(SetCon);
 	};
@@ -488,7 +495,7 @@ namespace kaanh
 	class SetDH : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		explicit SetDH(const std::string &name = "SetDH_plan");
 		ARIS_REGISTER_TYPE(SetDH);
 	};
@@ -496,7 +503,7 @@ namespace kaanh
 	class SetPG : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		explicit SetPG(const std::string &name = "SetPG_plan");
 		ARIS_REGISTER_TYPE(SetPG);
 	};
@@ -504,7 +511,7 @@ namespace kaanh
 	class SetPPath : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		explicit SetPPath(const std::string &name = "SetPPath_plan");
 		ARIS_REGISTER_TYPE(SetPPath);
 	};
@@ -512,7 +519,7 @@ namespace kaanh
 	class SetUI : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		explicit SetUI(const std::string &name = "SetUI_plan");
 		ARIS_REGISTER_TYPE(SetUI);
 	};
@@ -520,7 +527,7 @@ namespace kaanh
 	class SetDriver : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		explicit SetDriver(const std::string &name = "SetDriver_plan");
 		ARIS_REGISTER_TYPE(SetDriver);
 	};
@@ -528,7 +535,7 @@ namespace kaanh
 	class SaveXml : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		explicit SaveXml(const std::string &name = "SaveXml_plan");
 		ARIS_REGISTER_TYPE(SaveXml);
 	};
@@ -536,7 +543,7 @@ namespace kaanh
 	class ScanSlave : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		explicit ScanSlave(const std::string &name = "ScanSlave_plan");
 		ARIS_REGISTER_TYPE(ScanSlave);
 	};
@@ -544,7 +551,7 @@ namespace kaanh
 	class GetEsiPdoList : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		explicit GetEsiPdoList(const std::string &name = "GetEsiPdoList_plan");
 		ARIS_REGISTER_TYPE(GetEsiPdoList);
 	};
@@ -552,7 +559,7 @@ namespace kaanh
 	class SetEsiPath : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		explicit SetEsiPath(const std::string &name = "SetEsiPath_plan");
 		ARIS_REGISTER_TYPE(SetEsiPath);
 	};
@@ -560,7 +567,7 @@ namespace kaanh
 	class ClearCon : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		explicit ClearCon(const std::string &name = "ClearCon_plan");
 		ARIS_REGISTER_TYPE(ClearCon);
 	};
@@ -568,7 +575,7 @@ namespace kaanh
 	class Update : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		explicit Update(const std::string &name = "Update_plan");
 		ARIS_REGISTER_TYPE(Update);
 	};
@@ -576,7 +583,7 @@ namespace kaanh
 	class GetXml :public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 
 		virtual ~GetXml();
 		explicit GetXml(const std::string &name = "GetXml");
@@ -586,7 +593,7 @@ namespace kaanh
 	class SetXml :public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 
 		virtual ~SetXml();
 		explicit SetXml(const std::string &name = "SetXml");
@@ -596,7 +603,7 @@ namespace kaanh
 	class Start :public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 
 		virtual ~Start();
 		explicit Start(const std::string &name = "Start");
@@ -606,7 +613,7 @@ namespace kaanh
 	class Stop :public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 
 		virtual ~Stop();
 		explicit Stop(const std::string &name = "Stop");
@@ -616,7 +623,7 @@ namespace kaanh
 	class SetCT : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		explicit SetCT(const std::string &name = "SetCT_plan");
 		ARIS_REGISTER_TYPE(SetCT);
 	};
@@ -624,7 +631,7 @@ namespace kaanh
 	class SetVel : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		explicit SetVel(const std::string &name = "SetVel_plan");
 		ARIS_REGISTER_TYPE(SetVel);
 	};
@@ -632,7 +639,7 @@ namespace kaanh
 	class Var : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		explicit Var(const std::string &name = "Var_plan");
 		ARIS_REGISTER_TYPE(Var);
 	};
@@ -640,7 +647,7 @@ namespace kaanh
 	class Evaluate : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		explicit Evaluate(const std::string &name = "Evaluate_plan");
 		ARIS_REGISTER_TYPE(Evaluate);
 	};
@@ -648,7 +655,7 @@ namespace kaanh
 	class Run : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		auto virtual collectNrt()->void;
 		explicit Run(const std::string &name = "Run_plan");
 		ARIS_REGISTER_TYPE(Run);
@@ -657,7 +664,7 @@ namespace kaanh
 	class MoveSt : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		explicit MoveSt(const std::string &name = "MoveSt_plan");
 		ARIS_REGISTER_TYPE(MoveSt);
 	};
@@ -665,30 +672,9 @@ namespace kaanh
 	class Switch : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		explicit Switch(const std::string &name = "Switch_plan");
 		ARIS_REGISTER_TYPE(Switch);
-	};
-	
-	class ProgramWebInterface :public aris::server::Interface
-	{
-	public:
-		auto virtual open()->void override;
-		auto virtual close()->void override;
-		auto virtual loadXml(const aris::core::XmlElement &xml_ele)->void override;
-		auto isAutoRunning()->bool;
-		auto isAutoMode()->bool;
-		auto currentLine()->int;
-
-		ProgramWebInterface(const std::string &name = "pro_interface", const std::string &port = "5866", aris::core::Socket::TYPE type = aris::core::Socket::WEB);
-		ProgramWebInterface(ProgramWebInterface && other);
-		ProgramWebInterface& operator=(ProgramWebInterface&& other);
-		ARIS_REGISTER_TYPE(ProgramWebInterface);
-
-	private:
-		struct Imp;
-		aris::core::ImpPtr<Imp> imp_;
-		aris::core::Socket *sock_;
 	};
 	
 }

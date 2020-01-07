@@ -16,7 +16,7 @@ constexpr double f2c_index[6] = { 9.07327526291993, 9.07327526291993, 17.5690184
 class MoveJoint : public aris::plan::Plan
 {
 public:
-	auto virtual prepairNrt()->void;
+	auto virtual prepareNrt()->void;
 	auto virtual executeRT()->int;
     auto virtual collectNrt()->void;
 
@@ -27,7 +27,7 @@ public:
 class Replay : public aris::plan::Plan
 {
 public:
-    auto virtual prepairNrt()->void;
+    auto virtual prepareNrt()->void;
     auto virtual executeRT()->int;
     auto virtual collectNrt()->void;
 
@@ -38,7 +38,7 @@ public:
 class ForceDirect : public aris::plan::Plan
 {
 public:
-	auto virtual prepairNrt()->void;
+	auto virtual prepareNrt()->void;
 	auto virtual executeRT()->int;
     auto virtual collectNrt()->void;
 
@@ -49,7 +49,7 @@ public:
 class FCStop : public aris::plan::Plan
 {
 public:
-    auto virtual prepairNrt()->void;
+    auto virtual prepareNrt()->void;
     explicit FCStop(const std::string &name = "FCStop");
     ARIS_REGISTER_TYPE(FCStop);
 };

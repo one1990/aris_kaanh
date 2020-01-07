@@ -57,7 +57,7 @@ namespace taike
 		double time;
 		uint32_t timenum;
 	};
-	auto MoveJS::prepairNrt()->void
+	auto MoveJS::prepareNrt()->void
 	{
 		MoveJSParam param;
 
@@ -75,17 +75,17 @@ namespace taike
 				}
 				else
 				{
-					param.j1 = std::stod(p.second);
+					param.j1 = doubleParam(p.first);
 				}
 
 			}
 			else if (p.first == "time")
 			{
-				param.time = std::stod(p.second);
+				param.time = doubleParam(p.first);
 			}
 			else if (p.first == "timenum")
 			{
-				param.timenum = std::stoi(p.second);
+				param.timenum = int32Param(p.first);
 			}
 		}
 		this->param() = param;
@@ -175,7 +175,7 @@ namespace taike
 		double axis_dec;
 		bool abs;
 	};
-	auto MoveEAP::prepairNrt()->void
+	auto MoveEAP::prepareNrt()->void
 	{
 		auto c = controller();
 		MoveEAPParam param;
@@ -185,23 +185,23 @@ namespace taike
 		{
 			if (p.first == "pos")
 			{
-				param.axis_pos = std::stod(p.second);
+				param.axis_pos = doubleParam(p.first);
 			}
 			else if (p.first == "vel")
 			{
-				param.axis_vel = std::stod(p.second);
+				param.axis_vel = doubleParam(p.first);
 			}
 			else if (p.first == "acc")
 			{
-				param.axis_acc = std::stod(p.second);
+				param.axis_acc = doubleParam(p.first);
 			}
 			else if (p.first == "dec")
 			{
-				param.axis_dec = std::stod(p.second);
+				param.axis_dec = doubleParam(p.first);
 			}
 			else if (p.first == "ab")
 			{
-				param.abs = std::stoi(p.second);
+				param.abs = int32Param(p.first);
 			}
 		}
 
@@ -274,7 +274,7 @@ namespace taike
 	{
 		int is_on;
 	};
-	auto SetBrake::prepairNrt()->void
+	auto SetBrake::prepareNrt()->void
 	{
 		SetBrakeParam param;
 
@@ -282,7 +282,7 @@ namespace taike
 		{
 			if (p.first == "ct")
 			{
-				param.is_on = std::stoi(p.second);
+				param.is_on = int32Param(p.first);
 			}
 		}
 
@@ -342,14 +342,14 @@ namespace taike
 	{
 		uint16_t control_word;
 	};
-	auto Clear::prepairNrt()->void
+	auto Clear::prepareNrt()->void
 	{
 		ClearParam param;
 		for (auto &p : cmdParams())
 		{
 			if (p.first == "value")
 			{
-				param.control_word = std::stoi(p.second);
+				param.control_word = int32Param(p.first);
 			}
 		}
 
@@ -371,7 +371,7 @@ namespace taike
 	}
 
 
-	auto Status::prepairNrt()->void
+	auto Status::prepareNrt()->void
 	{
 		uint8_t modeofoperation = 0;
 		ecController()->motionPool().at(0).readSdo(0x6061, 0x00, &modeofoperation, 1);
@@ -406,7 +406,7 @@ namespace taike
 	{
 		uint8_t mode;
 	};
-	auto MotorMode::prepairNrt()->void
+	auto MotorMode::prepareNrt()->void
 	{
 		MotorModeParam param;
 		param.mode = 1;
@@ -415,7 +415,7 @@ namespace taike
 		{
 			if (p.first == "mode")
 			{
-				param.mode = std::stoi(p.second);
+				param.mode = int32Param(p.first);
 			}
 		}
 
@@ -449,7 +449,7 @@ namespace taike
 	}
 
 
-	auto EnableMotor::prepairNrt()->void
+	auto EnableMotor::prepareNrt()->void
 	{
 		for (auto &option : motorOptions())	option |= CHECK_NONE;
 		std::vector<std::pair<std::string, std::any>> ret_value;

@@ -462,7 +462,7 @@ namespace traplan
 		std::cout << std::endl;
 		*/
 	}
-	auto sCurve(size_t t, double q_start, double q_end, double v_max, double a_max, double j_max, double &q_crt, double &v_crt, double &a_crt, double &j_crt, size_t &T)->void
+	auto sCurve(double t, double q_start, double q_end, double v_max, double a_max, double j_max, double &q_crt, double &v_crt, double &a_crt, double &j_crt, size_t &T)->void
 	{
 		//参数初始化
 		//边界参数初始化

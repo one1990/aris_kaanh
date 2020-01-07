@@ -380,15 +380,15 @@ struct ForceDirectParam
 	double PressF;
 	double SensorType;
 };
-auto ForceDirect::prepairNrt()->void
+auto ForceDirect::prepareNrt()->void
 {
 	ForceDirectParam param;
     for (auto &p : cmdParams())
     {
         if (p.first == "PressF")
-            param.PressF = std::stod(p.second);
+            param.PressF = doubleParam(p.first);
         if (p.first == "SensorType")
-            param.SensorType = std::stod(p.second);
+            param.SensorType = doubleParam(p.first);
 
     }
 	this->param() = param;
@@ -734,15 +734,15 @@ struct MoveJointParam
     double PressF;
     double SensorType;
 };
-auto MoveJoint::prepairNrt()->void
+auto MoveJoint::prepareNrt()->void
 {
     MoveJointParam param;
     for (auto &p : cmdParams())
     {
         if (p.first == "PressF")
-            param.PressF = std::stod(p.second);
+            param.PressF = doubleParam(p.first);
         if (p.first == "SensorType")
-            param.SensorType = std::stod(p.second);
+            param.SensorType = doubleParam(p.first);
 
     }
 
@@ -968,12 +968,12 @@ struct ReplayParam
     double vel, acc, dec;
     std::string path;
 };
-auto Replay::prepairNrt()->void
+auto Replay::prepareNrt()->void
 {
     ReplayParam param;
-    param.vel = std::stod(cmdParams().at("vel"));
-    param.acc = std::stod(cmdParams().at("acc"));
-    param.dec = std::stod(cmdParams().at("dec"));
+    param.vel = doubleParam("vel");
+    param.acc = doubleParam("acc");
+    param.dec = doubleParam("dec");
     param.path = cmdParams().at("path");
 
     param.total_count_vec.resize(6, 0);
@@ -1098,7 +1098,7 @@ Replay::Replay(const std::string &name) :Plan(name)
 
 static std::atomic_bool enable_FCPressP = true;
 // 力控停止指令——停止FCStop，去使能电机 //
-auto FCStop::prepairNrt()->void
+auto FCStop::prepareNrt()->void
     {
         enable_mvJoint = false;
         enable_FCPressL=false;

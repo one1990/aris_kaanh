@@ -14,7 +14,7 @@ namespace taike
 	class MoveJS : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		auto virtual executeRT()->int;
 		auto virtual collectNrt()->void;
 
@@ -25,7 +25,7 @@ namespace taike
 	class MoveEAP : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		auto virtual executeRT()->int;
 		auto virtual collectNrt()->void;
 
@@ -36,7 +36,7 @@ namespace taike
 	class Status : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		auto virtual executeRT()->int;
 		auto virtual collectNrt()->void;
 
@@ -47,7 +47,7 @@ namespace taike
 	class Clear : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		auto virtual collectNrt()->void;
 
 		explicit Clear(const std::string &name = "Clear_plan");
@@ -57,7 +57,7 @@ namespace taike
 	class SetBrake : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		auto virtual collectNrt()->void;
 
 		explicit SetBrake(const std::string &name = "SetBrake_plan");
@@ -67,7 +67,7 @@ namespace taike
 	class MotorMode : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		auto virtual collectNrt()->void;
 
 		explicit MotorMode(const std::string &name = "MotorMode_plan");
@@ -77,7 +77,7 @@ namespace taike
 	class EnableMotor : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		auto virtual executeRT()->int;
 		auto virtual collectNrt()->void;
 

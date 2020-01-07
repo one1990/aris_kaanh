@@ -453,7 +453,3 @@ void sixdistaldynamics::sixDistalCollision(const double * q, const double *dq,co
 
 
         }
-
-
-
-

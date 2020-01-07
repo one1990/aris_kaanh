@@ -12,7 +12,7 @@ constexpr double PI = 3.141592653589793;
 class MoveJS : public aris::plan::Plan
 {
 public:
-	auto virtual prepairNrt()->void;
+	auto virtual prepareNrt()->void;
 	auto virtual executeRT()->int;
 	auto virtual collectNrt()->void;
 
@@ -24,7 +24,7 @@ public:
 class MoveEAP : public aris::plan::Plan
 {
 public:
-	auto virtual prepairNrt()->void;
+	auto virtual prepareNrt()->void;
 	auto virtual executeRT()->int;
 	auto virtual collectNrt()->void;
 
