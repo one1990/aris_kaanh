@@ -26,8 +26,7 @@ extern std::atomic_bool g_is_auto;
 //state machine flag//
 
 extern aris::core::Calculator g_cal;
-std::atomic_uint32_t zone_planid = 0;
-std::atomic_uint32_t zone_executeid = 0;
+extern aris::dynamic::Model g_model;
 
 struct CmdListParam
 {
@@ -36,7 +35,8 @@ struct CmdListParam
 	int current_plan_id = -1;
 }cmdparam;
 
-kaanh::ZonePlan g_zp;
+std::shared_ptr<kaanh::MoveBase> g_plan;
+
 
 namespace kaanh
 {
@@ -885,9 +885,7 @@ namespace kaanh
 
 
 	MoveBase::MoveBase(const MoveBase &other) :Plan(other),
-		planid(0),
-		realzone(0),
-		targetzone(other.targetzone){};
+		realzone(0){};
 
 
 	struct MoveAbsJParam :public SetActiveMotor, SetInputMovement {};
@@ -1043,8 +1041,9 @@ namespace kaanh
 		std::vector<double> joint_vel, joint_acc, joint_dec, joint_jerk, ee_pq, joint_pos_begin, joint_pos_end, zone;
 		std::vector<Size> total_count;
 		aris::dynamic::Marker *tool, *wobj;
-		ZonePlan zp;
+		std::shared_ptr<kaanh::MoveBase> pre_plan;
 		Size max_total_count;
+		bool zone_enabled = false;
 	};
 	struct MoveJ::Imp {};
 	auto MoveJ::prepareNrt()->void
@@ -1052,18 +1051,17 @@ namespace kaanh
 		set_check_option(cmdParams(), *this);
 
 		MoveJParam mvj_param;
-		mvj_param.zp = g_zp;
-
+		
 		// find ee pq //
 		mvj_param.ee_pq.resize(7);
 		find_pq(cmdParams(), *this, mvj_param.ee_pq.data());
 
-		mvj_param.joint_pos_begin.resize(model()->motionPool().size(), 0.0);
-		mvj_param.joint_pos_end.resize(model()->motionPool().size(), 0.0);
-		mvj_param.total_count.resize(model()->motionPool().size(), 0);
+		mvj_param.joint_pos_begin.resize(g_model.motionPool().size(), 0.0);
+		mvj_param.joint_pos_end.resize(g_model.motionPool().size(), 0.0);
+		mvj_param.total_count.resize(g_model.motionPool().size(), 0);
 
-		mvj_param.tool = &*model()->generalMotionPool()[0].makI().fatherPart().markerPool().findByName(std::string(cmdParams().at("tool")));
-		mvj_param.wobj = &*model()->generalMotionPool()[0].makJ().fatherPart().markerPool().findByName(std::string(cmdParams().at("wobj")));
+		mvj_param.tool = &*g_model.generalMotionPool()[0].makI().fatherPart().markerPool().findByName(std::string(cmdParams().at("tool")));
+		mvj_param.wobj = &*g_model.generalMotionPool()[0].makJ().fatherPart().markerPool().findByName(std::string(cmdParams().at("wobj")));
 
 		// find joint acc/vel/dec/jerk/zone
 		for (auto cmd_param : cmdParams())
@@ -1072,68 +1070,68 @@ namespace kaanh
 			if (cmd_param.first == "joint_acc")
 			{
 				mvj_param.joint_acc.clear();
-				mvj_param.joint_acc.resize(model()->motionPool().size(), 0.0);
+				mvj_param.joint_acc.resize(g_model.motionPool().size(), 0.0);
 
 				auto acc_mat = matrixParam(cmd_param.first);
 				if (acc_mat.size() == 1)std::fill(mvj_param.joint_acc.begin(), mvj_param.joint_acc.end(), acc_mat.toDouble());
-				else if (acc_mat.size() == model()->motionPool().size()) std::copy(acc_mat.begin(), acc_mat.end(), mvj_param.joint_acc.begin());
+				else if (acc_mat.size() == g_model.motionPool().size()) std::copy(acc_mat.begin(), acc_mat.end(), mvj_param.joint_acc.begin());
 				else THROW_FILE_LINE("");
 
 				for (int i = 0; i < 6; ++i)mvj_param.joint_acc[i] *= controller()->motionPool()[i].maxAcc();
 
 				// check value validity //
-				for (Size i = 0; i < std::min(model()->motionPool().size(), c->motionPool().size()); ++i)
+				for (Size i = 0; i < std::min(g_model.motionPool().size(), c->motionPool().size()); ++i)
 					if (mvj_param.joint_acc[i] <= 0 || mvj_param.joint_acc[i] > c->motionPool()[i].maxAcc())
 						THROW_FILE_LINE("");
 			}
 			else if (cmd_param.first == "joint_vel")
 			{
 				mvj_param.joint_vel.clear();
-				mvj_param.joint_vel.resize(model()->motionPool().size(), 0.0);
+				mvj_param.joint_vel.resize(g_model.motionPool().size(), 0.0);
 
 				auto vel_mat = matrixParam(cmd_param.first);
 				if (vel_mat.size() == 1)std::fill(mvj_param.joint_vel.begin(), mvj_param.joint_vel.end(), vel_mat.toDouble());
-				else if (vel_mat.size() == model()->motionPool().size()) std::copy(vel_mat.begin(), vel_mat.end(), mvj_param.joint_vel.begin());
+				else if (vel_mat.size() == g_model.motionPool().size()) std::copy(vel_mat.begin(), vel_mat.end(), mvj_param.joint_vel.begin());
 				else THROW_FILE_LINE("");
 
 				for (int i = 0; i < 6; ++i)mvj_param.joint_vel[i] *= controller()->motionPool()[i].maxVel();
 
 				// check value validity //
-				for (Size i = 0; i < std::min(model()->motionPool().size(), c->motionPool().size()); ++i)
+				for (Size i = 0; i < std::min(g_model.motionPool().size(), c->motionPool().size()); ++i)
 					if (mvj_param.joint_vel[i] <= 0 || mvj_param.joint_vel[i] > c->motionPool()[i].maxVel())
 						THROW_FILE_LINE("");
 			}
 			else if (cmd_param.first == "joint_dec")
 			{
 				mvj_param.joint_dec.clear();
-				mvj_param.joint_dec.resize(model()->motionPool().size(), 0.0);
+				mvj_param.joint_dec.resize(g_model.motionPool().size(), 0.0);
 
 				auto dec_mat = matrixParam(cmd_param.first);
 				if (dec_mat.size() == 1)std::fill(mvj_param.joint_dec.begin(), mvj_param.joint_dec.end(), dec_mat.toDouble());
-				else if (dec_mat.size() == model()->motionPool().size()) std::copy(dec_mat.begin(), dec_mat.end(), mvj_param.joint_dec.begin());
+				else if (dec_mat.size() == g_model.motionPool().size()) std::copy(dec_mat.begin(), dec_mat.end(), mvj_param.joint_dec.begin());
 				else THROW_FILE_LINE("");
 
 				for (int i = 0; i < 6; ++i) mvj_param.joint_dec[i] *= controller()->motionPool()[i].maxAcc();
 
 				// check value validity //
-				for (Size i = 0; i < std::min(model()->motionPool().size(), c->motionPool().size()); ++i)
+				for (Size i = 0; i < std::min(g_model.motionPool().size(), c->motionPool().size()); ++i)
 					if (mvj_param.joint_dec[i] <= 0 || mvj_param.joint_dec[i] > c->motionPool()[i].maxAcc())
 						THROW_FILE_LINE("");
 			}
 			else if (cmd_param.first == "joint_jerk")
 			{
 				mvj_param.joint_jerk.clear();
-				mvj_param.joint_jerk.resize(model()->motionPool().size(), 0.0);
+				mvj_param.joint_jerk.resize(g_model.motionPool().size(), 0.0);
 
 				auto dec_mat = matrixParam(cmd_param.first);
 				if (dec_mat.size() == 1)std::fill(mvj_param.joint_jerk.begin(), mvj_param.joint_jerk.end(), dec_mat.toDouble());
-				else if (dec_mat.size() == model()->motionPool().size()) std::copy(dec_mat.begin(), dec_mat.end(), mvj_param.joint_jerk.begin());
+				else if (dec_mat.size() == g_model.motionPool().size()) std::copy(dec_mat.begin(), dec_mat.end(), mvj_param.joint_jerk.begin());
 				else THROW_FILE_LINE("");
 
 				for (int i = 0; i < 6; ++i) mvj_param.joint_jerk[i] *= mvj_param.joint_acc[i];
 
 				// check value validity //
-				for (Size i = 0; i < std::min(model()->motionPool().size(), c->motionPool().size()); ++i)
+				for (Size i = 0; i < std::min(g_model.motionPool().size(), c->motionPool().size()); ++i)
 					if (mvj_param.joint_jerk[i] <= 0 || mvj_param.joint_jerk[i] > 1000*c->motionPool()[i].maxAcc())
 						THROW_FILE_LINE("");
 			}
@@ -1141,110 +1139,120 @@ namespace kaanh
 			{
 				mvj_param.zone.clear();
 				mvj_param.zone.resize(2, 0.0);
-				this->planid.store(++zone_planid);
 				if (cmd_param.second == "fine")//不设置转弯区
 				{
-					std::fill(mvj_param.zone.begin(), mvj_param.zone.end(), 0);
-					mvj_param.zp.zone_enabled = 0;
+					std::fill(mvj_param.zone.begin(), mvj_param.zone.end(), 0.0);
+					mvj_param.zone_enabled = 0;
 				}
 				else//设置转弯区
 				{
 					auto z = matrixParam(cmd_param.first);
 					std::copy(z.begin(), z.end(), mvj_param.zone.begin());
-					mvj_param.zp.zone_enabled = 1;
+					mvj_param.zone_enabled = 1;
+					if (mvj_param.zone[1] > 0.5)
+					{
+						THROW_FILE_LINE("zone out of range");
+					}
 				}
 			}
 		}
 
+		//更新全局变量g_zp//
+		if (mvj_param.zone_enabled)
+		{
+			mvj_param.pre_plan = g_plan;
+			g_plan = std::dynamic_pointer_cast<MoveBase>(sharedPtrForThis());//------这里需要潘博aris库提供一个plan接口，返回std::shared_ptr<MoveBase>类型指针
+		}
+		else
+		{
+			mvj_param.pre_plan = g_plan;
+			g_plan = nullptr;
+		}
+		if (mvj_param.pre_plan == nullptr)
+		{
+			std::cout << "preplan:" << "nullptr" << std::endl;
+		}
+		else
+		{
+			std::cout << "preplan:" << mvj_param.pre_plan->name() << std::endl;
+		}
 		// 设置转弯区 //
 		double p, v, a, j;
 		double end_pm[16];
-		if (mvj_param.zp.pre_plan == nullptr)//转弯第一条指令
+		if (mvj_param.pre_plan == nullptr)//转弯第一条指令
 		{
-			for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
+			for (Size i = 0; i < std::min(controller()->motionPool().size(), g_model.motionPool().size()); ++i)
 			{
 				mvj_param.joint_pos_begin[i] = controller()->motionPool()[i].targetPos();
 			}
 		}
-		else if (std::string(mvj_param.zp.pre_plan->cmdName()) == this->cmdName())//转弯第二或第n条指令
+		else if (std::string(mvj_param.pre_plan->name()) == this->name())//转弯第二或第n条指令
 		{
-			std::cout << "precmdname1:" << mvj_param.zp.pre_plan->cmdName() << "  cmdname1:"<< this->cmdName() <<std::endl;
+			std::cout << "precmdname1:" << mvj_param.pre_plan->name() << "  cmdname1:"<< this->name() <<std::endl;
 			//从全局变量中获取上一条转弯区指令的目标点//
-			aris::dynamic::s_pq2pm(mvj_param.zp.cur_pq, end_pm);
+			aris::dynamic::s_pq2pm(std::any_cast<MoveJParam>(&mvj_param.pre_plan->param())->ee_pq.data(), end_pm);
 			mvj_param.tool->setPm(*mvj_param.wobj, end_pm);
-			model()->generalMotionPool().at(0).updMpm();
-			if (model()->solverPool().at(0).kinPos())THROW_FILE_LINE("");
-			for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
+			g_model.generalMotionPool().at(0).updMpm();
+			if (g_model.solverPool().at(0).kinPos())THROW_FILE_LINE("");
+			for (Size i = 0; i < std::min(controller()->motionPool().size(), g_model.motionPool().size()); ++i)
 			{
-				mvj_param.joint_pos_begin[i] = model()->motionPool()[i].mp();
+				mvj_param.joint_pos_begin[i] = g_model.motionPool()[i].mp();
 			}
 		}
 		else//本条指令设置了转弯区，但是与上一条指令无法实现转弯，比如moveL,moveC,moveAbsJ
 		{
-			std::cout << "precmdname2:" << mvj_param.zp.pre_plan->cmdName() << "  cmdname2:" << this->cmdName() << std::endl;
+			std::cout << "precmdname2:" << mvj_param.pre_plan->name() << "  cmdname2:" << this->name() << std::endl;
 			//获取起始点位置//
-			aris::dynamic::s_pq2pm(mvj_param.zp.cur_pq, end_pm);
+			aris::dynamic::s_pq2pm(std::any_cast<MoveJParam>(&mvj_param.pre_plan->param())->ee_pq.data(), end_pm);
 			mvj_param.tool->setPm(*mvj_param.wobj, end_pm);
-			model()->generalMotionPool().at(0).updMpm();
-			if (model()->solverPool().at(0).kinPos())THROW_FILE_LINE("");
-			for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
+			g_model.generalMotionPool().at(0).updMpm();
+			if (g_model.solverPool().at(0).kinPos())THROW_FILE_LINE("");
+			for (Size i = 0; i < std::min(controller()->motionPool().size(), g_model.motionPool().size()); ++i)
 			{
-				mvj_param.joint_pos_begin[i] = model()->motionPool()[i].mp();
+				mvj_param.joint_pos_begin[i] = g_model.motionPool()[i].mp();
 			}
 		}
 
 		//获取终止点位置//
 		aris::dynamic::s_pq2pm(mvj_param.ee_pq.data(), end_pm);
 		mvj_param.tool->setPm(*mvj_param.wobj, end_pm);
-		model()->generalMotionPool().at(0).updMpm();
-		if (model()->solverPool().at(0).kinPos())THROW_FILE_LINE("");
+		g_model.generalMotionPool().at(0).updMpm();
+		if (g_model.solverPool().at(0).kinPos())THROW_FILE_LINE("");
 		// init joint_pos //
-		for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
+		for (Size i = 0; i < std::min(controller()->motionPool().size(), g_model.motionPool().size()); ++i)
 		{
-			mvj_param.joint_pos_end[i] = model()->motionPool()[i].mp();
+			mvj_param.joint_pos_end[i] = g_model.motionPool()[i].mp();
 
 			//S形轨迹规划//
 			traplan::sCurve(1, mvj_param.joint_pos_begin[i], mvj_param.joint_pos_end[i],
 				mvj_param.joint_vel[i] / 1000, mvj_param.joint_acc[i] / 1000 / 1000, mvj_param.joint_jerk[i] / 1000 / 1000 / 1000,
 				p, v, a, j, mvj_param.total_count[i]);
 		}
-
 		//本条指令的最大规划count数//
 		mvj_param.max_total_count = *std::max_element(mvj_param.total_count.begin(), mvj_param.total_count.end());
-
+		
 		//更新转弯区//
-		if (mvj_param.zp.pre_plan == nullptr)//转弯第一条指令
+		if (mvj_param.pre_plan == nullptr)//转弯第一条指令
 		{
-			//更新本条指令的targetzone//
-			this->settargetzone(mvj_param.max_total_count*mvj_param.zone[1]);
+			//更新本条指令的realzone//
+			this->realzone.store(mvj_param.max_total_count*mvj_param.zone[1]);
 		}
-		else if (mvj_param.zp.pre_plan->cmdName() == this->cmdName())//转弯第二或第n条指令
+		else if (mvj_param.pre_plan->name() == this->name())//转弯第二或第n条指令
 		{
-			//更新本plan的targetzone//
-			this->settargetzone(mvj_param.max_total_count*mvj_param.zone[1]);
+			//更新本plan的realzone//
+			this->realzone.store(mvj_param.max_total_count*mvj_param.zone[1]);
 			//更新上一条转弯指令的realzone//
-			Size max_zone = mvj_param.max_total_count / 2;//当前指令所需count数/2
-			mvj_param.zp.pre_plan->setrealzone(max_zone);
+			Size max_zone = std::min(mvj_param.pre_plan->realzone.load(), mvj_param.max_total_count / 2);//当前指令所需count数/2
+			mvj_param.pre_plan->realzone.store(max_zone);
 		}
 		else//本条指令设置了转弯区，但是与上一条指令无法实现转弯，比如moveL,moveC,moveAbsJ
 		{
-			//更新本plan的targetzone//
-			this->settargetzone(mvj_param.max_total_count*mvj_param.zone[1]);
+			//更新本plan的realzone//
+			this->realzone.store(mvj_param.max_total_count*mvj_param.zone[1]);
 			//上一条指令不进行转弯//
-			mvj_param.zp.pre_plan->setrealzone(0);
+			mvj_param.pre_plan->realzone.store(0);
 		}
 
-		//更新全局变量g_zp//
-		if (mvj_param.zp.zone_enabled)
-		{
-			g_zp.upd_plan(std::dynamic_pointer_cast<MoveBase>(sharedPtrForThis()));//------这里需要潘博aris库提供一个plan接口，返回std::shared_ptr<MoveBase>类型指针
-		}
-		else
-		{
-			g_zp.upd_plan(nullptr);
-		}
-		g_zp.upd_pq(mvj_param.ee_pq);
-		
 		this->param() = mvj_param;
 		std::vector<std::pair<std::string, std::any>> ret_value;
 		ret() = ret_value;
@@ -1287,7 +1295,7 @@ namespace kaanh
 		}
 		*/
 
-		if (mvj_param->zp.pre_plan == nullptr) //转弯第一条指令
+		if (mvj_param->pre_plan == nullptr) //转弯第一条指令
 		{
 			for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
 			{
@@ -1307,17 +1315,17 @@ namespace kaanh
 				model()->motionPool()[i].setMp(p);
 			}
 		}
-		else if (mvj_param->zp.pre_plan->cmdName() == this->cmdName()) //转弯区第二条指令或者第n条指令
+		else if (mvj_param->pre_plan->name() == this->name()) //转弯区第二条指令或者第n条指令
 		{
-			auto param = std::any_cast<MoveJParam>(&mvj_param->zp.pre_plan->param());
+			auto param = std::any_cast<MoveJParam>(&mvj_param->pre_plan->param());
 			for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
 			{
 				//preplan//
 				double prep = 0.0, prev, prea, prej;
 				//count数小于等于上一条指令的realzone，zone起作用//
-				if (count() <= mvj_param->zp.pre_plan->realzone.load())
+				if (count() <= param->pre_plan->realzone.load())
 				{
-					traplan::sCurve(static_cast<double>(param->max_total_count - mvj_param->zp.pre_plan->realzone.load() + count()) * param->total_count[i] / param->max_total_count,
+					traplan::sCurve(static_cast<double>(param->max_total_count - mvj_param->pre_plan->realzone.load() + count()) * param->total_count[i] / param->max_total_count,
 						param->joint_pos_begin[i], param->joint_pos_end[i],
 						param->joint_vel[i] / 1000, param->joint_acc[i] / 1000 / 1000, param->joint_jerk[i] / 1000 / 1000 / 1000,
 						prep, prev, prea, prej, param->total_count[i]);
@@ -1354,36 +1362,21 @@ namespace kaanh
 
 		if (g_move_stop)
 		{
-			++zone_executeid;
 			return -4;
 		}
-		if ((mvj_param->max_total_count == 0 ? 0 : mvj_param->max_total_count - this->realzone.load() - count()) == 0)
+		auto rzcount = this->realzone.load();
+		auto in_count = count();
+		if (mvj_param->max_total_count - rzcount - count() == 0)
 		{
-			++zone_executeid;
+			controller()->mout() << "mvj_param->max_total_count:" << mvj_param->max_total_count <<"this->realzone.load():" << rzcount << std::endl;
 		}
-		return mvj_param->max_total_count == 0 ? 0 : mvj_param->max_total_count - this->realzone.load() - count();
+		return mvj_param->max_total_count == 0 ? 0 : mvj_param->max_total_count - rzcount - count();
 	}
 	auto MoveJ::collectNrt()->void
 	{
-		auto param = std::any_cast<MoveJParam>(&this->param());
-		while (1)
+		if (retCode() != 0)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
-			if (param->zp.zone_enabled)//本条指令设置了转弯区//
-			{
-				if ((zone_executeid.load() - this->planid.load() <= 1) && (this->realzone.load() != 0))
-				{
-					continue;
-				}
-				else
-				{
-					break;
-				}
-			}
-			else//本条指令没有设置转弯区//
-			{
-				break;
-			}
+			g_plan = nullptr;
 		}
 	}
 	MoveJ::~MoveJ() = default;

@@ -39,38 +39,10 @@ namespace kaanh
 	class MoveBase : public aris::plan::Plan
 	{
 	public:
-		std::atomic_uint32_t planid = 0;
 		std::atomic_uint32_t realzone = 0;
-		aris::Size targetzone = 0;
-		//设置当前plan的zone大小，以count数来表示//
-		auto settargetzone(aris::Size tzone)->void
-		{
-			targetzone = tzone;
-		};
 		//与下一条指令总count数的一半进行取小，更新真实zone的大小//
-		auto setrealzone(aris::Size maxzone)->void
-		{
-			realzone.store(std::min(targetzone, maxzone));
-		};
-
 		explicit MoveBase(const std::string &name) :Plan(name) {};
 		MoveBase(const MoveBase &other);
-	};
-
-	class ZonePlan
-	{
-	public:
-		bool zone_enabled = 0;
-		std::shared_ptr<MoveBase> pre_plan;
-		double cur_pq[7] = { 0.0 };
-		auto upd_pq(std::vector<double> pq)->void
-		{
-			std::copy(pq.begin(), pq.end(), cur_pq);
-		}
-		auto upd_plan(std::shared_ptr<MoveBase> p)->void
-		{
-			pre_plan = p;
-		}
 	};
 
 	struct SpeedParam

@@ -30,7 +30,7 @@ const std::string modelxmlfile = "model_rokae.xml";
 
 //添加var类型
 aris::core::Calculator g_cal;
-
+aris::dynamic::Model g_model;
 
 int main(int argc, char *argv[])
 {
@@ -118,6 +118,7 @@ int main(int argc, char *argv[])
 
 	//实时回调函数，每个实时周期调用一次//
 	cs.setRtPlanPostCallback(kaanh::update_state);
+	g_model = cs.model();
 
 	//加载v100的速度值//
 	auto &getspeed = dynamic_cast<aris::dynamic::MatrixVariable &>(*cs.model().variablePool().findByName("v100"));
