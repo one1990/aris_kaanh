@@ -910,7 +910,15 @@ namespace kaanh
 		realzone(0){};
 
 
-	struct MoveAbsJParam :public SetActiveMotor, SetInputMovement {};
+	struct MoveAbsJParam :public SetActiveMotor, SetInputMovement 
+	{
+		std::shared_ptr<kaanh::MoveBase> pre_plan;
+		Size max_total_count = 0;
+		bool zone_enabled = false;
+		Speed sp;
+		Zone zone;
+		Load ld;
+	};
 	auto MoveAbsJ::prepareNrt()->void
 	{
 		MoveAbsJParam param;
@@ -921,6 +929,48 @@ namespace kaanh
 		check_input_movement(cmdParams(), *this, param, param);
 
 		param.axis_begin_pos_vec.resize(controller()->motionPool().size());
+
+		auto&cs = aris::server::ControlServer::instance();
+		auto &cal = cs.model().calculator();
+		// find joint acc/vel/dec/jerk/zone
+		for (auto cmd_param : cmdParams())
+		{
+			auto c = controller();
+			if (cmd_param.first == "zone")
+			{
+				if (cmd_param.second == "fine")//不设置转弯区
+				{
+					param.zone.dis = 0.0;
+					param.zone.per = 0.0;
+					param.zone_enabled = 0;
+				}
+				else//设置转弯区
+				{
+					auto z = std::any_cast<kaanh::Zone>(cal.calculateExpression("zone(" + std::string(cmd_param.second) + ")").second);
+					param.zone = z;
+					param.zone_enabled = 1;
+					if (param.zone.per > 0.5&&param.zone.per < 0.001)
+					{
+						THROW_FILE_LINE("zone out of range");
+					}
+				}
+			}
+			else if (cmd_param.first == "speed")
+			{
+				auto s = std::any_cast<kaanh::Speed>(cal.calculateExpression("speed(" + std::string(cmd_param.second) + ")").second);
+				param.sp = s;
+				for (int i = 0; i < 6; ++i)
+				{
+					param.axis_vel_vec[i] = controller()->motionPool()[i].maxVel()*param.sp.w_per;
+				}
+			}
+			else if (cmd_param.first == "load")
+			{
+				auto temp = std::any_cast<kaanh::Load>(cal.calculateExpression("load(" + std::string(cmd_param.second) + ")").second);
+				param.ld = temp;
+			}
+		}
+
 		this->param() = param;
 		//std::fill(plan.motorOptions().begin(), plan.motorOptions().end(), Plan::USE_TARGET_POS);
         for (auto &option : motorOptions()) option |= aris::plan::Plan::NOT_CHECK_ENABLE;
@@ -987,6 +1037,9 @@ namespace kaanh
 			"		<Param name=\"acc\" default=\"1.0\"/>"
 			"		<Param name=\"dec\" default=\"1.0\"/>"
 			"		<Param name=\"jerk\" default=\"10.0\"/>"
+			"		<Param name=\"speed\" default=\"{0.1, 0.1, 3.49, 0.0, 0.0}\"/>"
+			"		<Param name=\"zone\" default=\"fine\"/>"
+			"		<Param name=\"load\" default=\"{1,0.05,0.05,0.05,0,0.97976,0,0.200177,1.0,1.0,1.0}\"/>"
 			SELECT_MOTOR_STRING
 			CHECK_PARAM_STRING
 			"	</GroupParam>"
@@ -1013,12 +1066,13 @@ namespace kaanh
 		else if (pos_unit_found->second == "mm")pos_unit = 0.001;
 		else if (pos_unit_found->second == "cm")pos_unit = 0.01;
 		else THROW_FILE_LINE("");
-
+		auto&cs = aris::server::ControlServer::instance();
+		auto &cal = cs.model().calculator();
 		for (auto cmd_param : params)
 		{
 			if (cmd_param.first == "pq")
 			{
-				auto pq_mat = plan.matrixParam(cmd_param.first);
+				auto pq_mat = std::any_cast<aris::core::Matrix>(cal.calculateExpression("robtarget(" + std::string(cmd_param.second) + ")").second);
 				if (pq_mat.size() != 7)THROW_FILE_LINE("");
 				aris::dynamic::s_vc(7, pq_mat.data(), pq_out);
 				aris::dynamic::s_nv(3, pos_unit, pq_out);
@@ -1060,12 +1114,15 @@ namespace kaanh
 	}
 	struct MoveJParam
 	{
-		std::vector<double> joint_vel, joint_acc, joint_dec, joint_jerk, ee_pq, joint_pos_begin, joint_pos_end, zone;
+		std::vector<double> joint_vel, joint_acc, joint_dec, joint_jerk, ee_pq, joint_pos_begin, joint_pos_end;
 		std::vector<Size> total_count;
 		aris::dynamic::Marker *tool, *wobj;
 		std::shared_ptr<kaanh::MoveBase> pre_plan;
 		Size max_total_count = 0;
 		bool zone_enabled = false;
+		Speed sp;
+		Zone zone;
+		Load ld;
 	};
 	struct MoveJ::Imp {};
 	auto MoveJ::prepareNrt()->void
@@ -1085,6 +1142,8 @@ namespace kaanh
 		mvj_param.tool = &*model()->generalMotionPool()[0].makI().fatherPart().markerPool().findByName(std::string(cmdParams().at("tool")));
 		mvj_param.wobj = &*model()->generalMotionPool()[0].makJ().fatherPart().markerPool().findByName(std::string(cmdParams().at("wobj")));
 
+		auto&cs = aris::server::ControlServer::instance();
+		auto &cal = cs.model().calculator();
 		// find joint acc/vel/dec/jerk/zone
 		for (auto cmd_param : cmdParams())
 		{
@@ -1159,25 +1218,39 @@ namespace kaanh
 			}
 			else if (cmd_param.first == "zone")
 			{
-				mvj_param.zone.clear();
-				mvj_param.zone.resize(2, 0.0);
 				if (cmd_param.second == "fine")//不设置转弯区
 				{
-					std::fill(mvj_param.zone.begin(), mvj_param.zone.end(), 0.0);
+					mvj_param.zone.dis = 0.0;
+					mvj_param.zone.per = 0.0;
 					mvj_param.zone_enabled = 0;
 				}
 				else//设置转弯区
 				{
-					auto z = matrixParam(cmd_param.first);
-					std::copy(z.begin(), z.end(), mvj_param.zone.begin());
+					auto z = std::any_cast<kaanh::Zone>(cal.calculateExpression("zone(" + std::string(cmd_param.second) + ")").second);
+					mvj_param.zone = z;
 					mvj_param.zone_enabled = 1;
-					if (mvj_param.zone[1] > 0.5)
+					if (mvj_param.zone.per > 0.5&&mvj_param.zone.per<0.001)
 					{
 						THROW_FILE_LINE("zone out of range");
 					}
 				}
 			}
+			else if (cmd_param.first == "speed")
+			{
+				auto s = std::any_cast<kaanh::Speed>(cal.calculateExpression("speed(" + std::string(cmd_param.second) + ")").second);
+				mvj_param.sp = s;
+				for (int i = 0; i < 6; ++i)
+				{
+					mvj_param.joint_vel[i] = controller()->motionPool()[i].maxVel()*mvj_param.sp.w_per;
+				}
+			}
+			else if (cmd_param.first == "load")
+			{
+				auto temp = std::any_cast<kaanh::Load>(cal.calculateExpression("load(" + std::string(cmd_param.second) + ")").second);
+				mvj_param.ld = temp;
+			}
 		}
+		
 		/*
 		//更新全局变量g_zp//
 		if (mvj_param.zone_enabled)
@@ -1257,12 +1330,12 @@ namespace kaanh
 		if (mvj_param.pre_plan == nullptr)//转弯第一条指令
 		{
 			//更新本条指令的realzone//
-			this->realzone.store(mvj_param.max_total_count*mvj_param.zone[1]);
+			this->realzone.store(mvj_param.max_total_count*mvj_param.zone.per);
 		}
 		else if (mvj_param.pre_plan->name() == this->name())//转弯第二或第n条指令
 		{
 			//更新本plan的realzone//
-			this->realzone.store(mvj_param.max_total_count*mvj_param.zone[1]);
+			this->realzone.store(mvj_param.max_total_count*mvj_param.zone.per);
 			//更新上一条转弯指令的realzone//
 			Size max_zone = std::min(mvj_param.pre_plan->realzone.load(), mvj_param.max_total_count / 2);//当前指令所需count数/2
 			mvj_param.pre_plan->realzone.store(max_zone);
@@ -1270,11 +1343,12 @@ namespace kaanh
 		else//本条指令设置了转弯区，但是与上一条指令无法实现转弯，比如moveL,moveC,moveAbsJ
 		{
 			//更新本plan的realzone//
-			this->realzone.store(mvj_param.max_total_count*mvj_param.zone[1]);
+			this->realzone.store(mvj_param.max_total_count*mvj_param.zone.per);
 			//上一条指令不进行转弯//
 			mvj_param.pre_plan->realzone.store(0);
 		}
 		*/
+
 		this->param() = mvj_param;
 		std::vector<std::pair<std::string, std::any>> ret_value;
 		ret() = ret_value;
@@ -1283,6 +1357,7 @@ namespace kaanh
 	{
 		auto mvj_param = std::any_cast<MoveJParam>(&this->param());
 
+		
 		// 取得起始位置 //
 		double p, v, a, j;
 		if (count() == 1)
@@ -1332,7 +1407,7 @@ namespace kaanh
 			return -4;
 		}
 		return mvj_param->max_total_count == 0 ? 0 : mvj_param->max_total_count - count();
-
+		
 		/*
 		if (mvj_param->pre_plan == nullptr) //转弯第一条指令
 		{
@@ -1356,29 +1431,41 @@ namespace kaanh
 		}
 		else if (mvj_param->pre_plan->name() == this->name()) //转弯区第二条指令或者第n条指令
 		{
-			auto param = std::any_cast<MoveJParam>(&mvj_param->pre_plan->param());
+			static auto param = std::any_cast<MoveJParam&>(mvj_param->pre_plan->param());
 			for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
 			{
 				//preplan//
 				double prep = 0.0, prev, prea, prej;
 				//count数小于等于上一条指令的realzone，zone起作用//
-				if (count() <= param->pre_plan->realzone.load())
+				if (count() <= mvj_param->pre_plan->realzone.load())
 				{
-					traplan::sCurve(static_cast<double>(param->max_total_count - mvj_param->pre_plan->realzone.load() + count()) * param->total_count[i] / param->max_total_count,
-						param->joint_pos_begin[i], param->joint_pos_end[i],
-						param->joint_vel[i] / 1000, param->joint_acc[i] / 1000 / 1000, param->joint_jerk[i] / 1000 / 1000 / 1000,
-						prep, prev, prea, prej, param->total_count[i]);
+					traplan::sCurve(static_cast<double>(param.max_total_count - mvj_param->pre_plan->realzone.load() + count()) * param.total_count[i] / param.max_total_count,
+						param.joint_pos_begin[i], param.joint_pos_end[i],
+						param.joint_vel[i] / 1000, param.joint_acc[i] / 1000 / 1000, param.joint_jerk[i] / 1000 / 1000 / 1000,
+						prep, prev, prea, prej, param.total_count[i]);
+
+					//thisplan//
+					double p, v, a, j;
+					traplan::sCurve(static_cast<double>(count()) * mvj_param->total_count[i] / mvj_param->max_total_count,
+						mvj_param->joint_pos_begin[i], mvj_param->joint_pos_end[i],
+						mvj_param->joint_vel[i] / 1000, mvj_param->joint_acc[i] / 1000 / 1000, mvj_param->joint_jerk[i] / 1000 / 1000 / 1000,
+						p, v, a, j, mvj_param->total_count[i]);
+
+					controller()->motionPool()[i].setTargetPos(prep + p);
+					model()->motionPool()[i].setMp(prep + p);
 				}
+				else
+				{
+					//thisplan//
+					double p, v, a, j;
+					traplan::sCurve(static_cast<double>(count()) * mvj_param->total_count[i] / mvj_param->max_total_count,
+						mvj_param->joint_pos_begin[i], mvj_param->joint_pos_end[i],
+						mvj_param->joint_vel[i] / 1000, mvj_param->joint_acc[i] / 1000 / 1000, mvj_param->joint_jerk[i] / 1000 / 1000 / 1000,
+						p, v, a, j, mvj_param->total_count[i]);
 
-				//thisplan//
-				double p, v, a, j;
-				traplan::sCurve(static_cast<double>(count()) * mvj_param->total_count[i] / mvj_param->max_total_count,
-					mvj_param->joint_pos_begin[i], mvj_param->joint_pos_end[i],
-					mvj_param->joint_vel[i] / 1000, mvj_param->joint_acc[i] / 1000 / 1000, mvj_param->joint_jerk[i] / 1000 / 1000 / 1000,
-					p, v, a, j, mvj_param->total_count[i]);
-
-				controller()->motionPool()[i].setTargetPos(prep + p);
-				model()->motionPool()[i].setMp(prep + p);
+					controller()->motionPool()[i].setTargetPos(p);
+					model()->motionPool()[i].setMp(p);
+				}
 			}
 		}
 		else//本条指令设置了转弯区，但是与上一条指令无法实现转弯，比如moveL,moveC,moveAbsJ
@@ -1409,9 +1496,8 @@ namespace kaanh
 		{
 			controller()->mout() << "mvj_param->max_total_count:" << mvj_param->max_total_count <<"this->realzone.load():" << rzcount << std::endl;
 		}
-		return mvj_param->max_total_count == 0 ? 0 : mvj_param->max_total_count - rzcount - count();
+		return mvj_param->max_total_count == 0 ? 0 : mvj_param->max_total_count - rzcount - count();	
 		*/
-		
 	}
 	auto MoveJ::collectNrt()->void
 	{
@@ -1441,7 +1527,9 @@ namespace kaanh
 			"		<Param name=\"joint_vel\" default=\"0.1\"/>"
 			"		<Param name=\"joint_dec\" default=\"0.1\"/>"
 			"		<Param name=\"joint_jerk\" default=\"10.0\"/>"
-			"		<Param name=\"zone\" default=\"{0.01,0.05}\"/>"
+			"		<Param name=\"speed\" default=\"{0.1, 0.1, 3.49, 0.0, 0.0}\"/>"
+			"		<Param name=\"zone\" default=\"fine\"/>"
+			"		<Param name=\"load\" default=\"{1,0.05,0.05,0.05,0,0.97976,0,0.200177,1.0,1.0,1.0}\"/>"
 			"		<Param name=\"tool\" default=\"tool0\"/>"
 			"		<Param name=\"wobj\" default=\"wobj0\"/>"
 			CHECK_PARAM_STRING
@@ -1459,6 +1547,13 @@ namespace kaanh
 		double acc, vel, dec, jerk;
 		double angular_acc, angular_vel, angular_dec, angular_jerk;
 		aris::dynamic::Marker *tool, *wobj;
+
+		std::shared_ptr<kaanh::MoveBase> pre_plan;
+		Size max_total_count = 0;
+		bool zone_enabled = false;
+		Speed sp;
+		Zone zone;
+		Load ld;
 	};
 	struct MoveL::Imp {};
 	auto MoveL::prepareNrt()->void
@@ -1471,6 +1566,9 @@ namespace kaanh
 
 		mvl_param.tool = &*model()->generalMotionPool()[0].makI().fatherPart().markerPool().findByName(std::string(cmdParams().at("tool")));
 		mvl_param.wobj = &*model()->generalMotionPool()[0].makJ().fatherPart().markerPool().findByName(std::string(cmdParams().at("wobj")));
+
+		auto&cs = aris::server::ControlServer::instance();
+		auto &cal = cs.model().calculator();
 
 		for (auto cmd_param : cmdParams())
 		{
@@ -1505,6 +1603,37 @@ namespace kaanh
 			else if (cmd_param.first == "angular_jerk")
 			{
 				mvl_param.angular_jerk = doubleParam(cmd_param.first)*mvl_param.angular_acc;
+			}
+			else if (cmd_param.first == "zone")
+			{
+				if (cmd_param.second == "fine")//不设置转弯区
+				{
+					mvl_param.zone.dis = 0.0;
+					mvl_param.zone.per = 0.0;
+					mvl_param.zone_enabled = 0;
+				}
+				else//设置转弯区
+				{
+					auto z = std::any_cast<kaanh::Zone>(cal.calculateExpression("zone(" + std::string(cmd_param.second) + ")").second);
+					mvl_param.zone = z;
+					mvl_param.zone_enabled = 1;
+					if (mvl_param.zone.dis > 0.2&&mvl_param.zone.dis < 0.001)
+					{
+						THROW_FILE_LINE("zone out of range");
+					}
+				}
+			}
+			else if (cmd_param.first == "speed")
+			{
+				auto s = std::any_cast<kaanh::Speed>(cal.calculateExpression("speed(" + std::string(cmd_param.second) + ")").second);
+				mvl_param.sp = s;
+				mvl_param.vel = mvl_param.sp.v_tcp;
+				mvl_param.angular_vel = mvl_param.sp.w_tcp;
+			}
+			else if (cmd_param.first == "load")
+			{
+				auto temp = std::any_cast<kaanh::Load>(cal.calculateExpression("load(" + std::string(cmd_param.second) + ")").second);
+				mvl_param.ld = temp;
 			}
 		}
 
@@ -1618,6 +1747,9 @@ namespace kaanh
 			"		<Param name=\"angular_vel\" default=\"0.1\"/>"
 			"		<Param name=\"angular_dec\" default=\"0.1\"/>"
 			"		<Param name=\"angular_jerk\" default=\"10.0\"/>"
+			"		<Param name=\"speed\" default=\"{0.1, 0.1, 3.49, 0.0, 0.0}\"/>"
+			"		<Param name=\"zone\" default=\"fine\"/>"
+			"		<Param name=\"load\" default=\"{1,0.05,0.05,0.05,0,0.97976,0,0.200177,1.0,1.0,1.0}\"/>"
 			"		<Param name=\"tool\" default=\"tool0\"/>"
 			"		<Param name=\"wobj\" default=\"wobj0\"/>"
 			CHECK_PARAM_STRING
@@ -1635,15 +1767,17 @@ namespace kaanh
 		else if (pos_unit_found->second == "m")pos_unit = 1.0;
 		else if (pos_unit_found->second == "mm")pos_unit = 0.001;
 		else if (pos_unit_found->second == "cm")pos_unit = 0.01;
-    else THROW_FILE_LINE("");
+		else THROW_FILE_LINE("");
 
+		auto&cs = aris::server::ControlServer::instance();
+		auto &cal = cs.model().calculator();
 
 		for (auto cmd_param : params)
 		{
 			if (cmd_param.first == "mid_pq")
 			{
-				auto pq_mat = plan.matrixParam(cmd_param.first);
-        if (pq_mat.size() != 7)THROW_FILE_LINE("");
+				auto pq_mat = std::any_cast<aris::core::Matrix>(cal.calculateExpression("robtarget(" + std::string(cmd_param.second) + ")").second);
+				if (pq_mat.size() != 7)THROW_FILE_LINE("");
 
 				aris::dynamic::s_vc(7, pq_mat.data(), mid_pq_out);
 				aris::dynamic::s_nv(3, pos_unit, mid_pq_out);
@@ -1694,11 +1828,14 @@ namespace kaanh
 		else if (pos_unit_found->second == "cm")pos_unit = 0.01;
 		else THROW_FILE_LINE("");
 
+		auto&cs = aris::server::ControlServer::instance();
+		auto &cal = cs.model().calculator();
+
 		for (auto cmd_param : params)
 		{
 			if (cmd_param.first == "end_pq")
 			{
-				auto pq_mat = plan.matrixParam(cmd_param.first);
+				auto pq_mat = std::any_cast<aris::core::Matrix>(cal.calculateExpression("robtarget(" + std::string(cmd_param.second) + ")").second);
 				if (pq_mat.size() != 7)THROW_FILE_LINE("");
 				aris::dynamic::s_vc(7, pq_mat.data(), end_pq_out);
 				aris::dynamic::s_nv(3, pos_unit, end_pq_out);
@@ -1780,6 +1917,13 @@ namespace kaanh
 		double acc, vel, dec, jerk;
 		double angular_acc, angular_vel, angular_dec, angular_jerk;
 		aris::dynamic::Marker *tool, *wobj;
+
+		std::shared_ptr<kaanh::MoveBase> pre_plan;
+		Size max_total_count = 0;
+		bool zone_enabled = false;
+		Speed sp;
+		Zone zone;
+		Load ld;
 	};
 	struct MoveC::Imp {};
 	auto MoveC::prepareNrt()->void
@@ -1793,6 +1937,9 @@ namespace kaanh
 
 		mvc_param.tool = &*model()->generalMotionPool()[0].makI().fatherPart().markerPool().findByName(std::string(cmdParams().at("tool")));
 		mvc_param.wobj = &*model()->generalMotionPool()[0].makJ().fatherPart().markerPool().findByName(std::string(cmdParams().at("wobj")));
+
+		auto&cs = aris::server::ControlServer::instance();
+		auto &cal = cs.model().calculator();
 
 		for (auto cmd_param : cmdParams())
 		{
@@ -1827,6 +1974,37 @@ namespace kaanh
 			else if (cmd_param.first == "angular_jerk")
 			{
 				mvc_param.angular_jerk = doubleParam(cmd_param.first);
+			}
+			else if (cmd_param.first == "zone")
+			{
+				if (cmd_param.second == "fine")//不设置转弯区
+				{
+					mvc_param.zone.dis = 0.0;
+					mvc_param.zone.per = 0.0;
+					mvc_param.zone_enabled = 0;
+				}
+				else//设置转弯区
+				{
+					auto z = std::any_cast<kaanh::Zone>(cal.calculateExpression("zone(" + std::string(cmd_param.second) + ")").second);
+					mvc_param.zone = z;
+					mvc_param.zone_enabled = 1;
+					if (mvc_param.zone.dis > 0.2&&mvc_param.zone.dis < 0.001)
+					{
+						THROW_FILE_LINE("zone out of range");
+					}
+				}
+			}
+			else if (cmd_param.first == "speed")
+			{
+				auto s = std::any_cast<kaanh::Speed>(cal.calculateExpression("speed(" + std::string(cmd_param.second) + ")").second);
+				mvc_param.sp = s;
+				mvc_param.vel = mvc_param.sp.v_tcp;
+				mvc_param.angular_vel = mvc_param.sp.w_tcp;
+			}
+			else if (cmd_param.first == "load")
+			{
+				auto temp = std::any_cast<kaanh::Load>(cal.calculateExpression("load(" + std::string(cmd_param.second) + ")").second);
+				mvc_param.ld = temp;
 			}
 		}
 
@@ -2029,6 +2207,9 @@ namespace kaanh
 			"		<Param name=\"angular_vel\" default=\"0.1\"/>"
 			"		<Param name=\"angular_dec\" default=\"0.1\"/>"
 			"		<Param name=\"angular_jerk\" default=\"0.1\"/>"
+			"		<Param name=\"speed\" default=\"{0.1, 0.1, 3.49, 0.0, 0.0}\"/>"
+			"		<Param name=\"zone\" default=\"fine\"/>"
+			"		<Param name=\"load\" default=\"{1,0.05,0.05,0.05,0,0.97976,0,0.200177,1.0,1.0,1.0}\"/>"
 			"		<Param name=\"tool\" default=\"tool0\"/>"
 			"		<Param name=\"wobj\" default=\"wobj0\"/>"
 			"	</GroupParam>"
@@ -2720,7 +2901,7 @@ namespace kaanh
 				param.increase_count = this_p->int32Param("increase_count");
 				if (param.increase_count < 0 || param.increase_count>1e5)THROW_FILE_LINE("");
 
-				param.vel = this_p->controller()->motionPool().at(param.motion_id).maxVel()*g_vel.getspeed().w_percent;
+				param.vel = this_p->controller()->motionPool().at(param.motion_id).maxVel()*g_vel.w_per;
 				param.acc = std::min(std::max(this_p->doubleParam("acc"), 0.0), 1.0)*this_p->controller()->motionPool().at(param.motion_id).maxAcc();
 				param.dec = std::min(std::max(this_p->doubleParam("dec"), 0.0), 1.0)*this_p->controller()->motionPool().at(param.motion_id).maxAcc();
 
@@ -2783,7 +2964,7 @@ namespace kaanh
 		}
 
 		// init status and calculate target pos and max vel //
-		param.max_vel = param.vel*1.0*param.vel_percent / 100.0;
+		param.max_vel = param.vel*1.0*g_vel_percent.load() / 100.0;
 		
 		param.target_pos += aris::dynamic::s_sgn(param.increase_status)*param.max_vel * 1e-3;
 
@@ -2870,7 +3051,7 @@ namespace kaanh
 		}
 
 		// init status and calculate target pos and max vel //
-		param.max_vel = param.vel*1.0*param.vel_percent / 100.0;
+		param.max_vel = param.vel*1.0*g_vel_percent.load() / 100.0;
 
 		param.target_pos += aris::dynamic::s_sgn(param.increase_status)*param.max_vel * 1e-3;
 
@@ -2956,7 +3137,7 @@ namespace kaanh
 		}
 
 		// init status and calculate target pos and max vel //
-		param.max_vel = param.vel*1.0*param.vel_percent / 100.0;
+		param.max_vel = param.vel*1.0*g_vel_percent.load() / 100.0;
 
 		param.target_pos += aris::dynamic::s_sgn(param.increase_status)*param.max_vel * 1e-3;
 
@@ -3042,7 +3223,7 @@ namespace kaanh
 		}
 
 		// init status and calculate target pos and max vel //
-		param.max_vel = param.vel*1.0*param.vel_percent / 100.0;
+		param.max_vel = param.vel*1.0*g_vel_percent.load() / 100.0;
 
 		param.target_pos += aris::dynamic::s_sgn(param.increase_status)*param.max_vel * 1e-3;
 
@@ -3128,7 +3309,7 @@ namespace kaanh
 		}
 
 		// init status and calculate target pos and max vel //
-		param.max_vel = param.vel*1.0*param.vel_percent / 100.0;
+		param.max_vel = param.vel*1.0*g_vel_percent.load() / 100.0;
 
 		param.target_pos += aris::dynamic::s_sgn(param.increase_status)*param.max_vel * 1e-3;
 
@@ -3214,7 +3395,7 @@ namespace kaanh
 		}
 
 		// init status and calculate target pos and max vel //
-		param.max_vel = param.vel*1.0*param.vel_percent / 100.0;
+		param.max_vel = param.vel*1.0*g_vel_percent.load() / 100.0;
 		param.target_pos += aris::dynamic::s_sgn(param.increase_status)*param.max_vel * 1e-3;
 
 		// 梯形轨迹规划 //
@@ -3402,7 +3583,7 @@ namespace kaanh
 		"	<UniqueParam>"\
 		"		<GroupParam>"\
 		"			<Param name=\"increase_count\" default=\"500\"/>"\
-		"			<Param name=\"vel\" default=\"{0.05,0.05,0.05,0.25,0.25,0.25}\"/>"\
+		"			<Param name=\"vel\" default=\"{0.05,0.05,0.05,0.15,0.15,0.15}\"/>"\
 		"			<Param name=\"acc\" default=\"{0.2,0.2,0.2,1,1,1}\"/>"\
 		"			<Param name=\"dec\" default=\"{0.2,0.2,0.2,1,1,1}\"/>"\
 		"			<Param name=\"cor\" default=\"0\"/>"\
@@ -3454,8 +3635,8 @@ namespace kaanh
 				auto mat = this_p->matrixParam("vel");
 				if (mat.size() != 6)THROW_FILE_LINE("");
 				std::copy(mat.begin(), mat.end(), param.vel);
-				std::fill(param.vel, param.vel + 3, g_vel.getspeed().v_tcp);
-				std::fill(param.vel + 3, param.vel + 6, g_vel.getspeed().w_tcp);
+				std::fill(param.vel, param.vel + 3, g_vel.v_tcp);
+				std::fill(param.vel + 3, param.vel + 6, g_vel.w_tcp*0.1);
 
 				mat = this_p->matrixParam("acc");
 				if (mat.size() != 6)THROW_FILE_LINE("");
@@ -3533,7 +3714,7 @@ namespace kaanh
 		// calculate target pos and max vel //
 		for (int i = 0; i < 6; i++)
 		{
-			max_vel[i] = param.vel[i] * 1.0 * param.vel_percent / 100.0;
+			max_vel[i] = param.vel[i] * 1.0 * g_vel_percent.load() / 100.0;
 			target_p[i] += aris::dynamic::s_sgn(param.increase_status[i]) * max_vel[i] * 1e-3;
 		}
 		// 梯形轨迹规划 calculate real value //
@@ -3662,7 +3843,7 @@ namespace kaanh
 		// calculate target pos and max vel //
 		for (int i = 0; i < 6; i++)
 		{
-			max_vel[i] = param.vel[i] * 1.0 * param.vel_percent / 100.0;
+			max_vel[i] = param.vel[i] * 1.0 * g_vel_percent.load() / 100.0;
 			target_p[i] += aris::dynamic::s_sgn(param.increase_status[i]) * max_vel[i] * 1e-3;
 		}
 		// 梯形轨迹规划 calculate real value //
@@ -3788,7 +3969,7 @@ namespace kaanh
 		// calculate target pos and max vel //
 		for (int i = 0; i < 6; i++)
 		{
-			max_vel[i] = param.vel[i] * 1.0 * param.vel_percent / 100.0;
+			max_vel[i] = param.vel[i] * 1.0 * g_vel_percent.load() / 100.0;
 			target_p[i] += aris::dynamic::s_sgn(param.increase_status[i]) * max_vel[i] * 1e-3;
 		}
 		// 梯形轨迹规划 calculate real value //
@@ -3915,7 +4096,7 @@ namespace kaanh
 		// calculate target pos and max vel //
 		for (int i = 0; i < 6; i++)
 		{
-			max_vel[i] = param.vel[i] * 1.0 * param.vel_percent / 100.0;
+			max_vel[i] = param.vel[i] * 1.0 * g_vel_percent.load() / 100.0;
 			target_p[i] += aris::dynamic::s_sgn(param.increase_status[i]) * max_vel[i] * 1e-3;
 		}
 		// 梯形轨迹规划 calculate real value //
@@ -4041,7 +4222,7 @@ namespace kaanh
 		// calculate target pos and max vel //
 		for (int i = 0; i < 6; i++)
 		{
-			max_vel[i] = param.vel[i] * 1.0 * param.vel_percent / 100.0;
+			max_vel[i] = param.vel[i] * 1.0 * g_vel_percent.load() / 100.0;
 			target_p[i] += aris::dynamic::s_sgn(param.increase_status[i]) * max_vel[i] * 1e-3;
 		}
 		// 梯形轨迹规划 calculate real value //
@@ -4167,7 +4348,7 @@ namespace kaanh
 		// calculate target pos and max vel //
 		for (int i = 0; i < 6; i++)
 		{
-			max_vel[i] = param.vel[i] * 1.0 * param.vel_percent / 100.0;
+			max_vel[i] = param.vel[i] * 1.0 * g_vel_percent.load() / 100.0;
 			target_p[i] += aris::dynamic::s_sgn(param.increase_status[i]) * max_vel[i] * 1e-3;
 		}
 		// 梯形轨迹规划 calculate real value //

@@ -738,7 +738,14 @@ namespace kaanhconfig
 			{
 				THROW_FILE_LINE("input data error");
 			}
-			return params[0];
+			kaanh::Load a;
+			auto temp = std::any_cast<aris::core::Matrix&>(params[0]).data();
+			std::copy(temp, temp + 1, &a.mass);
+			std::copy(temp + 1, temp + 4, &a.cog[0]);
+			std::copy(temp + 4, temp + 8, &a.pq[0]);
+			std::copy(temp + 8, temp + 11, &a.iner[0]);
+
+			return a;
 		});
 		cal.addTypename("pose");
 		cal.addFunction("pose", std::vector<std::string>{"Matrix"}, "pose", [](std::vector<std::any>&params)->std::any
@@ -774,7 +781,12 @@ namespace kaanhconfig
 			{
 				THROW_FILE_LINE("input data error");
 			}
-			return params[0];
+			kaanh::Zone z;
+			auto temp = std::any_cast<aris::core::Matrix&>(params[0]).data();
+			std::copy(temp, temp + 1, &z.dis);
+			std::copy(temp + 1, temp + 2, &z.per);
+
+			return z;
 		});
 		cal.addTypename("speed");
 		cal.addFunction("speed", std::vector<std::string>{"Matrix"}, "speed", [](std::vector<std::any>&params)->std::any
@@ -783,7 +795,16 @@ namespace kaanhconfig
 			{
 				THROW_FILE_LINE("input data error");
 			}
-			return params[0];
+			kaanh::Speed z;
+			auto temp = std::any_cast<aris::core::Matrix&>(params[0]).data();
+			std::copy(temp, temp + 1, &z.w_per);
+			std::copy(temp + 1, temp + 2, &z.v_tcp);
+			std::copy(temp + 2, temp + 3, &z.w_tcp);
+			std::copy(temp + 3, temp + 4, &z.w_ext);
+			std::copy(temp + 4, temp + 5, &z.v_ext);
+			
+			return z;
+
 		});
 		cal.addTypename("tool");
 		cal.addFunction("tool", std::vector<std::string>{"Matrix"}, "tool", [](std::vector<std::any>&params)->std::any

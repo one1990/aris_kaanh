@@ -45,13 +45,30 @@ namespace kaanh
 		MoveBase(const MoveBase &other);
 	};
 
-	struct SpeedParam
+	class Speed
 	{
-		double w_percent;	//关节速度百分比
+	public:
+		double w_per;	//关节速度百分比
 		double v_tcp;	//TCP线速度mm/s
 		double w_tcp;	//空间旋转速度°/s
 		double w_ext;	//外部轴角速度°/s
 		double v_ext;	//外部轴线速度mm/s
+	};
+
+	class Zone
+	{
+	public:
+		double dis;	//转弯区长度m
+		double per;	//转弯区百分比分数表达
+	};
+
+	class Load
+	{
+	public:
+		double mass;	//质量
+		double cog[3];	//质心在x,y,z三个方向的分量
+		double pq[4];	//惯性主轴的方向
+		double iner[3];	//三个主轴方向的转动惯量
 	};
 
 	auto update_state(aris::server::ControlServer &cs)->void;
@@ -91,26 +108,6 @@ namespace kaanh
 
 	private:
 		aris::core::Socket *sock_;
-	};
-
-	class Speed
-	{
-	public:
-		auto setspeed(SpeedParam speed)->void
-		{
-			s = speed;
-		};
-		auto getspeed()->SpeedParam
-		{
-			return s;
-		};
-		Speed(SpeedParam speed = {0.0,0.0,0.0,0.0,0.0})
-		{
-			s = speed;
-		};
-	
-	private:
-		SpeedParam s;
 	};
 
 	class Get : public aris::plan::Plan

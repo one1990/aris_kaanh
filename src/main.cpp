@@ -29,12 +29,6 @@ const std::string xmlfile = "kaanh.xml";
 const std::string uixmlfile = "interface_kaanh.xml";
 const std::string modelxmlfile = "model_rokae.xml";
 
-class Load
-{
-	public:
-		double mass;
-		double pq[10];
-};
 
 //添加var类型
 aris::core::Calculator g_cal;
@@ -74,6 +68,12 @@ int main(int argc, char *argv[])
 	auto mat = std::any_cast<aris::core::Matrix>(ret_load.second);
 	std::cout << mat.data()[0] << std::endl;
 
+
+	cal.addVariable("p10", "pose", aris::core::Matrix({ 1,2,3,4,5,6,7 }));
+	auto ret_ff = cal.calculateExpression("pose(p10)");
+	std::cout << ret_ff.first << std::endl;
+	auto ret_ff2 = cal.calculateExpression("pose({6,5,4,3,2,1,0})");
+	std::cout << ret_ff2.first << std::endl;
 
 	/*
 	//构造一个类型来接收UI变量//
@@ -163,10 +163,8 @@ int main(int argc, char *argv[])
 
 	//加载v100的速度值//
 	auto &getspeed = dynamic_cast<aris::dynamic::MatrixVariable &>(*cs.model().variablePool().findByName("v100"));
-	kaanh::SpeedParam speed;
-	std::copy(getspeed.data().begin(), getspeed.data().end(), &speed.w_percent);
-	speed.w_tcp = speed.w_tcp * speed.w_percent;
-	g_vel.setspeed(speed);
+	std::copy(getspeed.data().begin(), getspeed.data().end(), &g_vel.w_per);
+	std::cout << g_vel.w_per << std::endl;
 
 #ifdef WIN32
 	for (auto &m : cs.controller().slavePool())
