@@ -25,6 +25,8 @@ namespace kaanhconfig
     auto createControllerDaye()->std::unique_ptr<aris::control::Controller>;
     auto createModelDaye(const double *robot_pm = nullptr)->std::unique_ptr<aris::dynamic::Model>;
 
+	auto createUserDataType(aris::core::Calculator &cal)->void;
+
 	auto createPlanRoot()->std::unique_ptr<aris::plan::PlanRoot>;
 }
 

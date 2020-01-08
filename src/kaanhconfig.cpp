@@ -724,6 +724,87 @@ namespace kaanhconfig
 		return std::move(model);
 	}
 
+	auto createUserDataType(aris::core::Calculator &cal)->void
+	{
+		cal.addTypename("array");
+		cal.addFunction("array", std::vector<std::string>{"Matrix"}, "array", [](std::vector<std::any>&params)->std::any
+		{
+			return params[0];
+		});
+		cal.addTypename("load");
+		cal.addFunction("load", std::vector<std::string>{"Matrix"}, "load", [](std::vector<std::any>&params)->std::any
+		{
+			if (std::any_cast<aris::core::Matrix>(params[0]).size() != 11)
+			{
+				THROW_FILE_LINE("input data error");
+			}
+			return params[0];
+		});
+		cal.addTypename("pose");
+		cal.addFunction("pose", std::vector<std::string>{"Matrix"}, "pose", [](std::vector<std::any>&params)->std::any
+		{
+			if (std::any_cast<aris::core::Matrix>(params[0]).size() != 7)
+			{
+				THROW_FILE_LINE("input data error");
+			}
+			return params[0];
+		});
+		cal.addTypename("jointtarget");
+		cal.addFunction("jointtarget", std::vector<std::string>{"Matrix"}, "jointtarget", [](std::vector<std::any>&params)->std::any
+		{
+			if (std::any_cast<aris::core::Matrix>(params[0]).size() != 6)
+			{
+				THROW_FILE_LINE("input data error");
+			}
+			return params[0];
+		});
+		cal.addTypename("robtarget");
+		cal.addFunction("robtarget", std::vector<std::string>{"Matrix"}, "robtarget", [](std::vector<std::any>&params)->std::any
+		{
+			if (std::any_cast<aris::core::Matrix>(params[0]).size() != 7)
+			{
+				THROW_FILE_LINE("input data error");
+			}
+			return params[0];
+		});
+		cal.addTypename("zone");
+		cal.addFunction("zone", std::vector<std::string>{"Matrix"}, "zone", [](std::vector<std::any>&params)->std::any
+		{
+			if (std::any_cast<aris::core::Matrix>(params[0]).size() != 2)
+			{
+				THROW_FILE_LINE("input data error");
+			}
+			return params[0];
+		});
+		cal.addTypename("speed");
+		cal.addFunction("speed", std::vector<std::string>{"Matrix"}, "speed", [](std::vector<std::any>&params)->std::any
+		{
+			if (std::any_cast<aris::core::Matrix>(params[0]).size() != 5)
+			{
+				THROW_FILE_LINE("input data error");
+			}
+			return params[0];
+		});
+		cal.addTypename("tool");
+		cal.addFunction("tool", std::vector<std::string>{"Matrix"}, "tool", [](std::vector<std::any>&params)->std::any
+		{
+			if (std::any_cast<aris::core::Matrix>(params[0]).size() != 6)
+			{
+				THROW_FILE_LINE("input data error");
+			}
+			return params[0];
+		});
+		cal.addTypename("wobj");
+		cal.addFunction("wobj", std::vector<std::string>{"Matrix"}, "wobj", [](std::vector<std::any>&params)->std::any
+		{
+			if (std::any_cast<aris::core::Matrix>(params[0]).size() != 6)
+			{
+				THROW_FILE_LINE("input data error");
+			}
+			return params[0];
+		});
+	}
+
 	auto createPlanRoot()->std::unique_ptr<aris::plan::PlanRoot>
 	{
 		std::unique_ptr<aris::plan::PlanRoot> plan_root(new aris::plan::PlanRoot);

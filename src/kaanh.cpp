@@ -23,6 +23,7 @@ extern std::atomic_bool g_is_enabled;
 extern std::atomic_bool g_is_error;
 extern std::atomic_bool g_is_manual;
 extern std::atomic_bool g_is_auto;
+extern std::atomic_bool g_is_running;
 //state machine flag//
 
 extern aris::core::Calculator g_cal;
@@ -67,9 +68,21 @@ namespace kaanh
 		g_is_error.store(cs.errorCode());
 
 		g_is_enabled.store(std::all_of(motion_state, motion_state + cs.controller().motionPool().size(), [](bool i) {return i; }));
+
+		auto &inter = dynamic_cast<aris::server::ProgramWebInterface&>(cs.interfacePool().at(0));
+		if (inter.isAutoMode())
+		{
+			g_is_auto.store(true);
+		}
+		else
+		{
+			g_is_auto.store(false);
+		}
+		g_is_running.store(inter.isAutoRunning());
+
 	}
 
-	//获取状态字——100:去使能,200:手动,300:准自动,400:自动,500:错误//
+	//获取状态字——100:去使能,200:手动,300:自动,400:程序运行中,500:错误//
 	auto get_state_code()->std::int32_t
 	{
 		if (g_is_enabled.load())
@@ -80,19 +93,19 @@ namespace kaanh
 			}
 			else
 			{
-				if (g_is_manual.load())
+				if (!g_is_auto.load())
 				{
 					return 200;
 				}
 				else
 				{
-					if (!g_is_auto.load())
+					if (g_is_running)
 					{
-						return 300;
+						return 400;
 					}
 					else
 					{
-						return 400;
+						return 300;
 					}
 				}
 			}
@@ -496,7 +509,6 @@ namespace kaanh
     };
     auto Get::prepareNrt()->void
     {
-        auto is_model = having_model.load();
         GetParam par;
         par.part_pq.resize(model()->partPool().size() * 7, 0.0);
         par.end_pq.resize(7, 0.0);
@@ -590,6 +602,9 @@ namespace kaanh
 
         out_data.state_code = get_state_code();
 
+		auto &cs = *controlServer();
+		auto &inter = dynamic_cast<aris::server::ProgramWebInterface&>(cs.interfacePool().at(0));
+
         std::vector<std::pair<std::string, std::any>> out_param;
         out_param.push_back(std::make_pair<std::string, std::any>("part_pq", out_data.part_pq));
         out_param.push_back(std::make_pair<std::string, std::any>("end_pq", out_data.end_pq));
@@ -607,6 +622,13 @@ namespace kaanh
         out_param.push_back(std::make_pair<std::string, std::any>("motion_state", out_data.motion_state));
         out_param.push_back(std::make_pair<std::string, std::any>("current_plan", out_data.currentplan));
         out_param.push_back(std::make_pair<std::string, std::any>("current_plan_id", cmdparam.current_plan_id));
+		out_param.push_back(std::make_pair(std::string("cs_err_code"), std::make_any<int>(cs.errorCode())));
+		out_param.push_back(std::make_pair(std::string("cs_err_msg"), std::make_any<std::string>(cs.errorMsg())));
+		out_param.push_back(std::make_pair(std::string("pro_err_code"), std::make_any<int>(inter.lastErrorCode())));
+		out_param.push_back(std::make_pair(std::string("pro_err_msg"), std::make_any<std::string>(inter.lastError())));
+		out_param.push_back(std::make_pair(std::string("pro_err_line"), std::make_any<int>(inter.lastErrorLine())));
+		out_param.push_back(std::make_pair(std::string("line"), std::make_any<int>(inter.currentLine())));
+
 
         ret() = out_param;
         option() |= NOT_RUN_EXECUTE_FUNCTION | NOT_PRINT_CMD_INFO | NOT_PRINT_CMD_INFO;
@@ -1042,7 +1064,7 @@ namespace kaanh
 		std::vector<Size> total_count;
 		aris::dynamic::Marker *tool, *wobj;
 		std::shared_ptr<kaanh::MoveBase> pre_plan;
-		Size max_total_count;
+		Size max_total_count = 0;
 		bool zone_enabled = false;
 	};
 	struct MoveJ::Imp {};
@@ -1056,12 +1078,12 @@ namespace kaanh
 		mvj_param.ee_pq.resize(7);
 		find_pq(cmdParams(), *this, mvj_param.ee_pq.data());
 
-		mvj_param.joint_pos_begin.resize(g_model.motionPool().size(), 0.0);
-		mvj_param.joint_pos_end.resize(g_model.motionPool().size(), 0.0);
-		mvj_param.total_count.resize(g_model.motionPool().size(), 0);
+		mvj_param.joint_pos_begin.resize(model()->motionPool().size(), 0.0);
+		mvj_param.joint_pos_end.resize(model()->motionPool().size(), 0.0);
+		mvj_param.total_count.resize(model()->motionPool().size(), 0);
 
-		mvj_param.tool = &*g_model.generalMotionPool()[0].makI().fatherPart().markerPool().findByName(std::string(cmdParams().at("tool")));
-		mvj_param.wobj = &*g_model.generalMotionPool()[0].makJ().fatherPart().markerPool().findByName(std::string(cmdParams().at("wobj")));
+		mvj_param.tool = &*model()->generalMotionPool()[0].makI().fatherPart().markerPool().findByName(std::string(cmdParams().at("tool")));
+		mvj_param.wobj = &*model()->generalMotionPool()[0].makJ().fatherPart().markerPool().findByName(std::string(cmdParams().at("wobj")));
 
 		// find joint acc/vel/dec/jerk/zone
 		for (auto cmd_param : cmdParams())
@@ -1070,68 +1092,68 @@ namespace kaanh
 			if (cmd_param.first == "joint_acc")
 			{
 				mvj_param.joint_acc.clear();
-				mvj_param.joint_acc.resize(g_model.motionPool().size(), 0.0);
+				mvj_param.joint_acc.resize(model()->motionPool().size(), 0.0);
 
 				auto acc_mat = matrixParam(cmd_param.first);
 				if (acc_mat.size() == 1)std::fill(mvj_param.joint_acc.begin(), mvj_param.joint_acc.end(), acc_mat.toDouble());
-				else if (acc_mat.size() == g_model.motionPool().size()) std::copy(acc_mat.begin(), acc_mat.end(), mvj_param.joint_acc.begin());
+				else if (acc_mat.size() == model()->motionPool().size()) std::copy(acc_mat.begin(), acc_mat.end(), mvj_param.joint_acc.begin());
 				else THROW_FILE_LINE("");
 
 				for (int i = 0; i < 6; ++i)mvj_param.joint_acc[i] *= controller()->motionPool()[i].maxAcc();
 
 				// check value validity //
-				for (Size i = 0; i < std::min(g_model.motionPool().size(), c->motionPool().size()); ++i)
+				for (Size i = 0; i < std::min(model()->motionPool().size(), c->motionPool().size()); ++i)
 					if (mvj_param.joint_acc[i] <= 0 || mvj_param.joint_acc[i] > c->motionPool()[i].maxAcc())
 						THROW_FILE_LINE("");
 			}
 			else if (cmd_param.first == "joint_vel")
 			{
 				mvj_param.joint_vel.clear();
-				mvj_param.joint_vel.resize(g_model.motionPool().size(), 0.0);
+				mvj_param.joint_vel.resize(model()->motionPool().size(), 0.0);
 
 				auto vel_mat = matrixParam(cmd_param.first);
 				if (vel_mat.size() == 1)std::fill(mvj_param.joint_vel.begin(), mvj_param.joint_vel.end(), vel_mat.toDouble());
-				else if (vel_mat.size() == g_model.motionPool().size()) std::copy(vel_mat.begin(), vel_mat.end(), mvj_param.joint_vel.begin());
+				else if (vel_mat.size() == model()->motionPool().size()) std::copy(vel_mat.begin(), vel_mat.end(), mvj_param.joint_vel.begin());
 				else THROW_FILE_LINE("");
 
 				for (int i = 0; i < 6; ++i)mvj_param.joint_vel[i] *= controller()->motionPool()[i].maxVel();
 
 				// check value validity //
-				for (Size i = 0; i < std::min(g_model.motionPool().size(), c->motionPool().size()); ++i)
+				for (Size i = 0; i < std::min(model()->motionPool().size(), c->motionPool().size()); ++i)
 					if (mvj_param.joint_vel[i] <= 0 || mvj_param.joint_vel[i] > c->motionPool()[i].maxVel())
 						THROW_FILE_LINE("");
 			}
 			else if (cmd_param.first == "joint_dec")
 			{
 				mvj_param.joint_dec.clear();
-				mvj_param.joint_dec.resize(g_model.motionPool().size(), 0.0);
+				mvj_param.joint_dec.resize(model()->motionPool().size(), 0.0);
 
 				auto dec_mat = matrixParam(cmd_param.first);
 				if (dec_mat.size() == 1)std::fill(mvj_param.joint_dec.begin(), mvj_param.joint_dec.end(), dec_mat.toDouble());
-				else if (dec_mat.size() == g_model.motionPool().size()) std::copy(dec_mat.begin(), dec_mat.end(), mvj_param.joint_dec.begin());
+				else if (dec_mat.size() == model()->motionPool().size()) std::copy(dec_mat.begin(), dec_mat.end(), mvj_param.joint_dec.begin());
 				else THROW_FILE_LINE("");
 
 				for (int i = 0; i < 6; ++i) mvj_param.joint_dec[i] *= controller()->motionPool()[i].maxAcc();
 
 				// check value validity //
-				for (Size i = 0; i < std::min(g_model.motionPool().size(), c->motionPool().size()); ++i)
+				for (Size i = 0; i < std::min(model()->motionPool().size(), c->motionPool().size()); ++i)
 					if (mvj_param.joint_dec[i] <= 0 || mvj_param.joint_dec[i] > c->motionPool()[i].maxAcc())
 						THROW_FILE_LINE("");
 			}
 			else if (cmd_param.first == "joint_jerk")
 			{
 				mvj_param.joint_jerk.clear();
-				mvj_param.joint_jerk.resize(g_model.motionPool().size(), 0.0);
+				mvj_param.joint_jerk.resize(model()->motionPool().size(), 0.0);
 
 				auto dec_mat = matrixParam(cmd_param.first);
 				if (dec_mat.size() == 1)std::fill(mvj_param.joint_jerk.begin(), mvj_param.joint_jerk.end(), dec_mat.toDouble());
-				else if (dec_mat.size() == g_model.motionPool().size()) std::copy(dec_mat.begin(), dec_mat.end(), mvj_param.joint_jerk.begin());
+				else if (dec_mat.size() == model()->motionPool().size()) std::copy(dec_mat.begin(), dec_mat.end(), mvj_param.joint_jerk.begin());
 				else THROW_FILE_LINE("");
 
 				for (int i = 0; i < 6; ++i) mvj_param.joint_jerk[i] *= mvj_param.joint_acc[i];
 
 				// check value validity //
-				for (Size i = 0; i < std::min(g_model.motionPool().size(), c->motionPool().size()); ++i)
+				for (Size i = 0; i < std::min(model()->motionPool().size(), c->motionPool().size()); ++i)
 					if (mvj_param.joint_jerk[i] <= 0 || mvj_param.joint_jerk[i] > 1000*c->motionPool()[i].maxAcc())
 						THROW_FILE_LINE("");
 			}
@@ -1156,7 +1178,7 @@ namespace kaanh
 				}
 			}
 		}
-
+		/*
 		//更新全局变量g_zp//
 		if (mvj_param.zone_enabled)
 		{
@@ -1252,7 +1274,7 @@ namespace kaanh
 			//上一条指令不进行转弯//
 			mvj_param.pre_plan->realzone.store(0);
 		}
-
+		*/
 		this->param() = mvj_param;
 		std::vector<std::pair<std::string, std::any>> ret_value;
 		ret() = ret_value;
@@ -1263,7 +1285,6 @@ namespace kaanh
 
 		// 取得起始位置 //
 		double p, v, a, j;
-		/*
 		if (count() == 1)
 		{
 			// inverse kinematic //
@@ -1293,8 +1314,26 @@ namespace kaanh
 
 			mvj_param->max_total_count = *std::max_element(mvj_param->total_count.begin(), mvj_param->total_count.end());
 		}
-		*/
+		
+		for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
+		{
+			aris::plan::moveAbsolute(static_cast<double>(count()) * mvj_param->total_count[i] / mvj_param->max_total_count,
+				mvj_param->joint_pos_begin[i], mvj_param->joint_pos_end[i],
+				mvj_param->joint_vel[i] / 1000, mvj_param->joint_acc[i] / 1000 / 1000, mvj_param->joint_dec[i] / 1000 / 1000,
+				p, v, a, mvj_param->total_count[i]);
 
+			controller()->motionPool()[i].setTargetPos(p);
+			model()->motionPool()[i].setMp(p);
+		}
+		if (model()->solverPool().at(1).kinPos())return -1;
+
+		if (g_move_stop)
+		{
+			return -4;
+		}
+		return mvj_param->max_total_count == 0 ? 0 : mvj_param->max_total_count - count();
+
+		/*
 		if (mvj_param->pre_plan == nullptr) //转弯第一条指令
 		{
 			for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
@@ -1371,13 +1410,15 @@ namespace kaanh
 			controller()->mout() << "mvj_param->max_total_count:" << mvj_param->max_total_count <<"this->realzone.load():" << rzcount << std::endl;
 		}
 		return mvj_param->max_total_count == 0 ? 0 : mvj_param->max_total_count - rzcount - count();
+		*/
+		
 	}
 	auto MoveJ::collectNrt()->void
 	{
-		if (retCode() != 0)
-		{
-			g_plan = nullptr;
-		}
+		//if (retCode() != 0)
+		//{
+		//	g_plan = nullptr;
+		//}
 	}
 	MoveJ::~MoveJ() = default;
 	MoveJ::MoveJ(const MoveJ &other) = default;
