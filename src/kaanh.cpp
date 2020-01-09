@@ -1637,7 +1637,7 @@ namespace kaanh
 			}
 		}
 
-		for (auto &option : motorOptions())	option |= USE_TARGET_POS | NOT_CHECK_POS_CONTINUOUS | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER;
+		//for (auto &option : motorOptions())	option |= USE_TARGET_POS | NOT_CHECK_POS_CONTINUOUS | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER;
 		this->param() = mvl_param;
 
 		std::vector<std::pair<std::string, std::any>> ret_value;
