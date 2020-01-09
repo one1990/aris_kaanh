@@ -1251,7 +1251,7 @@ namespace kaanh
 			}
 		}
 		
-		/*
+		
 		//更新全局变量g_zp//
 		if (mvj_param.zone_enabled)
 		{
@@ -1347,9 +1347,12 @@ namespace kaanh
 			//上一条指令不进行转弯//
 			mvj_param.pre_plan->realzone.store(0);
 		}
-		*/
-
+		
 		this->param() = mvj_param;
+		std::fill(motorOptions().begin(), motorOptions().end(),
+			Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
+			Plan::NOT_CHECK_POS_FOLLOWING_ERROR);
+
 		std::vector<std::pair<std::string, std::any>> ret_value;
 		ret() = ret_value;
 	}
@@ -1357,7 +1360,7 @@ namespace kaanh
 	{
 		auto mvj_param = std::any_cast<MoveJParam>(&this->param());
 
-		
+		/*
 		// 取得起始位置 //
 		double p, v, a, j;
 		if (count() == 1)
@@ -1407,8 +1410,15 @@ namespace kaanh
 			return -4;
 		}
 		return mvj_param->max_total_count == 0 ? 0 : mvj_param->max_total_count - count();
-		
-		/*
+		*/
+		if (count() == 1)
+		{
+			// init joint_pos //
+			for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
+			{
+				mvj_param->joint_pos_begin[i] = controller()->motionPool()[i].targetPos();
+			}
+		}
 		if (mvj_param->pre_plan == nullptr) //转弯第一条指令
 		{
 			for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
@@ -1431,15 +1441,18 @@ namespace kaanh
 		}
 		else if (mvj_param->pre_plan->name() == this->name()) //转弯区第二条指令或者第n条指令
 		{
-			static auto param = std::any_cast<MoveJParam&>(mvj_param->pre_plan->param());
+			auto param = std::any_cast<MoveJParam&>(mvj_param->pre_plan->param());
+			auto zonecount = mvj_param->pre_plan->realzone.load();
+			auto counter = count();
 			for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
 			{
 				//preplan//
 				double prep = 0.0, prev, prea, prej;
+				
 				//count数小于等于上一条指令的realzone，zone起作用//
-				if (count() <= mvj_param->pre_plan->realzone.load())
+				if (count() <= zonecount)
 				{
-					traplan::sCurve(static_cast<double>(param.max_total_count - mvj_param->pre_plan->realzone.load() + count()) * param.total_count[i] / param.max_total_count,
+					traplan::sCurve(static_cast<double>(param.max_total_count - zonecount + count()) * param.total_count[i] / param.max_total_count,
 						param.joint_pos_begin[i], param.joint_pos_end[i],
 						param.joint_vel[i] / 1000, param.joint_acc[i] / 1000 / 1000, param.joint_jerk[i] / 1000 / 1000 / 1000,
 						prep, prev, prea, prej, param.total_count[i]);
@@ -1451,8 +1464,8 @@ namespace kaanh
 						mvj_param->joint_vel[i] / 1000, mvj_param->joint_acc[i] / 1000 / 1000, mvj_param->joint_jerk[i] / 1000 / 1000 / 1000,
 						p, v, a, j, mvj_param->total_count[i]);
 
-					controller()->motionPool()[i].setTargetPos(prep + p);
-					model()->motionPool()[i].setMp(prep + p);
+					controller()->motionPool()[i].setTargetPos(1.0*(zonecount - count()) / zonecount * prep + 1.0*count() / zonecount * p);
+					model()->motionPool()[i].setMp(1.0*(zonecount - count()) / zonecount * prep + 1.0*count() / zonecount * p);
 				}
 				else
 				{
@@ -1497,7 +1510,7 @@ namespace kaanh
 			controller()->mout() << "mvj_param->max_total_count:" << mvj_param->max_total_count <<"this->realzone.load():" << rzcount << std::endl;
 		}
 		return mvj_param->max_total_count == 0 ? 0 : mvj_param->max_total_count - rzcount - count();	
-		*/
+		
 	}
 	auto MoveJ::collectNrt()->void
 	{
