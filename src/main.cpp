@@ -63,6 +63,7 @@ int main(int argc, char *argv[])
 	auto &cal = cs.model().calculator();
 	kaanhconfig::createUserDataType(cal);
 
+    /*
 	auto ret_load = cal.calculateExpression("pose({1,2,3,4,5,6,7})");
 	std::cout << ret_load.first << std::endl;
 	auto mat = std::any_cast<aris::core::Matrix>(ret_load.second);
@@ -74,8 +75,9 @@ int main(int argc, char *argv[])
 	std::cout << ret_ff.first << std::endl;
 	auto ret_ff2 = cal.calculateExpression("pose({6,5,4,3,2,1,0})");
 	std::cout << ret_ff2.first << std::endl;
+    */
 
-	/*
+    /*
 	//构造一个类型来接收UI变量//
 	auto &cal = cs.model().calculator();
 	cal.addTypename("load");
