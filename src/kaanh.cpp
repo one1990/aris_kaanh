@@ -1637,7 +1637,7 @@ namespace kaanh
 			}
 		}
 
-		for (auto &option : motorOptions())	option |= USE_TARGET_POS;
+		for (auto &option : motorOptions())	option |= USE_TARGET_POS | NOT_CHECK_POS_CONTINUOUS | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER;
 		this->param() = mvl_param;
 
 		std::vector<std::pair<std::string, std::any>> ret_value;
@@ -1693,6 +1693,11 @@ namespace kaanh
 		//aris::plan::moveAbsolute(count(), 0.0, norm_ori, mvl_param->angular_vel / 1000 * ori_ratio, mvl_param->angular_acc / 1000 / 1000 * ori_ratio * ori_ratio, mvl_param->angular_dec / 1000 / 1000 * ori_ratio * ori_ratio, p, v, a, ori_total_count);
 		traplan::sCurve(static_cast<double>(count()), 0.0, norm_ori, mvl_param->angular_vel / 1000 * ori_ratio, mvl_param->angular_acc / 1000 / 1000 * ori_ratio * ori_ratio, mvl_param->angular_jerk / 1000 / 1000 /1000 * ori_ratio * ori_ratio * ori_ratio, p, v, a, j, ori_total_count);
 		if (norm_ori > 1e-10)aris::dynamic::s_vc(3, p / norm_ori, relative_pa + 3, pa + 3);
+
+		if (count() >= 4294)
+		{
+			auto p = pa;
+		}
 
 		aris::dynamic::s_pa2pm(pa, pm);
 		aris::dynamic::s_pm_dot_pm(begin_pm, pm, pm2);
