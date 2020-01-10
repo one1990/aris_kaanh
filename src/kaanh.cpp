@@ -4596,6 +4596,8 @@ namespace kaanh
 
 			auto model = aris::dynamic::createModelPuma(param_puma);
 			cs.resetModel(model.release());
+            auto &cal = cs.model().calculator();
+            kaanhconfig::createUserDataType(cal);
 		}
 		else if (dhparam.axis_num == 7)
 		{
@@ -4606,6 +4608,8 @@ namespace kaanh
 
 			auto m = aris::dynamic::createModelSevenAxis(param_7axes);
 			cs.resetModel(m.release());
+            auto &cal = cs.model().calculator();
+            kaanhconfig::createUserDataType(cal);
 		}
 		else{ }
 
