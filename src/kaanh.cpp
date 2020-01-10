@@ -4994,10 +4994,10 @@ namespace kaanh
 		if (cs.running())throw std::runtime_error("cs is running, please stop the cs using cs_stop!");
 
 #ifdef UNIX
-		aris::control::EthercatController mst;
-		mst.scan();
+
+        this->ecController()->scan();
 		std::vector<std::pair<std::string, std::any>> ret_value;
-		ret_value.push_back(std::make_pair<std::string, std::any>("controller_xml", mst.xmlString()));
+        ret_value.push_back(std::make_pair<std::string, std::any>("controller_xml", this->ecController()->xmlString()));
 #endif
 #ifdef WIN32
 		std::vector<std::pair<std::string, std::any>> ret_value;
@@ -5016,44 +5016,25 @@ namespace kaanh
 
 
 	// 根据ESI补全从站信息 //
-	struct GetEsiPdoListParam
-	{
-		int vendor_id;
-		int product_code;
-		int revision_num;
-	};
 	auto GetEsiPdoList::prepareNrt()->void
 	{
-		auto&cs = aris::server::ControlServer::instance();
-		if (cs.running())throw std::runtime_error("cs is running, please stop the cs using cs_stop!");
+        if (this->controlServer()->running())throw std::runtime_error("cs is running, please stop the cs using cs_stop!");
 		
-		GetEsiPdoListParam param;
-		for (auto &p : cmdParams())
-		{
-			if (p.first == "vendor_id")
-			{
-				param.vendor_id = int32Param(p.first);
-			}
-			if (p.first == "product_code")
-			{
-				param.product_code = int32Param(p.first);
-			}
-			if (p.first == "revision_num")
-			{
-				param.revision_num = int32Param(p.first);
-			}
-		}
-
-		aris::control::EthercatMaster mst;
-		auto pdolist = mst.getPdoList(param.vendor_id, param.product_code, param.revision_num);
-		
-		std::vector<std::pair<std::string, std::any>> ret_value;
-		ret_value.push_back(std::make_pair<std::string, std::any>("pdo_list_xml", pdolist));
-
-		ret() = ret_value;
-		option() = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
+        std::vector<std::pair<std::string, std::any>> ret_value;
+        try
+        {
+            auto pdolist = this->ecController()->getPdoList(int32Param("vendor_id"), int32Param("product_code"), int32Param("revision_num"));
+            ret_value.push_back(std::make_pair<std::string, std::any>("is_esi_found", true));
+            ret_value.push_back(std::make_pair<std::string, std::any>("pdo_list_xml", pdolist));
+        }
+        catch (std::exception &e)
+        {
+            ret_value.push_back(std::make_pair<std::string, std::any>("is_esi_found", false));
+        }
+        ret() = ret_value;
+        option() = NOT_RUN_EXECUTE_FUNCTION|NOT_RUN_COLLECT_FUNCTION;
 	}
-	GetEsiPdoList::GetEsiPdoList(const std::string &name) :Plan(name)
+    GetEsiPdoList::GetEsiPdoList(const std::string &name) :Plan(name)
 	{
 		command().loadXmlStr(
 			"<Command name=\"getesipdolist\">"
@@ -5073,26 +5054,13 @@ namespace kaanh
 	};
 	auto SetEsiPath::prepareNrt()->void
 	{
-		auto&cs = aris::server::ControlServer::instance();
-		if (cs.running())throw std::runtime_error("cs is running, please stop the cs using cs_stop!");
+        if (this->controlServer()->running())throw std::runtime_error("cs is running, please stop the cs using cs_stop!");
 		
-		SetEsiPathParam param;
-		param.path.clear();
+        std::cout << this->cmdParams().at("path") << std::endl;
 
-		for (auto &p : cmdParams())
-		{
-			if (p.first == "path")
-			{
-				for (auto &filepath : std::filesystem::directory_iterator(p.second))
-				{
-					if (filepath.is_regular_file())param.path.push_back(filepath.path());
-				}
-			}
-		}
-
-		aris::control::EthercatMaster mst;
-		mst.setEsiDirs(param.path);
-		auto device_list = mst.getDeviceList();
+        this->ecController()->setEsiDirs({this->cmdParams().at("path")});
+        this->ecController()->updateDeviceList();
+        auto device_list = this->ecController()->getDeviceList();
 
 		std::vector<std::pair<std::string, std::any>> ret_value;
 		ret_value.push_back(std::make_pair<std::string, std::any>("device_list_xml", device_list));
