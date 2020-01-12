@@ -837,8 +837,9 @@ namespace kaanhconfig
 		plan_root->planPool().add<aris::plan::Clear>();
 		plan_root->planPool().add<kaanh::Sleep>();
 		plan_root->planPool().add<kaanh::Recover>();
-		auto &rs = plan_root->planPool().add<kaanh::Reset>();
-		rs.command().findParam("pos")->setDefaultValue("{0.5,0.3925,0.7899,0.5,0.5,0.5}");
+		plan_root->planPool().add<kaanh::Reset>();
+		//auto &rs = plan_root->planPool().add<kaanh::Reset>();
+		//rs.command().findParam("pos")->setDefaultValue("{0.5,0.3925,0.7899,0.5,0.5,0.5}");
 
 		plan_root->planPool().add<aris::server::GetInfo>();
 		//qifan//

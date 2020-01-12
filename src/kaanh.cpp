@@ -369,7 +369,7 @@ namespace kaanh
 		std::vector<double> axis_jerk_vec;
 	};
 #define SET_INPUT_MOVEMENT_STRING \
-		"		<Param name=\"pos\" default=\"0.5\"/>"\
+		"		<Param name=\"pos\" default=\"{0.0,0.0,0.0,0.0,0.0,0.0}\"/>"\
 		"		<Param name=\"acc\" default=\"0.1\"/>"\
         "		<Param name=\"vel\" default=\"v25\"/>"\
         "		<Param name=\"dec\" default=\"0.1\"/>"\
@@ -382,13 +382,9 @@ namespace kaanh
 		{
 			if (cmd_param.first == "pos")
 			{
-                auto p = std::any_cast<aris::core::Matrix>(cal.calculateExpression(std::string(cmd_param.second)).second);
+                auto p = std::any_cast<aris::core::Matrix>(cal.calculateExpression("jointtarget(" + std::string(cmd_param.second) + ")").second);
                 //auto p = plan.matrixParam(cmd_param.first);
-				if (p.size() == 1)
-				{
-					param.axis_pos_vec.resize(plan.controller()->motionPool().size(), p.toDouble());
-				}
-				else if (p.size() == plan.controller()->motionPool().size())
+				if (p.size() == plan.controller()->motionPool().size())
 				{
 					param.axis_pos_vec.assign(p.begin(), p.end());
 				}
@@ -417,6 +413,7 @@ namespace kaanh
 			}
 			else if (cmd_param.first == "vel")
 			{
+				param.axis_vel_vec.resize(plan.controller()->motionPool().size(), 0.0);
                 auto v = std::any_cast<kaanh::Speed>(cal.calculateExpression("speed(" + std::string(cmd_param.second) + ")").second);
                 for (int i = 0; i < 6; ++i)
                 {
@@ -746,7 +743,7 @@ namespace kaanh
         for (Size i = 0; i < controller()->motionPool().size(); ++i)
         {
             auto &cm = controller()->motionPool()[i];
-            imp_->axis_pos_vec[i] = imp_->axis_pos_vec[i] * (cm.maxPos() - cm.minPos()) + cm.minPos();
+            //imp_->axis_pos_vec[i] = imp_->axis_pos_vec[i] * (cm.maxPos() - cm.minPos()) + cm.minPos();
             imp_->axis_acc_vec[i] = imp_->axis_acc_vec[i] * cm.maxAcc();
             imp_->axis_dec_vec[i] = imp_->axis_dec_vec[i] * cm.maxAcc();
         }
@@ -1016,7 +1013,7 @@ namespace kaanh
 		command().loadXmlStr(
 			"<Command name=\"mvaj\">"
 			"	<GroupParam>"
-			"		<Param name=\"pos\" default=\"0.0\"/>"
+			"		<Param name=\"pos\" default=\"{0.0,0.0,0.0,0.0,0.0,0.0}\"/>"
             "		<Param name=\"vel\" default=\"v25\"/>"
 			"		<Param name=\"acc\" default=\"1.0\"/>"
 			"		<Param name=\"dec\" default=\"1.0\"/>"
