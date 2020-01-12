@@ -371,10 +371,10 @@ namespace kaanh
 #define SET_INPUT_MOVEMENT_STRING \
 		"		<Param name=\"pos\" default=\"0.5\"/>"\
 		"		<Param name=\"acc\" default=\"0.1\"/>"\
-		"		<Param name=\"vel\" default=\"0.1\"/>"\
+        "		<Param name=\"vel\" default=\"v25\"/>"\
         "		<Param name=\"dec\" default=\"0.1\"/>"\
         "		<Param name=\"jerk\" default=\"0.1\"/>"
-	auto set_input_movement(const std::map<std::string_view, std::string_view> &cmd_params, Plan &plan, SetInputMovement &param)->void
+    auto set_input_movement(const std::map<std::string_view, std::string_view> &cmd_params, Plan &plan, SetInputMovement &param, aris::core::Calculator &cal)->void
 	{
 		param.axis_begin_pos_vec.resize(plan.controller()->motionPool().size(), 0.0);
 		
@@ -382,7 +382,8 @@ namespace kaanh
 		{
 			if (cmd_param.first == "pos")
 			{
-				auto p = plan.matrixParam(cmd_param.first);
+                auto p = std::any_cast<aris::core::Matrix>(cal.calculateExpression(std::string(cmd_param.second)).second);
+                //auto p = plan.matrixParam(cmd_param.first);
 				if (p.size() == 1)
 				{
 					param.axis_pos_vec.resize(plan.controller()->motionPool().size(), p.toDouble());
@@ -416,20 +417,11 @@ namespace kaanh
 			}
 			else if (cmd_param.first == "vel")
 			{
-				auto v = plan.matrixParam(cmd_param.first);
-
-				if (v.size() == 1)
-				{
-					param.axis_vel_vec.resize(plan.controller()->motionPool().size(), v.toDouble());
-				}
-				else if (v.size() == plan.controller()->motionPool().size())
-				{
-					param.axis_vel_vec.assign(v.begin(), v.end());
-				}
-				else
-				{
-					THROW_FILE_LINE("");
-				}
+                auto v = std::any_cast<kaanh::Speed>(cal.calculateExpression("speed(" + std::string(cmd_param.second) + ")").second);
+                for (int i = 0; i < 6; ++i)
+                {
+                    param.axis_vel_vec[i] = plan.controller()->motionPool()[i].maxVel()*v.w_per;
+                }
 			}
 			else if (cmd_param.first == "dec")
 			{
@@ -493,7 +485,6 @@ namespace kaanh
 	}
 
 
-	// 获取part_pq，end_pq，end_pe等 //
     // 获取part_pq，end_pq，end_pe等 //
     std::atomic_bool having_model=false;
     struct GetParam
@@ -745,16 +736,18 @@ namespace kaanh
     struct Reset::Imp :public SetActiveMotor, SetInputMovement { std::vector<Size> total_count_vec; };
     auto Reset::prepareNrt()->void
     {
+        auto&cs = aris::server::ControlServer::instance();
+        auto &cal = cs.model().calculator();
+
         set_check_option(cmdParams(), *this);
         set_active_motor(cmdParams(), *this, *imp_);
-        set_input_movement(cmdParams(), *this, *imp_);
+        set_input_movement(cmdParams(), *this, *imp_, cal);
 
         for (Size i = 0; i < controller()->motionPool().size(); ++i)
         {
             auto &cm = controller()->motionPool()[i];
             imp_->axis_pos_vec[i] = imp_->axis_pos_vec[i] * (cm.maxPos() - cm.minPos()) + cm.minPos();
             imp_->axis_acc_vec[i] = imp_->axis_acc_vec[i] * cm.maxAcc();
-            imp_->axis_vel_vec[i] = imp_->axis_vel_vec[i] * cm.maxVel();
             imp_->axis_dec_vec[i] = imp_->axis_dec_vec[i] * cm.maxAcc();
         }
         check_input_movement(cmdParams(), *this, *imp_, *imp_);
@@ -923,15 +916,15 @@ namespace kaanh
 	{
 		MoveAbsJParam param;
 
+        auto&cs = aris::server::ControlServer::instance();
+        auto &cal = cs.model().calculator();
 		set_check_option(cmdParams(), *this);
 		set_active_motor(cmdParams(), *this, param);
-		set_input_movement(cmdParams(), *this, param);
+        set_input_movement(cmdParams(), *this, param, cal);
 		check_input_movement(cmdParams(), *this, param, param);
 
 		param.axis_begin_pos_vec.resize(controller()->motionPool().size());
 
-		auto&cs = aris::server::ControlServer::instance();
-		auto &cal = cs.model().calculator();
 		// find joint acc/vel/dec/jerk/zone
 		for (auto cmd_param : cmdParams())
 		{
@@ -953,15 +946,6 @@ namespace kaanh
 					{
 						THROW_FILE_LINE("zone out of range");
 					}
-				}
-			}
-			else if (cmd_param.first == "speed")
-			{
-				auto s = std::any_cast<kaanh::Speed>(cal.calculateExpression("speed(" + std::string(cmd_param.second) + ")").second);
-				param.sp = s;
-				for (int i = 0; i < 6; ++i)
-				{
-					param.axis_vel_vec[i] = controller()->motionPool()[i].maxVel()*param.sp.w_per;
 				}
 			}
 			else if (cmd_param.first == "load")
@@ -1033,11 +1017,10 @@ namespace kaanh
 			"<Command name=\"mvaj\">"
 			"	<GroupParam>"
 			"		<Param name=\"pos\" default=\"0.0\"/>"
-			"		<Param name=\"vel\" default=\"1.0\"/>"
+            "		<Param name=\"vel\" default=\"v25\"/>"
 			"		<Param name=\"acc\" default=\"1.0\"/>"
 			"		<Param name=\"dec\" default=\"1.0\"/>"
 			"		<Param name=\"jerk\" default=\"10.0\"/>"
-			"		<Param name=\"speed\" default=\"{0.1, 0.1, 3.49, 0.0, 0.0}\"/>"
 			"		<Param name=\"zone\" default=\"fine\"/>"
 			"		<Param name=\"load\" default=\"{1,0.05,0.05,0.05,0,0.97976,0,0.200177,1.0,1.0,1.0}\"/>"
 			SELECT_MOTOR_STRING
@@ -1165,17 +1148,17 @@ namespace kaanh
 					if (mvj_param.joint_acc[i] <= 0 || mvj_param.joint_acc[i] > c->motionPool()[i].maxAcc())
 						THROW_FILE_LINE("");
 			}
-			else if (cmd_param.first == "joint_vel")
+            else if (cmd_param.first == "vel")
 			{
 				mvj_param.joint_vel.clear();
 				mvj_param.joint_vel.resize(model()->motionPool().size(), 0.0);
 
-				auto vel_mat = matrixParam(cmd_param.first);
-				if (vel_mat.size() == 1)std::fill(mvj_param.joint_vel.begin(), mvj_param.joint_vel.end(), vel_mat.toDouble());
-				else if (vel_mat.size() == model()->motionPool().size()) std::copy(vel_mat.begin(), vel_mat.end(), mvj_param.joint_vel.begin());
-				else THROW_FILE_LINE("");
-
-				for (int i = 0; i < 6; ++i)mvj_param.joint_vel[i] *= controller()->motionPool()[i].maxVel();
+                auto s = std::any_cast<kaanh::Speed>(cal.calculateExpression("speed(" + std::string(cmd_param.second) + ")").second);
+                mvj_param.sp = s;
+                for (int i = 0; i < model()->motionPool().size(); ++i)
+                {
+                    mvj_param.joint_vel[i] = controller()->motionPool()[i].maxVel()*mvj_param.sp.w_per;
+                }
 
 				// check value validity //
 				for (Size i = 0; i < std::min(model()->motionPool().size(), c->motionPool().size()); ++i)
@@ -1233,15 +1216,6 @@ namespace kaanh
 					{
 						THROW_FILE_LINE("zone out of range");
 					}
-				}
-			}
-			else if (cmd_param.first == "speed")
-			{
-				auto s = std::any_cast<kaanh::Speed>(cal.calculateExpression("speed(" + std::string(cmd_param.second) + ")").second);
-				mvj_param.sp = s;
-				for (int i = 0; i < 6; ++i)
-				{
-					mvj_param.joint_vel[i] = controller()->motionPool()[i].maxVel()*mvj_param.sp.w_per;
 				}
 			}
 			else if (cmd_param.first == "load")
@@ -1524,7 +1498,7 @@ namespace kaanh
 			"			</GroupParam>"
 			"		</UniqueParam>"
 			"		<Param name=\"joint_acc\" default=\"0.1\"/>"
-			"		<Param name=\"joint_vel\" default=\"0.1\"/>"
+            "		<Param name=\"vel\" default=\"v25\"/>"
 			"		<Param name=\"joint_dec\" default=\"0.1\"/>"
 			"		<Param name=\"joint_jerk\" default=\"10.0\"/>"
 			"		<Param name=\"speed\" default=\"{0.1, 0.1, 3.49, 0.0, 0.0}\"/>"
@@ -1578,7 +1552,10 @@ namespace kaanh
 			}
 			else if (cmd_param.first == "vel")
 			{
-				mvl_param.vel = doubleParam(cmd_param.first);
+                auto s = std::any_cast<kaanh::Speed>(cal.calculateExpression("speed(" + std::string(cmd_param.second) + ")").second);
+                mvl_param.sp = s;
+                mvl_param.vel = mvl_param.sp.v_tcp;
+                mvl_param.angular_vel = mvl_param.sp.w_tcp;
 			}
 			else if (cmd_param.first == "dec")
 			{
@@ -1591,10 +1568,6 @@ namespace kaanh
 			else if (cmd_param.first == "angular_acc")
 			{
 				mvl_param.angular_acc = doubleParam(cmd_param.first);
-			}
-			else if (cmd_param.first == "angular_vel")
-			{
-				mvl_param.angular_vel = doubleParam(cmd_param.first);
 			}
 			else if (cmd_param.first == "angular_dec")
 			{
@@ -1622,13 +1595,6 @@ namespace kaanh
 						THROW_FILE_LINE("zone out of range");
 					}
 				}
-			}
-			else if (cmd_param.first == "speed")
-			{
-				auto s = std::any_cast<kaanh::Speed>(cal.calculateExpression("speed(" + std::string(cmd_param.second) + ")").second);
-				mvl_param.sp = s;
-				mvl_param.vel = mvl_param.sp.v_tcp;
-				mvl_param.angular_vel = mvl_param.sp.w_tcp;
 			}
 			else if (cmd_param.first == "load")
 			{
@@ -1745,14 +1711,13 @@ namespace kaanh
 			"			</GroupParam>"
 			"		</UniqueParam>"
 			"		<Param name=\"acc\" default=\"0.1\"/>"
-			"		<Param name=\"vel\" default=\"0.1\"/>"
+            "		<Param name=\"vel\" default=\"v25\"/>"
 			"		<Param name=\"dec\" default=\"0.1\"/>"
 			"		<Param name=\"jerk\" default=\"10.0\"/>"
 			"		<Param name=\"angular_acc\" default=\"0.1\"/>"
-			"		<Param name=\"angular_vel\" default=\"0.1\"/>"
+            "		<Param name=\"angular_vel\" default=\"0.1\"/>"
 			"		<Param name=\"angular_dec\" default=\"0.1\"/>"
 			"		<Param name=\"angular_jerk\" default=\"10.0\"/>"
-			"		<Param name=\"speed\" default=\"{0.1, 0.1, 3.49, 0.0, 0.0}\"/>"
 			"		<Param name=\"zone\" default=\"fine\"/>"
 			"		<Param name=\"load\" default=\"{1,0.05,0.05,0.05,0,0.97976,0,0.200177,1.0,1.0,1.0}\"/>"
 			"		<Param name=\"tool\" default=\"tool0\"/>"
@@ -1954,7 +1919,10 @@ namespace kaanh
 			}
 			else if (cmd_param.first == "vel")
 			{
-				mvc_param.vel = doubleParam(cmd_param.first);
+                auto s = std::any_cast<kaanh::Speed>(cal.calculateExpression("speed(" + std::string(cmd_param.second) + ")").second);
+                mvc_param.sp = s;
+                mvc_param.vel = mvc_param.sp.v_tcp;
+                mvc_param.angular_vel = mvc_param.sp.w_tcp;
 			}
 			else if (cmd_param.first == "dec")
 			{
@@ -1967,10 +1935,6 @@ namespace kaanh
 			else if (cmd_param.first == "angular_acc")
 			{
 				mvc_param.angular_acc = doubleParam(cmd_param.first);
-			}
-			else if (cmd_param.first == "angular_vel")
-			{
-				mvc_param.angular_vel = doubleParam(cmd_param.first);
 			}
 			else if (cmd_param.first == "angular_dec")
 			{
@@ -1998,13 +1962,6 @@ namespace kaanh
 						THROW_FILE_LINE("zone out of range");
 					}
 				}
-			}
-			else if (cmd_param.first == "speed")
-			{
-				auto s = std::any_cast<kaanh::Speed>(cal.calculateExpression("speed(" + std::string(cmd_param.second) + ")").second);
-				mvc_param.sp = s;
-				mvc_param.vel = mvc_param.sp.v_tcp;
-				mvc_param.angular_vel = mvc_param.sp.w_tcp;
 			}
 			else if (cmd_param.first == "load")
 			{
@@ -2205,7 +2162,7 @@ namespace kaanh
 			"			</GroupParam>"
 			"		</UniqueParam>"
 			"		<Param name=\"acc\" default=\"0.1\"/>"
-			"		<Param name=\"vel\" default=\"0.1\"/>"
+            "		<Param name=\"vel\" default=\"v25\"/>"
 			"		<Param name=\"dec\" default=\"0.1\"/>"
 			"		<Param name=\"jerk\" default=\"0.1\"/>"
 			"		<Param name=\"angular_acc\" default=\"0.1\"/>"
