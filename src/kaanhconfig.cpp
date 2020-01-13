@@ -856,9 +856,11 @@ namespace kaanhconfig
 
 		plan_root->planPool().add<aris::plan::Enable>();
 		plan_root->planPool().add<aris::plan::Disable>();
-		plan_root->planPool().add<kaanh::Home>();
+		plan_root->planPool().add<aris::plan::Start>();
+		plan_root->planPool().add<aris::plan::Stop>();
 		plan_root->planPool().add<aris::plan::Mode>();
 		plan_root->planPool().add<aris::plan::Clear>();
+		plan_root->planPool().add<kaanh::Home>();
 		plan_root->planPool().add<kaanh::Sleep>();
 		plan_root->planPool().add<kaanh::Recover>();
 		plan_root->planPool().add<kaanh::Reset>();
@@ -907,14 +909,11 @@ namespace kaanhconfig
 		plan_root->planPool().add<kaanh::SetEsiPath>();
 		plan_root->planPool().add<kaanh::GetXml>();
 		plan_root->planPool().add<kaanh::SetXml>();
-		plan_root->planPool().add<kaanh::Start> ();
-		plan_root->planPool().add<kaanh::Stop>();
 		plan_root->planPool().add<kaanh::SetCT>();
 		plan_root->planPool().add<kaanh::SetVel>();
 		plan_root->planPool().add<kaanh::Run>();
 		plan_root->planPool().add<kaanh::MoveF>();
 		plan_root->planPool().add<kaanh::Switch>();
-
 		plan_root->planPool().add<MoveJoint>();
 		plan_root->planPool().add<Replay>();
 		plan_root->planPool().add<ForceDirect>();
