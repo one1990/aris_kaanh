@@ -4549,9 +4549,7 @@ namespace kaanh
 			param_puma.tool0_pe[2] = dhparam.tool_offset;
 
 			auto model = aris::dynamic::createModelPuma(param_puma);
-			cs.resetModel(model.release());
-            auto &cal = cs.model().calculator();
-            kaanhconfig::createUserDataType(cal);
+            this->controlServer()->resetModel(model.release());
 		}
 		else if (dhparam.axis_num == 7)
 		{
@@ -4561,11 +4559,12 @@ namespace kaanh
 			param_7axes.tool0_pe[2] = dhparam.tool_offset;
 
 			auto m = aris::dynamic::createModelSevenAxis(param_7axes);
-			cs.resetModel(m.release());
-            auto &cal = cs.model().calculator();
-            kaanhconfig::createUserDataType(cal);
+            this->controlServer()->resetModel(m.release());
 		}
 		else{ }
+
+        auto &cal = this->controlServer()->model().calculator();
+        kaanhconfig::createUserDataType(cal);
 
 		/*
 		//动力学标定参数//

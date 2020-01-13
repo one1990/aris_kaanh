@@ -724,8 +724,9 @@ namespace kaanhconfig
 		return std::move(model);
 	}
 
-	auto createUserDataType(aris::core::Calculator &cal)->void
+    auto createUserDataType(aris::core::Calculator &cal)->void
 	{
+        std::cout << "create user data!" <<std::endl;
 		cal.addTypename("array");
 		cal.addFunction("array", std::vector<std::string>{"Matrix"}, "array", [](std::vector<std::any>&params)->std::any
 		{
