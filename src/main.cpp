@@ -46,10 +46,11 @@ int main(int argc, char *argv[])
 
     
 	//生成kaanh.xml文档
-
+	
     //-------for rokae robot begin//
     cs.resetController(kaanhconfig::createControllerRokaeXB4().release());
     cs.resetModel(kaanhconfig::createModelRokae().release());
+	auto &cal1 = cs.model().calculator();
     cs.resetPlanRoot(kaanhconfig::createPlanRoot().release());
     cs.interfacePool().add<aris::server::ProgramWebInterface>("", "5866", aris::core::Socket::WEB);
 	//cs.interfacePool().add<kaanh::ProInterface>("", "5866", aris::core::Socket::WEB);
@@ -60,15 +61,13 @@ int main(int argc, char *argv[])
 	cs.model().loadXmlFile(modelxmlpath.string().c_str());
 	cs.saveXmlFile(xmlpath.string().c_str());
     //-------for rokae robot end// 
-
-    
+	
 
     /*
 	auto ret_load = cal.calculateExpression("pose({1,2,3,4,5,6,7})");
 	std::cout << ret_load.first << std::endl;
 	auto mat = std::any_cast<aris::core::Matrix>(ret_load.second);
 	std::cout << mat.data()[0] << std::endl;
-
 
 	cal.addVariable("p10", "pose", aris::core::Matrix({ 1,2,3,4,5,6,7 }));
 	auto ret_ff = cal.calculateExpression("pose(p10)");
@@ -155,11 +154,12 @@ int main(int argc, char *argv[])
 	//-------for qifan robot end// 
     */
 
-    //cs.loadXmlFile(xmlpath.string().c_str());
+    cs.loadXmlFile(xmlpath.string().c_str());
+	cs.init();
 
     auto &cal = cs.model().calculator();
     kaanhconfig::createUserDataType(cal);
-
+	
     //cs.start();
 
 	//实时回调函数，每个实时周期调用一次//

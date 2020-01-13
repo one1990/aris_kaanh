@@ -1150,6 +1150,7 @@ namespace kaanh
 				mvj_param.joint_vel.clear();
 				mvj_param.joint_vel.resize(model()->motionPool().size(), 0.0);
 
+				auto[type, value] = cal.calculateExpression("speed(" + std::string(cmd_param.second) + ")");
                 auto s = std::any_cast<kaanh::Speed>(cal.calculateExpression("speed(" + std::string(cmd_param.second) + ")").second);
                 mvj_param.sp = s;
                 for (int i = 0; i < model()->motionPool().size(); ++i)
@@ -4510,9 +4511,8 @@ namespace kaanh
 		dhparam.dh.clear();
 
 		for (auto &p : cmdParams())
-		{
-			//6轴DH参数//
-			if (p.first == "six_axes")
+		{	
+			if (p.first == "six_axes")//6轴DH参数//
 			{
 				dhparam.dh.resize(6, 0.0);
 				dhparam.dh[0] = doubleParam("d1_six_axes");
@@ -4524,8 +4524,7 @@ namespace kaanh
 				dhparam.tool_offset = doubleParam("tool0_six_axes");
 				dhparam.axis_num = 6;
 			}
-			//7轴DH参数//
-			else if (p.first == "seven_axes")
+			else if (p.first == "seven_axes")//7轴DH参数//
 			{
 				dhparam.dh.resize(3, 0.0);
 				dhparam.dh[0] = doubleParam("d1_seven_axes");
@@ -4548,8 +4547,10 @@ namespace kaanh
 			param_puma.d4 = dhparam.dh[5];
 			param_puma.tool0_pe[2] = dhparam.tool_offset;
 
-			auto model = aris::dynamic::createModelPuma(param_puma);
-            this->controlServer()->resetModel(model.release());
+			auto m = aris::dynamic::createModelPuma(param_puma);
+			m->init();
+            this->controlServer()->resetModel(m.release());
+			
 		}
 		else if (dhparam.axis_num == 7)
 		{
@@ -4562,6 +4563,11 @@ namespace kaanh
             this->controlServer()->resetModel(m.release());
 		}
 		else{ }
+
+		//auto modelxmlpath = std::filesystem::absolute(".");//获取当前工程所在的路径
+		//const std::string mxmlfile = "model_rokae.xml";
+		//modelxmlpath = modelxmlpath / mxmlfile;
+		//cs.model().loadXmlFile(modelxmlpath.string().c_str());
 
         auto &cal = this->controlServer()->model().calculator();
         kaanhconfig::createUserDataType(cal);
@@ -4594,7 +4600,8 @@ namespace kaanh
 		xmlpath = xmlpath / xmlfile;
 		cs.saveXmlFile(xmlpath.string().c_str());
 		*/
-        having_model.store(true);
+        
+		having_model.store(true);
 		std::vector<std::pair<std::string, std::any>> ret_value;
 		ret() = ret_value;
 		option() = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
@@ -5070,7 +5077,7 @@ namespace kaanh
 				param.path = p.second;
 			}
 		}
-		if (param.path != " ")
+		if (param.path == " ")
 		{
 			param.path = std::filesystem::absolute(".").string();
 		}
@@ -5078,7 +5085,7 @@ namespace kaanh
 		param.path = param.path + '/' + xmlfile;
 
 		std::cout << "path:" << param.path << std::endl;
-		cs.saveXmlFile(param.path.c_str());
+		this->controlServer()->saveXmlFile(param.path.c_str());
 
 		std::vector<std::pair<std::string, std::any>> ret_value;
 		ret() = ret_value;
