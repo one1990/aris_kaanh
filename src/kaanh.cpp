@@ -4956,12 +4956,12 @@ namespace kaanh
 	{
 		auto&cs = aris::server::ControlServer::instance();
 		if (cs.running())throw std::runtime_error("cs is running, please stop the cs using cs_stop!");
+		aris::control::EthercatController ec_controller;
 
 #ifdef UNIX
-
-        this->ecController()->scan();
+		ec_controller.scan();
 		std::vector<std::pair<std::string, std::any>> ret_value;
-        ret_value.push_back(std::make_pair<std::string, std::any>("controller_xml", this->ecController()->xmlString()));
+        ret_value.push_back(std::make_pair<std::string, std::any>("controller_xml", ec_controller.xmlString()));
 #endif
 #ifdef WIN32
 		std::vector<std::pair<std::string, std::any>> ret_value;

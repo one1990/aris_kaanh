@@ -854,7 +854,7 @@ namespace kaanhconfig
 		cal.addVariable("v4000", "speed", kaanh::Speed({ 1.0, 4.0, 200 * aris::PI / 180, 0.0, 0.0 }));
 		cal.addVariable("v5000", "speed", kaanh::Speed({ 1.0, 5.0, 200 * aris::PI / 180, 0.0, 0.0 }));
 		cal.addVariable("v6000", "speed", kaanh::Speed({ 1.0, 6.0, 200 * aris::PI / 180, 0.0, 0.0 }));
-
+		
 
 		cal.addTypename("tool");
 		cal.addFunction("tool", std::vector<std::string>{"Matrix"}, "tool", [](std::vector<std::any>&params)->std::any
