@@ -50,7 +50,6 @@ int main(int argc, char *argv[])
     //-------for rokae robot begin//
     cs.resetController(kaanhconfig::createControllerRokaeXB4().release());
     cs.resetModel(kaanhconfig::createModelRokae().release());
-	auto &cal1 = cs.model().calculator();
     cs.resetPlanRoot(kaanhconfig::createPlanRoot().release());
     cs.interfacePool().add<aris::server::ProgramWebInterface>("", "5866", aris::core::Socket::WEB);
 	//cs.interfacePool().add<kaanh::ProInterface>("", "5866", aris::core::Socket::WEB);
@@ -58,7 +57,7 @@ int main(int argc, char *argv[])
     cs.resetSensorRoot(new aris::sensor::SensorRoot);
 	cs.interfaceRoot().loadXmlFile(uixmlpath.string().c_str());
 	//cs.model().saveXmlFile(modelxmlpath.string().c_str());	//when creat new model
-	cs.model().loadXmlFile(modelxmlpath.string().c_str());
+    //cs.model().loadXmlFile(modelxmlpath.string().c_str());
 	cs.saveXmlFile(xmlpath.string().c_str());
     //-------for rokae robot end// 
 	
@@ -154,22 +153,21 @@ int main(int argc, char *argv[])
 	//-------for qifan robot end// 
     */
 
-    cs.loadXmlFile(xmlpath.string().c_str());
+    //cs.loadXmlFile(xmlpath.string().c_str());
 	cs.init();
 
     auto &cal = cs.model().calculator();
     kaanhconfig::createUserDataType(cal);
 	
+    //加载v100的速度值//
+     g_vel = std::any_cast<kaanh::Speed>(cal.calculateExpression("speed(v100)").second);
+
     //cs.start();
 
 	//实时回调函数，每个实时周期调用一次//
 	cs.setRtPlanPostCallback(kaanh::update_state);
 	g_model = cs.model();
 
-	//加载v100的速度值//
-	auto &getspeed = dynamic_cast<aris::dynamic::MatrixVariable &>(*cs.model().variablePool().findByName("v100"));
-	std::copy(getspeed.data().begin(), getspeed.data().end(), &g_vel.w_per);
-	std::cout << g_vel.w_per << std::endl;
 
 #ifdef WIN32
 	for (auto &m : cs.controller().slavePool())
