@@ -794,7 +794,6 @@ namespace kaanhconfig
 		cal.addVariable("z150", "zone", kaanh::Zone({ 0.15, 0.75 }));
 		cal.addVariable("z200", "zone", kaanh::Zone({ 0.2, 1.0 }));
 
-
 		cal.addTypename("speed");
 		cal.addFunction("speed", std::vector<std::string>{"Matrix"}, "speed", [](std::vector<std::any>&params)->std::any
 		{
@@ -831,6 +830,7 @@ namespace kaanhconfig
             return left;
         });
 		// add velocity variables
+		/*
         cal.addVariable("v5", "speed", kaanh::Speed({ 0.005, 0.005, 200 * aris::PI / 180, 0.0, 0.0 }));
         cal.addVariable("v10", "speed", kaanh::Speed({ 0.01, 0.01, 200 * aris::PI / 180, 0.0, 0.0 }));
         cal.addVariable("v25", "speed", kaanh::Speed({ 0.025, 0.025, 200 * aris::PI / 180, 0.0, 0.0 }));
@@ -854,7 +854,7 @@ namespace kaanhconfig
 		cal.addVariable("v4000", "speed", kaanh::Speed({ 1.0, 4.0, 200 * aris::PI / 180, 0.0, 0.0 }));
 		cal.addVariable("v5000", "speed", kaanh::Speed({ 1.0, 5.0, 200 * aris::PI / 180, 0.0, 0.0 }));
 		cal.addVariable("v6000", "speed", kaanh::Speed({ 1.0, 6.0, 200 * aris::PI / 180, 0.0, 0.0 }));
-		
+		*/
 
 		cal.addTypename("tool");
 		cal.addFunction("tool", std::vector<std::string>{"Matrix"}, "tool", [](std::vector<std::any>&params)->std::any

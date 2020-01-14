@@ -10,7 +10,7 @@
 using namespace aris::dynamic;
 
 //global vel//
-kaanh::Speed g_vel;
+kaanh::Speed g_vel = { 0.1, 0.1, 3.4, 0.0, 0.0 };
 std::atomic_int g_vel_percent = 0;
 //global vel//
 
@@ -158,9 +158,6 @@ int main(int argc, char *argv[])
 
     auto &cal = cs.model().calculator();
     kaanhconfig::createUserDataType(cal);
-	
-    //加载v100的速度值//
-     g_vel = std::any_cast<kaanh::Speed>(cal.calculateExpression("speed(v100)").second);
 
     //cs.start();
 

@@ -371,13 +371,14 @@ namespace kaanh
 #define SET_INPUT_MOVEMENT_STRING \
 		"		<Param name=\"pos\" default=\"{0.0,0.0,0.0,0.0,0.0,0.0}\"/>"\
 		"		<Param name=\"acc\" default=\"0.1\"/>"\
-        "		<Param name=\"vel\" default=\"v25\"/>"\
+        "		<Param name=\"vel\" default=\"{0.025, 0.025, 3.4, 0.0, 0.0}\"/>"\
         "		<Param name=\"dec\" default=\"0.1\"/>"\
         "		<Param name=\"jerk\" default=\"0.1\"/>"
-    auto set_input_movement(const std::map<std::string_view, std::string_view> &cmd_params, Plan &plan, SetInputMovement &param, aris::core::Calculator &cal)->void
+    auto set_input_movement(const std::map<std::string_view, std::string_view> &cmd_params, Plan &plan, SetInputMovement &param)->void
 	{
 		param.axis_begin_pos_vec.resize(plan.controller()->motionPool().size(), 0.0);
-		
+		auto &cal = plan.controlServer()->model().calculator();
+
 		for (auto cmd_param : cmd_params)
 		{
 			if (cmd_param.first == "pos")
@@ -733,12 +734,9 @@ namespace kaanh
     struct Reset::Imp :public SetActiveMotor, SetInputMovement { std::vector<Size> total_count_vec; };
     auto Reset::prepareNrt()->void
     {
-        auto&cs = aris::server::ControlServer::instance();
-        auto &cal = cs.model().calculator();
-
         set_check_option(cmdParams(), *this);
         set_active_motor(cmdParams(), *this, *imp_);
-        set_input_movement(cmdParams(), *this, *imp_, cal);
+        set_input_movement(cmdParams(), *this, *imp_);
 
         for (Size i = 0; i < controller()->motionPool().size(); ++i)
         {
@@ -913,11 +911,10 @@ namespace kaanh
 	{
 		MoveAbsJParam param;
 
-        auto&cs = aris::server::ControlServer::instance();
-        auto &cal = cs.model().calculator();
+        auto &cal = this->controlServer()->model().calculator();
 		set_check_option(cmdParams(), *this);
 		set_active_motor(cmdParams(), *this, param);
-        set_input_movement(cmdParams(), *this, param, cal);
+        set_input_movement(cmdParams(), *this, param);
 		check_input_movement(cmdParams(), *this, param, param);
 
 		param.axis_begin_pos_vec.resize(controller()->motionPool().size());
@@ -1014,7 +1011,7 @@ namespace kaanh
 			"<Command name=\"mvaj\">"
 			"	<GroupParam>"
 			"		<Param name=\"pos\" default=\"{0.0,0.0,0.0,0.0,0.0,0.0}\"/>"
-            "		<Param name=\"vel\" default=\"v25\"/>"
+            "		<Param name=\"vel\" default=\"{0.025, 0.025, 3.4, 0.0, 0.0}\"/>"
 			"		<Param name=\"acc\" default=\"1.0\"/>"
 			"		<Param name=\"dec\" default=\"1.0\"/>"
 			"		<Param name=\"jerk\" default=\"10.0\"/>"
@@ -1046,8 +1043,8 @@ namespace kaanh
 		else if (pos_unit_found->second == "mm")pos_unit = 0.001;
 		else if (pos_unit_found->second == "cm")pos_unit = 0.01;
 		else THROW_FILE_LINE("");
-		auto&cs = aris::server::ControlServer::instance();
-		auto &cal = cs.model().calculator();
+
+		auto &cal = plan.controlServer()->model().calculator();
 		for (auto cmd_param : params)
 		{
 			if (cmd_param.first == "pq")
@@ -1122,8 +1119,7 @@ namespace kaanh
 		mvj_param.tool = &*model()->generalMotionPool()[0].makI().fatherPart().markerPool().findByName(std::string(cmdParams().at("tool")));
 		mvj_param.wobj = &*model()->generalMotionPool()[0].makJ().fatherPart().markerPool().findByName(std::string(cmdParams().at("wobj")));
 
-		auto&cs = aris::server::ControlServer::instance();
-		auto &cal = cs.model().calculator();
+		auto &cal = this->controlServer()->model().calculator();
 		// find joint acc/vel/dec/jerk/zone
 		for (auto cmd_param : cmdParams())
 		{
@@ -1496,7 +1492,7 @@ namespace kaanh
 			"			</GroupParam>"
 			"		</UniqueParam>"
 			"		<Param name=\"joint_acc\" default=\"0.1\"/>"
-            "		<Param name=\"vel\" default=\"v25\"/>"
+            "		<Param name=\"vel\" default=\"{0.025, 0.025, 3.4, 0.0, 0.0}\"/>"
 			"		<Param name=\"joint_dec\" default=\"0.1\"/>"
 			"		<Param name=\"joint_jerk\" default=\"10.0\"/>"
 			"		<Param name=\"speed\" default=\"{0.1, 0.1, 3.49, 0.0, 0.0}\"/>"
@@ -1539,8 +1535,7 @@ namespace kaanh
 		mvl_param.tool = &*model()->generalMotionPool()[0].makI().fatherPart().markerPool().findByName(std::string(cmdParams().at("tool")));
 		mvl_param.wobj = &*model()->generalMotionPool()[0].makJ().fatherPart().markerPool().findByName(std::string(cmdParams().at("wobj")));
 
-		auto&cs = aris::server::ControlServer::instance();
-		auto &cal = cs.model().calculator();
+		auto &cal = this->controlServer()->model().calculator();
 
 		for (auto cmd_param : cmdParams())
 		{
@@ -1709,7 +1704,7 @@ namespace kaanh
 			"			</GroupParam>"
 			"		</UniqueParam>"
 			"		<Param name=\"acc\" default=\"0.1\"/>"
-            "		<Param name=\"vel\" default=\"v25\"/>"
+            "		<Param name=\"vel\" default=\"{0.025, 0.025, 3.4, 0.0, 0.0}\"/>"
 			"		<Param name=\"dec\" default=\"0.1\"/>"
 			"		<Param name=\"jerk\" default=\"10.0\"/>"
 			"		<Param name=\"angular_acc\" default=\"0.1\"/>"
@@ -1736,9 +1731,8 @@ namespace kaanh
 		else if (pos_unit_found->second == "mm")pos_unit = 0.001;
 		else if (pos_unit_found->second == "cm")pos_unit = 0.01;
 		else THROW_FILE_LINE("");
-
-		auto&cs = aris::server::ControlServer::instance();
-		auto &cal = cs.model().calculator();
+	
+		auto &cal = plan.controlServer()->model().calculator();
 
 		for (auto cmd_param : params)
 		{
@@ -1796,8 +1790,7 @@ namespace kaanh
 		else if (pos_unit_found->second == "cm")pos_unit = 0.01;
 		else THROW_FILE_LINE("");
 
-		auto&cs = aris::server::ControlServer::instance();
-		auto &cal = cs.model().calculator();
+		auto &cal = plan.controlServer()->model().calculator();
 
 		for (auto cmd_param : params)
 		{
@@ -1906,8 +1899,7 @@ namespace kaanh
 		mvc_param.tool = &*model()->generalMotionPool()[0].makI().fatherPart().markerPool().findByName(std::string(cmdParams().at("tool")));
 		mvc_param.wobj = &*model()->generalMotionPool()[0].makJ().fatherPart().markerPool().findByName(std::string(cmdParams().at("wobj")));
 
-		auto&cs = aris::server::ControlServer::instance();
-		auto &cal = cs.model().calculator();
+		auto &cal = this->controlServer()->model().calculator();
 
 		for (auto cmd_param : cmdParams())
 		{
@@ -2160,7 +2152,7 @@ namespace kaanh
 			"			</GroupParam>"
 			"		</UniqueParam>"
 			"		<Param name=\"acc\" default=\"0.1\"/>"
-            "		<Param name=\"vel\" default=\"v25\"/>"
+            "		<Param name=\"vel\" default=\"{0.025, 0.025, 3.4, 0.0, 0.0}\"/>"
 			"		<Param name=\"dec\" default=\"0.1\"/>"
 			"		<Param name=\"jerk\" default=\"0.1\"/>"
 			"		<Param name=\"angular_acc\" default=\"0.1\"/>"
