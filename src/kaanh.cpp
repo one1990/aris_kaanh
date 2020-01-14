@@ -4540,7 +4540,7 @@ namespace kaanh
 			param_puma.tool0_pe[2] = dhparam.tool_offset;
 
 			auto m = aris::dynamic::createModelPuma(param_puma);
-			m->init();
+            m->init();
             this->controlServer()->resetModel(m.release());
 			
 		}
@@ -4552,6 +4552,7 @@ namespace kaanh
 			param_7axes.tool0_pe[2] = dhparam.tool_offset;
 
 			auto m = aris::dynamic::createModelSevenAxis(param_7axes);
+            m->init();
             this->controlServer()->resetModel(m.release());
 		}
 		else{ }
@@ -5069,7 +5070,7 @@ namespace kaanh
 				param.path = p.second;
 			}
 		}
-		if (param.path == " ")
+        if (param.path == "")
 		{
 			param.path = std::filesystem::absolute(".").string();
 		}
@@ -5077,7 +5078,7 @@ namespace kaanh
 		param.path = param.path + '/' + xmlfile;
 
 		std::cout << "path:" << param.path << std::endl;
-		this->controlServer()->saveXmlFile(param.path.c_str());
+        cs.saveXmlFile(param.path.c_str());
 
 		std::vector<std::pair<std::string, std::any>> ret_value;
 		ret() = ret_value;
@@ -5123,8 +5124,17 @@ namespace kaanh
 		aris::core::XmlDocument doc;
 		if (doc.Parse(xml_str.c_str()) != tinyxml2::XML_SUCCESS) THROW_FILE_LINE("XML failed");
 
-		if (doc.RootElement()->FirstChildElement("EthercatController"))controlServer()->controller().loadXml(*doc.RootElement()->FirstChildElement("EthercatController"));
-		if (doc.RootElement()->FirstChildElement("Model"))controlServer()->model().loadXml(*doc.RootElement()->FirstChildElement("Model"));
+        if (doc.RootElement()->FirstChildElement("EthercatController"))
+        {
+            controlServer()->controller().loadXml(*doc.RootElement()->FirstChildElement("EthercatController"));
+            controlServer()->controller().init();
+        }
+
+        if (doc.RootElement()->FirstChildElement("Model"))
+        {
+            controlServer()->model().loadXml(*doc.RootElement()->FirstChildElement("Model"));
+            controlServer()->model().init();
+        }
 		// 这里后面需要改 ////////////////////////////////////////
 
 
