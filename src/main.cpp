@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
 
     
 	//生成kaanh.xml文档
-	
+    /*
     //-------for rokae robot begin//
     cs.resetController(kaanhconfig::createControllerRokaeXB4().release());
     cs.resetModel(kaanhconfig::createModelRokae().release());
@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
     //cs.model().loadXmlFile(modelxmlpath.string().c_str());
 	cs.saveXmlFile(xmlpath.string().c_str());
     //-------for rokae robot end// 
-	
+    */
 
     /*
 	auto ret_load = cal.calculateExpression("pose({1,2,3,4,5,6,7})");
@@ -153,7 +153,7 @@ int main(int argc, char *argv[])
 	//-------for qifan robot end// 
     */
 
-    //cs.loadXmlFile(xmlpath.string().c_str());
+    cs.loadXmlFile(xmlpath.string().c_str());
 	cs.init();
 
     auto &cal = cs.model().calculator();
