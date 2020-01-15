@@ -4720,7 +4720,7 @@ namespace kaanh
 			}
 			else if (p.first == "pe")
 			{
-				auto mat = matrixParam(cmdParams().at("pe"));
+				auto mat = this->matrixParam(p.first);
 				if (mat.size() == param.pe.size())
 				{
 					param.pe.assign(mat.begin(), mat.end());
@@ -4729,6 +4729,7 @@ namespace kaanh
 				{
 					throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
 				}
+				std::cout << param.pe.data()[0] << " " << param.pe.data()[1] << " " << param.pe.data()[2] << std::endl;
 			}
 			else if (p.first == "file_path")
 			{
@@ -4747,12 +4748,14 @@ namespace kaanh
 			}
 		}
 
+		double pm[16];
+		aris::dynamic::s_pq2pm(param.pe.data(), pm);
 		for (int i = 0; i < param.file_path.size(); i++)
 		{
 			model()->partPool().at(i).geometryPool().clear();
-			model()->partPool().at(i).geometryPool().add<FileGeometry>(param.name, param.file_path[i], param.pe.data());
+			model()->partPool().at(i).geometryPool().add<FileGeometry>(param.name, param.file_path[i], pm);
 		}
-
+		model()->init();
 		std::vector<std::pair<std::string, std::any>> ret_value;
 		ret() = ret_value;
 		option() = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
