@@ -212,34 +212,7 @@ namespace kaanhconfig
 		};
 
 		auto model = aris::dynamic::createModelPuma(param);
-		// add velocity variables
-		model->variablePool().add<aris::dynamic::MatrixVariable>("v400", aris::core::Matrix({ 0.4, 0.4, 200 * aris::PI / 180, 0.0, 0.0 }));
-		model->variablePool().add<aris::dynamic::MatrixVariable>("v500", aris::core::Matrix({ 0.5, 0.5, 200 * aris::PI / 180, 0.0, 0.0 }));
-		model->variablePool().add<aris::dynamic::MatrixVariable>("v600", aris::core::Matrix({ 0.6, 0.6, 200 * aris::PI / 180, 0.0, 0.0 }));
-		model->variablePool().add<aris::dynamic::MatrixVariable>("v800", aris::core::Matrix({ 0.8, 0.8, 200 * aris::PI / 180, 0.0, 0.0 }));
-		model->variablePool().add<aris::dynamic::MatrixVariable>("v1000", aris::core::Matrix({ 1.0, 1.0, 200 * aris::PI / 180, 0.0, 0.0 }));
-		model->variablePool().add<aris::dynamic::MatrixVariable>("v1500", aris::core::Matrix({ 1.0, 1.5, 200 * aris::PI / 180, 0.0, 0.0 }));
-		model->variablePool().add<aris::dynamic::MatrixVariable>("v2000", aris::core::Matrix({ 1.0, 2.0, 200 * aris::PI / 180, 0.0, 0.0 }));
-		model->variablePool().add<aris::dynamic::MatrixVariable>("v3000", aris::core::Matrix({ 1.0, 3.0, 200 * aris::PI / 180, 0.0, 0.0 }));
-		model->variablePool().add<aris::dynamic::MatrixVariable>("v4000", aris::core::Matrix({ 1.0, 4.0, 200 * aris::PI / 180, 0.0, 0.0 }));
-		model->variablePool().add<aris::dynamic::MatrixVariable>("v5000", aris::core::Matrix({ 1.0, 5.0, 200 * aris::PI / 180, 0.0, 0.0 }));
-		model->variablePool().add<aris::dynamic::MatrixVariable>("v6000", aris::core::Matrix({ 1.0, 6.0, 200 * aris::PI / 180, 0.0, 0.0 }));
 
-		// add zone variables
-		model->variablePool().add<aris::dynamic::MatrixVariable>("fine", aris::core::Matrix({ 0.0, 0.0 }));
-		model->variablePool().add<aris::dynamic::MatrixVariable>("z1", aris::core::Matrix({ 0.001, 0.01 }));
-		model->variablePool().add<aris::dynamic::MatrixVariable>("z5", aris::core::Matrix({ 0.005, 0.03 }));
-		model->variablePool().add<aris::dynamic::MatrixVariable>("z10", aris::core::Matrix({ 0.01, 0.05 }));
-		model->variablePool().add<aris::dynamic::MatrixVariable>("z15", aris::core::Matrix({ 0.015, 0.08 }));
-		model->variablePool().add<aris::dynamic::MatrixVariable>("z20", aris::core::Matrix({ 0.02, 0.1 }));
-		model->variablePool().add<aris::dynamic::MatrixVariable>("z30", aris::core::Matrix({ 0.03, 0.15 }));
-		model->variablePool().add<aris::dynamic::MatrixVariable>("z40", aris::core::Matrix({ 0.04, 0.2 }));
-		model->variablePool().add<aris::dynamic::MatrixVariable>("z50", aris::core::Matrix({ 0.05, 0.25 }));
-		model->variablePool().add<aris::dynamic::MatrixVariable>("z60", aris::core::Matrix({ 0.06, 0.3 }));
-		model->variablePool().add<aris::dynamic::MatrixVariable>("z80", aris::core::Matrix({ 0.08, 0.4 }));
-		model->variablePool().add<aris::dynamic::MatrixVariable>("z100", aris::core::Matrix({ 0.1, 0.5 }));
-		model->variablePool().add<aris::dynamic::MatrixVariable>("z150", aris::core::Matrix({ 0.15, 0.75 }));
-		model->variablePool().add<aris::dynamic::MatrixVariable>("z200", aris::core::Matrix({ 0.2, 1.0 }));
 		/*
 		//根据tool0，添加一个tool1，tool1相对于tool0在x方向加上0.1m//
 		auto &tool0 = model->partPool().back().markerPool().findByName("general_motion_0_i");//获取tool0
@@ -724,8 +697,9 @@ namespace kaanhconfig
 		return std::move(model);
 	}
 
-	auto createUserDataType(aris::core::Calculator &cal)->void
+    auto createUserDataType(aris::core::Calculator &cal)->void
 	{
+        std::cout << "create user data!" <<std::endl;
 		cal.addTypename("array");
 		cal.addFunction("array", std::vector<std::string>{"Matrix"}, "array", [](std::vector<std::any>&params)->std::any
 		{
@@ -774,6 +748,8 @@ namespace kaanhconfig
 			}
 			return params[0];
 		});
+
+
 		cal.addTypename("zone");
 		cal.addFunction("zone", std::vector<std::string>{"Matrix"}, "zone", [](std::vector<std::any>&params)->std::any
 		{
@@ -788,6 +764,36 @@ namespace kaanhconfig
 
 			return z;
 		});
+        cal.addBinaryOperatorFunction("=", "zone", "Matrix", "zone", [](std::any &left, std::any &right)->std::any
+        {
+            if (std::any_cast<aris::core::Matrix>(right).size() != 2)
+            {
+                THROW_FILE_LINE("input data error");
+            }
+            kaanh::Zone z;
+            auto temp = std::any_cast<aris::core::Matrix&>(right).data();
+            std::copy(temp, temp + 1, &z.dis);
+            std::copy(temp + 1, temp + 2, &z.per);
+
+            left = z;
+            return left;
+        });
+		// add zone variables
+		cal.addVariable("fine", "zone", kaanh::Zone({ 0.0, 0.0 }));
+		cal.addVariable("z1", "zone", kaanh::Zone({ 0.001, 0.01 }));
+		cal.addVariable("z5", "zone", kaanh::Zone({ 0.005, 0.03 }));
+		cal.addVariable("z10", "zone", kaanh::Zone({ 0.01, 0.05 }));
+		cal.addVariable("z15", "zone", kaanh::Zone({ 0.015, 0.08 }));
+		cal.addVariable("z20", "zone", kaanh::Zone({ 0.02, 0.1 }));
+		cal.addVariable("z30", "zone", kaanh::Zone({ 0.03, 0.15 }));
+		cal.addVariable("z40", "zone", kaanh::Zone({ 0.04, 0.2 }));
+		cal.addVariable("z50", "zone", kaanh::Zone({ 0.05, 0.25 }));
+		cal.addVariable("z60", "zone", kaanh::Zone({ 0.06, 0.3 }));
+		cal.addVariable("z80", "zone", kaanh::Zone({ 0.08, 0.4 }));
+		cal.addVariable("z100", "zone", kaanh::Zone({ 0.1, 0.5 }));
+		cal.addVariable("z150", "zone", kaanh::Zone({ 0.15, 0.75 }));
+		cal.addVariable("z200", "zone", kaanh::Zone({ 0.2, 1.0 }));
+
 		cal.addTypename("speed");
 		cal.addFunction("speed", std::vector<std::string>{"Matrix"}, "speed", [](std::vector<std::any>&params)->std::any
 		{
@@ -806,6 +812,50 @@ namespace kaanhconfig
 			return z;
 
 		});
+        cal.addBinaryOperatorFunction("=", "speed", "Matrix", "speed", [](std::any &left, std::any &right)->std::any
+        {
+            if (std::any_cast<aris::core::Matrix>(right).size() != 5)
+            {
+                THROW_FILE_LINE("input data error");
+            }
+            kaanh::Speed z;
+            auto temp = std::any_cast<aris::core::Matrix&>(right).data();
+            std::copy(temp, temp + 1, &z.w_per);
+            std::copy(temp + 1, temp + 2, &z.v_tcp);
+            std::copy(temp + 2, temp + 3, &z.w_tcp);
+            std::copy(temp + 3, temp + 4, &z.w_ext);
+            std::copy(temp + 4, temp + 5, &z.v_ext);
+
+            left = z;
+            return left;
+        });
+		// add velocity variables
+		/*
+        cal.addVariable("v5", "speed", kaanh::Speed({ 0.005, 0.005, 200 * aris::PI / 180, 0.0, 0.0 }));
+        cal.addVariable("v10", "speed", kaanh::Speed({ 0.01, 0.01, 200 * aris::PI / 180, 0.0, 0.0 }));
+        cal.addVariable("v25", "speed", kaanh::Speed({ 0.025, 0.025, 200 * aris::PI / 180, 0.0, 0.0 }));
+        cal.addVariable("v30", "speed", kaanh::Speed({ 0.03, 0.03, 200 * aris::PI / 180, 0.0, 0.0 }));
+        cal.addVariable("v40", "speed", kaanh::Speed({ 0.04, 0.04, 200 * aris::PI / 180, 0.0, 0.0 }));
+        cal.addVariable("v50", "speed", kaanh::Speed({ 0.05, 0.05, 200 * aris::PI / 180, 0.0, 0.0 }));
+        cal.addVariable("v60", "speed", kaanh::Speed({ 0.06, 0.06, 200 * aris::PI / 180, 0.0, 0.0 }));
+		cal.addVariable("v80", "speed", kaanh::Speed({ 0.08, 0.08, 200 * aris::PI / 180, 0.0, 0.0 }));
+		cal.addVariable("v100", "speed", kaanh::Speed({ 0.1, 0.1, 200 * aris::PI / 180, 0.0, 0.0 }));
+		cal.addVariable("v150", "speed", kaanh::Speed({ 0.15, 0.15, 200 * aris::PI / 180, 0.0, 0.0 }));
+		cal.addVariable("v200", "speed", kaanh::Speed({ 0.2, 0.2, 200 * aris::PI / 180, 0.0, 0.0 }));
+		cal.addVariable("v300", "speed", kaanh::Speed({ 0.3, 0.3, 200 * aris::PI / 180, 0.0, 0.0 }));
+		cal.addVariable("v400", "speed", kaanh::Speed({ 0.4, 0.4, 200 * aris::PI / 180, 0.0, 0.0 }));
+		cal.addVariable("v500", "speed", kaanh::Speed({ 0.5, 0.5, 200 * aris::PI / 180, 0.0, 0.0 }));
+		cal.addVariable("v600", "speed", kaanh::Speed({ 0.6, 0.6, 200 * aris::PI / 180, 0.0, 0.0 }));
+		cal.addVariable("v800", "speed", kaanh::Speed({ 0.8, 0.8, 200 * aris::PI / 180, 0.0, 0.0 }));
+		cal.addVariable("v1000", "speed", kaanh::Speed({ 1.0, 1.0, 200 * aris::PI / 180, 0.0, 0.0 }));
+		cal.addVariable("v1500", "speed", kaanh::Speed({ 1.0, 1.5, 200 * aris::PI / 180, 0.0, 0.0 }));
+		cal.addVariable("v2000", "speed", kaanh::Speed({ 1.0, 2.0, 200 * aris::PI / 180, 0.0, 0.0 }));
+		cal.addVariable("v3000", "speed", kaanh::Speed({ 1.0, 3.0, 200 * aris::PI / 180, 0.0, 0.0 }));
+		cal.addVariable("v4000", "speed", kaanh::Speed({ 1.0, 4.0, 200 * aris::PI / 180, 0.0, 0.0 }));
+		cal.addVariable("v5000", "speed", kaanh::Speed({ 1.0, 5.0, 200 * aris::PI / 180, 0.0, 0.0 }));
+		cal.addVariable("v6000", "speed", kaanh::Speed({ 1.0, 6.0, 200 * aris::PI / 180, 0.0, 0.0 }));
+		*/
+
 		cal.addTypename("tool");
 		cal.addFunction("tool", std::vector<std::string>{"Matrix"}, "tool", [](std::vector<std::any>&params)->std::any
 		{
@@ -815,6 +865,24 @@ namespace kaanhconfig
 			}
 			return params[0];
 		});
+        cal.addBinaryOperatorFunction("=", "tool", "Matrix", "tool", [](std::any &left, std::any &right)->std::any
+        {
+            if (std::any_cast<aris::core::Matrix>(right).size() != 6)
+            {
+                THROW_FILE_LINE("input data error");
+            }
+            left = right;
+            return left;
+        });
+		// add tool offset, inertia variables
+		cal.addVariable("tool0_axis_home", "tool", aris::core::Matrix(1, 6, 0.0));
+		for (int i = 1; i < 17; ++i)
+		{
+			cal.addVariable("tool" + std::to_string(i) + "_axis_offset", "tool", aris::core::Matrix(1, 6, 0.0));
+			cal.addVariable("tool" + std::to_string(i) + "_inertia", "tool", aris::core::Matrix(1, 10, 0.0));
+		}
+		
+
 		cal.addTypename("wobj");
 		cal.addFunction("wobj", std::vector<std::string>{"Matrix"}, "wobj", [](std::vector<std::any>&params)->std::any
 		{
@@ -824,6 +892,17 @@ namespace kaanhconfig
 			}
 			return params[0];
 		});
+        cal.addBinaryOperatorFunction("=", "wobj", "Matrix", "wobj", [](std::any &left, std::any &right)->std::any
+        {
+            if (std::any_cast<aris::core::Matrix>(right).size() != 6)
+            {
+                THROW_FILE_LINE("input data error");
+            }
+            left = right;
+            return left;
+        });
+
+
 	}
 
 	auto createPlanRoot()->std::unique_ptr<aris::plan::PlanRoot>
@@ -832,13 +911,16 @@ namespace kaanhconfig
 
 		plan_root->planPool().add<aris::plan::Enable>();
 		plan_root->planPool().add<aris::plan::Disable>();
-		plan_root->planPool().add<kaanh::Home>();
+		plan_root->planPool().add<aris::plan::Start>();
+		plan_root->planPool().add<aris::plan::Stop>();
 		plan_root->planPool().add<aris::plan::Mode>();
 		plan_root->planPool().add<aris::plan::Clear>();
+		plan_root->planPool().add<kaanh::Home>();
 		plan_root->planPool().add<kaanh::Sleep>();
 		plan_root->planPool().add<kaanh::Recover>();
-		auto &rs = plan_root->planPool().add<kaanh::Reset>();
-		rs.command().findParam("pos")->setDefaultValue("{0.5,0.3925,0.7899,0.5,0.5,0.5}");
+		plan_root->planPool().add<kaanh::Reset>();
+		//auto &rs = plan_root->planPool().add<kaanh::Reset>();
+		//rs.command().findParam("pos")->setDefaultValue("{0.5,0.3925,0.7899,0.5,0.5,0.5}");
 
 		plan_root->planPool().add<aris::server::GetInfo>();
 		//qifan//
@@ -882,14 +964,11 @@ namespace kaanhconfig
 		plan_root->planPool().add<kaanh::SetEsiPath>();
 		plan_root->planPool().add<kaanh::GetXml>();
 		plan_root->planPool().add<kaanh::SetXml>();
-		plan_root->planPool().add<kaanh::Start> ();
-		plan_root->planPool().add<kaanh::Stop>();
 		plan_root->planPool().add<kaanh::SetCT>();
 		plan_root->planPool().add<kaanh::SetVel>();
 		plan_root->planPool().add<kaanh::Run>();
 		plan_root->planPool().add<kaanh::MoveF>();
 		plan_root->planPool().add<kaanh::Switch>();
-
 		plan_root->planPool().add<MoveJoint>();
 		plan_root->planPool().add<Replay>();
 		plan_root->planPool().add<ForceDirect>();
