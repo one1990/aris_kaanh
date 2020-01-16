@@ -369,25 +369,23 @@ namespace kaanh
 		std::vector<double> axis_jerk_vec;
 	};
 #define SET_INPUT_MOVEMENT_STRING \
-		"		<Param name=\"pos\" default=\"0.5\"/>"\
+		"		<Param name=\"pos\" default=\"{0.0,0.0,0.0,0.0,0.0,0.0}\"/>"\
 		"		<Param name=\"acc\" default=\"0.1\"/>"\
-		"		<Param name=\"vel\" default=\"0.1\"/>"\
+        "		<Param name=\"vel\" default=\"{0.025, 0.025, 3.4, 0.0, 0.0}\"/>"\
         "		<Param name=\"dec\" default=\"0.1\"/>"\
         "		<Param name=\"jerk\" default=\"0.1\"/>"
-	auto set_input_movement(const std::map<std::string_view, std::string_view> &cmd_params, Plan &plan, SetInputMovement &param)->void
+    auto set_input_movement(const std::map<std::string_view, std::string_view> &cmd_params, Plan &plan, SetInputMovement &param)->void
 	{
 		param.axis_begin_pos_vec.resize(plan.controller()->motionPool().size(), 0.0);
-		
+		auto &cal = plan.controlServer()->model().calculator();
+
 		for (auto cmd_param : cmd_params)
 		{
 			if (cmd_param.first == "pos")
 			{
-				auto p = plan.matrixParam(cmd_param.first);
-				if (p.size() == 1)
-				{
-					param.axis_pos_vec.resize(plan.controller()->motionPool().size(), p.toDouble());
-				}
-				else if (p.size() == plan.controller()->motionPool().size())
+                auto p = std::any_cast<aris::core::Matrix>(cal.calculateExpression("jointtarget(" + std::string(cmd_param.second) + ")").second);
+                //auto p = plan.matrixParam(cmd_param.first);
+				if (p.size() == plan.controller()->motionPool().size())
 				{
 					param.axis_pos_vec.assign(p.begin(), p.end());
 				}
@@ -416,20 +414,12 @@ namespace kaanh
 			}
 			else if (cmd_param.first == "vel")
 			{
-				auto v = plan.matrixParam(cmd_param.first);
-
-				if (v.size() == 1)
-				{
-					param.axis_vel_vec.resize(plan.controller()->motionPool().size(), v.toDouble());
-				}
-				else if (v.size() == plan.controller()->motionPool().size())
-				{
-					param.axis_vel_vec.assign(v.begin(), v.end());
-				}
-				else
-				{
-					THROW_FILE_LINE("");
-				}
+				param.axis_vel_vec.resize(plan.controller()->motionPool().size(), 0.0);
+                auto v = std::any_cast<kaanh::Speed>(cal.calculateExpression("speed(" + std::string(cmd_param.second) + ")").second);
+                for (int i = 0; i < 6; ++i)
+                {
+                    param.axis_vel_vec[i] = plan.controller()->motionPool()[i].maxVel()*v.w_per;
+                }
 			}
 			else if (cmd_param.first == "dec")
 			{
@@ -493,7 +483,6 @@ namespace kaanh
 	}
 
 
-	// 获取part_pq，end_pq，end_pe等 //
     // 获取part_pq，end_pq，end_pe等 //
     std::atomic_bool having_model=false;
     struct GetParam
@@ -752,9 +741,8 @@ namespace kaanh
         for (Size i = 0; i < controller()->motionPool().size(); ++i)
         {
             auto &cm = controller()->motionPool()[i];
-            imp_->axis_pos_vec[i] = imp_->axis_pos_vec[i] * (cm.maxPos() - cm.minPos()) + cm.minPos();
+            //imp_->axis_pos_vec[i] = imp_->axis_pos_vec[i] * (cm.maxPos() - cm.minPos()) + cm.minPos();
             imp_->axis_acc_vec[i] = imp_->axis_acc_vec[i] * cm.maxAcc();
-            imp_->axis_vel_vec[i] = imp_->axis_vel_vec[i] * cm.maxVel();
             imp_->axis_dec_vec[i] = imp_->axis_dec_vec[i] * cm.maxAcc();
         }
         check_input_movement(cmdParams(), *this, *imp_, *imp_);
@@ -923,15 +911,14 @@ namespace kaanh
 	{
 		MoveAbsJParam param;
 
+        auto &cal = this->controlServer()->model().calculator();
 		set_check_option(cmdParams(), *this);
 		set_active_motor(cmdParams(), *this, param);
-		set_input_movement(cmdParams(), *this, param);
+        set_input_movement(cmdParams(), *this, param);
 		check_input_movement(cmdParams(), *this, param, param);
 
 		param.axis_begin_pos_vec.resize(controller()->motionPool().size());
 
-		auto&cs = aris::server::ControlServer::instance();
-		auto &cal = cs.model().calculator();
 		// find joint acc/vel/dec/jerk/zone
 		for (auto cmd_param : cmdParams())
 		{
@@ -953,15 +940,6 @@ namespace kaanh
 					{
 						THROW_FILE_LINE("zone out of range");
 					}
-				}
-			}
-			else if (cmd_param.first == "speed")
-			{
-				auto s = std::any_cast<kaanh::Speed>(cal.calculateExpression("speed(" + std::string(cmd_param.second) + ")").second);
-				param.sp = s;
-				for (int i = 0; i < 6; ++i)
-				{
-					param.axis_vel_vec[i] = controller()->motionPool()[i].maxVel()*param.sp.w_per;
 				}
 			}
 			else if (cmd_param.first == "load")
@@ -1032,12 +1010,11 @@ namespace kaanh
 		command().loadXmlStr(
 			"<Command name=\"mvaj\">"
 			"	<GroupParam>"
-			"		<Param name=\"pos\" default=\"0.0\"/>"
-			"		<Param name=\"vel\" default=\"1.0\"/>"
+			"		<Param name=\"pos\" default=\"{0.0,0.0,0.0,0.0,0.0,0.0}\"/>"
+            "		<Param name=\"vel\" default=\"{0.025, 0.025, 3.4, 0.0, 0.0}\"/>"
 			"		<Param name=\"acc\" default=\"1.0\"/>"
 			"		<Param name=\"dec\" default=\"1.0\"/>"
 			"		<Param name=\"jerk\" default=\"10.0\"/>"
-			"		<Param name=\"speed\" default=\"{0.1, 0.1, 3.49, 0.0, 0.0}\"/>"
 			"		<Param name=\"zone\" default=\"fine\"/>"
 			"		<Param name=\"load\" default=\"{1,0.05,0.05,0.05,0,0.97976,0,0.200177,1.0,1.0,1.0}\"/>"
 			SELECT_MOTOR_STRING
@@ -1066,8 +1043,8 @@ namespace kaanh
 		else if (pos_unit_found->second == "mm")pos_unit = 0.001;
 		else if (pos_unit_found->second == "cm")pos_unit = 0.01;
 		else THROW_FILE_LINE("");
-		auto&cs = aris::server::ControlServer::instance();
-		auto &cal = cs.model().calculator();
+
+		auto &cal = plan.controlServer()->model().calculator();
 		for (auto cmd_param : params)
 		{
 			if (cmd_param.first == "pq")
@@ -1142,8 +1119,7 @@ namespace kaanh
 		mvj_param.tool = &*model()->generalMotionPool()[0].makI().fatherPart().markerPool().findByName(std::string(cmdParams().at("tool")));
 		mvj_param.wobj = &*model()->generalMotionPool()[0].makJ().fatherPart().markerPool().findByName(std::string(cmdParams().at("wobj")));
 
-		auto&cs = aris::server::ControlServer::instance();
-		auto &cal = cs.model().calculator();
+		auto &cal = this->controlServer()->model().calculator();
 		// find joint acc/vel/dec/jerk/zone
 		for (auto cmd_param : cmdParams())
 		{
@@ -1165,17 +1141,18 @@ namespace kaanh
 					if (mvj_param.joint_acc[i] <= 0 || mvj_param.joint_acc[i] > c->motionPool()[i].maxAcc())
 						THROW_FILE_LINE("");
 			}
-			else if (cmd_param.first == "joint_vel")
+            else if (cmd_param.first == "vel")
 			{
 				mvj_param.joint_vel.clear();
 				mvj_param.joint_vel.resize(model()->motionPool().size(), 0.0);
 
-				auto vel_mat = matrixParam(cmd_param.first);
-				if (vel_mat.size() == 1)std::fill(mvj_param.joint_vel.begin(), mvj_param.joint_vel.end(), vel_mat.toDouble());
-				else if (vel_mat.size() == model()->motionPool().size()) std::copy(vel_mat.begin(), vel_mat.end(), mvj_param.joint_vel.begin());
-				else THROW_FILE_LINE("");
-
-				for (int i = 0; i < 6; ++i)mvj_param.joint_vel[i] *= controller()->motionPool()[i].maxVel();
+				auto[type, value] = cal.calculateExpression("speed(" + std::string(cmd_param.second) + ")");
+                auto s = std::any_cast<kaanh::Speed>(cal.calculateExpression("speed(" + std::string(cmd_param.second) + ")").second);
+                mvj_param.sp = s;
+                for (int i = 0; i < model()->motionPool().size(); ++i)
+                {
+                    mvj_param.joint_vel[i] = controller()->motionPool()[i].maxVel()*mvj_param.sp.w_per;
+                }
 
 				// check value validity //
 				for (Size i = 0; i < std::min(model()->motionPool().size(), c->motionPool().size()); ++i)
@@ -1233,15 +1210,6 @@ namespace kaanh
 					{
 						THROW_FILE_LINE("zone out of range");
 					}
-				}
-			}
-			else if (cmd_param.first == "speed")
-			{
-				auto s = std::any_cast<kaanh::Speed>(cal.calculateExpression("speed(" + std::string(cmd_param.second) + ")").second);
-				mvj_param.sp = s;
-				for (int i = 0; i < 6; ++i)
-				{
-					mvj_param.joint_vel[i] = controller()->motionPool()[i].maxVel()*mvj_param.sp.w_per;
 				}
 			}
 			else if (cmd_param.first == "load")
@@ -1537,7 +1505,7 @@ namespace kaanh
 			"			</GroupParam>"
 			"		</UniqueParam>"
 			"		<Param name=\"joint_acc\" default=\"0.1\"/>"
-			"		<Param name=\"joint_vel\" default=\"0.1\"/>"
+            "		<Param name=\"vel\" default=\"{0.025, 0.025, 3.4, 0.0, 0.0}\"/>"
 			"		<Param name=\"joint_dec\" default=\"0.1\"/>"
 			"		<Param name=\"joint_jerk\" default=\"10.0\"/>"
 			"		<Param name=\"speed\" default=\"{0.1, 0.1, 3.49, 0.0, 0.0}\"/>"
@@ -1580,8 +1548,7 @@ namespace kaanh
 		mvl_param.tool = &*model()->generalMotionPool()[0].makI().fatherPart().markerPool().findByName(std::string(cmdParams().at("tool")));
 		mvl_param.wobj = &*model()->generalMotionPool()[0].makJ().fatherPart().markerPool().findByName(std::string(cmdParams().at("wobj")));
 
-		auto&cs = aris::server::ControlServer::instance();
-		auto &cal = cs.model().calculator();
+		auto &cal = this->controlServer()->model().calculator();
 
 		for (auto cmd_param : cmdParams())
 		{
@@ -1591,7 +1558,10 @@ namespace kaanh
 			}
 			else if (cmd_param.first == "vel")
 			{
-				mvl_param.vel = doubleParam(cmd_param.first);
+                auto s = std::any_cast<kaanh::Speed>(cal.calculateExpression("speed(" + std::string(cmd_param.second) + ")").second);
+                mvl_param.sp = s;
+                mvl_param.vel = mvl_param.sp.v_tcp;
+                mvl_param.angular_vel = mvl_param.sp.w_tcp;
 			}
 			else if (cmd_param.first == "dec")
 			{
@@ -1604,10 +1574,6 @@ namespace kaanh
 			else if (cmd_param.first == "angular_acc")
 			{
 				mvl_param.angular_acc = doubleParam(cmd_param.first);
-			}
-			else if (cmd_param.first == "angular_vel")
-			{
-				mvl_param.angular_vel = doubleParam(cmd_param.first);
 			}
 			else if (cmd_param.first == "angular_dec")
 			{
@@ -1636,13 +1602,6 @@ namespace kaanh
 					}
 				}
 			}
-			else if (cmd_param.first == "speed")
-			{
-				auto s = std::any_cast<kaanh::Speed>(cal.calculateExpression("speed(" + std::string(cmd_param.second) + ")").second);
-				mvl_param.sp = s;
-				mvl_param.vel = mvl_param.sp.v_tcp;
-				mvl_param.angular_vel = mvl_param.sp.w_tcp;
-			}
 			else if (cmd_param.first == "load")
 			{
 				auto temp = std::any_cast<kaanh::Load>(cal.calculateExpression("load(" + std::string(cmd_param.second) + ")").second);
@@ -1650,7 +1609,7 @@ namespace kaanh
 			}
 		}
 
-		for (auto &option : motorOptions())	option |= USE_TARGET_POS;
+        for (auto &option : motorOptions())	option |= USE_TARGET_POS;
 		this->param() = mvl_param;
 
 		std::vector<std::pair<std::string, std::any>> ret_value;
@@ -1707,6 +1666,11 @@ namespace kaanh
 		traplan::sCurve(static_cast<double>(count()), 0.0, norm_ori, mvl_param->angular_vel / 1000 * ori_ratio, mvl_param->angular_acc / 1000 / 1000 * ori_ratio * ori_ratio, mvl_param->angular_jerk / 1000 / 1000 /1000 * ori_ratio * ori_ratio * ori_ratio, p, v, a, j, ori_total_count);
 		if (norm_ori > 1e-10)aris::dynamic::s_vc(3, p / norm_ori, relative_pa + 3, pa + 3);
 
+		if (count() >= 4294)
+		{
+			auto p = pa;
+		}
+
 		aris::dynamic::s_pa2pm(pa, pm);
 		aris::dynamic::s_pm_dot_pm(begin_pm, pm, pm2);
 
@@ -1753,14 +1717,13 @@ namespace kaanh
 			"			</GroupParam>"
 			"		</UniqueParam>"
 			"		<Param name=\"acc\" default=\"0.1\"/>"
-			"		<Param name=\"vel\" default=\"0.1\"/>"
+            "		<Param name=\"vel\" default=\"{0.025, 0.025, 3.4, 0.0, 0.0}\"/>"
 			"		<Param name=\"dec\" default=\"0.1\"/>"
 			"		<Param name=\"jerk\" default=\"10.0\"/>"
 			"		<Param name=\"angular_acc\" default=\"0.1\"/>"
-			"		<Param name=\"angular_vel\" default=\"0.1\"/>"
+            "		<Param name=\"angular_vel\" default=\"0.1\"/>"
 			"		<Param name=\"angular_dec\" default=\"0.1\"/>"
 			"		<Param name=\"angular_jerk\" default=\"10.0\"/>"
-			"		<Param name=\"speed\" default=\"{0.1, 0.1, 3.49, 0.0, 0.0}\"/>"
 			"		<Param name=\"zone\" default=\"fine\"/>"
 			"		<Param name=\"load\" default=\"{1,0.05,0.05,0.05,0,0.97976,0,0.200177,1.0,1.0,1.0}\"/>"
 			"		<Param name=\"tool\" default=\"tool0\"/>"
@@ -1781,9 +1744,8 @@ namespace kaanh
 		else if (pos_unit_found->second == "mm")pos_unit = 0.001;
 		else if (pos_unit_found->second == "cm")pos_unit = 0.01;
 		else THROW_FILE_LINE("");
-
-		auto&cs = aris::server::ControlServer::instance();
-		auto &cal = cs.model().calculator();
+	
+		auto &cal = plan.controlServer()->model().calculator();
 
 		for (auto cmd_param : params)
 		{
@@ -1841,8 +1803,7 @@ namespace kaanh
 		else if (pos_unit_found->second == "cm")pos_unit = 0.01;
 		else THROW_FILE_LINE("");
 
-		auto&cs = aris::server::ControlServer::instance();
-		auto &cal = cs.model().calculator();
+		auto &cal = plan.controlServer()->model().calculator();
 
 		for (auto cmd_param : params)
 		{
@@ -1951,8 +1912,7 @@ namespace kaanh
 		mvc_param.tool = &*model()->generalMotionPool()[0].makI().fatherPart().markerPool().findByName(std::string(cmdParams().at("tool")));
 		mvc_param.wobj = &*model()->generalMotionPool()[0].makJ().fatherPart().markerPool().findByName(std::string(cmdParams().at("wobj")));
 
-		auto&cs = aris::server::ControlServer::instance();
-		auto &cal = cs.model().calculator();
+		auto &cal = this->controlServer()->model().calculator();
 
 		for (auto cmd_param : cmdParams())
 		{
@@ -1962,7 +1922,10 @@ namespace kaanh
 			}
 			else if (cmd_param.first == "vel")
 			{
-				mvc_param.vel = doubleParam(cmd_param.first);
+                auto s = std::any_cast<kaanh::Speed>(cal.calculateExpression("speed(" + std::string(cmd_param.second) + ")").second);
+                mvc_param.sp = s;
+                mvc_param.vel = mvc_param.sp.v_tcp;
+                mvc_param.angular_vel = mvc_param.sp.w_tcp;
 			}
 			else if (cmd_param.first == "dec")
 			{
@@ -1975,10 +1938,6 @@ namespace kaanh
 			else if (cmd_param.first == "angular_acc")
 			{
 				mvc_param.angular_acc = doubleParam(cmd_param.first);
-			}
-			else if (cmd_param.first == "angular_vel")
-			{
-				mvc_param.angular_vel = doubleParam(cmd_param.first);
 			}
 			else if (cmd_param.first == "angular_dec")
 			{
@@ -2006,13 +1965,6 @@ namespace kaanh
 						THROW_FILE_LINE("zone out of range");
 					}
 				}
-			}
-			else if (cmd_param.first == "speed")
-			{
-				auto s = std::any_cast<kaanh::Speed>(cal.calculateExpression("speed(" + std::string(cmd_param.second) + ")").second);
-				mvc_param.sp = s;
-				mvc_param.vel = mvc_param.sp.v_tcp;
-				mvc_param.angular_vel = mvc_param.sp.w_tcp;
 			}
 			else if (cmd_param.first == "load")
 			{
@@ -2213,7 +2165,7 @@ namespace kaanh
 			"			</GroupParam>"
 			"		</UniqueParam>"
 			"		<Param name=\"acc\" default=\"0.1\"/>"
-			"		<Param name=\"vel\" default=\"0.1\"/>"
+            "		<Param name=\"vel\" default=\"{0.025, 0.025, 3.4, 0.0, 0.0}\"/>"
 			"		<Param name=\"dec\" default=\"0.1\"/>"
 			"		<Param name=\"jerk\" default=\"0.1\"/>"
 			"		<Param name=\"angular_acc\" default=\"0.1\"/>"
@@ -4564,9 +4516,8 @@ namespace kaanh
 		dhparam.dh.clear();
 
 		for (auto &p : cmdParams())
-		{
-			//6轴DH参数//
-			if (p.first == "six_axes")
+		{	
+			if (p.first == "six_axes")//6轴DH参数//
 			{
 				dhparam.dh.resize(6, 0.0);
 				dhparam.dh[0] = doubleParam("d1_six_axes");
@@ -4578,8 +4529,7 @@ namespace kaanh
 				dhparam.tool_offset = doubleParam("tool0_six_axes");
 				dhparam.axis_num = 6;
 			}
-			//7轴DH参数//
-			else if (p.first == "seven_axes")
+			else if (p.first == "seven_axes")//7轴DH参数//
 			{
 				dhparam.dh.resize(3, 0.0);
 				dhparam.dh[0] = doubleParam("d1_seven_axes");
@@ -4602,8 +4552,10 @@ namespace kaanh
 			param_puma.d4 = dhparam.dh[5];
 			param_puma.tool0_pe[2] = dhparam.tool_offset;
 
-			auto model = aris::dynamic::createModelPuma(param_puma);
-			cs.resetModel(model.release());
+			auto m = aris::dynamic::createModelPuma(param_puma);
+            m->init();
+            this->controlServer()->resetModel(m.release());
+			
 		}
 		else if (dhparam.axis_num == 7)
 		{
@@ -4613,9 +4565,18 @@ namespace kaanh
 			param_7axes.tool0_pe[2] = dhparam.tool_offset;
 
 			auto m = aris::dynamic::createModelSevenAxis(param_7axes);
-			cs.resetModel(m.release());
+            m->init();
+            this->controlServer()->resetModel(m.release());
 		}
 		else{ }
+
+		//auto modelxmlpath = std::filesystem::absolute(".");//获取当前工程所在的路径
+		//const std::string mxmlfile = "model_rokae.xml";
+		//modelxmlpath = modelxmlpath / mxmlfile;
+		//cs.model().loadXmlFile(modelxmlpath.string().c_str());
+
+        auto &cal = this->controlServer()->model().calculator();
+        kaanhconfig::createUserDataType(cal);
 
 		/*
 		//动力学标定参数//
@@ -4645,7 +4606,8 @@ namespace kaanh
 		xmlpath = xmlpath / xmlfile;
 		cs.saveXmlFile(xmlpath.string().c_str());
 		*/
-        having_model.store(true);
+        
+		having_model.store(true);
 		std::vector<std::pair<std::string, std::any>> ret_value;
 		ret() = ret_value;
 		option() = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
@@ -4771,7 +4733,7 @@ namespace kaanh
 			}
 			else if (p.first == "pe")
 			{
-				auto mat = matrixParam(cmdParams().at("pe"));
+				auto mat = this->matrixParam(p.first);
 				if (mat.size() == param.pe.size())
 				{
 					param.pe.assign(mat.begin(), mat.end());
@@ -4780,6 +4742,7 @@ namespace kaanh
 				{
 					throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
 				}
+				std::cout << param.pe.data()[0] << " " << param.pe.data()[1] << " " << param.pe.data()[2] << std::endl;
 			}
 			else if (p.first == "file_path")
 			{
@@ -4798,12 +4761,14 @@ namespace kaanh
 			}
 		}
 
+		double pm[16];
+		aris::dynamic::s_pq2pm(param.pe.data(), pm);
 		for (int i = 0; i < param.file_path.size(); i++)
 		{
 			model()->partPool().at(i).geometryPool().clear();
-			model()->partPool().at(i).geometryPool().add<FileGeometry>(param.name, param.file_path[i], param.pe.data());
+			model()->partPool().at(i).geometryPool().add<FileGeometry>(param.name, param.file_path[i], pm);
 		}
-
+		model()->init();
 		std::vector<std::pair<std::string, std::any>> ret_value;
 		ret() = ret_value;
 		option() = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
@@ -5000,12 +4965,12 @@ namespace kaanh
 	{
 		auto&cs = aris::server::ControlServer::instance();
 		if (cs.running())throw std::runtime_error("cs is running, please stop the cs using cs_stop!");
+		aris::control::EthercatController ec_controller;
 
 #ifdef UNIX
-		aris::control::EthercatController mst;
-		mst.scan();
+		ec_controller.scan();
 		std::vector<std::pair<std::string, std::any>> ret_value;
-		ret_value.push_back(std::make_pair<std::string, std::any>("controller_xml", mst.xmlString()));
+        ret_value.push_back(std::make_pair<std::string, std::any>("controller_xml", ec_controller.xmlString()));
 #endif
 #ifdef WIN32
 		std::vector<std::pair<std::string, std::any>> ret_value;
@@ -5024,44 +4989,25 @@ namespace kaanh
 
 
 	// 根据ESI补全从站信息 //
-	struct GetEsiPdoListParam
-	{
-		int vendor_id;
-		int product_code;
-		int revision_num;
-	};
 	auto GetEsiPdoList::prepareNrt()->void
 	{
-		auto&cs = aris::server::ControlServer::instance();
-		if (cs.running())throw std::runtime_error("cs is running, please stop the cs using cs_stop!");
+        if (this->controlServer()->running())throw std::runtime_error("cs is running, please stop the cs using cs_stop!");
 		
-		GetEsiPdoListParam param;
-		for (auto &p : cmdParams())
-		{
-			if (p.first == "vendor_id")
-			{
-				param.vendor_id = int32Param(p.first);
-			}
-			if (p.first == "product_code")
-			{
-				param.product_code = int32Param(p.first);
-			}
-			if (p.first == "revision_num")
-			{
-				param.revision_num = int32Param(p.first);
-			}
-		}
-
-		aris::control::EthercatMaster mst;
-		auto pdolist = mst.getPdoList(param.vendor_id, param.product_code, param.revision_num);
-		
-		std::vector<std::pair<std::string, std::any>> ret_value;
-		ret_value.push_back(std::make_pair<std::string, std::any>("pdo_list_xml", pdolist));
-
-		ret() = ret_value;
-		option() = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
+        std::vector<std::pair<std::string, std::any>> ret_value;
+        try
+        {
+            auto pdolist = this->ecController()->getPdoList(int32Param("vendor_id"), int32Param("product_code"), int32Param("revision_num"));
+            ret_value.push_back(std::make_pair<std::string, std::any>("is_esi_found", true));
+            ret_value.push_back(std::make_pair<std::string, std::any>("pdo_list_xml", pdolist));
+        }
+        catch (std::exception &e)
+        {
+            ret_value.push_back(std::make_pair<std::string, std::any>("is_esi_found", false));
+        }
+        ret() = ret_value;
+        option() = NOT_RUN_EXECUTE_FUNCTION|NOT_RUN_COLLECT_FUNCTION;
 	}
-	GetEsiPdoList::GetEsiPdoList(const std::string &name) :Plan(name)
+    GetEsiPdoList::GetEsiPdoList(const std::string &name) :Plan(name)
 	{
 		command().loadXmlStr(
 			"<Command name=\"getesipdolist\">"
@@ -5081,26 +5027,13 @@ namespace kaanh
 	};
 	auto SetEsiPath::prepareNrt()->void
 	{
-		auto&cs = aris::server::ControlServer::instance();
-		if (cs.running())throw std::runtime_error("cs is running, please stop the cs using cs_stop!");
+        if (this->controlServer()->running())throw std::runtime_error("cs is running, please stop the cs using cs_stop!");
 		
-		SetEsiPathParam param;
-		param.path.clear();
+        std::cout << this->cmdParams().at("path") << std::endl;
 
-		for (auto &p : cmdParams())
-		{
-			if (p.first == "path")
-			{
-				for (auto &filepath : std::filesystem::directory_iterator(p.second))
-				{
-					if (filepath.is_regular_file())param.path.push_back(filepath.path());
-				}
-			}
-		}
-
-		aris::control::EthercatMaster mst;
-		mst.setEsiDirs(param.path);
-		auto device_list = mst.getDeviceList();
+        this->ecController()->setEsiDirs({this->cmdParams().at("path")});
+        this->ecController()->updateDeviceList();
+        auto device_list = this->ecController()->getDeviceList();
 
 		std::vector<std::pair<std::string, std::any>> ret_value;
 		ret_value.push_back(std::make_pair<std::string, std::any>("device_list_xml", device_list));
@@ -5153,7 +5086,7 @@ namespace kaanh
 				param.path = p.second;
 			}
 		}
-		if (param.path != " ")
+        if (param.path == "")
 		{
 			param.path = std::filesystem::absolute(".").string();
 		}
@@ -5161,7 +5094,7 @@ namespace kaanh
 		param.path = param.path + '/' + xmlfile;
 
 		std::cout << "path:" << param.path << std::endl;
-		cs.saveXmlFile(param.path.c_str());
+        cs.saveXmlFile(param.path.c_str());
 
 		std::vector<std::pair<std::string, std::any>> ret_value;
 		ret() = ret_value;
@@ -5207,8 +5140,17 @@ namespace kaanh
 		aris::core::XmlDocument doc;
 		if (doc.Parse(xml_str.c_str()) != tinyxml2::XML_SUCCESS) THROW_FILE_LINE("XML failed");
 
-		if (doc.RootElement()->FirstChildElement("EthercatController"))controlServer()->controller().loadXml(*doc.RootElement()->FirstChildElement("EthercatController"));
-		if (doc.RootElement()->FirstChildElement("Model"))controlServer()->model().loadXml(*doc.RootElement()->FirstChildElement("Model"));
+        if (doc.RootElement()->FirstChildElement("EthercatController"))
+        {
+            controlServer()->controller().loadXml(*doc.RootElement()->FirstChildElement("EthercatController"));
+            controlServer()->controller().init();
+        }
+
+        if (doc.RootElement()->FirstChildElement("Model"))
+        {
+            controlServer()->model().loadXml(*doc.RootElement()->FirstChildElement("Model"));
+            controlServer()->model().init();
+        }
 		// 这里后面需要改 ////////////////////////////////////////
 
 

@@ -10,7 +10,7 @@
 using namespace aris::dynamic;
 
 //global vel//
-kaanh::Speed g_vel;
+kaanh::Speed g_vel = { 0.1, 0.1, 3.4, 0.0, 0.0 };
 std::atomic_int g_vel_percent = 0;
 //global vel//
 
@@ -46,6 +46,7 @@ int main(int argc, char *argv[])
 
     
 	//生成kaanh.xml文档
+    /*
     //-------for rokae robot begin//
     cs.resetController(kaanhconfig::createControllerRokaeXB4().release());
     cs.resetModel(kaanhconfig::createModelRokae().release());
@@ -56,26 +57,25 @@ int main(int argc, char *argv[])
     cs.resetSensorRoot(new aris::sensor::SensorRoot);
 	cs.interfaceRoot().loadXmlFile(uixmlpath.string().c_str());
 	//cs.model().saveXmlFile(modelxmlpath.string().c_str());	//when creat new model
-	cs.model().loadXmlFile(modelxmlpath.string().c_str());
+    //cs.model().loadXmlFile(modelxmlpath.string().c_str());
 	cs.saveXmlFile(xmlpath.string().c_str());
     //-------for rokae robot end// 
-    
-	auto &cal = cs.model().calculator();
-	kaanhconfig::createUserDataType(cal);
+    */
 
+    /*
 	auto ret_load = cal.calculateExpression("pose({1,2,3,4,5,6,7})");
 	std::cout << ret_load.first << std::endl;
 	auto mat = std::any_cast<aris::core::Matrix>(ret_load.second);
 	std::cout << mat.data()[0] << std::endl;
-
 
 	cal.addVariable("p10", "pose", aris::core::Matrix({ 1,2,3,4,5,6,7 }));
 	auto ret_ff = cal.calculateExpression("pose(p10)");
 	std::cout << ret_ff.first << std::endl;
 	auto ret_ff2 = cal.calculateExpression("pose({6,5,4,3,2,1,0})");
 	std::cout << ret_ff2.first << std::endl;
+    */
 
-	/*
+    /*
 	//构造一个类型来接收UI变量//
 	auto &cal = cs.model().calculator();
 	cal.addTypename("load");
@@ -153,7 +153,11 @@ int main(int argc, char *argv[])
 	//-------for qifan robot end// 
     */
 
-	//cs.loadXmlFile(xmlpath.string().c_str());
+    cs.loadXmlFile(xmlpath.string().c_str());
+	cs.init();
+
+    auto &cal = cs.model().calculator();
+    kaanhconfig::createUserDataType(cal);
 
     //cs.start();
 
@@ -161,10 +165,6 @@ int main(int argc, char *argv[])
 	cs.setRtPlanPostCallback(kaanh::update_state);
 	g_model = cs.model();
 
-	//加载v100的速度值//
-	auto &getspeed = dynamic_cast<aris::dynamic::MatrixVariable &>(*cs.model().variablePool().findByName("v100"));
-	std::copy(getspeed.data().begin(), getspeed.data().end(), &g_vel.w_per);
-	std::cout << g_vel.w_per << std::endl;
 
 #ifdef WIN32
 	for (auto &m : cs.controller().slavePool())
