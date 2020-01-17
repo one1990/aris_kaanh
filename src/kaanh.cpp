@@ -4742,7 +4742,6 @@ namespace kaanh
 				{
 					throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + " failed");
 				}
-				std::cout << param.pe.data()[0] << " " << param.pe.data()[1] << " " << param.pe.data()[2] << std::endl;
 			}
 			else if (p.first == "file_path")
 			{
@@ -5093,7 +5092,7 @@ namespace kaanh
 		const std::string xmlfile = "kaanh.xml";
 		param.path = param.path + '/' + xmlfile;
 
-		std::cout << "path:" << param.path << std::endl;
+		std::cout << "input path:" << param.path << std::endl;
         cs.saveXmlFile(param.path.c_str());
 
 		std::vector<std::pair<std::string, std::any>> ret_value;
