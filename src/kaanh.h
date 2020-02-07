@@ -212,7 +212,7 @@ namespace kaanh
 		auto virtual collectNrt()->void;
 
 		virtual ~MoveJ();
-		explicit MoveJ(const std::string &name = "move_j");
+		explicit MoveJ(const std::string &name = "MoveJ");
 		MoveJ(const MoveJ &other);
 		ARIS_REGISTER_TYPE(kaanh::MoveJ);
 
@@ -229,7 +229,7 @@ namespace kaanh
 		auto virtual collectNrt()->void;
 
 		virtual ~MoveL();
-		explicit MoveL(const std::string &name = "move_l");
+		explicit MoveL(const std::string &name = "MoveL");
 		MoveL(const MoveL &other);
 		ARIS_REGISTER_TYPE(kaanh::MoveL);
 
@@ -246,7 +246,7 @@ namespace kaanh
 		auto virtual collectNrt()->void;
 
 		virtual ~MoveC();
-		explicit MoveC(const std::string &name = "MoveC_plan");
+		explicit MoveC(const std::string &name = "MoveC");
 		MoveC(const MoveC &other);
 		ARIS_REGISTER_TYPE(kaanh::MoveC);
 

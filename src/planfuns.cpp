@@ -567,16 +567,16 @@ namespace traplan
 		{
 			T = 0;
 			q_crt = q_end;
-			v_crt = 0;
-			a_crt = 0;
-			j_crt = 0;
+			v_crt = 0.0;
+			a_crt = 0.0;
+			j_crt = 0.0;
 		}
 		if (t >= T)
 		{
 			q_crt = q_end;
-			v_crt = 0;
-			a_crt = 0;
-			j_crt = 0;
+			v_crt = 0.0;
+			a_crt = 0.0;
+			j_crt = 0.0;
 		}
 	}
 

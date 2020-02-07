@@ -55,13 +55,13 @@ int main(int argc, char *argv[])
 	//cs.interfacePool().add<kaanh::ProInterface>("", "5866", aris::core::Socket::WEB);
 	cs.interfacePool().add<aris::server::WebInterface>("", "5867", aris::core::Socket::TCP);
     cs.resetSensorRoot(new aris::sensor::SensorRoot);
-	cs.interfaceRoot().loadXmlFile(uixmlpath.string().c_str());
+	//cs.interfaceRoot().loadXmlFile(uixmlpath.string().c_str());
 	//cs.model().saveXmlFile(modelxmlpath.string().c_str());	//when creat new model
     //cs.model().loadXmlFile(modelxmlpath.string().c_str());
 	cs.saveXmlFile(xmlpath.string().c_str());
     //-------for rokae robot end// 
-    */
-
+	*/
+    
     /*
 	auto ret_load = cal.calculateExpression("pose({1,2,3,4,5,6,7})");
 	std::cout << ret_load.first << std::endl;
