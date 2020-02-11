@@ -734,6 +734,7 @@ namespace kaanh
     struct Reset::Imp :public SetActiveMotor, SetInputMovement { std::vector<Size> total_count_vec; };
     auto Reset::prepareNrt()->void
     {
+		g_plan = nullptr;//每次回零位，需要把全局plan设置为空
         set_check_option(cmdParams(), *this);
         set_active_motor(cmdParams(), *this, *imp_);
         set_input_movement(cmdParams(), *this, *imp_);
@@ -805,6 +806,7 @@ namespace kaanh
     };
     auto Recover::prepareNrt()->void
     {
+		g_plan = nullptr;//每次使能，需要把全局plan设置为空
         auto p = std::make_shared<RecoverParam>();
 
         p->is_kinematic_ready_ = false;
@@ -995,16 +997,9 @@ namespace kaanh
 		}
 
 		//更新全局变量g_zp//
-		if (param.zone_enabled)
-		{
-			param.pre_plan = g_plan;
-			g_plan = std::dynamic_pointer_cast<MoveBase>(sharedPtrForThis());//------这里需要潘博aris库提供一个plan接口，返回std::shared_ptr<MoveBase>类型指针
-		}
-		else
-		{
-			param.pre_plan = g_plan;
-			g_plan = nullptr;
-		}
+		param.pre_plan = g_plan;
+		g_plan = std::dynamic_pointer_cast<MoveBase>(sharedPtrForThis());//------这里需要潘博aris库提供一个plan接口，返回std::shared_ptr<MoveBase>类型指针
+
 		if (param.pre_plan == nullptr)
 		{
 			std::cout << "preplan:" << "nullptr" << std::endl;
@@ -1019,7 +1014,7 @@ namespace kaanh
 		double end_pm[16];
 		if (param.pre_plan == nullptr)//转弯第一条指令
 		{
-			for (Size i = 0; i < std::min(controller()->motionPool().size(), g_model.motionPool().size()); ++i)
+			for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
 			{
 				param.axis_begin_pos_vec[i] = controller()->motionPool()[i].targetPos();
 			}
@@ -1029,7 +1024,7 @@ namespace kaanh
 			std::cout << "precmdname1:" << param.pre_plan->name() << "  cmdname1:" << this->name() << std::endl;
 			//从全局变量中获取上一条转弯区指令的目标点//
 			auto preparam = std::any_cast<MoveAbsJParam>(&param.pre_plan->param());
-			for (Size i = 0; i < std::min(controller()->motionPool().size(), g_model.motionPool().size()); ++i)
+			for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
 			{
 				param.axis_begin_pos_vec[i] = preparam->axis_pos_vec[i];
 			}
@@ -1056,18 +1051,18 @@ namespace kaanh
 				aris::dynamic::s_pq2pm(preparam->ee_end_pq.data(), end_pm);
 				preparam->tool->setPm(*preparam->wobj, end_pm);
 			}
-			g_model.generalMotionPool().at(0).updMpm();
-			if (g_model.solverPool().at(0).kinPos())THROW_FILE_LINE("");
-			for (Size i = 0; i < std::min(controller()->motionPool().size(), g_model.motionPool().size()); ++i)
+			model()->generalMotionPool().at(0).updMpm();
+			if (model()->solverPool().at(0).kinPos())THROW_FILE_LINE("");
+			for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
 			{
-				param.axis_begin_pos_vec[i] = g_model.motionPool()[i].mp();
+				param.axis_begin_pos_vec[i] = model()->motionPool()[i].mp();
 			}
 		}
 
 		//计算转弯区对应的count数//
 		double max_pos = 0.0;
 		Size max_i = 0;
-		for (Size i = 0; i < std::min(controller()->motionPool().size(), g_model.motionPool().size()); ++i)
+		for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
 		{
 			//S形轨迹规划//
 			traplan::sCurve(1, param.axis_begin_pos_vec[i], param.axis_pos_vec[i],
@@ -1083,11 +1078,11 @@ namespace kaanh
 		param.max_total_count = *std::max_element(param.total_count.begin(), param.total_count.end());
 
 		//获取不同轴的比率//
-		for (Size i = 0; i < std::min(controller()->motionPool().size(), g_model.motionPool().size()); ++i)
+		for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
 		{
 			param.pos_ratio[i] = 1.0* param.total_count[i] / param.max_total_count;
 		}
-		for (Size i = 0; i < std::min(controller()->motionPool().size(), g_model.motionPool().size()); ++i)
+		for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
 		{
 			//S形轨迹规划//
 			traplan::sCurve(1, param.axis_begin_pos_vec[i], param.axis_pos_vec[i],
@@ -1504,16 +1499,9 @@ namespace kaanh
 		}
 			
 		//更新全局变量g_zp//
-		if (mvj_param.zone_enabled)
-		{
-			mvj_param.pre_plan = g_plan;
-			g_plan = std::dynamic_pointer_cast<MoveBase>(sharedPtrForThis());//------这里需要潘博aris库提供一个plan接口，返回std::shared_ptr<MoveBase>类型指针
-		}
-		else
-		{
-			mvj_param.pre_plan = g_plan;
-			g_plan = nullptr;
-		}
+		mvj_param.pre_plan = g_plan;
+		g_plan = std::dynamic_pointer_cast<MoveBase>(sharedPtrForThis());//------这里需要潘博aris库提供一个plan接口，返回std::shared_ptr<MoveBase>类型指针
+
 		if (mvj_param.pre_plan == nullptr)
 		{
 			std::cout << "preplan:" << "nullptr" << std::endl;
@@ -1528,7 +1516,7 @@ namespace kaanh
 		double end_pm[16];
 		if (mvj_param.pre_plan == nullptr)//转弯第一条指令
 		{
-			for (Size i = 0; i < std::min(controller()->motionPool().size(), g_model.motionPool().size()); ++i)
+			for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
 			{
 				mvj_param.joint_pos_begin[i] = controller()->motionPool()[i].targetPos();
 			}
@@ -1539,39 +1527,64 @@ namespace kaanh
 			//从全局变量中获取上一条转弯区指令的目标点//
 			aris::dynamic::s_pq2pm(std::any_cast<MoveJParam>(&mvj_param.pre_plan->param())->ee_pq.data(), end_pm);
 			mvj_param.tool->setPm(*mvj_param.wobj, end_pm);
-			g_model.generalMotionPool().at(0).updMpm();
-			if (g_model.solverPool().at(0).kinPos())THROW_FILE_LINE("");
-			for (Size i = 0; i < std::min(controller()->motionPool().size(), g_model.motionPool().size()); ++i)
+			model()->generalMotionPool().at(0).updMpm();
+			if (model()->solverPool().at(0).kinPos())THROW_FILE_LINE("");
+			for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
 			{
-				mvj_param.joint_pos_begin[i] = g_model.motionPool()[i].mp();
+				mvj_param.joint_pos_begin[i] = model()->motionPool()[i].mp();
 			}
 		}
 		else//本条指令设置了转弯区，但是与上一条指令无法实现转弯，比如moveL,moveC,moveAbsJ
 		{
 			std::cout << "precmdname2:" << mvj_param.pre_plan->name() << "  cmdname2:" << this->name() << std::endl;
 			//获取起始点位置//
-			aris::dynamic::s_pq2pm(std::any_cast<MoveJParam>(&mvj_param.pre_plan->param())->ee_pq.data(), end_pm);
-			mvj_param.tool->setPm(*mvj_param.wobj, end_pm);
-			g_model.generalMotionPool().at(0).updMpm();
-			if (g_model.solverPool().at(0).kinPos())THROW_FILE_LINE("");
-			for (Size i = 0; i < std::min(controller()->motionPool().size(), g_model.motionPool().size()); ++i)
+			if (std::string(mvj_param.pre_plan->name()) == "MoveAbsJ")
 			{
-				mvj_param.joint_pos_begin[i] = g_model.motionPool()[i].mp();
+				auto preparam = std::any_cast<MoveAbsJParam>(&mvj_param.pre_plan->param());
+				for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
+				{
+					mvj_param.joint_pos_begin[i] = preparam->axis_pos_vec[i];
+				}
 			}
+			if (std::string(mvj_param.pre_plan->name()) == "MoveL")
+			{
+				auto preparam = std::any_cast<MoveLParam>(&mvj_param.pre_plan->param());
+				aris::dynamic::s_pq2pm(preparam->ee_pq.data(), end_pm);
+				preparam->tool->setPm(*mvj_param.wobj, end_pm);
+				model()->generalMotionPool().at(0).updMpm();
+				if (model()->solverPool().at(0).kinPos())THROW_FILE_LINE("");
+				for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
+				{
+					mvj_param.joint_pos_begin[i] = model()->motionPool()[i].mp();
+				}
+			}
+			if (std::string(mvj_param.pre_plan->name()) == "MoveC")
+			{
+				auto preparam = std::any_cast<MoveCParam>(&mvj_param.pre_plan->param());
+				aris::dynamic::s_pq2pm(preparam->ee_end_pq.data(), end_pm);
+				preparam->tool->setPm(*mvj_param.wobj, end_pm);
+				model()->generalMotionPool().at(0).updMpm();
+				if (model()->solverPool().at(0).kinPos())THROW_FILE_LINE("");
+				for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
+				{
+					mvj_param.joint_pos_begin[i] = model()->motionPool()[i].mp();
+				}
+			}
+		
 		}
 
 		//获取终止点位置//
 		aris::dynamic::s_pq2pm(mvj_param.ee_pq.data(), end_pm);
 		mvj_param.tool->setPm(*mvj_param.wobj, end_pm);
-		g_model.generalMotionPool().at(0).updMpm();
-		if (g_model.solverPool().at(0).kinPos())THROW_FILE_LINE("");
+		model()->generalMotionPool().at(0).updMpm();
+		if (model()->solverPool().at(0).kinPos())THROW_FILE_LINE("");
 		
 		//计算转弯区对应的count数//
 		double max_pos = 0.0;
 		Size max_i = 0;
-		for (Size i = 0; i < std::min(controller()->motionPool().size(), g_model.motionPool().size()); ++i)
+		for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
 		{
-			mvj_param.joint_pos_end[i] = g_model.motionPool()[i].mp();
+			mvj_param.joint_pos_end[i] = model()->motionPool()[i].mp();
 
 			//S形轨迹规划//
 			traplan::sCurve(1, mvj_param.joint_pos_begin[i], mvj_param.joint_pos_end[i],
@@ -1588,12 +1601,12 @@ namespace kaanh
 		mvj_param.max_total_count = *std::max_element(mvj_param.total_count.begin(), mvj_param.total_count.end());
 		
 		//获取不同轴的比率//
-		for (Size i = 0; i < std::min(controller()->motionPool().size(), g_model.motionPool().size()); ++i)
+		for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
 		{
 			mvj_param.pos_ratio[i] = 1.0* mvj_param.total_count[i] / mvj_param.max_total_count;
 		}
 		
-		for (Size i = 0; i < std::min(controller()->motionPool().size(), g_model.motionPool().size()); ++i)
+		for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
 		{
 			//S形轨迹规划//
 			traplan::sCurve(1, mvj_param.joint_pos_begin[i], mvj_param.joint_pos_end[i],
@@ -1932,16 +1945,9 @@ namespace kaanh
 		}
 
 		//更新全局变量g_zp//
-		if (mvl_param.zone_enabled)
-		{
-			mvl_param.pre_plan = g_plan;
-			g_plan = std::dynamic_pointer_cast<MoveBase>(sharedPtrForThis());//------这里需要潘博aris库提供一个plan接口，返回std::shared_ptr<MoveBase>类型指针
-		}
-		else
-		{
-			mvl_param.pre_plan = g_plan;
-			g_plan = nullptr;
-		}
+		mvl_param.pre_plan = g_plan;
+		g_plan = std::dynamic_pointer_cast<MoveBase>(sharedPtrForThis());//------这里需要潘博aris库提供一个plan接口，返回std::shared_ptr<MoveBase>类型指针
+
 		if (mvl_param.pre_plan == nullptr)
 		{
 			std::cout << "preplan:" << "nullptr" << std::endl;
@@ -1955,7 +1961,7 @@ namespace kaanh
 		double end_pm[16], relative_pm[16];
 		if (mvl_param.pre_plan == nullptr)//转弯第一条指令
 		{
-			g_model.generalMotionPool().at(0).updMpm();
+			model()->generalMotionPool().at(0).updMpm();
 			mvl_param.tool->getPm(*mvl_param.wobj, mvl_param.begin_pm);
 		}
 		else if (std::string(mvl_param.pre_plan->name()) == "MoveL")//转弯第二或第n条指令
@@ -1964,16 +1970,36 @@ namespace kaanh
 			//从全局变量中获取上一条转弯区指令的目标点//
 			aris::dynamic::s_pq2pm(std::any_cast<MoveLParam>(&mvl_param.pre_plan->param())->ee_pq.data(), end_pm);
 			mvl_param.tool->setPm(*mvl_param.wobj, end_pm);
-			g_model.generalMotionPool().at(0).updMpm();
+			model()->generalMotionPool().at(0).updMpm();
 			mvl_param.tool->getPm(*mvl_param.wobj, mvl_param.begin_pm);
 		}
-		else//本条指令设置了转弯区，但是与上一条指令无法实现转弯，比如moveJ,moveAbsJ
+		else//本条指令设置了转弯区，但是与上一条指令无法实现转弯，比如moveJ,moveAbsJ,moveC
 		{
 			std::cout << "precmdname2:" << mvl_param.pre_plan->name() << "  cmdname2:" << this->name() << std::endl;
 			//获取起始点位置//
-			aris::dynamic::s_pq2pm(std::any_cast<MoveLParam>(&mvl_param.pre_plan->param())->ee_pq.data(), end_pm);
+			if (std::string(mvl_param.pre_plan->name()) == "MoveAbsJ")
+			{
+				auto preparam = std::any_cast<MoveAbsJParam>(&mvl_param.pre_plan->param());
+				for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
+				{
+					model()->motionPool().at(i).setMp(preparam->axis_pos_vec[i]);
+				}
+				model()->solverPool().at(1).kinPos();
+				model()->generalMotionPool().at(0).getMpm(end_pm);
+			}
+			if (std::string(mvl_param.pre_plan->name()) == "MoveJ")
+			{
+				auto preparam = std::any_cast<MoveJParam>(&mvl_param.pre_plan->param());
+				aris::dynamic::s_pq2pm(preparam->ee_pq.data(), end_pm);
+			}
+			if (std::string(mvl_param.pre_plan->name()) == "MoveC")
+			{
+				auto preparam = std::any_cast<MoveCParam>(&mvl_param.pre_plan->param());
+				aris::dynamic::s_pq2pm(preparam->ee_end_pq.data(), end_pm);
+			}
+
 			mvl_param.tool->setPm(*mvl_param.wobj, end_pm);
-			g_model.generalMotionPool().at(0).updMpm();
+			model()->generalMotionPool().at(0).updMpm();
 			mvl_param.tool->getPm(*mvl_param.wobj, mvl_param.begin_pm);
 		}
 
@@ -2653,16 +2679,9 @@ namespace kaanh
 		}
 
 		//更新全局变量g_zp//
-		if (mvc_param.zone_enabled)
-		{
-			mvc_param.pre_plan = g_plan;
-			g_plan = std::dynamic_pointer_cast<MoveBase>(sharedPtrForThis());//------这里需要潘博aris库提供一个plan接口，返回std::shared_ptr<MoveBase>类型指针
-		}
-		else
-		{
-			mvc_param.pre_plan = g_plan;
-			g_plan = nullptr;
-		}
+		mvc_param.pre_plan = g_plan;
+		g_plan = std::dynamic_pointer_cast<MoveBase>(sharedPtrForThis());//------这里需要潘博aris库提供一个plan接口，返回std::shared_ptr<MoveBase>类型指针
+
 		if (mvc_param.pre_plan == nullptr)
 		{
 			std::cout << "preplan:" << "nullptr" << std::endl;
@@ -2676,7 +2695,7 @@ namespace kaanh
 		double end_pq[7];
 		if (mvc_param.pre_plan == nullptr)//转弯第一条指令
 		{
-			g_model.generalMotionPool().at(0).updMpm();
+			model()->generalMotionPool().at(0).updMpm();
 			mvc_param.tool->getPm(*mvc_param.wobj, mvc_param.ee_begin_pq.data());
 		}
 		else if (std::string(mvc_param.pre_plan->name()) == "MoveC")//转弯第二或第n条指令
@@ -2685,35 +2704,37 @@ namespace kaanh
 			//从全局变量中获取上一条转弯区指令的目标点//
 			auto param = std::any_cast<MoveCParam>(&mvc_param.pre_plan->param());
 			mvc_param.tool->setPm(*mvc_param.wobj, param->ee_end_pq.data());
-			g_model.generalMotionPool().at(0).updMpm();
+			model()->generalMotionPool().at(0).updMpm();
 			mvc_param.tool->getPm(*mvc_param.wobj, mvc_param.ee_begin_pq.data());
 		}
 		else//本条指令设置了转弯区，但是与上一条指令无法实现转弯，比如moveJ,moveAbsJ
 		{
 			std::cout << "precmdname2:" << mvc_param.pre_plan->name() << "  cmdname2:" << this->name() << std::endl;
 			//获取起始点位置//
-			auto param = std::any_cast<MoveCParam>(&mvc_param.pre_plan->param());
 			if (std::string(mvc_param.pre_plan->name()) == "MoveJ")
 			{
 				auto preparam = std::any_cast<MoveJParam>(&mvc_param.pre_plan->param());
-				mvc_param.tool->setPm(*mvc_param.wobj, preparam->ee_pq.data());
+				mvc_param.tool->setPq(*mvc_param.wobj, preparam->ee_pq.data());
+				model()->generalMotionPool().at(0).updMpm();
+				mvc_param.tool->getPq(*mvc_param.wobj, mvc_param.ee_begin_pq.data());
 			}
 			if (std::string(mvc_param.pre_plan->name()) == "MoveL")
 			{
 				auto preparam = std::any_cast<MoveLParam>(&mvc_param.pre_plan->param());
-				mvc_param.tool->setPm(*mvc_param.wobj, preparam->ee_pq.data());
+				mvc_param.tool->setPq(*mvc_param.wobj, preparam->ee_pq.data());
+				model()->generalMotionPool().at(0).updMpm();
+				mvc_param.tool->getPq(*mvc_param.wobj, mvc_param.ee_begin_pq.data());
 			}
 			if (std::string(mvc_param.pre_plan->name()) == "MoveAbsJ")
 			{
 				auto preparam = std::any_cast<MoveAbsJParam>(&mvc_param.pre_plan->param());
-				for (Size i = 0; i < model()->motionPool().size(); ++i)
+				for (Size i = 0; i < g_model.motionPool().size(); ++i)
 				{
-					model()->motionPool()[i].setMp(preparam->axis_pos_vec[i]);
+					g_model.motionPool()[i].setMp(preparam->axis_pos_vec[i]);
 				}
-				model()->solverPool().at(1).kinPos();
+				g_model.solverPool().at(1).kinPos();
+				g_model.generalMotionPool().at(0).getMpq(mvc_param.ee_begin_pq.data());
 			}
-			g_model.generalMotionPool().at(0).updMpm();
-			mvc_param.tool->getPm(*mvc_param.wobj, mvc_param.ee_begin_pq.data());
 		}
 
 		cal_circle_par(mvc_param);

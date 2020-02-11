@@ -779,6 +779,7 @@ namespace kaanhconfig
             return left;
         });
 		// add zone variables
+		/*
 		cal.addVariable("fine", "zone", kaanh::Zone({ 0.0, 0.0 }));
 		cal.addVariable("z1", "zone", kaanh::Zone({ 0.001, 0.01 }));
 		cal.addVariable("z5", "zone", kaanh::Zone({ 0.005, 0.03 }));
@@ -793,6 +794,7 @@ namespace kaanhconfig
 		cal.addVariable("z100", "zone", kaanh::Zone({ 0.1, 0.5 }));
 		cal.addVariable("z150", "zone", kaanh::Zone({ 0.15, 0.75 }));
 		cal.addVariable("z200", "zone", kaanh::Zone({ 0.2, 1.0 }));
+		*/
 
 		cal.addTypename("speed");
 		cal.addFunction("speed", std::vector<std::string>{"Matrix"}, "speed", [](std::vector<std::any>&params)->std::any
