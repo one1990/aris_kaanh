@@ -902,6 +902,7 @@ namespace kaanh
 	{
 		std::vector<double> pos_ratio;
 		std::vector<Size> total_count;
+		aris::dynamic::Marker *tool, *wobj;
 		std::shared_ptr<kaanh::MoveBase> pre_plan;
 		Size max_total_count = 0;
 		bool zone_enabled = false;
@@ -965,6 +966,9 @@ namespace kaanh
 		set_active_motor(cmdParams(), *this, param);
 		set_input_movement(cmdParams(), *this, param);
 		check_input_movement(cmdParams(), *this, param, param);
+
+		param.tool = &*model()->generalMotionPool()[0].makI().fatherPart().markerPool().findByName(std::string(cmdParams().at("tool")));
+		param.wobj = &*model()->generalMotionPool()[0].makJ().fatherPart().markerPool().findByName(std::string(cmdParams().at("wobj")));
 
 		// find joint acc/vel/dec/jerk/zone
 		for (auto cmd_param : cmdParams())
@@ -1306,6 +1310,8 @@ namespace kaanh
 			"		<Param name=\"jerk\" default=\"10.0\"/>"
 			"		<Param name=\"zone\" default=\"fine\"/>"
 			"		<Param name=\"load\" default=\"{1,0.05,0.05,0.05,0,0.97976,0,0.200177,1.0,1.0,1.0}\"/>"
+			"		<Param name=\"tool\" default=\"tool0\"/>"
+			"		<Param name=\"wobj\" default=\"wobj0\"/>"
 			SELECT_MOTOR_STRING
 			CHECK_PARAM_STRING
 			"	</GroupParam>"
@@ -2696,16 +2702,16 @@ namespace kaanh
 		if (mvc_param.pre_plan == nullptr)//转弯第一条指令
 		{
 			model()->generalMotionPool().at(0).updMpm();
-			mvc_param.tool->getPm(*mvc_param.wobj, mvc_param.ee_begin_pq.data());
+			mvc_param.tool->getPq(*mvc_param.wobj, mvc_param.ee_begin_pq.data());
 		}
 		else if (std::string(mvc_param.pre_plan->name()) == "MoveC")//转弯第二或第n条指令
 		{
 			std::cout << "precmdname1:" << mvc_param.pre_plan->name() << "  cmdname1:" << this->name() << std::endl;
 			//从全局变量中获取上一条转弯区指令的目标点//
 			auto param = std::any_cast<MoveCParam>(&mvc_param.pre_plan->param());
-			mvc_param.tool->setPm(*mvc_param.wobj, param->ee_end_pq.data());
+			mvc_param.tool->setPq(*mvc_param.wobj, param->ee_end_pq.data());
 			model()->generalMotionPool().at(0).updMpm();
-			mvc_param.tool->getPm(*mvc_param.wobj, mvc_param.ee_begin_pq.data());
+			mvc_param.tool->getPq(*mvc_param.wobj, mvc_param.ee_begin_pq.data());
 		}
 		else//本条指令设置了转弯区，但是与上一条指令无法实现转弯，比如moveJ,moveAbsJ
 		{
@@ -2811,7 +2817,7 @@ namespace kaanh
 			mvc_param.pre_plan->realzone.store(0);
 		}
 
-		for (auto &option : motorOptions())	option |= Plan::USE_TARGET_POS;
+		for (auto &option : motorOptions())	option |= Plan::USE_TARGET_POS|NOT_CHECK_POS_CONTINUOUS|NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER;
 		this->param() = mvc_param;
 
 		std::vector<std::pair<std::string, std::any>> ret_value;
@@ -2966,7 +2972,7 @@ namespace kaanh
 		return std::max(pos_total_count, ori_total_count) > count() ? 1 : 0;
 		*/
 
-		double pqt[7], pre_pqt[7];;
+		double pqt[7], pre_pqt[7];
 		if (mvc_param->pre_plan == nullptr) //转弯第一条指令
 		{
 			if (count() == 1)
@@ -2993,7 +2999,7 @@ namespace kaanh
 				aris::dynamic::s_vc(3, param.A + 6, w);
 				auto normv = aris::dynamic::s_norm(3, w);
 				if (std::abs(normv) > 1e-10)aris::dynamic::s_nv(3, 1 / normv, w); //数乘
-				traplan::sCurve(1, 0.0, param.theta, param.vel / 1000 / param.R * param.pos_ratio, param.acc / 1000 / 1000 / param.R * param.pos_ratio * param.pos_ratio,
+				traplan::sCurve(param.max_total_count - zonecount + count(), 0.0, param.theta, param.vel / 1000 / param.R * param.pos_ratio, param.acc / 1000 / 1000 / param.R * param.pos_ratio * param.pos_ratio,
 					param.jerk / 1000 / 1000 / 1000 / param.R * param.pos_ratio * param.pos_ratio * param.pos_ratio, p, v, a, j, pos_total_count);
 
 				double pqr[7]{ param.C[0], param.C[1], param.C[2], w[0] * sin(p / 2.0), w[1] * sin(p / 2.0), w[2] * sin(p / 2.0), cos(p / 2.0) };
@@ -3002,7 +3008,7 @@ namespace kaanh
 				s_mm(4, 1, 4, pmr, aris::dynamic::RowMajor{ 4 }, pos, 1, pre_pqt, 1);
 
 				//姿态规划//
-				traplan::sCurve(1, 0.0, 1.0, param.angular_vel / 1000 / param.ori_theta / 2.0 * param.ori_ratio, param.angular_acc / 1000 / 1000 / param.ori_theta / 2.0 * param.ori_ratio * param.ori_ratio,
+				traplan::sCurve(param.max_total_count - zonecount + count(), 0.0, 1.0, param.angular_vel / 1000 / param.ori_theta / 2.0 * param.ori_ratio, param.angular_acc / 1000 / 1000 / param.ori_theta / 2.0 * param.ori_ratio * param.ori_ratio,
 					param.angular_jerk / 1000 / 1000 / 1000 / param.ori_theta / 2.0 * param.ori_ratio * param.ori_ratio * param.ori_ratio, p, v, a, j, ori_total_count);
 				slerp(param.ee_begin_pq.data() + 3, param.ee_end_pq.data() + 3, pre_pqt + 3, p);
 

@@ -480,7 +480,7 @@ namespace traplan
 		double amin = -0;
 		double jmin = -0;
 		//比较q_start和q_end，修改约束条件
-		double sigma;
+		double sigma = 1.0;
 		if (q_start <= q_end)
 		{
 			sigma = 1;
