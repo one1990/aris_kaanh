@@ -441,7 +441,7 @@ namespace kaanh
 			else if (cmd_param.first == "jerk")
 			{
 				auto d = plan.matrixParam(cmd_param.first);
-
+				
 				if (d.size() == 1)
 				{
 					param.axis_jerk_vec.resize(plan.controller()->motionPool().size(), d.toDouble());
@@ -454,6 +454,7 @@ namespace kaanh
 				{
 					THROW_FILE_LINE("");
 				}
+				for (int i = 0; i < plan.controller()->motionPool().size(); ++i) param.axis_jerk_vec[i] *= param.axis_acc_vec[i];
 			}
 		}
 	}
