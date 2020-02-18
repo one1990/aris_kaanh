@@ -1,11 +1,10 @@
 ﻿#include <algorithm>
-#include "kaanh.h"
-#include "kaanhconfig.h"
+#include "wuling.h"
+#include "wulingconfig.h"
 #include <array>
 #include <stdlib.h>
 #include <string>
 #include"planfuns.h"
-#include"sixdistalfc.h"
 #include <bitset>
 #include "json.hpp"
 
@@ -631,6 +630,108 @@ namespace kaanh
             "<Command name=\"get\">"
             "</Command>");
     }
+
+
+	struct MotorModeParam
+	{
+		uint8_t mode;
+	};
+	auto MotorMode::prepareNrt()->void
+	{
+		MotorModeParam param;
+		param.mode = 1;
+
+		for (auto &p : cmdParams())
+		{
+			if (p.first == "mode")
+			{
+				param.mode = int32Param(p.first);
+			}
+		}
+
+		uint16_t status_word = 0;
+		for (aris::Size i = 0; i < controller()->slavePool().size(); i++)
+		{
+			if (i == 0)
+			{
+				ecController()->motionPool().at(i).writeSdo(0x6060, 0x00, &param.mode, 1);
+				ecController()->motionPool().at(i).readPdo(0x6041, 0x00, &status_word, 16);
+			}
+		}
+
+		for (auto &option : motorOptions())	option |= CHECK_NONE;
+		std::vector<std::pair<std::string, std::any>> ret_value;
+		ret() = ret_value;
+	}
+	auto MotorMode::collectNrt()->void {}
+	MotorMode::MotorMode(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"md\">"
+			"	<GroupParam>"
+			"		<Param name=\"mode\" default=\"8\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
+
+
+	auto EnableMotor::prepareNrt()->void
+	{
+		for (auto &option : motorOptions())	option |= CHECK_NONE;
+		std::vector<std::pair<std::string, std::any>> ret_value;
+		ret() = ret_value;
+	}
+	auto EnableMotor::executeRT()->int
+	{
+		uint16_t step2 = 0x0007;
+		uint16_t step3 = 0x000f;
+		uint16_t step4 = 0x007f;
+		uint16_t status_word;
+		ecController()->motionPool().at(0).readPdo(0x6041, 0x00, &status_word, 16);
+		static bool ret = true;
+		static std::int64_t ref_count = 1;
+		static int16_t temp = 1;
+
+		if ((status_word & 0x02) == 0x00)
+		{
+			auto cur_pos = ecController()->motionPool().at(0).actualPos();
+			ecController()->motionPool().at(0).setTargetPos(cur_pos);
+			//ecController()->motionPool().at(0).setModeOfOperation(8);
+			//ecController()->motionPool().at(0).writePdo(0x607a, 0x00, &cur_pos, 32);
+			ecController()->motionPool().at(0).writePdo(0x6040, 0x00, &step2, 16);
+			controller()->mout() << "1" << std::endl;
+		}
+		else if ((status_word & 0x02) == 0x02)
+		{
+			ecController()->motionPool().at(0).writePdo(0x6040, 0x00, &step3, 16);
+			controller()->mout() << "2" << std::endl;
+			if (temp == 1)
+			{
+				ref_count = count() + 1000;
+				temp = 0;
+			}
+			ret = false;
+		}
+		else if ((status_word & 0x04) == 0x04)
+		{
+			if (temp == 1)
+			{
+				ref_count = count() + 1000;
+				temp = 0;
+			}
+			ret = false;
+		}
+
+		return ret ? 1 : (ref_count - count());
+
+	}
+	auto EnableMotor::collectNrt()->void {}
+	EnableMotor::EnableMotor(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"en\">"
+			"</Command>");
+	}
 
 
 	struct Home::Imp :public SetActiveMotor
@@ -5503,7 +5604,7 @@ namespace kaanh
 		//cs.model().loadXmlFile(modelxmlpath.string().c_str());
 
         auto &cal = this->controlServer()->model().calculator();
-        kaanhconfig::createUserDataType(cal);
+        wulingconfig::createUserDataType(cal);
 
 		/*
 		//动力学标定参数//
