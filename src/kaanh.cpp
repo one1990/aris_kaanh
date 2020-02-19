@@ -765,7 +765,8 @@ namespace kaanh
             {
                 if (imp_->active_motor[i])
                 {
-                    imp_->axis_begin_pos_vec[i] = controller()->motionPool().at(i).actualPos();
+					imp_->axis_begin_pos_vec[i] = controller()->motionPool().at(i).targetPos();
+                    //imp_->axis_begin_pos_vec[i] = controller()->motionPool().at(i).actualPos();
                 }
             }
         }
@@ -1808,6 +1809,10 @@ namespace kaanh
 						mvj_param->joint_vel[i] / 1000 * mvj_param->pos_ratio[i], mvj_param->joint_acc[i] / 1000 / 1000 * mvj_param->pos_ratio[i] * mvj_param->pos_ratio[i], mvj_param->joint_jerk[i] / 1000 / 1000 / 1000 * mvj_param->pos_ratio[i] * mvj_param->pos_ratio[i] * mvj_param->pos_ratio[i],
 						p, v, a, j, mvj_param->total_count[i]);
 
+					if (std::abs(p) > 7)
+					{
+						controller()->mout() << "p:" << p << std::endl;
+					}
 					controller()->motionPool()[i].setTargetPos(p);
 					model()->motionPool()[i].setMp(p);
 				}
