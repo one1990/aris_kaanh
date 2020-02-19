@@ -740,7 +740,7 @@ namespace kaanh
         set_check_option(cmdParams(), *this);
         set_active_motor(cmdParams(), *this, *imp_);
         set_input_movement(cmdParams(), *this, *imp_);
-
+/*
         for (Size i = 0; i < controller()->motionPool().size(); ++i)
         {
             auto &cm = controller()->motionPool()[i];
@@ -748,6 +748,7 @@ namespace kaanh
             imp_->axis_acc_vec[i] = imp_->axis_acc_vec[i] * cm.maxAcc();
             imp_->axis_dec_vec[i] = imp_->axis_dec_vec[i] * cm.maxAcc();
         }
+*/
         check_input_movement(cmdParams(), *this, *imp_, *imp_);
 
         imp_->total_count_vec.resize(controller()->motionPool().size(), 1);
