@@ -6,9 +6,11 @@
 
 namespace sixDistalDynamicsInt
 { 
+   const int GroupDim = 16;
 	class sixdistaldynamics
 	{
 	public:
+        double estParasFT[GroupDim] = { 0 };
 		double A[3][3];
 		double B[3];
         sixdistaldynamics();

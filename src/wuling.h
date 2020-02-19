@@ -1,17 +1,9 @@
-﻿#ifndef KAANH_H_
-#define KAANH_H_
+﻿#ifndef WULING_H_
+#define WULING_H_
 
 #include <memory>
 #include <aris.hpp>
 
-//statemachine old//
-# define M_RUN 0	//手动单步执行
-# define READ_RT_DATA 1		//监控实时数据
-# define READ_XML 2		//监控实时数据
-# define A_RUN 3	//自动执行
-# define A_QUIT 4	//退出自动执行，返回到手动模式
-# define buffer_length 800
-//statemachine old//
 
 //statemachine new//
 # define DISABLED 100	//去使能
@@ -20,9 +12,6 @@
 # define AUTO 400		//自动模式
 # define ERROR 500		//错误模式
 //statemachine new//
-
-// \brief 机器人命名空间
-// \ingroup aris
 
 
 namespace kaanh
@@ -80,14 +69,7 @@ namespace kaanh
 		int32_t p1;	//cmd为条件指令时，结果为真对应的下一条指令号;cmd为普通指令时，为-1;
 		int32_t p2;	//cmd为条件指令时，结果为假对应的下一条指令号;cmd为普通指令时，为下一条指令号，一般是本条指令+1;
 	};
-	/*
-	struct CmdListParam
-	{
-		std::map<int, cmd_struct> cmd_vec;
-		int current_cmd_id = 0;
-		int current_plan_id = -1;
-	};
-	*/
+
 	struct CmdListParam
 	{
 		std::map<int, std::string> cmd_vec;
@@ -646,6 +628,28 @@ namespace kaanh
 		ARIS_REGISTER_TYPE(Switch);
 	};
 	
+
+	class MotorMode : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepareNrt()->void;
+		auto virtual collectNrt()->void;
+
+		explicit MotorMode(const std::string &name = "MotorMode_plan");
+		ARIS_REGISTER_TYPE(MotorMode);
+	};
+
+	class EnableMotor : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepareNrt()->void;
+		auto virtual executeRT()->int;
+		auto virtual collectNrt()->void;
+
+		explicit EnableMotor(const std::string &name = "EnableMotor_plan");
+		ARIS_REGISTER_TYPE(EnableMotor);
+	};
+
 }
 
 #endif

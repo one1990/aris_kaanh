@@ -1,0 +1,11 @@
+// 使能时才检查----把default中的内容注释掉//
+if ((cm.statusWord() & 0x6f) == 0x27)
+{
+default:
+{
+	// invalid mode //
+        //error_code = aris::plan::Plan::MOTION_INVALID_MODE;
+        //sprintf(error_msg, "%s_%d:\nMotion %zu MODE INVALID in count %zu:\nmode: %d\n", __FILE__, __LINE__, i, count_, cm.modeOfOperation());
+        //goto FAILED;
+}
+}
