@@ -33,6 +33,8 @@ const std::string modelxmlfile = "model_rokae.xml";
 //添加var类型
 aris::core::Calculator g_cal;
 aris::dynamic::Model g_model;
+aris::dynamic::Marker *g_tool, *g_wobj;
+
 
 int main(int argc, char *argv[])
 {
@@ -43,8 +45,8 @@ int main(int argc, char *argv[])
     std::cout<< xmlpath <<std::endl;
 	auto&cs = aris::server::ControlServer::instance();
 	auto port = argc < 2 ? 5866 : std::stoi(argv[1]);
+	auto path = argc < 2 ? xmlpath : argv[2];
 
-    
 	//生成kaanh.xml文档
     /*
     //-------for rokae robot begin//
@@ -153,7 +155,7 @@ int main(int argc, char *argv[])
 	//-------for qifan robot end// 
     */
 
-    cs.loadXmlFile(xmlpath.string().c_str());
+    cs.loadXmlFile(path.string().c_str());
 	cs.init();
 
     auto &cal = cs.model().calculator();

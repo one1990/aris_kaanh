@@ -28,6 +28,7 @@ extern std::atomic_bool g_is_running;
 
 extern aris::core::Calculator g_cal;
 extern aris::dynamic::Model g_model;
+extern aris::dynamic::Marker *g_tool, *g_wobj;
 
 struct CmdListParam
 {
@@ -35,7 +36,6 @@ struct CmdListParam
 	int current_cmd_id = 0;
 	int current_plan_id = -1;
 }cmdparam;
-
 std::shared_ptr<kaanh::MoveBase> g_plan;
 
 
@@ -1125,7 +1125,7 @@ namespace kaanh
 							param.axis_vel_vec[max_i] / 1000 * param.pos_ratio[max_i], param.axis_acc_vec[max_i] / 1000 / 1000 * param.pos_ratio[max_i] * param.pos_ratio[max_i], param.axis_jerk_vec[max_i] / 1000 / 1000 / 1000 * param.pos_ratio[max_i] * param.pos_ratio[max_i] * param.pos_ratio[max_i],
 							p, v, a, j, param.total_count[max_i]);
 					}
-					if ((begin_count == end_count) || (begin_count + 1 == end_count))
+					if ((begin_count == end_count) || (begin_count + 1 == end_count) || (end_count == 0))
 					{
 						break;
 					}
@@ -1250,7 +1250,7 @@ namespace kaanh
 
 					//thisplan//
 					double p, v, a, j;
-					traplan::sCurve(count(), param->axis_begin_pos_vec[i], param->axis_pos_vec[i],
+					traplan::sCurve(static_cast<double>(count()), param->axis_begin_pos_vec[i], param->axis_pos_vec[i],
 						param->axis_vel_vec[i] / 1000 * param->pos_ratio[i], param->axis_acc_vec[i] / 1000 / 1000 * param->pos_ratio[i] * param->pos_ratio[i], param->axis_jerk_vec[i] / 1000 / 1000 / 1000 * param->pos_ratio[i] * param->pos_ratio[i] * param->pos_ratio[i],
 						p, v, a, j, param->total_count[i]);
 
@@ -1261,7 +1261,7 @@ namespace kaanh
 				{
 					//thisplan//
 					double p, v, a, j;
-					traplan::sCurve(count(), param->axis_begin_pos_vec[i], param->axis_pos_vec[i],
+					traplan::sCurve(static_cast<double>(count()), param->axis_begin_pos_vec[i], param->axis_pos_vec[i],
 						param->axis_vel_vec[i] / 1000 * param->pos_ratio[i], param->axis_acc_vec[i] / 1000 / 1000 * param->pos_ratio[i] * param->pos_ratio[i], param->axis_jerk_vec[i] / 1000 / 1000 / 1000 * param->pos_ratio[i] * param->pos_ratio[i] * param->pos_ratio[i],
 						p, v, a, j, param->total_count[i]);
 
@@ -1407,6 +1407,8 @@ namespace kaanh
 
 		mvj_param.tool = &*model()->generalMotionPool()[0].makI().fatherPart().markerPool().findByName(std::string(cmdParams().at("tool")));
 		mvj_param.wobj = &*model()->generalMotionPool()[0].makJ().fatherPart().markerPool().findByName(std::string(cmdParams().at("wobj")));
+		g_tool = &*g_model.generalMotionPool()[0].makI().fatherPart().markerPool().findByName(std::string(cmdParams().at("tool")));
+		g_wobj = &*g_model.generalMotionPool()[0].makJ().fatherPart().markerPool().findByName(std::string(cmdParams().at("wobj")));
 
 		auto &cal = this->controlServer()->model().calculator();
 		// find joint acc/vel/dec/jerk/zone
@@ -1526,7 +1528,7 @@ namespace kaanh
 		double end_pm[16];
 		if (mvj_param.pre_plan == nullptr)//转弯第一条指令
 		{
-			for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
+			for (Size i = 0; i < std::min(controller()->motionPool().size(), g_model.motionPool().size()); ++i)
 			{
 				mvj_param.joint_pos_begin[i] = controller()->motionPool()[i].targetPos();
 			}
@@ -1536,12 +1538,21 @@ namespace kaanh
 			std::cout << "precmdname1:" << mvj_param.pre_plan->name() << "  cmdname1:"<< this->name() <<std::endl;
 			//从全局变量中获取上一条转弯区指令的目标点//
 			aris::dynamic::s_pq2pm(std::any_cast<MoveJParam>(&mvj_param.pre_plan->param())->ee_pq.data(), end_pm);
+			/*
 			mvj_param.tool->setPm(*mvj_param.wobj, end_pm);
 			model()->generalMotionPool().at(0).updMpm();
 			if (model()->solverPool().at(0).kinPos())THROW_FILE_LINE("");
 			for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
 			{
 				mvj_param.joint_pos_begin[i] = model()->motionPool()[i].mp();
+			}
+			*/
+			g_tool->setPm(*g_wobj, end_pm);
+			g_model.generalMotionPool().at(0).updMpm();
+			if (g_model.solverPool().at(0).kinPos())THROW_FILE_LINE("");
+			for (Size i = 0; i < std::min(controller()->motionPool().size(), g_model.motionPool().size()); ++i)
+			{
+				mvj_param.joint_pos_begin[i] = g_model.motionPool()[i].mp();
 			}
 		}
 		else//本条指令设置了转弯区，但是与上一条指令无法实现转弯，比如moveL,moveC,moveAbsJ
@@ -1560,24 +1571,24 @@ namespace kaanh
 			{
 				auto preparam = std::any_cast<MoveLParam>(&mvj_param.pre_plan->param());
 				aris::dynamic::s_pq2pm(preparam->ee_pq.data(), end_pm);
-				preparam->tool->setPm(*mvj_param.wobj, end_pm);
-				model()->generalMotionPool().at(0).updMpm();
-				if (model()->solverPool().at(0).kinPos())THROW_FILE_LINE("");
-				for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
+				g_tool->setPm(*g_wobj, end_pm);
+				g_model.generalMotionPool().at(0).updMpm();
+				if (g_model.solverPool().at(0).kinPos())THROW_FILE_LINE("");
+				for (Size i = 0; i < std::min(controller()->motionPool().size(), g_model.motionPool().size()); ++i)
 				{
-					mvj_param.joint_pos_begin[i] = model()->motionPool()[i].mp();
+					mvj_param.joint_pos_begin[i] = g_model.motionPool()[i].mp();
 				}
 			}
 			if (std::string(mvj_param.pre_plan->name()) == "MoveC")
 			{
 				auto preparam = std::any_cast<MoveCParam>(&mvj_param.pre_plan->param());
 				aris::dynamic::s_pq2pm(preparam->ee_end_pq.data(), end_pm);
-				preparam->tool->setPm(*mvj_param.wobj, end_pm);
-				model()->generalMotionPool().at(0).updMpm();
-				if (model()->solverPool().at(0).kinPos())THROW_FILE_LINE("");
-				for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
+				g_tool->setPm(*g_wobj, end_pm);
+				g_model.generalMotionPool().at(0).updMpm();
+				if (g_model.solverPool().at(0).kinPos())THROW_FILE_LINE("");
+				for (Size i = 0; i < std::min(controller()->motionPool().size(), g_model.motionPool().size()); ++i)
 				{
-					mvj_param.joint_pos_begin[i] = model()->motionPool()[i].mp();
+					mvj_param.joint_pos_begin[i] = g_model.motionPool()[i].mp();
 				}
 			}
 		
@@ -1585,16 +1596,21 @@ namespace kaanh
 
 		//获取终止点位置//
 		aris::dynamic::s_pq2pm(mvj_param.ee_pq.data(), end_pm);
+		/*
 		mvj_param.tool->setPm(*mvj_param.wobj, end_pm);
 		model()->generalMotionPool().at(0).updMpm();
 		if (model()->solverPool().at(0).kinPos())THROW_FILE_LINE("");
-		
+		*/
+		g_tool->setPm(*g_wobj, end_pm);
+		g_model.generalMotionPool().at(0).updMpm();
+		//dynamic_cast<aris::dynamic::PumaInverseKinematicSolver&>(g_model.solverPool().at(0)).setWhichRoot(0);
+		if (g_model.solverPool().at(0).kinPos())THROW_FILE_LINE("");
 		//计算转弯区对应的count数//
 		double max_pos = 0.0;
 		Size max_i = 0;
-		for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
+		for (Size i = 0; i < std::min(controller()->motionPool().size(), g_model.motionPool().size()); ++i)
 		{
-			mvj_param.joint_pos_end[i] = model()->motionPool()[i].mp();
+			mvj_param.joint_pos_end[i] = g_model.motionPool()[i].mp();
 
 			//S形轨迹规划//
 			traplan::sCurve(1, mvj_param.joint_pos_begin[i], mvj_param.joint_pos_end[i],
@@ -1611,12 +1627,12 @@ namespace kaanh
 		mvj_param.max_total_count = *std::max_element(mvj_param.total_count.begin(), mvj_param.total_count.end());
 		
 		//获取不同轴的比率//
-		for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
+		for (Size i = 0; i < std::min(controller()->motionPool().size(), g_model.motionPool().size()); ++i)
 		{
 			mvj_param.pos_ratio[i] = 1.0* mvj_param.total_count[i] / mvj_param.max_total_count;
 		}
 		
-		for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
+		for (Size i = 0; i < std::min(controller()->motionPool().size(), g_model.motionPool().size()); ++i)
 		{
 			//S形轨迹规划//
 			traplan::sCurve(1, mvj_param.joint_pos_begin[i], mvj_param.joint_pos_end[i],
@@ -1651,7 +1667,7 @@ namespace kaanh
 							mvj_param.joint_vel[max_i] / 1000 * mvj_param.pos_ratio[max_i], mvj_param.joint_acc[max_i] / 1000 / 1000 * mvj_param.pos_ratio[max_i] * mvj_param.pos_ratio[max_i], mvj_param.joint_jerk[max_i] / 1000 / 1000 / 1000 * mvj_param.pos_ratio[max_i] * mvj_param.pos_ratio[max_i] * mvj_param.pos_ratio[max_i],
 							p, v, a, j, mvj_param.total_count[max_i]);
 					}
-					if ((begin_count == end_count) || (begin_count + 1 == end_count))
+					if ((begin_count == end_count) || (begin_count + 1 == end_count) || (end_count == 0))
 					{
 						break;
 					}
@@ -1683,9 +1699,7 @@ namespace kaanh
 		}
 		
 		this->param() = mvj_param;
-		std::fill(motorOptions().begin(), motorOptions().end(),
-			Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
-			Plan::NOT_CHECK_POS_FOLLOWING_ERROR);
+		std::fill(motorOptions().begin(), motorOptions().end(), NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | NOT_CHECK_POS_FOLLOWING_ERROR | NOT_CHECK_POS_CONTINUOUS);
 
 		std::vector<std::pair<std::string, std::any>> ret_value;
 		ret() = ret_value;
@@ -1746,6 +1760,15 @@ namespace kaanh
 		return mvj_param->max_total_count == 0 ? 0 : mvj_param->max_total_count - count();
 		*/
 
+		if (count() == 1)
+		{
+			// init joint_pos //
+			for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
+			{
+				controller()->mout() << "count1:" << controller()->motionPool()[i].targetPos() << std::endl;
+			}
+		}
+
 		if (mvj_param->pre_plan == nullptr) //转弯第一条指令
 		{
 			if (count() == 1)
@@ -1775,6 +1798,7 @@ namespace kaanh
 		}
 		else if (mvj_param->pre_plan->name() == this->name()) //转弯区第二条指令或者第n条指令
 		{
+
 			auto param = std::any_cast<MoveJParam&>(mvj_param->pre_plan->param());
 			auto zonecount = mvj_param->pre_plan->realzone.load();
 			auto counter = count();
@@ -1832,8 +1856,12 @@ namespace kaanh
 				model()->motionPool()[i].setMp(p);
 			}
 		}
-		
-		if (model()->solverPool().at(1).kinPos())return -1;
+		if (model()->solverPool().at(1).kinPos())
+		{
+			controller()->mout() << "fanjie-----" << std::endl;
+			return -1;
+		}
+
 
 		if (g_move_stop)
 		{
@@ -1896,6 +1924,8 @@ namespace kaanh
 
 		mvl_param.tool = &*model()->generalMotionPool()[0].makI().fatherPart().markerPool().findByName(std::string(cmdParams().at("tool")));
 		mvl_param.wobj = &*model()->generalMotionPool()[0].makJ().fatherPart().markerPool().findByName(std::string(cmdParams().at("wobj")));
+		g_tool = &*g_model.generalMotionPool()[0].makI().fatherPart().markerPool().findByName(std::string(cmdParams().at("tool")));
+		g_wobj = &*g_model.generalMotionPool()[0].makJ().fatherPart().markerPool().findByName(std::string(cmdParams().at("wobj")));
 
 		auto &cal = this->controlServer()->model().calculator();
 		for (auto cmd_param : cmdParams())
@@ -1975,17 +2005,17 @@ namespace kaanh
 		double end_pm[16], relative_pm[16];
 		if (mvl_param.pre_plan == nullptr)//转弯第一条指令
 		{
-			model()->generalMotionPool().at(0).updMpm();
-			mvl_param.tool->getPm(*mvl_param.wobj, mvl_param.begin_pm);
+			g_model.generalMotionPool().at(0).updMpm();
+			g_tool->getPm(*g_wobj, mvl_param.begin_pm);
 		}
 		else if (std::string(mvl_param.pre_plan->name()) == "MoveL")//转弯第二或第n条指令
 		{
 			std::cout << "precmdname1:" << mvl_param.pre_plan->name() << "  cmdname1:" << this->name() << std::endl;
 			//从全局变量中获取上一条转弯区指令的目标点//
 			aris::dynamic::s_pq2pm(std::any_cast<MoveLParam>(&mvl_param.pre_plan->param())->ee_pq.data(), end_pm);
-			mvl_param.tool->setPm(*mvl_param.wobj, end_pm);
-			model()->generalMotionPool().at(0).updMpm();
-			mvl_param.tool->getPm(*mvl_param.wobj, mvl_param.begin_pm);
+			g_tool->setPm(*g_wobj, end_pm);
+			g_model.generalMotionPool().at(0).updMpm();
+			g_tool->getPm(*g_wobj, mvl_param.begin_pm);
 		}
 		else//本条指令设置了转弯区，但是与上一条指令无法实现转弯，比如moveJ,moveAbsJ,moveC
 		{
@@ -1994,12 +2024,13 @@ namespace kaanh
 			if (std::string(mvl_param.pre_plan->name()) == "MoveAbsJ")
 			{
 				auto preparam = std::any_cast<MoveAbsJParam>(&mvl_param.pre_plan->param());
-				for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
+				for (Size i = 0; i < std::min(controller()->motionPool().size(), g_model.motionPool().size()); ++i)
 				{
-					model()->motionPool().at(i).setMp(preparam->axis_pos_vec[i]);
+					g_model.motionPool().at(i).setMp(preparam->axis_pos_vec[i]);
 				}
-				model()->solverPool().at(1).kinPos();
-				model()->generalMotionPool().at(0).getMpm(end_pm);
+				g_model.solverPool().at(1).kinPos();
+				g_model.generalMotionPool().at(0).updMpm();
+				g_model.generalMotionPool().at(0).getMpm(end_pm);
 			}
 			if (std::string(mvl_param.pre_plan->name()) == "MoveJ")
 			{
@@ -2012,9 +2043,9 @@ namespace kaanh
 				aris::dynamic::s_pq2pm(preparam->ee_end_pq.data(), end_pm);
 			}
 
-			mvl_param.tool->setPm(*mvl_param.wobj, end_pm);
-			model()->generalMotionPool().at(0).updMpm();
-			mvl_param.tool->getPm(*mvl_param.wobj, mvl_param.begin_pm);
+			g_tool->setPm(*g_wobj, end_pm);
+			g_model.generalMotionPool().at(0).updMpm();
+			g_tool->getPm(*g_wobj, mvl_param.begin_pm);
 		}
 
 		//获取终止点位置//
@@ -2062,7 +2093,7 @@ namespace kaanh
 						target_count = (begin_count + end_count) / 2;
 						traplan::sCurve(target_count, 0.0, mvl_param.norm_pos, mvl_param.vel / 1000 * mvl_param.pos_ratio, mvl_param.acc / 1000 / 1000 * mvl_param.pos_ratio* mvl_param.pos_ratio, mvl_param.jerk / 1000 / 1000 / 1000 * mvl_param.pos_ratio* mvl_param.pos_ratio * mvl_param.pos_ratio, p, v, a, j, pos_total_count);
 					}
-					if ((begin_count == end_count) || (begin_count + 1 == end_count))
+					if ((begin_count == end_count) || (begin_count + 1 == end_count) || (end_count==0))
 					{
 						break;
 					}
@@ -2085,7 +2116,7 @@ namespace kaanh
 						target_count = (begin_count + end_count) / 2;
 						traplan::sCurve(1, 0.0, mvl_param.norm_ori, mvl_param.angular_vel / 1000 * mvl_param.ori_ratio, mvl_param.angular_acc / 1000 / 1000 * mvl_param.ori_ratio* mvl_param.ori_ratio, mvl_param.angular_jerk / 1000 / 1000 / 1000 * mvl_param.ori_ratio* mvl_param.ori_ratio* mvl_param.ori_ratio, p, v, a, j, ori_total_count);
 					}
-					if ((begin_count == end_count) || (begin_count + 1 == end_count))
+					if ((begin_count == end_count) || (begin_count + 1 == end_count) || (end_count == 0))
 					{
 						break;
 					}
@@ -2215,6 +2246,11 @@ namespace kaanh
 			if (count() == 1)
 			{
 				// init joint_pos //
+				for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
+				{
+					model()->motionPool().at(i).setMp(controller()->motionPool()[i].targetPos());
+				}
+				if (model()->solverPool().at(1).kinPos())return -1;
 				double end_pm[16];
 				aris::dynamic::s_pq2pm(mvl_param->ee_pq.data(), end_pm);
 				model()->generalMotionPool().at(0).updMpm();
@@ -2229,10 +2265,10 @@ namespace kaanh
 			}
 			double pa[6]{ 0,0,0,0,0,0 }, pm[16], pm2[16];
 
-			traplan::sCurve(static_cast<double>(count()), 0.0, mvl_param->norm_pos, mvl_param->vel / 1000 * mvl_param->pos_ratio, mvl_param->acc / 1000 / 1000 * mvl_param->pos_ratio* mvl_param->pos_ratio, mvl_param->jerk / 1000 / 1000 / 1000 * mvl_param->pos_ratio* mvl_param->pos_ratio* mvl_param->pos_ratio, p, v, a, j, pos_total_count);
+			traplan::sCurve(count(), 0.0, mvl_param->norm_pos, mvl_param->vel / 1000 * mvl_param->pos_ratio, mvl_param->acc / 1000 / 1000 * mvl_param->pos_ratio* mvl_param->pos_ratio, mvl_param->jerk / 1000 / 1000 / 1000 * mvl_param->pos_ratio* mvl_param->pos_ratio* mvl_param->pos_ratio, p, v, a, j, pos_total_count);
 			if (mvl_param->norm_pos > 1e-10)aris::dynamic::s_vc(3, p / mvl_param->norm_pos, mvl_param->relative_pa.data(), pa);
 
-			traplan::sCurve(static_cast<double>(count()), 0.0, mvl_param->norm_ori, mvl_param->angular_vel / 1000 * mvl_param->ori_ratio, mvl_param->angular_acc / 1000 / 1000 * mvl_param->ori_ratio * mvl_param->ori_ratio, mvl_param->angular_jerk / 1000 / 1000 / 1000 * mvl_param->ori_ratio * mvl_param->ori_ratio * mvl_param->ori_ratio, p, v, a, j, ori_total_count);
+			traplan::sCurve(count(), 0.0, mvl_param->norm_ori, mvl_param->angular_vel / 1000 * mvl_param->ori_ratio, mvl_param->angular_acc / 1000 / 1000 * mvl_param->ori_ratio * mvl_param->ori_ratio, mvl_param->angular_jerk / 1000 / 1000 / 1000 * mvl_param->ori_ratio * mvl_param->ori_ratio * mvl_param->ori_ratio, p, v, a, j, ori_total_count);
 			if (mvl_param->norm_ori > 1e-10)aris::dynamic::s_vc(3, p / mvl_param->norm_ori, mvl_param->relative_pa.data() + 3, pa + 3);
 
 			aris::dynamic::s_pa2pm(pa, pm);
@@ -2257,10 +2293,10 @@ namespace kaanh
 				//preplan//				
 				double pre_pa[6]{ 0,0,0,0,0,0 }, pre_pm[16], pre_pm2[16];
 
-				traplan::sCurve(static_cast<double>(param.max_total_count - zonecount + count()), 0.0, param.norm_pos, param.vel / 1000 * param.pos_ratio, param.acc / 1000 / 1000 * param.pos_ratio* param.pos_ratio, param.jerk / 1000 / 1000 / 1000 * param.pos_ratio* param.pos_ratio* param.pos_ratio, p, v, a, j, pos_total_count);
+				traplan::sCurve(param.max_total_count - zonecount + count(), 0.0, param.norm_pos, param.vel / 1000 * param.pos_ratio, param.acc / 1000 / 1000 * param.pos_ratio* param.pos_ratio, param.jerk / 1000 / 1000 / 1000 * param.pos_ratio* param.pos_ratio* param.pos_ratio, p, v, a, j, pos_total_count);
 				if (param.norm_pos > 1e-10)aris::dynamic::s_vc(3, p / param.norm_pos, param.relative_pa.data(), pre_pa);
 
-				traplan::sCurve(static_cast<double>(param.max_total_count - zonecount + count()), 0.0, param.norm_ori, param.angular_vel / 1000 * param.ori_ratio, param.angular_acc / 1000 / 1000 * param.ori_ratio * param.ori_ratio, param.angular_jerk / 1000 / 1000 / 1000 * param.ori_ratio * param.ori_ratio * param.ori_ratio, p, v, a, j, ori_total_count);
+				traplan::sCurve(param.max_total_count - zonecount + count(), 0.0, param.norm_ori, param.angular_vel / 1000 * param.ori_ratio, param.angular_acc / 1000 / 1000 * param.ori_ratio * param.ori_ratio, param.angular_jerk / 1000 / 1000 / 1000 * param.ori_ratio * param.ori_ratio * param.ori_ratio, p, v, a, j, ori_total_count);
 				if (param.norm_ori > 1e-10)aris::dynamic::s_vc(3, p / param.norm_ori, param.relative_pa.data() + 3, pre_pa + 3);
 
 				aris::dynamic::s_pa2pm(pre_pa, pre_pm);
@@ -2270,10 +2306,10 @@ namespace kaanh
 				//thisplan//
 				double pa[6]{ 0,0,0,0,0,0 }, pm[16], pm2[16];
 
-				traplan::sCurve(static_cast<double>(count()), 0.0, mvl_param->norm_pos, mvl_param->vel / 1000 * mvl_param->pos_ratio, mvl_param->acc / 1000 / 1000 * mvl_param->pos_ratio* mvl_param->pos_ratio, mvl_param->jerk / 1000 / 1000 / 1000 * mvl_param->pos_ratio* mvl_param->pos_ratio* mvl_param->pos_ratio, p, v, a, j, pos_total_count);
+				traplan::sCurve(count(), 0.0, mvl_param->norm_pos, mvl_param->vel / 1000 * mvl_param->pos_ratio, mvl_param->acc / 1000 / 1000 * mvl_param->pos_ratio* mvl_param->pos_ratio, mvl_param->jerk / 1000 / 1000 / 1000 * mvl_param->pos_ratio* mvl_param->pos_ratio* mvl_param->pos_ratio, p, v, a, j, pos_total_count);
 				if (mvl_param->norm_pos > 1e-10)aris::dynamic::s_vc(3, p / mvl_param->norm_pos, mvl_param->relative_pa.data(), pa);
 
-				traplan::sCurve(static_cast<double>(count()), 0.0, mvl_param->norm_ori, mvl_param->angular_vel / 1000 * mvl_param->ori_ratio, mvl_param->angular_acc / 1000 / 1000 * mvl_param->ori_ratio * mvl_param->ori_ratio, mvl_param->angular_jerk / 1000 / 1000 / 1000 * mvl_param->ori_ratio * mvl_param->ori_ratio * mvl_param->ori_ratio, p, v, a, j, ori_total_count);
+				traplan::sCurve(count(), 0.0, mvl_param->norm_ori, mvl_param->angular_vel / 1000 * mvl_param->ori_ratio, mvl_param->angular_acc / 1000 / 1000 * mvl_param->ori_ratio * mvl_param->ori_ratio, mvl_param->angular_jerk / 1000 / 1000 / 1000 * mvl_param->ori_ratio * mvl_param->ori_ratio * mvl_param->ori_ratio, p, v, a, j, ori_total_count);
 				if (mvl_param->norm_ori > 1e-10)aris::dynamic::s_vc(3, p / mvl_param->norm_ori, mvl_param->relative_pa.data() + 3, pa + 3);
 
 				aris::dynamic::s_pa2pm(pa, pm);
@@ -2293,12 +2329,12 @@ namespace kaanh
 			else
 			{
 				//thisplan//
-				double pa[6]{ 0,0,0,0,0,0 }, pm[16], pm2[16];
+				double pa[6]{ 0.0,0.0,0.0,0.0,0.0,0.0 }, pm[16], pm2[16];
 
-				traplan::sCurve(static_cast<double>(count()), 0.0, mvl_param->norm_pos, mvl_param->vel / 1000 * mvl_param->pos_ratio, mvl_param->acc / 1000 / 1000 * mvl_param->pos_ratio* mvl_param->pos_ratio, mvl_param->jerk / 1000 / 1000 / 1000 * mvl_param->pos_ratio* mvl_param->pos_ratio* mvl_param->pos_ratio, p, v, a, j, pos_total_count);
+				traplan::sCurve(count(), 0.0, mvl_param->norm_pos, mvl_param->vel / 1000 * mvl_param->pos_ratio, mvl_param->acc / 1000 / 1000 * mvl_param->pos_ratio* mvl_param->pos_ratio, mvl_param->jerk / 1000 / 1000 / 1000 * mvl_param->pos_ratio* mvl_param->pos_ratio* mvl_param->pos_ratio, p, v, a, j, pos_total_count);
 				if (mvl_param->norm_pos > 1e-10)aris::dynamic::s_vc(3, p / mvl_param->norm_pos, mvl_param->relative_pa.data(), pa);
 
-				traplan::sCurve(static_cast<double>(count()), 0.0, mvl_param->norm_ori, mvl_param->angular_vel / 1000 * mvl_param->ori_ratio, mvl_param->angular_acc / 1000 / 1000 * mvl_param->ori_ratio * mvl_param->ori_ratio, mvl_param->angular_jerk / 1000 / 1000 / 1000 * mvl_param->ori_ratio * mvl_param->ori_ratio * mvl_param->ori_ratio, p, v, a, j, ori_total_count);
+				traplan::sCurve(count(), 0.0, mvl_param->norm_ori, mvl_param->angular_vel / 1000 * mvl_param->ori_ratio, mvl_param->angular_acc / 1000 / 1000 * mvl_param->ori_ratio * mvl_param->ori_ratio, mvl_param->angular_jerk / 1000 / 1000 / 1000 * mvl_param->ori_ratio * mvl_param->ori_ratio * mvl_param->ori_ratio, p, v, a, j, ori_total_count);
 				if (mvl_param->norm_ori > 1e-10)aris::dynamic::s_vc(3, p / mvl_param->norm_ori, mvl_param->relative_pa.data() + 3, pa + 3);
 
 				aris::dynamic::s_pa2pm(pa, pm);
@@ -2313,10 +2349,10 @@ namespace kaanh
 		{
 			double pa[6]{ 0,0,0,0,0,0 }, pm[16], pm2[16];
 
-			traplan::sCurve(static_cast<double>(count()), 0.0, mvl_param->norm_pos, mvl_param->vel / 1000 * mvl_param->pos_ratio, mvl_param->acc / 1000 / 1000 * mvl_param->pos_ratio* mvl_param->pos_ratio, mvl_param->jerk / 1000 / 1000 / 1000 * mvl_param->pos_ratio* mvl_param->pos_ratio* mvl_param->pos_ratio, p, v, a, j, pos_total_count);
+			traplan::sCurve(count(), 0.0, mvl_param->norm_pos, mvl_param->vel / 1000 * mvl_param->pos_ratio, mvl_param->acc / 1000 / 1000 * mvl_param->pos_ratio* mvl_param->pos_ratio, mvl_param->jerk / 1000 / 1000 / 1000 * mvl_param->pos_ratio* mvl_param->pos_ratio* mvl_param->pos_ratio, p, v, a, j, pos_total_count);
 			if (mvl_param->norm_pos > 1e-10)aris::dynamic::s_vc(3, p / mvl_param->norm_pos, mvl_param->relative_pa.data(), pa);
 
-			traplan::sCurve(static_cast<double>(count()), 0.0, mvl_param->norm_ori, mvl_param->angular_vel / 1000 * mvl_param->ori_ratio, mvl_param->angular_acc / 1000 / 1000 * mvl_param->ori_ratio * mvl_param->ori_ratio, mvl_param->angular_jerk / 1000 / 1000 / 1000 * mvl_param->ori_ratio * mvl_param->ori_ratio * mvl_param->ori_ratio, p, v, a, j, ori_total_count);
+			traplan::sCurve(count(), 0.0, mvl_param->norm_ori, mvl_param->angular_vel / 1000 * mvl_param->ori_ratio, mvl_param->angular_acc / 1000 / 1000 * mvl_param->ori_ratio * mvl_param->ori_ratio, mvl_param->angular_jerk / 1000 / 1000 / 1000 * mvl_param->ori_ratio * mvl_param->ori_ratio * mvl_param->ori_ratio, p, v, a, j, ori_total_count);
 			if (mvl_param->norm_ori > 1e-10)aris::dynamic::s_vc(3, p / mvl_param->norm_ori, mvl_param->relative_pa.data() + 3, pa + 3);
 
 			aris::dynamic::s_pa2pm(pa, pm);
@@ -2597,6 +2633,7 @@ namespace kaanh
 		double normv_end_pq = aris::dynamic::s_norm(4, par.ee_end_pq.data() + 3);
 
 		par.ori_theta = std::abs((par.ee_begin_pq[3] * par.ee_end_pq[3] + par.ee_begin_pq[4] * par.ee_end_pq[4] + par.ee_begin_pq[5] * par.ee_end_pq[5] + par.ee_begin_pq[6] * par.ee_end_pq[6]) / (normv_begin_pq* normv_end_pq));
+		return 1;
 	}
 	auto cal_pqt(MoveCParam &par, Plan &plan, double pqt[7])->void
 	{
@@ -2631,6 +2668,8 @@ namespace kaanh
 
 		mvc_param.tool = &*model()->generalMotionPool()[0].makI().fatherPart().markerPool().findByName(std::string(cmdParams().at("tool")));
 		mvc_param.wobj = &*model()->generalMotionPool()[0].makJ().fatherPart().markerPool().findByName(std::string(cmdParams().at("wobj")));
+		g_tool = &*g_model.generalMotionPool()[0].makI().fatherPart().markerPool().findByName(std::string(cmdParams().at("tool")));
+		g_wobj = &*g_model.generalMotionPool()[0].makJ().fatherPart().markerPool().findByName(std::string(cmdParams().at("wobj")));
 
 		auto &cal = this->controlServer()->model().calculator();
 		for (auto cmd_param : cmdParams())
@@ -2711,17 +2750,17 @@ namespace kaanh
 		double end_pq[7];
 		if (mvc_param.pre_plan == nullptr)//转弯第一条指令
 		{
-			model()->generalMotionPool().at(0).updMpm();
-			mvc_param.tool->getPq(*mvc_param.wobj, mvc_param.ee_begin_pq.data());
+			g_model.generalMotionPool().at(0).updMpm();
+			g_tool->getPq(*g_wobj, mvc_param.ee_begin_pq.data());
 		}
 		else if (std::string(mvc_param.pre_plan->name()) == "MoveC")//转弯第二或第n条指令
 		{
 			std::cout << "precmdname1:" << mvc_param.pre_plan->name() << "  cmdname1:" << this->name() << std::endl;
 			//从全局变量中获取上一条转弯区指令的目标点//
 			auto param = std::any_cast<MoveCParam>(&mvc_param.pre_plan->param());
-			mvc_param.tool->setPq(*mvc_param.wobj, param->ee_end_pq.data());
-			model()->generalMotionPool().at(0).updMpm();
-			mvc_param.tool->getPq(*mvc_param.wobj, mvc_param.ee_begin_pq.data());
+			g_tool->setPq(*g_wobj, param->ee_end_pq.data());
+			g_model.generalMotionPool().at(0).updMpm();
+			g_tool->getPq(*g_wobj, mvc_param.ee_begin_pq.data());
 		}
 		else//本条指令设置了转弯区，但是与上一条指令无法实现转弯，比如moveJ,moveAbsJ
 		{
@@ -2730,16 +2769,16 @@ namespace kaanh
 			if (std::string(mvc_param.pre_plan->name()) == "MoveJ")
 			{
 				auto preparam = std::any_cast<MoveJParam>(&mvc_param.pre_plan->param());
-				mvc_param.tool->setPq(*mvc_param.wobj, preparam->ee_pq.data());
-				model()->generalMotionPool().at(0).updMpm();
-				mvc_param.tool->getPq(*mvc_param.wobj, mvc_param.ee_begin_pq.data());
+				g_tool->setPq(*g_wobj, preparam->ee_pq.data());
+				g_model.generalMotionPool().at(0).updMpm();
+				g_tool->getPq(*g_wobj, mvc_param.ee_begin_pq.data());
 			}
 			if (std::string(mvc_param.pre_plan->name()) == "MoveL")
 			{
 				auto preparam = std::any_cast<MoveLParam>(&mvc_param.pre_plan->param());
-				mvc_param.tool->setPq(*mvc_param.wobj, preparam->ee_pq.data());
-				model()->generalMotionPool().at(0).updMpm();
-				mvc_param.tool->getPq(*mvc_param.wobj, mvc_param.ee_begin_pq.data());
+				g_tool->setPq(*g_wobj, preparam->ee_pq.data());
+				g_model.generalMotionPool().at(0).updMpm();
+				g_tool->getPq(*g_wobj, mvc_param.ee_begin_pq.data());
 			}
 			if (std::string(mvc_param.pre_plan->name()) == "MoveAbsJ")
 			{
@@ -2753,7 +2792,7 @@ namespace kaanh
 			}
 		}
 
-		cal_circle_par(mvc_param);
+		if(!cal_circle_par(mvc_param))throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + "three point in line,movec trajectory planning failed");
 
 		//计算转弯区对应的count数//
 		double p, v, a, j;
@@ -2796,7 +2835,7 @@ namespace kaanh
 						traplan::sCurve(target_count, 0.0, mvc_param.theta, mvc_param.vel / 1000 / mvc_param.R * mvc_param.pos_ratio, mvc_param.acc / 1000 / 1000 / mvc_param.R * mvc_param.pos_ratio * mvc_param.pos_ratio,
 							mvc_param.jerk / 1000 / 1000 / 1000 / mvc_param.R * mvc_param.pos_ratio * mvc_param.pos_ratio * mvc_param.pos_ratio, p, v, a, j, pos_total_count);
 					}
-					if ((begin_count == end_count) || (begin_count + 1 == end_count))
+					if ((begin_count == end_count) || (begin_count + 1 == end_count) || (end_count == 0))
 					{
 						break;
 					}
@@ -2987,9 +3026,15 @@ namespace kaanh
 		{
 			if (count() == 1)
 			{
+				// init joint_pos //
+				for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
+				{
+					model()->motionPool().at(i).setMp(controller()->motionPool()[i].targetPos());
+				}
+				if (model()->solverPool().at(1).kinPos())return -1;
 				model()->generalMotionPool().at(0).updMpm();
 				mvc_param->tool->getPq(*mvc_param->wobj, mvc_param->ee_begin_pq.data());
-				cal_circle_par(*mvc_param);
+				if(!cal_circle_par(*mvc_param)) return -1;
 			}
 			cal_pqt(*mvc_param, *this, pqt);
 		}
