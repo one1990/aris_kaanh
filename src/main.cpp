@@ -14,6 +14,9 @@ kaanh::Speed g_vel = { 0.1, 0.1, 3.4, 0.0, 0.0 };
 std::atomic_int g_vel_percent = 0;
 //global vel//
 
+//global time speed array//
+double timespeed[101] = { 0.0 };
+
 //state machine flag//
 std::atomic_bool g_is_enabled = false;
 std::atomic_bool g_is_error = false;
@@ -25,10 +28,11 @@ std::atomic_bool g_is_running = false;
 auto xmlpath = std::filesystem::absolute(".");//获取当前工程所在的路径
 auto uixmlpath = std::filesystem::absolute(".");
 auto modelxmlpath = std::filesystem::absolute(".");
+auto logpath = std::filesystem::absolute(".");
 const std::string xmlfile = "kaanh.xml";
 const std::string uixmlfile = "interface_kaanh.xml";
 const std::string modelxmlfile = "model_rokae.xml";
-
+const std::string logfolder = "log";
 
 //添加var类型
 aris::core::Calculator g_cal;
@@ -42,10 +46,12 @@ int main(int argc, char *argv[])
     xmlpath = xmlpath / xmlfile;
 	uixmlpath = uixmlpath / uixmlfile;
 	modelxmlpath = modelxmlpath / modelxmlfile;
+	logpath = logpath / logfolder;
     std::cout<< xmlpath <<std::endl;
 	auto&cs = aris::server::ControlServer::instance();
 	auto port = argc < 2 ? 5866 : std::stoi(argv[1]);
 	auto path = argc < 2 ? xmlpath : argv[2];
+	auto logp = argc < 2 ? logpath : argv[3];
 
 	//生成kaanh.xml文档
     /*
@@ -158,9 +164,11 @@ int main(int argc, char *argv[])
     cs.loadXmlFile(path.string().c_str());
 	cs.init();
 
+	aris::core::logDirectory(logp);
+
     auto &cal = cs.model().calculator();
     kaanhconfig::createUserDataType(cal);
-
+	kaanhconfig::createPauseTimeSpeed();
     //cs.start();
 
 	//实时回调函数，每个实时周期调用一次//

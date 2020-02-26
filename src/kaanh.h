@@ -630,14 +630,6 @@ namespace kaanh
 		ARIS_REGISTER_TYPE(Run);
 	};
 
-	class MoveSt : public aris::plan::Plan
-	{
-	public:
-		auto virtual prepareNrt()->void;
-		explicit MoveSt(const std::string &name = "MoveSt_plan");
-		ARIS_REGISTER_TYPE(MoveSt);
-	};
-
 	class Switch : public aris::plan::Plan
 	{
 	public:

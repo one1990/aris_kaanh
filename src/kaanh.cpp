@@ -41,7 +41,8 @@ std::shared_ptr<kaanh::MoveBase> g_plan;
 
 namespace kaanh
 {
-	std::atomic_bool g_move_stop = false;
+	int g_counter = 100;
+	double g_count = 0.0;
 	aris::dynamic::Marker tool1;
 
 	//更新实时状态：使能、报错//
@@ -79,6 +80,12 @@ namespace kaanh
 			g_is_auto.store(false);
 		}
 		g_is_running.store(inter.isAutoRunning());
+
+		//暂停、恢复功能复位//
+		if (!inter.isAutoRunning())
+		{
+			g_counter = 100;
+		}
 
 	}
 
@@ -908,7 +915,7 @@ namespace kaanh
 		std::vector<Size> total_count;
 		aris::dynamic::Marker *tool, *wobj;
 		std::shared_ptr<kaanh::MoveBase> pre_plan;
-		Size max_total_count = 0;
+		uint32_t max_total_count = 0;
 		bool zone_enabled = false;
 		Speed sp;
 		Zone zone;
@@ -920,7 +927,7 @@ namespace kaanh
 		std::vector<Size> total_count;
 		aris::dynamic::Marker *tool, *wobj;
 		std::shared_ptr<kaanh::MoveBase> pre_plan;
-		Size max_total_count = 0;
+		uint32_t max_total_count = 0;
 		bool zone_enabled = false;
 		Speed sp;
 		Zone zone;
@@ -936,7 +943,7 @@ namespace kaanh
 		aris::dynamic::Marker *tool, *wobj;
 
 		std::shared_ptr<kaanh::MoveBase> pre_plan;
-		Size max_total_count = 0;
+		uint32_t max_total_count = 0;
 		bool zone_enabled = false;
 		Speed sp;
 		Zone zone;
@@ -952,12 +959,49 @@ namespace kaanh
 		double A[9], C[3], R, theta, ori_theta, pos_ratio, ori_ratio;
 
 		std::shared_ptr<kaanh::MoveBase> pre_plan;
-		Size max_total_count = 0;
+		uint32_t max_total_count = 0;
 		bool zone_enabled = false;
 		Speed sp;
 		Zone zone;
 		Load ld;
 	};
+	template<typename MoveType>
+	auto PauseContinueB(MoveType *plan, aris::server::ProgramWebInterface &pwinter)->void
+	{
+		if (plan->count() == 1)
+		{
+			g_count = 0.0;
+		}
+		if (pwinter.isAutoPaused())
+		{
+			g_counter--;
+		}
+		else
+		{
+			g_counter++;
+		}
+		g_counter = std::max(std::min(g_counter, 100), 0);
+		g_count = g_count + timespeed[g_counter];
+	}
+	template<typename ParamType>
+	auto PauseContinueE(ParamType *param, aris::server::ProgramWebInterface &pwinter, uint32_t &rzcount)->void
+	{
+		if (!param->zone_enabled)
+		{
+			//执行到最后一个count时,进行特殊处理
+			if ((param->max_total_count - rzcount - int32_t(g_count) == 0) || (param->max_total_count == 0))
+			{
+				if (pwinter.isAutoPaused())
+				{
+					g_counter = 0;
+				}
+				else
+				{
+					g_counter = 100;
+				}
+			}
+		}
+	}
 
 	//走关节//
 	auto MoveAbsJ::prepareNrt()->void
@@ -1165,6 +1209,7 @@ namespace kaanh
 	auto MoveAbsJ::executeRT()->int
 	{
 		auto param = std::any_cast<MoveAbsJParam>(&this->param());
+		auto &pwinter = dynamic_cast<aris::server::ProgramWebInterface&>(controlServer()->interfacePool().at(0));
 		/*
 		if (count() == 1)
 		{
@@ -1201,13 +1246,17 @@ namespace kaanh
 		}
 		if (model()->solverPool().at(1).kinPos())return -1;
 
-		if (g_move_stop)
+		if (g_move_pause)
 		{
 			return -4;
 		}
 
 		return total_count - count();
 		*/
+		
+		//暂停、恢复//
+		PauseContinueB(this, pwinter);
+
 		if (param->pre_plan == nullptr) //转弯第一条指令
 		{
 			if (count() == 1)
@@ -1222,7 +1271,7 @@ namespace kaanh
 			{
 				//S形轨迹规划//
 				double p, v, a, j;
-				traplan::sCurve(count(), param->axis_begin_pos_vec[i], param->axis_pos_vec[i],
+				traplan::sCurve(g_count, param->axis_begin_pos_vec[i], param->axis_pos_vec[i],
 					param->axis_vel_vec[i] / 1000 * param->pos_ratio[i], param->axis_acc_vec[i] / 1000 / 1000 * param->pos_ratio[i] * param->pos_ratio[i], param->axis_jerk_vec[i] / 1000 / 1000 / 1000 * param->pos_ratio[i] * param->pos_ratio[i] * param->pos_ratio[i],
 					p, v, a, j, param->total_count[i]);
 
@@ -1234,34 +1283,33 @@ namespace kaanh
 		{
 			auto preparam = std::any_cast<MoveAbsJParam&>(param->pre_plan->param());
 			auto zonecount = param->pre_plan->realzone.load();
-			auto counter = count();
 			for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
 			{
 				//preplan//
 				double prep = 0.0, prev, prea, prej;
 
 				//count数小于等于上一条指令的realzone，zone起作用//
-				if (count() <= zonecount)
+				if (g_count <= zonecount)
 				{
 					//lastplan//
-					traplan::sCurve(preparam.max_total_count - zonecount + count(), preparam.axis_begin_pos_vec[i], preparam.axis_pos_vec[i],
+					traplan::sCurve(preparam.max_total_count - zonecount + g_count, preparam.axis_begin_pos_vec[i], preparam.axis_pos_vec[i],
 						preparam.axis_vel_vec[i] / 1000 * preparam.pos_ratio[i], preparam.axis_acc_vec[i] / 1000 / 1000 * preparam.pos_ratio[i] * preparam.pos_ratio[i], preparam.axis_jerk_vec[i] / 1000 / 1000 / 1000 * preparam.pos_ratio[i] * preparam.pos_ratio[i] * preparam.pos_ratio[i],
 						prep, prev, prea, prej, preparam.total_count[i]);
 
 					//thisplan//
 					double p, v, a, j;
-					traplan::sCurve(static_cast<double>(count()), param->axis_begin_pos_vec[i], param->axis_pos_vec[i],
+					traplan::sCurve(g_count, param->axis_begin_pos_vec[i], param->axis_pos_vec[i],
 						param->axis_vel_vec[i] / 1000 * param->pos_ratio[i], param->axis_acc_vec[i] / 1000 / 1000 * param->pos_ratio[i] * param->pos_ratio[i], param->axis_jerk_vec[i] / 1000 / 1000 / 1000 * param->pos_ratio[i] * param->pos_ratio[i] * param->pos_ratio[i],
 						p, v, a, j, param->total_count[i]);
 
-					controller()->motionPool()[i].setTargetPos(1.0*(zonecount - count()) / zonecount * prep + 1.0*count() / zonecount * p);
-					model()->motionPool()[i].setMp(1.0*(zonecount - count()) / zonecount * prep + 1.0*count() / zonecount * p);
+					controller()->motionPool()[i].setTargetPos(1.0*(zonecount - g_count) / zonecount * prep + 1.0*g_count / zonecount * p);
+					model()->motionPool()[i].setMp(1.0*(zonecount - g_count) / zonecount * prep + 1.0*g_count / zonecount * p);
 				}
 				else
 				{
 					//thisplan//
 					double p, v, a, j;
-					traplan::sCurve(static_cast<double>(count()), param->axis_begin_pos_vec[i], param->axis_pos_vec[i],
+					traplan::sCurve(g_count, param->axis_begin_pos_vec[i], param->axis_pos_vec[i],
 						param->axis_vel_vec[i] / 1000 * param->pos_ratio[i], param->axis_acc_vec[i] / 1000 / 1000 * param->pos_ratio[i] * param->pos_ratio[i], param->axis_jerk_vec[i] / 1000 / 1000 / 1000 * param->pos_ratio[i] * param->pos_ratio[i] * param->pos_ratio[i],
 						p, v, a, j, param->total_count[i]);
 
@@ -1276,7 +1324,7 @@ namespace kaanh
 			{
 				//S形轨迹规划//
 				double p, v, a, j;
-				traplan::sCurve(count(), param->axis_begin_pos_vec[i], param->axis_pos_vec[i],
+				traplan::sCurve(g_count, param->axis_begin_pos_vec[i], param->axis_pos_vec[i],
 					param->axis_vel_vec[i] / 1000 * param->pos_ratio[i], param->axis_acc_vec[i] / 1000 / 1000 * param->pos_ratio[i] * param->pos_ratio[i], param->axis_jerk_vec[i] / 1000 / 1000 / 1000 * param->pos_ratio[i] * param->pos_ratio[i] * param->pos_ratio[i],
 					p, v, a, j, param->total_count[i]);
 
@@ -1287,17 +1335,16 @@ namespace kaanh
 
 		if (model()->solverPool().at(1).kinPos())return -1;
 
-		if (g_move_stop)
-		{
-			return -4;
-		}
 		auto rzcount = this->realzone.load();
-		auto in_count = count();
-		if (param->max_total_count - rzcount - count() == 0)
+		
+		//本条指令没有转弯区
+		PauseContinueE(param, pwinter, rzcount);
+
+		if (param->max_total_count - rzcount - int32_t(g_count) == 0)
 		{
 			controller()->mout() << "param->max_total_count:" << param->max_total_count << "this->realzone.load():" << rzcount << std::endl;
 		}
-		return param->max_total_count == 0 ? 0 : param->max_total_count - rzcount - count();
+		return param->max_total_count == 0 ? 0 : param->max_total_count - rzcount - int32_t(g_count);
 
 	}
 	auto MoveAbsJ::collectNrt()->void {}
@@ -1707,7 +1754,7 @@ namespace kaanh
 	auto MoveJ::executeRT()->int
 	{
 		auto mvj_param = std::any_cast<MoveJParam>(&this->param());
-
+		auto &pwinter = dynamic_cast<aris::server::ProgramWebInterface&>(controlServer()->interfacePool().at(0));
 		/*
 		// 取得起始位置 //
 		double p, v, a, j;
@@ -1753,7 +1800,7 @@ namespace kaanh
 		}
 		if (model()->solverPool().at(1).kinPos())return -1;
 
-		if (g_move_stop)
+		if (g_move_pause)
 		{
 			return -4;
 		}
@@ -1768,6 +1815,9 @@ namespace kaanh
 				controller()->mout() << "count1:" << controller()->motionPool()[i].targetPos() << std::endl;
 			}
 		}
+
+		//暂停、恢复//
+		PauseContinueB(this, pwinter);
 
 		if (mvj_param->pre_plan == nullptr) //转弯第一条指令
 		{
@@ -1788,7 +1838,7 @@ namespace kaanh
 				//	p, v, a, mvj_param->total_count[i]);
 				//S形轨迹规划//
 				double p, v, a, j;
-				traplan::sCurve(count(), mvj_param->joint_pos_begin[i], mvj_param->joint_pos_end[i],
+				traplan::sCurve(g_count, mvj_param->joint_pos_begin[i], mvj_param->joint_pos_end[i],
 					mvj_param->joint_vel[i] / 1000 * mvj_param->pos_ratio[i], mvj_param->joint_acc[i] / 1000 / 1000 * mvj_param->pos_ratio[i] * mvj_param->pos_ratio[i], mvj_param->joint_jerk[i] / 1000 / 1000 / 1000 * mvj_param->pos_ratio[i] * mvj_param->pos_ratio[i] * mvj_param->pos_ratio[i],
 					p, v, a, j, mvj_param->total_count[i]);
 
@@ -1801,35 +1851,34 @@ namespace kaanh
 
 			auto param = std::any_cast<MoveJParam&>(mvj_param->pre_plan->param());
 			auto zonecount = mvj_param->pre_plan->realzone.load();
-			auto counter = count();
 			for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
 			{
 				//preplan//
 				double prep = 0.0, prev, prea, prej;
 				
 				//count数小于等于上一条指令的realzone，zone起作用//
-				if (count() <= zonecount)
+				if (g_count <= zonecount)
 				{
 					//lastplan//
-					traplan::sCurve(param.max_total_count - zonecount + count(),
+					traplan::sCurve(param.max_total_count - zonecount + g_count,
 						param.joint_pos_begin[i], param.joint_pos_end[i],
 						param.joint_vel[i] / 1000 * param.pos_ratio[i], param.joint_acc[i] / 1000 / 1000 * param.pos_ratio[i] * param.pos_ratio[i], param.joint_jerk[i] / 1000 / 1000 / 1000 * param.pos_ratio[i] * param.pos_ratio[i] * param.pos_ratio[i],
 						prep, prev, prea, prej, param.total_count[i]);
 
 					//thisplan//
 					double p, v, a, j;
-					traplan::sCurve(count(),mvj_param->joint_pos_begin[i], mvj_param->joint_pos_end[i],
+					traplan::sCurve(g_count,mvj_param->joint_pos_begin[i], mvj_param->joint_pos_end[i],
 						mvj_param->joint_vel[i] / 1000 * mvj_param->pos_ratio[i], mvj_param->joint_acc[i] / 1000 / 1000 * mvj_param->pos_ratio[i] * mvj_param->pos_ratio[i], mvj_param->joint_jerk[i] / 1000 / 1000 / 1000 * mvj_param->pos_ratio[i] * mvj_param->pos_ratio[i] * mvj_param->pos_ratio[i],
 						p, v, a, j, mvj_param->total_count[i]);
 
-					controller()->motionPool()[i].setTargetPos(1.0*(zonecount - count()) / zonecount * prep + 1.0*count() / zonecount * p);
-					model()->motionPool()[i].setMp(1.0*(zonecount - count()) / zonecount * prep + 1.0*count() / zonecount * p);
+					controller()->motionPool()[i].setTargetPos(1.0*(zonecount - g_count) / zonecount * prep + 1.0*g_count / zonecount * p);
+					model()->motionPool()[i].setMp(1.0*(zonecount - g_count) / zonecount * prep + 1.0*g_count / zonecount * p);
 				}
 				else
 				{
 					//thisplan//
 					double p, v, a, j;
-					traplan::sCurve(count(), mvj_param->joint_pos_begin[i], mvj_param->joint_pos_end[i],
+					traplan::sCurve(g_count, mvj_param->joint_pos_begin[i], mvj_param->joint_pos_end[i],
 						mvj_param->joint_vel[i] / 1000 * mvj_param->pos_ratio[i], mvj_param->joint_acc[i] / 1000 / 1000 * mvj_param->pos_ratio[i] * mvj_param->pos_ratio[i], mvj_param->joint_jerk[i] / 1000 / 1000 / 1000 * mvj_param->pos_ratio[i] * mvj_param->pos_ratio[i] * mvj_param->pos_ratio[i],
 						p, v, a, j, mvj_param->total_count[i]);
 
@@ -1848,7 +1897,7 @@ namespace kaanh
 			{
 				//S形轨迹规划//
 				double p, v, a, j;
-				traplan::sCurve(count(), mvj_param->joint_pos_begin[i], mvj_param->joint_pos_end[i],
+				traplan::sCurve(g_count, mvj_param->joint_pos_begin[i], mvj_param->joint_pos_end[i],
 					mvj_param->joint_vel[i] / 1000 * mvj_param->pos_ratio[i], mvj_param->joint_acc[i] / 1000 / 1000 * mvj_param->pos_ratio[i] * mvj_param->pos_ratio[i], mvj_param->joint_jerk[i] / 1000 / 1000 / 1000 * mvj_param->pos_ratio[i] * mvj_param->pos_ratio[i] * mvj_param->pos_ratio[i],
 					p, v, a, j, mvj_param->total_count[i]);
 
@@ -1862,18 +1911,16 @@ namespace kaanh
 			return -1;
 		}
 
-
-		if (g_move_stop)
-		{
-			return -4;
-		}
 		auto rzcount = this->realzone.load();
-		auto in_count = count();
-		if (mvj_param->max_total_count - rzcount - count() == 0)
+
+		//本条指令没有转弯区
+		PauseContinueE(mvj_param, pwinter, rzcount);
+
+		if (mvj_param->max_total_count - rzcount - int32_t(g_count) == 0)
 		{
 			controller()->mout() << "mvj_param->max_total_count:" << mvj_param->max_total_count <<"this->realzone.load():" << rzcount << std::endl;
 		}
-		return mvj_param->max_total_count == 0 ? 0 : mvj_param->max_total_count - rzcount - count();	
+		return mvj_param->max_total_count == 0 ? 0 : mvj_param->max_total_count - rzcount - int32_t(g_count);
 		
 	}
 	auto MoveJ::collectNrt()->void{}
@@ -2176,6 +2223,10 @@ namespace kaanh
 	auto MoveL::executeRT()->int
 	{
 		auto mvl_param = std::any_cast<MoveLParam>(&this->param());
+		auto &pwinter = dynamic_cast<aris::server::ProgramWebInterface&>(controlServer()->interfacePool().at(0));
+
+		//暂停、恢复//
+		PauseContinueB(this, pwinter);
 
 		// 取得起始位置 //
 		static double begin_pm[16], relative_pm[16], relative_pa[6], pos_ratio, ori_ratio, norm_pos, norm_ori;
@@ -2234,7 +2285,7 @@ namespace kaanh
 		model()->generalMotionPool().at(0).updMpm();
 		if (model()->solverPool().at(0).kinPos())return -1;
 
-		if (g_move_stop)
+		if (g_move_pause)
 		{
 			return -4;
 		}
@@ -2265,10 +2316,10 @@ namespace kaanh
 			}
 			double pa[6]{ 0,0,0,0,0,0 }, pm[16], pm2[16];
 
-			traplan::sCurve(count(), 0.0, mvl_param->norm_pos, mvl_param->vel / 1000 * mvl_param->pos_ratio, mvl_param->acc / 1000 / 1000 * mvl_param->pos_ratio* mvl_param->pos_ratio, mvl_param->jerk / 1000 / 1000 / 1000 * mvl_param->pos_ratio* mvl_param->pos_ratio* mvl_param->pos_ratio, p, v, a, j, pos_total_count);
+			traplan::sCurve(g_count, 0.0, mvl_param->norm_pos, mvl_param->vel / 1000 * mvl_param->pos_ratio, mvl_param->acc / 1000 / 1000 * mvl_param->pos_ratio* mvl_param->pos_ratio, mvl_param->jerk / 1000 / 1000 / 1000 * mvl_param->pos_ratio* mvl_param->pos_ratio* mvl_param->pos_ratio, p, v, a, j, pos_total_count);
 			if (mvl_param->norm_pos > 1e-10)aris::dynamic::s_vc(3, p / mvl_param->norm_pos, mvl_param->relative_pa.data(), pa);
 
-			traplan::sCurve(count(), 0.0, mvl_param->norm_ori, mvl_param->angular_vel / 1000 * mvl_param->ori_ratio, mvl_param->angular_acc / 1000 / 1000 * mvl_param->ori_ratio * mvl_param->ori_ratio, mvl_param->angular_jerk / 1000 / 1000 / 1000 * mvl_param->ori_ratio * mvl_param->ori_ratio * mvl_param->ori_ratio, p, v, a, j, ori_total_count);
+			traplan::sCurve(g_count, 0.0, mvl_param->norm_ori, mvl_param->angular_vel / 1000 * mvl_param->ori_ratio, mvl_param->angular_acc / 1000 / 1000 * mvl_param->ori_ratio * mvl_param->ori_ratio, mvl_param->angular_jerk / 1000 / 1000 / 1000 * mvl_param->ori_ratio * mvl_param->ori_ratio * mvl_param->ori_ratio, p, v, a, j, ori_total_count);
 			if (mvl_param->norm_ori > 1e-10)aris::dynamic::s_vc(3, p / mvl_param->norm_ori, mvl_param->relative_pa.data() + 3, pa + 3);
 
 			aris::dynamic::s_pa2pm(pa, pm);
@@ -2282,21 +2333,20 @@ namespace kaanh
 		{
 			auto param = std::any_cast<MoveLParam&>(mvl_param->pre_plan->param());
 			auto zonecount = mvl_param->pre_plan->realzone.load();
-			auto counter = count();
 
 			//preplan//
 			double prep = 0.0, prev, prea, prej;
 
 			//count数小于等于上一条指令的realzone，zone起作用//
-			if (count() <= zonecount)
+			if (g_count <= zonecount)
 			{
 				//preplan//				
 				double pre_pa[6]{ 0,0,0,0,0,0 }, pre_pm[16], pre_pm2[16];
 
-				traplan::sCurve(param.max_total_count - zonecount + count(), 0.0, param.norm_pos, param.vel / 1000 * param.pos_ratio, param.acc / 1000 / 1000 * param.pos_ratio* param.pos_ratio, param.jerk / 1000 / 1000 / 1000 * param.pos_ratio* param.pos_ratio* param.pos_ratio, p, v, a, j, pos_total_count);
+				traplan::sCurve(param.max_total_count - zonecount + g_count, 0.0, param.norm_pos, param.vel / 1000 * param.pos_ratio, param.acc / 1000 / 1000 * param.pos_ratio* param.pos_ratio, param.jerk / 1000 / 1000 / 1000 * param.pos_ratio* param.pos_ratio* param.pos_ratio, p, v, a, j, pos_total_count);
 				if (param.norm_pos > 1e-10)aris::dynamic::s_vc(3, p / param.norm_pos, param.relative_pa.data(), pre_pa);
 
-				traplan::sCurve(param.max_total_count - zonecount + count(), 0.0, param.norm_ori, param.angular_vel / 1000 * param.ori_ratio, param.angular_acc / 1000 / 1000 * param.ori_ratio * param.ori_ratio, param.angular_jerk / 1000 / 1000 / 1000 * param.ori_ratio * param.ori_ratio * param.ori_ratio, p, v, a, j, ori_total_count);
+				traplan::sCurve(param.max_total_count - zonecount + g_count, 0.0, param.norm_ori, param.angular_vel / 1000 * param.ori_ratio, param.angular_acc / 1000 / 1000 * param.ori_ratio * param.ori_ratio, param.angular_jerk / 1000 / 1000 / 1000 * param.ori_ratio * param.ori_ratio * param.ori_ratio, p, v, a, j, ori_total_count);
 				if (param.norm_ori > 1e-10)aris::dynamic::s_vc(3, p / param.norm_ori, param.relative_pa.data() + 3, pre_pa + 3);
 
 				aris::dynamic::s_pa2pm(pre_pa, pre_pm);
@@ -2306,10 +2356,10 @@ namespace kaanh
 				//thisplan//
 				double pa[6]{ 0,0,0,0,0,0 }, pm[16], pm2[16];
 
-				traplan::sCurve(count(), 0.0, mvl_param->norm_pos, mvl_param->vel / 1000 * mvl_param->pos_ratio, mvl_param->acc / 1000 / 1000 * mvl_param->pos_ratio* mvl_param->pos_ratio, mvl_param->jerk / 1000 / 1000 / 1000 * mvl_param->pos_ratio* mvl_param->pos_ratio* mvl_param->pos_ratio, p, v, a, j, pos_total_count);
+				traplan::sCurve(g_count, 0.0, mvl_param->norm_pos, mvl_param->vel / 1000 * mvl_param->pos_ratio, mvl_param->acc / 1000 / 1000 * mvl_param->pos_ratio* mvl_param->pos_ratio, mvl_param->jerk / 1000 / 1000 / 1000 * mvl_param->pos_ratio* mvl_param->pos_ratio* mvl_param->pos_ratio, p, v, a, j, pos_total_count);
 				if (mvl_param->norm_pos > 1e-10)aris::dynamic::s_vc(3, p / mvl_param->norm_pos, mvl_param->relative_pa.data(), pa);
 
-				traplan::sCurve(count(), 0.0, mvl_param->norm_ori, mvl_param->angular_vel / 1000 * mvl_param->ori_ratio, mvl_param->angular_acc / 1000 / 1000 * mvl_param->ori_ratio * mvl_param->ori_ratio, mvl_param->angular_jerk / 1000 / 1000 / 1000 * mvl_param->ori_ratio * mvl_param->ori_ratio * mvl_param->ori_ratio, p, v, a, j, ori_total_count);
+				traplan::sCurve(g_count, 0.0, mvl_param->norm_ori, mvl_param->angular_vel / 1000 * mvl_param->ori_ratio, mvl_param->angular_acc / 1000 / 1000 * mvl_param->ori_ratio * mvl_param->ori_ratio, mvl_param->angular_jerk / 1000 / 1000 / 1000 * mvl_param->ori_ratio * mvl_param->ori_ratio * mvl_param->ori_ratio, p, v, a, j, ori_total_count);
 				if (mvl_param->norm_ori > 1e-10)aris::dynamic::s_vc(3, p / mvl_param->norm_ori, mvl_param->relative_pa.data() + 3, pa + 3);
 
 				aris::dynamic::s_pa2pm(pa, pm);
@@ -2320,7 +2370,7 @@ namespace kaanh
 				double target_pa[6]{ 0,0,0,0,0,0 }, target_pm[16];
 				for (aris::Size i = 0; i < 6; i++)
 				{
-					target_pa[i] = 1.0*(zonecount - count()) / zonecount * pre_pa[i] + 1.0*count() / zonecount * pa[i];
+					target_pa[i] = 1.0*(zonecount - g_count) / zonecount * pre_pa[i] + 1.0*g_count / zonecount * pa[i];
 				}
 				aris::dynamic::s_pa2pm(target_pa, target_pm);
 				mvl_param->tool->setPm(*mvl_param->wobj, target_pm);
@@ -2331,10 +2381,10 @@ namespace kaanh
 				//thisplan//
 				double pa[6]{ 0.0,0.0,0.0,0.0,0.0,0.0 }, pm[16], pm2[16];
 
-				traplan::sCurve(count(), 0.0, mvl_param->norm_pos, mvl_param->vel / 1000 * mvl_param->pos_ratio, mvl_param->acc / 1000 / 1000 * mvl_param->pos_ratio* mvl_param->pos_ratio, mvl_param->jerk / 1000 / 1000 / 1000 * mvl_param->pos_ratio* mvl_param->pos_ratio* mvl_param->pos_ratio, p, v, a, j, pos_total_count);
+				traplan::sCurve(g_count, 0.0, mvl_param->norm_pos, mvl_param->vel / 1000 * mvl_param->pos_ratio, mvl_param->acc / 1000 / 1000 * mvl_param->pos_ratio* mvl_param->pos_ratio, mvl_param->jerk / 1000 / 1000 / 1000 * mvl_param->pos_ratio* mvl_param->pos_ratio* mvl_param->pos_ratio, p, v, a, j, pos_total_count);
 				if (mvl_param->norm_pos > 1e-10)aris::dynamic::s_vc(3, p / mvl_param->norm_pos, mvl_param->relative_pa.data(), pa);
 
-				traplan::sCurve(count(), 0.0, mvl_param->norm_ori, mvl_param->angular_vel / 1000 * mvl_param->ori_ratio, mvl_param->angular_acc / 1000 / 1000 * mvl_param->ori_ratio * mvl_param->ori_ratio, mvl_param->angular_jerk / 1000 / 1000 / 1000 * mvl_param->ori_ratio * mvl_param->ori_ratio * mvl_param->ori_ratio, p, v, a, j, ori_total_count);
+				traplan::sCurve(g_count, 0.0, mvl_param->norm_ori, mvl_param->angular_vel / 1000 * mvl_param->ori_ratio, mvl_param->angular_acc / 1000 / 1000 * mvl_param->ori_ratio * mvl_param->ori_ratio, mvl_param->angular_jerk / 1000 / 1000 / 1000 * mvl_param->ori_ratio * mvl_param->ori_ratio * mvl_param->ori_ratio, p, v, a, j, ori_total_count);
 				if (mvl_param->norm_ori > 1e-10)aris::dynamic::s_vc(3, p / mvl_param->norm_ori, mvl_param->relative_pa.data() + 3, pa + 3);
 
 				aris::dynamic::s_pa2pm(pa, pm);
@@ -2349,10 +2399,10 @@ namespace kaanh
 		{
 			double pa[6]{ 0,0,0,0,0,0 }, pm[16], pm2[16];
 
-			traplan::sCurve(count(), 0.0, mvl_param->norm_pos, mvl_param->vel / 1000 * mvl_param->pos_ratio, mvl_param->acc / 1000 / 1000 * mvl_param->pos_ratio* mvl_param->pos_ratio, mvl_param->jerk / 1000 / 1000 / 1000 * mvl_param->pos_ratio* mvl_param->pos_ratio* mvl_param->pos_ratio, p, v, a, j, pos_total_count);
+			traplan::sCurve(g_count, 0.0, mvl_param->norm_pos, mvl_param->vel / 1000 * mvl_param->pos_ratio, mvl_param->acc / 1000 / 1000 * mvl_param->pos_ratio* mvl_param->pos_ratio, mvl_param->jerk / 1000 / 1000 / 1000 * mvl_param->pos_ratio* mvl_param->pos_ratio* mvl_param->pos_ratio, p, v, a, j, pos_total_count);
 			if (mvl_param->norm_pos > 1e-10)aris::dynamic::s_vc(3, p / mvl_param->norm_pos, mvl_param->relative_pa.data(), pa);
 
-			traplan::sCurve(count(), 0.0, mvl_param->norm_ori, mvl_param->angular_vel / 1000 * mvl_param->ori_ratio, mvl_param->angular_acc / 1000 / 1000 * mvl_param->ori_ratio * mvl_param->ori_ratio, mvl_param->angular_jerk / 1000 / 1000 / 1000 * mvl_param->ori_ratio * mvl_param->ori_ratio * mvl_param->ori_ratio, p, v, a, j, ori_total_count);
+			traplan::sCurve(g_count, 0.0, mvl_param->norm_ori, mvl_param->angular_vel / 1000 * mvl_param->ori_ratio, mvl_param->angular_acc / 1000 / 1000 * mvl_param->ori_ratio * mvl_param->ori_ratio, mvl_param->angular_jerk / 1000 / 1000 / 1000 * mvl_param->ori_ratio * mvl_param->ori_ratio * mvl_param->ori_ratio, p, v, a, j, ori_total_count);
 			if (mvl_param->norm_ori > 1e-10)aris::dynamic::s_vc(3, p / mvl_param->norm_ori, mvl_param->relative_pa.data() + 3, pa + 3);
 
 			aris::dynamic::s_pa2pm(pa, pm);
@@ -2366,12 +2416,14 @@ namespace kaanh
 		if (model()->solverPool().at(0).kinPos())return -1;
 
 		auto rzcount = this->realzone.load();
-		auto in_count = count();
-		if (mvl_param->max_total_count - rzcount - count() == 0)
+		//本条指令没有转弯区
+		PauseContinueE(mvl_param, pwinter, rzcount);
+
+		if (mvl_param->max_total_count - rzcount - int32_t(g_count) == 0)
 		{
 			controller()->mout() << "mvl_param->max_total_count:" << mvl_param->max_total_count << "this->realzone.load():" << rzcount << std::endl;
 		}
-		return mvl_param->max_total_count == 0 ? 0 : mvl_param->max_total_count - rzcount - count();
+		return mvl_param->max_total_count == 0 ? 0 : mvl_param->max_total_count - rzcount - int32_t(g_count);
 	}
 	auto MoveL::collectNrt()->void {}
 	MoveL::~MoveL() = default;
@@ -2644,7 +2696,7 @@ namespace kaanh
 		aris::dynamic::s_vc(3, par.A + 6, w);
 		auto normv = aris::dynamic::s_norm(3, w);
 		if (std::abs(normv) > 1e-10)aris::dynamic::s_nv(3, 1 / normv, w); //数乘
-		traplan::sCurve(plan.count(), 0.0, par.theta, par.vel / 1000 / par.R * par.pos_ratio, par.acc / 1000 / 1000 / par.R * par.pos_ratio * par.pos_ratio,
+		traplan::sCurve(g_count, 0.0, par.theta, par.vel / 1000 / par.R * par.pos_ratio, par.acc / 1000 / 1000 / par.R * par.pos_ratio * par.pos_ratio,
 			par.jerk / 1000 / 1000 / 1000 / par.R * par.pos_ratio * par.pos_ratio * par.pos_ratio, p, v, a, j, pos_total_count);
 		double pqr[7]{ par.C[0], par.C[1], par.C[2], w[0] * sin(p / 2.0), w[1] * sin(p / 2.0), w[2] * sin(p / 2.0), cos(p / 2.0) };
 		double pos[4]{ par.ee_begin_pq[0] - par.C[0], par.ee_begin_pq[1] - par.C[1], par.ee_begin_pq[2] - par.C[2], 1 };
@@ -2652,7 +2704,7 @@ namespace kaanh
 		s_mm(4, 1, 4, pmr, aris::dynamic::RowMajor{ 4 }, pos, 1, pqt, 1);
 
 		//姿态规划//
-		traplan::sCurve(plan.count(), 0.0, 1.0, par.angular_vel / 1000 / par.ori_theta / 2.0 * par.ori_ratio, par.angular_acc / 1000 / 1000 / par.ori_theta / 2.0 * par.ori_ratio * par.ori_ratio,
+		traplan::sCurve(g_count, 0.0, 1.0, par.angular_vel / 1000 / par.ori_theta / 2.0 * par.ori_ratio, par.angular_acc / 1000 / 1000 / par.ori_theta / 2.0 * par.ori_ratio * par.ori_ratio,
 			par.angular_jerk / 1000 / 1000 / 1000 / par.ori_theta / 2.0 * par.ori_ratio * par.ori_ratio * par.ori_ratio, p, v, a, j, ori_total_count);
 		slerp(par.ee_begin_pq.data() + 3, par.ee_end_pq.data() + 3, pqt + 3, p);
 	}
@@ -2875,6 +2927,10 @@ namespace kaanh
 	auto MoveC::executeRT()->int
 	{
 		auto mvc_param = std::any_cast<MoveCParam>(&this->param());
+		auto &pwinter = dynamic_cast<aris::server::ProgramWebInterface&>(controlServer()->interfacePool().at(0));
+
+		//暂停、恢复//
+		PauseContinueB(this, pwinter);
 
 		/*
 		// 取得起始位置 //
@@ -3014,7 +3070,7 @@ namespace kaanh
 		////////////////////////////////////// log ///////////////////////////////////////
 		auto &lout = controller()->lout();
 		
-		if (g_move_stop)
+		if (g_move_pause)
 		{
 			return -4;
 		}
@@ -3044,7 +3100,7 @@ namespace kaanh
 			auto zonecount = mvc_param->pre_plan->realzone.load();
 
 			//count数小于等于上一条指令的realzone，zone起作用//
-			if (count() <= zonecount)
+			if (g_count <= zonecount)
 			{
 				//preplan//				
 				double w[3], pmr[16], p, v, a, j;
@@ -3054,7 +3110,7 @@ namespace kaanh
 				aris::dynamic::s_vc(3, param.A + 6, w);
 				auto normv = aris::dynamic::s_norm(3, w);
 				if (std::abs(normv) > 1e-10)aris::dynamic::s_nv(3, 1 / normv, w); //数乘
-				traplan::sCurve(param.max_total_count - zonecount + count(), 0.0, param.theta, param.vel / 1000 / param.R * param.pos_ratio, param.acc / 1000 / 1000 / param.R * param.pos_ratio * param.pos_ratio,
+				traplan::sCurve(param.max_total_count - zonecount + g_count, 0.0, param.theta, param.vel / 1000 / param.R * param.pos_ratio, param.acc / 1000 / 1000 / param.R * param.pos_ratio * param.pos_ratio,
 					param.jerk / 1000 / 1000 / 1000 / param.R * param.pos_ratio * param.pos_ratio * param.pos_ratio, p, v, a, j, pos_total_count);
 
 				double pqr[7]{ param.C[0], param.C[1], param.C[2], w[0] * sin(p / 2.0), w[1] * sin(p / 2.0), w[2] * sin(p / 2.0), cos(p / 2.0) };
@@ -3063,7 +3119,7 @@ namespace kaanh
 				s_mm(4, 1, 4, pmr, aris::dynamic::RowMajor{ 4 }, pos, 1, pre_pqt, 1);
 
 				//姿态规划//
-				traplan::sCurve(param.max_total_count - zonecount + count(), 0.0, 1.0, param.angular_vel / 1000 / param.ori_theta / 2.0 * param.ori_ratio, param.angular_acc / 1000 / 1000 / param.ori_theta / 2.0 * param.ori_ratio * param.ori_ratio,
+				traplan::sCurve(param.max_total_count - zonecount + g_count, 0.0, 1.0, param.angular_vel / 1000 / param.ori_theta / 2.0 * param.ori_ratio, param.angular_acc / 1000 / 1000 / param.ori_theta / 2.0 * param.ori_ratio * param.ori_ratio,
 					param.angular_jerk / 1000 / 1000 / 1000 / param.ori_theta / 2.0 * param.ori_ratio * param.ori_ratio * param.ori_ratio, p, v, a, j, ori_total_count);
 				slerp(param.ee_begin_pq.data() + 3, param.ee_end_pq.data() + 3, pre_pqt + 3, p);
 
@@ -3073,7 +3129,7 @@ namespace kaanh
 				//求目标位姿//
 				for (aris::Size i = 0; i < 7; i++)
 				{
-					pqt[i] = 1.0*(zonecount - count()) / zonecount * pre_pqt[i] + 1.0*count() / zonecount * pqt[i];
+					pqt[i] = 1.0*(zonecount - g_count) / zonecount * pre_pqt[i] + 1.0*g_count / zonecount * pqt[i];
 				}
 			}
 			else
@@ -3108,12 +3164,14 @@ namespace kaanh
 		if (model()->solverPool().at(0).kinPos())return -1;
 
 		auto rzcount = this->realzone.load();
-		auto in_count = count();
-		if (mvc_param->max_total_count - rzcount - count() == 0)
+		//本条指令没有转弯区
+		PauseContinueE(mvc_param, pwinter, rzcount);
+
+		if (mvc_param->max_total_count - rzcount - int32_t(g_count) == 0)
 		{
 			controller()->mout() << "mvc_param->max_total_count:" << mvc_param->max_total_count << "this->realzone.load():" << rzcount << std::endl;
 		}
-		return mvc_param->max_total_count == 0 ? 0 : mvc_param->max_total_count - rzcount - count();
+		return mvc_param->max_total_count == 0 ? 0 : mvc_param->max_total_count - rzcount - int32_t(g_count);
 	}
 	auto MoveC::collectNrt()->void {}
 	MoveC::~MoveC() = default;
@@ -6844,22 +6902,6 @@ namespace kaanh
 		sock_->setOnReceivedMsg(onReceivedMsg);
 		sock_->setOnReceivedConnection(onReceivedConnection);
 		sock_->setOnLoseConnection(onLoseConnection);
-	}
-
-
-	// 停止指令 //
-	auto MoveSt::prepareNrt()->void
-	{
-        g_move_stop.store(true);
-		std::vector<std::pair<std::string, std::any>> ret_value;
-		ret() = ret_value;
-		option() = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
-	}
-	MoveSt::MoveSt(const std::string &name) :Plan(name)
-	{
-		command().loadXmlStr(
-			"<Command name=\"mvstop\">"
-			"</Command>");
 	}
 
 

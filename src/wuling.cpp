@@ -1007,7 +1007,7 @@ namespace kaanh
 		std::vector<Size> total_count;
 		aris::dynamic::Marker *tool, *wobj;
 		std::shared_ptr<kaanh::MoveBase> pre_plan;
-		Size max_total_count = 0;
+		uint32_t max_total_count = 0;
 		bool zone_enabled = false;
 		Speed sp;
 		Zone zone;
@@ -1019,7 +1019,7 @@ namespace kaanh
 		std::vector<Size> total_count;
 		aris::dynamic::Marker *tool, *wobj;
 		std::shared_ptr<kaanh::MoveBase> pre_plan;
-		Size max_total_count = 0;
+		uint32_t max_total_count = 0;
 		bool zone_enabled = false;
 		Speed sp;
 		Zone zone;
@@ -1035,7 +1035,7 @@ namespace kaanh
 		aris::dynamic::Marker *tool, *wobj;
 
 		std::shared_ptr<kaanh::MoveBase> pre_plan;
-		Size max_total_count = 0;
+		uint32_t max_total_count = 0;
 		bool zone_enabled = false;
 		Speed sp;
 		Zone zone;
@@ -1051,7 +1051,7 @@ namespace kaanh
 		double A[9], C[3], R, theta, ori_theta, pos_ratio, ori_ratio;
 
 		std::shared_ptr<kaanh::MoveBase> pre_plan;
-		Size max_total_count = 0;
+		uint32_t max_total_count = 0;
 		bool zone_enabled = false;
 		Speed sp;
 		Zone zone;

@@ -907,6 +907,14 @@ namespace kaanhconfig
 
 	}
 
+	auto createPauseTimeSpeed()->void
+	{
+		for (int i = 0; i < 101; i++)
+		{
+			timespeed[i] = 1.0*i / 100;
+		}
+	}
+
 	auto createPlanRoot()->std::unique_ptr<aris::plan::PlanRoot>
 	{
 		std::unique_ptr<aris::plan::PlanRoot> plan_root(new aris::plan::PlanRoot);
@@ -931,8 +939,6 @@ namespace kaanhconfig
 		plan_root->planPool().add<kaanh::MoveAbsJ>();
 		plan_root->planPool().add<kaanh::MoveL>();
 		plan_root->planPool().add<kaanh::MoveJ>();
-		plan_root->planPool().add<kaanh::MoveSt>();
-
 		plan_root->planPool().add<kaanh::Get>();
 		plan_root->planPool().add<kaanh::Var>();
 		plan_root->planPool().add<kaanh::Evaluate>();

@@ -774,6 +774,15 @@ namespace traplan
 		
 	}
 
+	// i : input counts(ms)
+	// begin_pos : begin time interval
+	// end_pos : end time interval, (end_pos-begin_pos, default value 1)
+	// t : total counts of trajectory, 
+	// k : counts coefficent of Acceleration, value range:0.0~0.5
+	// current_pos : acc target value
+	// current_vel : vel max permitted value, always positive
+	// current_acc : acc max permitted value, always positive
+	// total_count : dec max permitted value, always positive
 	auto timeStop(double i, double begin_pos, double end_pos, double t, double k, double &current_pos, double &current_vel, double &current_acc, Size& total_count)->void
 	{
 		auto s = std::abs(end_pos - begin_pos);
