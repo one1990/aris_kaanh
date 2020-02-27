@@ -1,4 +1,4 @@
-<ControlServer>
+﻿<ControlServer>
     <InterfacePoolObject name="object_pool">
         <ProgramWebInterface>
             <Socket name="socket" connect_type="WEB" port="5866"/>
@@ -10,7 +10,7 @@
     <InterfaceRoot/>
     <EthercatController name="ethercat_controller" sample_period_ns="1000000" esi_dirs="">
         <SlavePoolObject name="slave_pool">
-            <EthercatMotor phy_id="0" vendor_id="0x00000000" product_code="0x00000000" revision_num="0x00000000" dc_assign_activate="0x00000300" sync0_shift_ns="650000" max_pos="2.96706" min_pos="-2.96706" max_vel="5.4105210000000001" min_vel="-5.4105210000000001" max_acc="26.179939000000001" min_acc="-26.179939000000001" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1689721.292776" pos_offset="0" home_pos="0" is_virtual="false">
+            <EthercatMotor phy_id="0" vendor_id="0x00000000" product_code="0x00000000" revision_num="0x00000000" dc_assign_activate="0x00000300" sync0_shift_ns="650000" max_pos="2.96706" min_pos="-2.96706" max_vel="5.4105210000000001" min_vel="-5.4105210000000001" max_acc="26.179939000000001" min_acc="-26.179939000000001" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1689721.292776" pos_offset="0" home_pos="0" is_virtual="true">
                 <SyncManagerPoolObject>
                     <SyncManager is_tx="false"/>
                     <SyncManager is_tx="true"/>
@@ -35,7 +35,7 @@
                     </SyncManager>
                 </SyncManagerPoolObject>
             </EthercatMotor>
-            <EthercatMotor phy_id="1" vendor_id="0x00000000" product_code="0x00000000" revision_num="0x00000000" dc_assign_activate="0x00000300" sync0_shift_ns="650000" max_pos="2.2689279999999998" min_pos="-1.4660770000000001" max_vel="4.18879" min_vel="-4.18879" max_acc="26.179939000000001" min_acc="-26.179939000000001" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1689721.292776" pos_offset="0" home_pos="0" is_virtual="false">
+            <EthercatMotor phy_id="1" vendor_id="0x00000000" product_code="0x00000000" revision_num="0x00000000" dc_assign_activate="0x00000300" sync0_shift_ns="650000" max_pos="2.2689279999999998" min_pos="-1.4660770000000001" max_vel="4.18879" min_vel="-4.18879" max_acc="26.179939000000001" min_acc="-26.179939000000001" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1689721.292776" pos_offset="0" home_pos="0" is_virtual="true">
                 <SyncManagerPoolObject>
                     <SyncManager is_tx="false"/>
                     <SyncManager is_tx="true"/>
@@ -60,7 +60,7 @@
                     </SyncManager>
                 </SyncManagerPoolObject>
             </EthercatMotor>
-            <EthercatMotor phy_id="2" vendor_id="0x00000000" product_code="0x00000000" revision_num="0x00000000" dc_assign_activate="0x00000300" sync0_shift_ns="650000" max_pos="0.87266500000000002" min_pos="-3.2812190000000001" max_vel="5.4105210000000001" min_vel="-5.4105210000000001" max_acc="26.179939000000001" min_acc="-26.179939000000001" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1689721.292776" pos_offset="0" home_pos="0" is_virtual="false">
+            <EthercatMotor phy_id="2" vendor_id="0x00000000" product_code="0x00000000" revision_num="0x00000000" dc_assign_activate="0x00000300" sync0_shift_ns="650000" max_pos="0.87266500000000002" min_pos="-3.2812190000000001" max_vel="5.4105210000000001" min_vel="-5.4105210000000001" max_acc="26.179939000000001" min_acc="-26.179939000000001" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1689721.292776" pos_offset="0" home_pos="0" is_virtual="true">
                 <SyncManagerPoolObject>
                     <SyncManager is_tx="false"/>
                     <SyncManager is_tx="true"/>
@@ -85,7 +85,7 @@
                     </SyncManager>
                 </SyncManagerPoolObject>
             </EthercatMotor>
-            <EthercatMotor phy_id="3" vendor_id="0x00000000" product_code="0x00000000" revision_num="0x00000000" dc_assign_activate="0x00000300" sync0_shift_ns="650000" max_pos="2.96706" min_pos="-2.96706" max_vel="4.3633230000000003" min_vel="-4.3633230000000003" max_acc="30.543261999999999" min_acc="-30.543261999999999" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1519852.15096" pos_offset="0" home_pos="0" is_virtual="false">
+            <EthercatMotor phy_id="3" vendor_id="0x00000000" product_code="0x00000000" revision_num="0x00000000" dc_assign_activate="0x00000300" sync0_shift_ns="650000" max_pos="2.96706" min_pos="-2.96706" max_vel="4.3633230000000003" min_vel="-4.3633230000000003" max_acc="30.543261999999999" min_acc="-30.543261999999999" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1519852.15096" pos_offset="0" home_pos="0" is_virtual="true">
                 <SyncManagerPoolObject>
                     <SyncManager is_tx="false"/>
                     <SyncManager is_tx="true"/>
@@ -110,7 +110,7 @@
                     </SyncManager>
                 </SyncManagerPoolObject>
             </EthercatMotor>
-            <EthercatMotor phy_id="4" vendor_id="0x00000000" product_code="0x00000000" revision_num="0x00000000" dc_assign_activate="0x00000300" sync0_shift_ns="650000" max_pos="2.0420349999999998" min_pos="-2.0420349999999998" max_vel="5.1487210000000001" min_vel="-5.1487210000000001" max_acc="26.179939000000001" min_acc="-26.179939000000001" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1689721.292776" pos_offset="0" home_pos="0" is_virtual="false">
+            <EthercatMotor phy_id="4" vendor_id="0x00000000" product_code="0x00000000" revision_num="0x00000000" dc_assign_activate="0x00000300" sync0_shift_ns="650000" max_pos="2.0420349999999998" min_pos="-2.0420349999999998" max_vel="5.1487210000000001" min_vel="-5.1487210000000001" max_acc="26.179939000000001" min_acc="-26.179939000000001" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1689721.292776" pos_offset="0" home_pos="0" is_virtual="true">
                 <SyncManagerPoolObject>
                     <SyncManager is_tx="false"/>
                     <SyncManager is_tx="true"/>
@@ -135,7 +135,7 @@
                     </SyncManager>
                 </SyncManagerPoolObject>
             </EthercatMotor>
-            <EthercatMotor phy_id="5" vendor_id="0x00000000" product_code="0x00000000" revision_num="0x00000000" dc_assign_activate="0x00000300" sync0_shift_ns="650000" max_pos="6.2831849999999996" min_pos="-6.2831849999999996" max_vel="8.7266460000000006" min_vel="-8.7266460000000006" max_acc="43.633231000000002" min_acc="-43.633231000000002" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1043037.835047" pos_offset="0" home_pos="0" is_virtual="false">
+            <EthercatMotor phy_id="5" vendor_id="0x00000000" product_code="0x00000000" revision_num="0x00000000" dc_assign_activate="0x00000300" sync0_shift_ns="650000" max_pos="6.2831849999999996" min_pos="-6.2831849999999996" max_vel="8.7266460000000006" min_vel="-8.7266460000000006" max_acc="43.633231000000002" min_acc="-43.633231000000002" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1043037.835047" pos_offset="0" home_pos="0" is_virtual="true">
                 <SyncManagerPoolObject>
                     <SyncManager is_tx="false"/>
                     <SyncManager is_tx="true"/>
@@ -690,8 +690,8 @@
                     <GroupParam>
                         <Param name="pos" default="{0.0,0.0,0.0,0.0,0.0,0.0}"/>
                         <Param name="vel" default="{0.025, 0.025, 3.4, 0.0, 0.0}"/>
-                        <Param name="acc" default="1.0"/>
-                        <Param name="dec" default="1.0"/>
+                        <Param name="acc" default="0.5"/>
+                        <Param name="dec" default="0.5"/>
                         <Param name="jerk" default="10.0"/>
                         <Param name="zone" default="fine"/>
                         <Param name="load" default="{1,0.05,0.05,0.05,0,0.97976,0,0.200177,1.0,1.0,1.0}"/>
@@ -777,13 +777,13 @@
                                 <Param name="eul_type" default="321"/>
                             </GroupParam>
                         </UniqueParam>
-                        <Param name="acc" default="0.1"/>
+                        <Param name="acc" default="0.5"/>
                         <Param name="vel" default="{0.025, 0.025, 3.4, 0.0, 0.0}"/>
-                        <Param name="dec" default="0.1"/>
+                        <Param name="dec" default="0.5"/>
                         <Param name="jerk" default="10.0"/>
-                        <Param name="angular_acc" default="0.1"/>
+                        <Param name="angular_acc" default="0.5"/>
                         <Param name="angular_vel" default="0.1"/>
-                        <Param name="angular_dec" default="0.1"/>
+                        <Param name="angular_dec" default="0.5"/>
                         <Param name="angular_jerk" default="10.0"/>
                         <Param name="zone" default="fine"/>
                         <Param name="load" default="{1,0.05,0.05,0.05,0,0.97976,0,0.200177,1.0,1.0,1.0}"/>
@@ -863,9 +863,9 @@
                                 <Param name="eul_type" default="321"/>
                             </GroupParam>
                         </UniqueParam>
-                        <Param name="joint_acc" default="0.1"/>
+                        <Param name="joint_acc" default="0.5"/>
                         <Param name="vel" default="{0.025, 0.025, 3.4, 0.0, 0.0}"/>
-                        <Param name="joint_dec" default="0.1"/>
+                        <Param name="joint_dec" default="0.5"/>
                         <Param name="joint_jerk" default="10.0"/>
                         <Param name="speed" default="{0.1, 0.1, 3.49, 0.0, 0.0}"/>
                         <Param name="zone" default="fine"/>
@@ -933,9 +933,6 @@
                     </GroupParam>
                 </Command>
             </kaanh.MoveJ>
-            <MoveSt name="MoveSt_plan">
-                <Command name="mvstop"/>
-            </MoveSt>
             <Get name="Get_plan">
                 <Command name="get"/>
             </Get>
@@ -982,14 +979,14 @@
                                 <Param name="end_eul_type" default="321"/>
                             </GroupParam>
                         </UniqueParam>
-                        <Param name="acc" default="0.1"/>
+                        <Param name="acc" default="0.5"/>
                         <Param name="vel" default="{0.025, 0.025, 3.4, 0.0, 0.0}"/>
-                        <Param name="dec" default="0.1"/>
-                        <Param name="jerk" default="0.1"/>
-                        <Param name="angular_acc" default="0.1"/>
+                        <Param name="dec" default="0.5"/>
+                        <Param name="jerk" default="10"/>
+                        <Param name="angular_acc" default="0.5"/>
                         <Param name="angular_vel" default="0.1"/>
-                        <Param name="angular_dec" default="0.1"/>
-                        <Param name="angular_jerk" default="0.1"/>
+                        <Param name="angular_dec" default="0.5"/>
+                        <Param name="angular_jerk" default="10"/>
                         <Param name="speed" default="{0.1, 0.1, 3.49, 0.0, 0.0}"/>
                         <Param name="zone" default="fine"/>
                         <Param name="load" default="{1,0.05,0.05,0.05,0,0.97976,0,0.200177,1.0,1.0,1.0}"/>
