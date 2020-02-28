@@ -23,6 +23,8 @@ std::atomic_bool g_is_error = false;
 std::atomic_bool g_is_manual = false;
 std::atomic_bool g_is_auto = false;
 std::atomic_bool g_is_running = false;
+std::atomic_bool g_is_paused = false;
+std::atomic_bool g_is_stopped = false;
 //state machine flag//
 
 auto xmlpath = std::filesystem::absolute(".");//获取当前工程所在的路径

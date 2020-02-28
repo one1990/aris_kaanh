@@ -24,6 +24,8 @@ extern std::atomic_bool g_is_error;
 extern std::atomic_bool g_is_manual;
 extern std::atomic_bool g_is_auto;
 extern std::atomic_bool g_is_running;
+extern std::atomic_bool g_is_paused;
+extern std::atomic_bool g_is_stopped;
 //state machine flag//
 
 extern aris::core::Calculator g_cal;
@@ -79,8 +81,10 @@ namespace kaanh
 		{
 			g_is_auto.store(false);
 		}
-		g_is_running.store(inter.isAutoRunning());
 
+		g_is_running.store(inter.isAutoRunning());
+		g_is_paused.store(inter.isAutoPaused());
+		g_is_stopped.store(inter.isAutoStopped());
 		//暂停、恢复功能复位//
 		if (!inter.isAutoRunning())
 		{
@@ -89,7 +93,7 @@ namespace kaanh
 
 	}
 
-	//获取状态字——100:去使能,200:手动,300:自动,400:程序运行中,500:错误//
+	//获取状态字——100:去使能,200:手动,300:自动,400:程序运行中,410:程序暂停中,420:程序停止，500:错误//
 	auto get_state_code()->std::int32_t
 	{
 		if (g_is_enabled.load())
@@ -106,9 +110,20 @@ namespace kaanh
 				}
 				else
 				{
-					if (g_is_running)
+					if (g_is_running.load())
 					{
-						return 400;
+						if (g_is_stopped)
+						{
+							return 420;
+						}
+						else if (g_is_paused.load())
+						{
+							return 410;
+						}
+						else
+						{
+							return 400;
+						}
 					}
 					else
 					{
@@ -972,7 +987,7 @@ namespace kaanh
 		{
 			g_count = 0.0;
 		}
-		if (pwinter.isAutoPaused())
+		if (pwinter.isAutoPaused() || pwinter.isAutoStopped())
 		{
 			g_counter--;
 		}
@@ -991,7 +1006,7 @@ namespace kaanh
 			//执行到最后一个count时,进行特殊处理
 			if ((param->max_total_count - rzcount - int32_t(g_count) == 0) || (param->max_total_count == 0))
 			{
-				if (pwinter.isAutoPaused())
+				if (pwinter.isAutoPaused() || pwinter.isAutoStopped())
 				{
 					g_counter = 0;
 				}
@@ -1344,6 +1359,7 @@ namespace kaanh
 		{
 			controller()->mout() << "param->max_total_count:" << param->max_total_count << "this->realzone.load():" << rzcount << std::endl;
 		}
+		if (pwinter.isAutoStopped() && (g_counter == 0)) return 0;
 		return param->max_total_count == 0 ? 0 : param->max_total_count - rzcount - int32_t(g_count);
 
 	}
@@ -1920,6 +1936,7 @@ namespace kaanh
 		{
 			controller()->mout() << "mvj_param->max_total_count:" << mvj_param->max_total_count <<"this->realzone.load():" << rzcount << std::endl;
 		}
+		if (pwinter.isAutoStopped() && (g_counter == 0)) return 0;
 		return mvj_param->max_total_count == 0 ? 0 : mvj_param->max_total_count - rzcount - int32_t(g_count);
 		
 	}
@@ -2423,6 +2440,7 @@ namespace kaanh
 		{
 			controller()->mout() << "mvl_param->max_total_count:" << mvl_param->max_total_count << "this->realzone.load():" << rzcount << std::endl;
 		}
+		if (pwinter.isAutoStopped() && (g_counter == 0)) return 0;
 		return mvl_param->max_total_count == 0 ? 0 : mvl_param->max_total_count - rzcount - int32_t(g_count);
 	}
 	auto MoveL::collectNrt()->void {}
@@ -3171,6 +3189,7 @@ namespace kaanh
 		{
 			controller()->mout() << "mvc_param->max_total_count:" << mvc_param->max_total_count << "this->realzone.load():" << rzcount << std::endl;
 		}
+		if (pwinter.isAutoStopped() && (g_counter == 0)) return 0;
 		return mvc_param->max_total_count == 0 ? 0 : mvc_param->max_total_count - rzcount - int32_t(g_count);
 	}
 	auto MoveC::collectNrt()->void {}
