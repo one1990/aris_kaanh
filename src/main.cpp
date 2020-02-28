@@ -47,14 +47,18 @@ int main(int argc, char *argv[])
 	uixmlpath = uixmlpath / uixmlfile;
 	modelxmlpath = modelxmlpath / modelxmlfile;
 	logpath = logpath / logfolder;
-    std::cout<< xmlpath <<std::endl;
+    
 	auto&cs = aris::server::ControlServer::instance();
 	auto port = argc < 2 ? 5866 : std::stoi(argv[1]);
 	auto path = argc < 2 ? xmlpath : argv[2];
 	auto logp = argc < 2 ? logpath : argv[3];
 
+	std::cout << "port:" << port << std::endl;
+	std::cout << "xmlpath:" << path << std::endl;
+	std::cout << "logfolder:" << logp << std::endl;
+
 	//生成kaanh.xml文档
-    
+    /*
     //-------for rokae robot begin//
     cs.resetController(kaanhconfig::createControllerRokaeXB4().release());
     cs.resetModel(kaanhconfig::createModelRokae().release());
@@ -68,7 +72,7 @@ int main(int argc, char *argv[])
     //cs.model().loadXmlFile(modelxmlpath.string().c_str());
 	cs.saveXmlFile(path.string().c_str());
     //-------for rokae robot end// 
-	
+	*/
     
     /*
 	auto ret_load = cal.calculateExpression("pose({1,2,3,4,5,6,7})");
