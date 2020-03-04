@@ -996,7 +996,7 @@ namespace kaanh
 			g_counter++;
 		}
 		g_counter = std::max(std::min(g_counter, 100), 0);
-		g_count = g_count + timespeed[g_counter];
+		g_count = g_count + timespeed[g_counter]* g_vel_percent.load()/100.0;
 	}
 	template<typename ParamType>
 	auto PauseContinueE(ParamType *param, aris::server::ProgramWebInterface &pwinter, uint32_t &rzcount)->void
@@ -1281,7 +1281,7 @@ namespace kaanh
 
 		//暂停、恢复//
 		PauseContinueB(this, pwinter);
-
+		
 		if (param->pre_plan == nullptr) //转弯第一条指令
 		{
 			if (count() == 1)
