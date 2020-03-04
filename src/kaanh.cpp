@@ -1269,6 +1269,16 @@ namespace kaanh
 		return total_count - count();
 		*/
 		
+		//如果停止功能开启，并且时间已经停止，退出本条指令//
+		if (count() == 1)
+		{
+			if (pwinter.isAutoStopped() && (g_counter == 0))
+			{
+				g_plan = nullptr;
+				return 0;
+			}
+		}
+
 		//暂停、恢复//
 		PauseContinueB(this, pwinter);
 
@@ -1823,12 +1833,13 @@ namespace kaanh
 		return mvj_param->max_total_count == 0 ? 0 : mvj_param->max_total_count - count();
 		*/
 
+		//如果停止功能开启，并且时间已经停止，退出本条指令//
 		if (count() == 1)
 		{
-			// init joint_pos //
-			for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
+			if (pwinter.isAutoStopped() && (g_counter == 0))
 			{
-				controller()->mout() << "count1:" << controller()->motionPool()[i].targetPos() << std::endl;
+				g_plan = nullptr;
+				return 0;
 			}
 		}
 
@@ -2241,6 +2252,16 @@ namespace kaanh
 	{
 		auto mvl_param = std::any_cast<MoveLParam>(&this->param());
 		auto &pwinter = dynamic_cast<aris::server::ProgramWebInterface&>(controlServer()->interfacePool().at(0));
+
+		//如果停止功能开启，并且时间已经停止，退出本条指令//
+		if (count() == 1)
+		{
+			if (pwinter.isAutoStopped() && (g_counter == 0))
+			{
+				g_plan = nullptr;
+				return 0;
+			}
+		}
 
 		//暂停、恢复//
 		PauseContinueB(this, pwinter);
@@ -2946,6 +2967,16 @@ namespace kaanh
 	{
 		auto mvc_param = std::any_cast<MoveCParam>(&this->param());
 		auto &pwinter = dynamic_cast<aris::server::ProgramWebInterface&>(controlServer()->interfacePool().at(0));
+
+		//如果停止功能开启，并且时间已经停止，退出本条指令//
+		if (count() == 1)
+		{
+			if (pwinter.isAutoStopped() && (g_counter == 0))
+			{
+				g_plan = nullptr;
+				return 0;
+			}
+		}
 
 		//暂停、恢复//
 		PauseContinueB(this, pwinter);
@@ -3882,7 +3913,7 @@ namespace kaanh
 #define JOGJ_PARAM_STRING \
 		"	<UniqueParam>"\
 		"		<GroupParam>"\
-		"			<Param name=\"increase_count\" default=\"500\"/>"\
+		"			<Param name=\"increase_count\" default=\"200\"/>"\
 		"			<Param name=\"vel\" default=\"1\" abbreviation=\"v\"/>"\
 		"			<Param name=\"acc\" default=\"5\" abbreviation=\"a\"/>"\
 		"			<Param name=\"dec\" default=\"5\" abbreviation=\"d\"/>"\
@@ -4602,7 +4633,7 @@ namespace kaanh
 #define JOGC_PARAM_STRING \
 		"	<UniqueParam>"\
 		"		<GroupParam>"\
-		"			<Param name=\"increase_count\" default=\"500\"/>"\
+		"			<Param name=\"increase_count\" default=\"200\"/>"\
 		"			<Param name=\"vel\" default=\"{0.05,0.05,0.05,0.15,0.15,0.15}\"/>"\
 		"			<Param name=\"acc\" default=\"{0.2,0.2,0.2,1,1,1}\"/>"\
 		"			<Param name=\"dec\" default=\"{0.2,0.2,0.2,1,1,1}\"/>"\
