@@ -20,17 +20,4 @@ public:
 	ARIS_REGISTER_TYPE(MoveJS);
 };
 
-
-class MoveEAP : public aris::plan::Plan
-{
-public:
-	auto virtual prepareNrt()->void;
-	auto virtual executeRT()->int;
-	auto virtual collectNrt()->void;
-
-	explicit MoveEAP(const std::string &name = "MoveEAP_plan");
-	ARIS_REGISTER_TYPE(MoveEAP);
-};
-
-
 #endif

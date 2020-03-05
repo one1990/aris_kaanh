@@ -3,10 +3,11 @@
 #include"oneaxis_maxon.h"
 
 using namespace std;
+
 //调用aris库中的plan模块
 using namespace aris::plan;
 
-//创建ethercat主站控制器controller，并根据xml文件添加从站信息
+//创建ethercat主站控制器controller，并根据电机驱动xml文件添加从站信息，具体可以参考佳安控制器使用手册-UI界面版
 auto createController()->std::unique_ptr<aris::control::Controller>	
 {
 	std::unique_ptr<aris::control::Controller> controller(new aris::control::EthercatController);
@@ -37,12 +38,16 @@ auto createController()->std::unique_ptr<aris::control::Controller>
         "       </SyncManager>"
 		"	</SyncManagerPoolObject>"
         "</EthercatMotor>";
+
+	//在controller对象的从站池中添加一个电机从站//
 	controller->slavePool().add<aris::control::EthercatMotor>().loadXmlStr(xml_str);
 	return controller;
 };
 
 
-// 单关节正弦往复轨迹 //
+// 单关节正弦往复运动指令。根据构造函数可知，本条指令的接口为:moveJS --j1=0.1 --time=2 --timenum=2
+// 其中j1为目标角度，默认为current_pos，单位为rad；time为正弦运动周期，默认为1，单位为s；timenum为运动周期数，默认为2//
+// 例如，用户可以在terminal终端输入字符串:moveJS --j1=0.1，那么目标电机将以幅值0.05、默认周期1s、默认运行周期数2运动
 struct MoveJSParam
 {
 	double j1;
@@ -91,19 +96,27 @@ auto MoveJS::executeRT()->int
 	auto totaltime = static_cast<int32_t>(param.timenum * time);
 	static double begin_pjs;
 	static double step_pjs;
-    // 访问主站 //
-    auto &cout = controller()->mout();
 
+	//控制器提供两条基本的函数writePdo()和readPdo()，与驱动器的交互都可以根据这两条基本函数完成
 	if ((1 <= count()) && (count() <= time / 2))
 	{
 		// 获取当前起始点位置 //
 		if (count() == 1)
 		{
+			//本条函数controller()->motionPool()[0].actualPos()是aris封装好的读取电机当前实际位置的函数，后面类似
+			//可以用如下两条注释的代码替代，但是pos的值为电机编码器返回的脉冲数
+			//int32_t pos;
+			//dynamic_cast<aris::control::EthercatMotor &>(controller()->motionAtAbs(0)).readPdo(0x6064, 0x00, &pos, 32);
 			begin_pjs = controller()->motionPool()[0].actualPos();
 			step_pjs = controller()->motionPool()[0].actualPos();
 		}
 		step_pjs = begin_pjs + param.j1 * (1 - std::cos(2 * PI*count() / time)) / 2;
+		
+		//本条函数controller()->motionPool().at(0).setTargetPos(step_pjs)是aris封装好的写电机目标位置的函数，后面类似
+		//可以用如下注释的代码替代,但是需要将step_pjs转换成电机编码器的脉冲数
+		//dynamic_cast<aris::control::EthercatMotor &>(controller()->motionAtAbs(0)).writePdo(0x607a, 0x00, &step_pjs, 32);
 		controller()->motionPool().at(0).setTargetPos(step_pjs);
+		
 	}
 	else if ((time / 2 < count()) && (count() <= totaltime - time / 2))
 	{
@@ -129,6 +142,8 @@ auto MoveJS::executeRT()->int
 		controller()->motionPool().at(0).setTargetPos(step_pjs);
 	}
 
+	// 实时打印函数 //
+	auto &cout = controller()->mout();
 	// 打印 //
 	if (count() % 100 == 0)
 	{
@@ -136,11 +151,16 @@ auto MoveJS::executeRT()->int
 		cout << std::endl;
 	}
 
-	// log //
+	// 实时记录log函数 //
 	auto &lout = controller()->lout();
-	lout << controller()->motionAtAbs(0).targetPos() << ",";
+	// logging //
+	lout << controller()->motionAtAbs(0).actualPos() << ",";
 	lout << std::endl;
 
+	//1、本条指令的executeRT()函数每1ms被实时线程调用一次，并且实时线程有且只有1个；
+	//2、本条指令的executeRT()独占实时线程，直到运行结束，如有其他指令，按照FIFO原则依次执行；
+	//3、return值：大于0，继续执行；等于0，正常结束，并释放实时线程；小于0，报错退出，并释放实时线程
+	//4、count()返回实时线程调用本函数的次数
 	return totaltime - count();
 }
 auto MoveJS::collectNrt()->void {}
@@ -157,124 +177,17 @@ MoveJS::MoveJS(const std::string &name) :Plan(name)
 }
 
 
-// moveEAP //
-struct MoveEAPParam
-{
-	double axis_begin_pos;
-	double axis_pos;
-	double axis_vel;
-	double axis_acc;
-	double axis_dec;
-	bool abs;
-};
-auto MoveEAP::prepareNrt()->void
-{
-    auto c = controller();
-	MoveEAPParam param;
-    param.axis_begin_pos = 0.0;
-
-	for (auto &p : cmdParams())
-	{
-		if (p.first == "pos")
-		{
-			param.axis_pos = doubleParam(p.first);
-		}
-		else if (p.first == "vel")
-		{	
-			param.axis_vel = doubleParam(p.first);
-		}
-		else if (p.first == "acc")
-		{
-			param.axis_acc = doubleParam(p.first);
-		}
-		else if (p.first == "dec")
-		{
-			param.axis_dec = doubleParam(p.first);
-		}
-		else if (p.first == "ab")
-		{
-			param.abs = int32Param(p.first);
-		}
-	}
-
-	this->param() = param;
-	std::vector<std::pair<std::string, std::any>> ret_value;
-	ret() = ret_value;
-}
-auto MoveEAP::executeRT()->int
-{
-	auto &param = std::any_cast<MoveEAPParam&>(this->param());
-
-	// 第一个count，取各个电机的当前位置
-	if (count() == 1)
-	{
-		param.axis_begin_pos = controller()->motionAtAbs(0).actualPos();
-	}
-    aris::Size total_count{ 1 };
-	double p, v, a;
-    aris::Size t_count;
-	//绝对轨迹//
-	if (param.abs)
-	{
-		//梯形轨迹规划函数moveAbsolute对输入的量(count(), param.axis_begin_pos_vec[i], param.axis_pos_vec[i], param.axis_vel_vec[i] / 1000, param.axis_acc_vec[i] / 1000 / 1000, param.axis_dec_vec[i] / 1000 / 1000)都会取绝对值
-		//然后规划出当前count的指令位置p，指令速度v，指令加速度a，以及本梯形轨迹的总count数t_count 
-		aris::plan::moveAbsolute(count(), param.axis_begin_pos, param.axis_pos, param.axis_vel / 1000, param.axis_acc / 1000 / 1000, param.axis_dec / 1000 / 1000, p, v, a, t_count);
-		controller()->motionAtAbs(0).setTargetPos(p);
-		total_count = std::max(total_count, t_count);
-	}
-	//相对轨迹//
-	else
-	{
-		aris::plan::moveAbsolute(count(), param.axis_begin_pos, param.axis_begin_pos + param.axis_pos, param.axis_vel / 1000, param.axis_acc / 1000 / 1000, param.axis_dec /1000 / 1000, p, v, a, t_count);
-		controller()->motionAtAbs(0).setTargetPos(p);
-		total_count = std::max(total_count, t_count);
-	}
-
-	// 每1000ms打印 目标位置、实际位置、实际速度、实际电流 //
-	auto &cout = controller()->mout();
-	if (count() % 1000 == 0)
-	{
-		cout << controller()->motionAtAbs(0).targetPos() << std::endl;
-	}
-	// log 目标位置、实际位置、实际速度、实际电流 //
-		
-	auto &lout = controller()->lout();
-	lout << controller()->motionAtAbs(0).targetPos();
-	lout << std::endl;
-	// 返回total_count - count()给aris实时核，值为-1，报错；值为0，结束；值大于0，继续执行下一个count
-	return total_count - count();
-}
-auto MoveEAP::collectNrt()->void {}
-MoveEAP::MoveEAP(const std::string &name) :Plan(name)
-{
-	command().loadXmlStr(
-		"<Command name=\"moveEAP\">"
-		"	<GroupParam>"
-		"		<Param name=\"begin_pos\" default=\"0.1\" abbreviation=\"b\"/>"
-		"		<Param name=\"pos\" default=\"0.1\"/>"
-		"		<Param name=\"vel\" default=\"0.02\"/>"
-		"		<Param name=\"acc\" default=\"0.3\"/>"
-		"		<Param name=\"dec\" default=\"-0.3\"/>"
-		"		<Param name=\"ab\" default=\"0\"/>"
-		"	</GroupParam>"
-		"</Command>");
-}
-
-
-// 将创建的轨迹添加到轨迹规划池planPool中 //
+// 将创建的运动指令(本例为MoveJS)添加到轨迹规划池planPool中，以指令的类名添加即可；添加后，本程序才接受以字符串形式发送的调用命令 //
 auto createPlanRoot()->std::unique_ptr<aris::plan::PlanRoot>
 {
 	std::unique_ptr<aris::plan::PlanRoot> plan_root(new aris::plan::PlanRoot);
 
-	plan_root->planPool().add<aris::plan::Enable>();
-	plan_root->planPool().add<aris::plan::Disable>();
-	plan_root->planPool().add<aris::plan::Mode>();
-	plan_root->planPool().add<aris::plan::Show>();
-	plan_root->planPool().add<aris::plan::Recover>();
-	auto &rs = plan_root->planPool().add<aris::plan::Reset>();
-	rs.command().findParam("pos")->setDefaultValue("{0.01}");
-	plan_root->planPool().add<MoveJS>();
-	plan_root->planPool().add<MoveEAP>();
+	plan_root->planPool().add<aris::plan::Enable>();//aris库提供的使能指令
+	plan_root->planPool().add<aris::plan::Disable>();//aris库提供的去使能指令
+	plan_root->planPool().add<aris::plan::Mode>();//aris库提供的切换电机控制模式的指令
+	auto &rs = plan_root->planPool().add<aris::plan::Reset>();//aris库提供的复位指令
+	rs.command().findParam("pos")->setDefaultValue("{0.01}");//设置复位指令的目标位置为0.01rad位置
+	plan_root->planPool().add<MoveJS>();//本例提供的用户开发的指令
 	return plan_root;
 }
 
@@ -282,20 +195,18 @@ auto createPlanRoot()->std::unique_ptr<aris::plan::PlanRoot>
 // 主函数
 int main(int argc, char *argv[])
 {
-	//创建Ethercat主站对象
-    //aris::control::EthercatMaster mst;
-	//自动扫描，连接从站
-    //mst.scan();
-    //std::cout<<mst.xmlString()<<std::endl;
-
 	//cs代表成员函数的引用，aris是头文件，server是命名空间，ControlServer是结构体
-    auto&cs = aris::server::ControlServer::instance();
-    cs.resetController(createController().release());
-    cs.resetPlanRoot(createPlanRoot().release());
+    auto&cs = aris::server::ControlServer::instance();//创建一个控制器服务对象
+    cs.resetController(createController().release());//创建一个ethercat主站对象
+    cs.resetPlanRoot(createPlanRoot().release());//创建一个plan对象
+	cs.interfacePool().add<aris::server::ProgramWebInterface>("", "5866", aris::core::Socket::WEB);//创建一个websocket服务，端口5866
+	cs.interfacePool().add<aris::server::WebInterface>("", "5867", aris::core::Socket::TCP); //创建一个socket服务，端口5867
     std::cout<<"start controller server"<<std::endl;
-	//启动线程
+	
+	//启动控制器服务
 	cs.start();
 
+	//aris定义的函数接口，用于设置ethercat从站，本例为maxon驱动器的时间周期
     auto &mot = dynamic_cast<aris::control::EthercatMotor &>(cs.controller().motionAtAbs(0));
     std::uint8_t inter_time = 1;
     mot.writeSdo(0x60C2, 0x01, &inter_time);
@@ -303,6 +214,6 @@ int main(int argc, char *argv[])
 	//Start Web Socket//
 	cs.open();
 
-	//Receive Command//
+	//Receive Command from terminal//
 	cs.runCmdLine();
 }
