@@ -1,5 +1,6 @@
 ﻿#include <algorithm>
 #include "kaanhconfig.h"
+#include "kinematic.h"
 #include "kaanh.h"
 #include <array>
 #include <stdlib.h>
@@ -981,8 +982,7 @@ namespace kaanhconfig
 		plan_root->planPool().add<Replay>();
 		plan_root->planPool().add<ForceDirect>();
 		plan_root->planPool().add<FCStop>();
-
-		/*
+	
 		plan_root->planPool().add<CalibT4P>();
 		plan_root->planPool().add<CalibT5P>();
 		plan_root->planPool().add<CalibT6P>();
@@ -991,7 +991,7 @@ namespace kaanhconfig
 		plan_root->planPool().add<CalibZO>();
 		plan_root->planPool().add<CalibZL>();
 		plan_root->planPool().add<SwitchTool>();
-		*/
+		
 
 		return plan_root;
 	}
