@@ -1444,6 +1444,65 @@
             <FCStop name="FCStop">
                 <Command name="FCStop"/>
             </FCStop>
+            <CalibT4P name="CalibT4P">
+                <Command name="calib_t4p">
+                    <GroupParam>
+                        <Param name="pose" default="{0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0}"/>
+                    </GroupParam>
+                </Command>
+            </CalibT4P>
+            <CalibT5P name="CalibT5P">
+                <Command name="calib_t5p">
+                    <GroupParam>
+                        <Param name="pose" default="{0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0}"/>
+                    </GroupParam>
+                </Command>
+            </CalibT5P>
+            <CalibT6P name="CalibT6P">
+                <Command name="calib_t6p">
+                    <GroupParam>
+                        <Param name="pose" default="{0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0}"/>
+                    </GroupParam>
+                </Command>
+            </CalibT6P>
+            <SetTF name="SetTF">
+                <Command name="settf">
+                    <GroupParam>
+                        <Param name="tool_name" default="Tool0"/>
+                        <Param name="tool_pe" default="{0,0,0,0,0,0}"/>
+                    </GroupParam>
+                </Command>
+            </SetTF>
+            <CalibZF name="CalibZF">
+                <Command name="calib_zf">
+                    <GroupParam>
+                        <Param name="axis_id" default="0"/>
+                    </GroupParam>
+                </Command>
+            </CalibZF>
+            <CalibZO name="CalibZO">
+                <Command name="calib_zo">
+                    <GroupParam>
+                        <Param name="axis_id" default="0"/>
+                        <Param name="tool_name" default="tool0"/>
+                    </GroupParam>
+                </Command>
+            </CalibZO>
+            <CalibZL name="CalibZL">
+                <Command name="calib_zl">
+                    <GroupParam>
+                        <Param name="axis_id" default="0"/>
+                        <Param name="tool_name" default="tool0"/>
+                    </GroupParam>
+                </Command>
+            </CalibZL>
+            <SwitchTool name="SwitchTool">
+                <Command name="switchtool">
+                    <GroupParam>
+                        <Param name="tool_name" default="tool0"/>
+                    </GroupParam>
+                </Command>
+            </SwitchTool>
         </PlanPoolObject>
     </PlanRoot>
     <SensorRoot name="sensor_root">
