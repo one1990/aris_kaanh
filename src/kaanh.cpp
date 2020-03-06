@@ -758,7 +758,6 @@ namespace kaanh
     struct Reset::Imp :public SetActiveMotor, SetInputMovement { std::vector<Size> total_count_vec; };
     auto Reset::prepareNrt()->void
     {
-		g_plan = nullptr;//每次回零位，需要把全局plan设置为空
         set_check_option(cmdParams(), *this);
         set_active_motor(cmdParams(), *this, *imp_);
         set_input_movement(cmdParams(), *this, *imp_);
@@ -832,7 +831,6 @@ namespace kaanh
     };
     auto Recover::prepareNrt()->void
     {
-		g_plan = nullptr;//每次使能，需要把全局plan设置为空
         auto p = std::make_shared<RecoverParam>();
 
         p->is_kinematic_ready_ = false;
@@ -922,7 +920,7 @@ namespace kaanh
 	ARIS_DEFINE_BIG_FOUR_CPP(Sleep);
 
 	MoveBase::MoveBase(const MoveBase &other) :Plan(other),
-		realzone(0){};
+		realzone(0), planzone(0), cmd_finished(false){};
 
 	struct MoveAbsJParam :public SetActiveMotor, SetInputMovement
 	{
@@ -1063,7 +1061,14 @@ namespace kaanh
 			}
 		}
 
-		//更新全局变量g_zp//
+
+		//本指令cmdid-上一条指令的cmdid>1，且上一条指令执行完毕，g_plan赋值为nullptr
+		if (param.pre_plan != nullptr)
+		{
+			if ((this->cmdId() - param.pre_plan->cmdId() > 1) && (param.pre_plan->cmd_finished.load()))g_plan = nullptr;
+		}
+
+		//更新全局变量g_plan//
 		param.pre_plan = g_plan;
 		g_plan = std::dynamic_pointer_cast<MoveBase>(sharedPtrForThis());//------这里需要潘博aris库提供一个plan接口，返回std::shared_ptr<MoveBase>类型指针
 
@@ -1195,27 +1200,26 @@ namespace kaanh
 		//更新转弯区//
 		if (param.pre_plan == nullptr)//转弯第一条指令
 		{
-			//更新本条指令的realzone//
-			this->realzone.store(target_count);
+			//更新本条指令的planzone//
+			this->planzone.store(target_count);
 		}
 		else if (param.pre_plan->name() == this->name())//转弯第二或第n条指令
 		{
-			//更新本plan的realzone//
-			this->realzone.store(target_count);
+			//更新本plan的planzone//
+			this->planzone.store(target_count);
 			//更新上一条转弯指令的realzone//
-			Size max_zone = std::min(param.pre_plan->realzone.load(), param.max_total_count / 2);//当前指令所需count数/2
-			param.pre_plan->realzone.store(max_zone);
+			uint32_t min_zone = std::min(param.pre_plan->planzone.load(), param.max_total_count / 2);//当前指令所需count数/2
+			param.pre_plan->realzone.store(min_zone);
 		}
 		else//本条指令设置了转弯区，但是与上一条指令无法实现转弯，比如moveL,moveC,moveAbsJ
 		{
-			//更新本plan的realzone//
-			this->realzone.store(target_count);
+			//更新本plan的planzone//
+			this->planzone.store(target_count);
 			//上一条指令不进行转弯//
 			param.pre_plan->realzone.store(0);
 		}
 
 		this->param() = param;
-		//std::fill(plan.motorOptions().begin(), plan.motorOptions().end(), Plan::USE_TARGET_POS);
 		for (auto &option : motorOptions()) option |= aris::plan::Plan::NOT_CHECK_ENABLE | NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | NOT_CHECK_POS_CONTINUOUS;
 
 		std::vector<std::pair<std::string, std::any>> ret_value;
@@ -1274,6 +1278,7 @@ namespace kaanh
 		{
 			if (pwinter.isAutoStopped() && (g_counter == 0))
 			{
+				this->cmd_finished.store(true);
 				g_plan = nullptr;
 				return 0;
 			}
@@ -1333,6 +1338,7 @@ namespace kaanh
 				else
 				{
 					//thisplan//
+					param->pre_plan->cmd_finished.store(true);
 					double p, v, a, j;
 					traplan::sCurve(g_count, param->axis_begin_pos_vec[i], param->axis_pos_vec[i],
 						param->axis_vel_vec[i] / 1000 * param->pos_ratio[i], param->axis_acc_vec[i] / 1000 / 1000 * param->pos_ratio[i] * param->pos_ratio[i], param->axis_jerk_vec[i] / 1000 / 1000 / 1000 * param->pos_ratio[i] * param->pos_ratio[i] * param->pos_ratio[i],
@@ -1367,13 +1373,23 @@ namespace kaanh
 
 		if (param->max_total_count - rzcount - int32_t(g_count) == 0)
 		{
+			//realzone为0时，返回值为0时，本条指令执行完毕
+			if(rzcount == 0)this->cmd_finished.store(true);
 			controller()->mout() << "param->max_total_count:" << param->max_total_count << "this->realzone.load():" << rzcount << std::endl;
 		}
-		if (pwinter.isAutoStopped() && (g_counter == 0)) return 0;
+		if (pwinter.isAutoStopped() && (g_counter == 0))
+		{
+			//指令停止且返回值为0时，本条指令执行完毕
+			this->cmd_finished.store(true);
+			return 0;
+		}
 		return param->max_total_count == 0 ? 0 : param->max_total_count - rzcount - int32_t(g_count);
 
 	}
-	auto MoveAbsJ::collectNrt()->void {}
+	auto MoveAbsJ::collectNrt()->void 
+	{
+		std::any_cast<MoveAbsJParam>(&this->param())->pre_plan.reset();
+	}
 	MoveAbsJ::~MoveAbsJ() = default;
 	MoveAbsJ::MoveAbsJ(const std::string &name) : MoveBase(name)
 	{
@@ -1582,8 +1598,13 @@ namespace kaanh
 				mvj_param.ld = temp;
 			}
 		}
-			
-		//更新全局变量g_zp//
+		
+		//本指令cmdid-上一条指令的cmdid>1，且上一条指令执行完毕，g_plan赋值为nullptr
+		if (mvj_param.pre_plan != nullptr)
+		{
+			if ((this->cmdId() - mvj_param.pre_plan->cmdId() > 1) && (mvj_param.pre_plan->cmd_finished.load()))g_plan = nullptr;
+		}
+		//更新全局变量g_plan//
 		mvj_param.pre_plan = g_plan;
 		g_plan = std::dynamic_pointer_cast<MoveBase>(sharedPtrForThis());//------这里需要潘博aris库提供一个plan接口，返回std::shared_ptr<MoveBase>类型指针
 
@@ -1752,21 +1773,21 @@ namespace kaanh
 		//更新转弯区//
 		if (mvj_param.pre_plan == nullptr)//转弯第一条指令
 		{
-			//更新本条指令的realzone//
-			this->realzone.store(mvj_param.max_total_count*mvj_param.zone.per);
+			//更新本条指令的planzone//
+			this->planzone.store(mvj_param.max_total_count*mvj_param.zone.per);
 		}
 		else if (mvj_param.pre_plan->name() == this->name())//转弯第二或第n条指令
 		{
-			//更新本plan的realzone//
-			this->realzone.store(mvj_param.max_total_count*mvj_param.zone.per);
+			//更新本plan的planzone//
+			this->planzone.store(mvj_param.max_total_count*mvj_param.zone.per);
 			//更新上一条转弯指令的realzone//
-			Size max_zone = std::min(mvj_param.pre_plan->realzone.load(), mvj_param.max_total_count / 2);//当前指令所需count数/2
-			mvj_param.pre_plan->realzone.store(max_zone);
+			Size min_zone = std::min(mvj_param.pre_plan->planzone.load(), mvj_param.max_total_count / 2);//当前指令所需count数/2
+			mvj_param.pre_plan->realzone.store(min_zone);
 		}
 		else//本条指令设置了转弯区，但是与上一条指令无法实现转弯，比如moveL,moveC,moveAbsJ
 		{
-			//更新本plan的realzone//
-			this->realzone.store(mvj_param.max_total_count*mvj_param.zone.per);
+			//更新本plan的planzone//
+			this->planzone.store(mvj_param.max_total_count*mvj_param.zone.per);
 			//上一条指令不进行转弯//
 			mvj_param.pre_plan->realzone.store(0);
 		}
@@ -1838,6 +1859,7 @@ namespace kaanh
 		{
 			if (pwinter.isAutoStopped() && (g_counter == 0))
 			{
+				this->cmd_finished.store(true);
 				g_plan = nullptr;
 				return 0;
 			}
@@ -1904,6 +1926,7 @@ namespace kaanh
 				else
 				{
 					//thisplan//
+					mvj_param->pre_plan->cmd_finished.store(true);
 					double p, v, a, j;
 					traplan::sCurve(g_count, mvj_param->joint_pos_begin[i], mvj_param->joint_pos_end[i],
 						mvj_param->joint_vel[i] / 1000 * mvj_param->pos_ratio[i], mvj_param->joint_acc[i] / 1000 / 1000 * mvj_param->pos_ratio[i] * mvj_param->pos_ratio[i], mvj_param->joint_jerk[i] / 1000 / 1000 / 1000 * mvj_param->pos_ratio[i] * mvj_param->pos_ratio[i] * mvj_param->pos_ratio[i],
@@ -1945,13 +1968,23 @@ namespace kaanh
 
 		if (mvj_param->max_total_count - rzcount - int32_t(g_count) == 0)
 		{
+			//realzone为0时，返回值为0时，本条指令执行完毕
+			if (rzcount == 0)this->cmd_finished.store(true);
 			controller()->mout() << "mvj_param->max_total_count:" << mvj_param->max_total_count <<"this->realzone.load():" << rzcount << std::endl;
 		}
-		if (pwinter.isAutoStopped() && (g_counter == 0)) return 0;
+		if (pwinter.isAutoStopped() && (g_counter == 0))
+		{
+			//指令停止且返回值为0时，本条指令执行完毕
+			this->cmd_finished.store(true);
+			return 0;
+		}
 		return mvj_param->max_total_count == 0 ? 0 : mvj_param->max_total_count - rzcount - int32_t(g_count);
 		
 	}
-	auto MoveJ::collectNrt()->void{}
+	auto MoveJ::collectNrt()->void
+	{
+		std::any_cast<MoveJParam>(&this->param())->pre_plan.reset();
+	}
 	MoveJ::~MoveJ() = default;
 	MoveJ::MoveJ(const MoveJ &other) = default;
 	MoveJ::MoveJ(const std::string &name) :MoveBase(name)
@@ -2063,7 +2096,13 @@ namespace kaanh
 			}
 		}
 
-		//更新全局变量g_zp//
+		//本指令cmdid-上一条指令的cmdid>1，且上一条指令执行完毕，g_plan赋值为nullptr
+		if (mvl_param.pre_plan != nullptr)
+		{
+			if ((this->cmdId() - mvl_param.pre_plan->cmdId() > 1) && (mvl_param.pre_plan->cmd_finished.load()))g_plan = nullptr;
+		}
+
+		//更新全局变量g_plan//
 		mvl_param.pre_plan = g_plan;
 		g_plan = std::dynamic_pointer_cast<MoveBase>(sharedPtrForThis());//------这里需要潘博aris库提供一个plan接口，返回std::shared_ptr<MoveBase>类型指针
 
@@ -2203,32 +2242,32 @@ namespace kaanh
 		//更新转弯区//
 		if (mvl_param.pre_plan == nullptr)//转弯第一条指令
 		{
-			//更新本条指令的realzone//
-			this->realzone.store(target_count);
+			//更新本条指令的planzone//
+			this->planzone.store(target_count);
 		}
 		else if (mvl_param.pre_plan->name() == "MoveL")//转弯第二或第n条指令
 		{
 			auto param = std::any_cast<MoveLParam&>(mvl_param.pre_plan->param());
 			if ((std::abs(param.norm_pos) > 2e-3) && (std::abs(mvl_param.norm_pos) > 2e-3))//前后两条轨迹都含直线运动部分
 			{
-				//更新本plan的realzone//
-				this->realzone.store(target_count);
+				//更新本plan的planzone//
+				this->planzone.store(target_count);
 				//更新上一条转弯指令的realzone//
-				aris::Size max_zone = std::min(mvl_param.pre_plan->realzone.load(), mvl_param.max_total_count / 2);//当前指令所需count数/2
-				mvl_param.pre_plan->realzone.store(max_zone);
+				aris::Size min_zone = std::min(mvl_param.pre_plan->planzone.load(), mvl_param.max_total_count / 2);//当前指令所需count数/2
+				mvl_param.pre_plan->realzone.store(min_zone);
 			}
 			else if ((std::abs(param.norm_pos) <= 2e-3) && (std::abs(param.norm_ori) > 2e-3) && (std::abs(mvl_param.norm_pos) <= 2e-3) && (std::abs(mvl_param.norm_ori) > 2e-3))//两条轨迹都是纯转动
 			{
-				//更新本plan的realzone//
-				this->realzone.store(target_count);
+				//更新本plan的planzone//
+				this->planzone.store(target_count);
 				//更新上一条转弯指令的realzone//
-				aris::Size max_zone = std::min(mvl_param.pre_plan->realzone.load(), mvl_param.max_total_count / 2);//当前指令所需count数/2
-				mvl_param.pre_plan->realzone.store(max_zone);
+				aris::Size min_zone = std::min(mvl_param.pre_plan->planzone.load(), mvl_param.max_total_count / 2);//当前指令所需count数/2
+				mvl_param.pre_plan->realzone.store(min_zone);
 			}
 			else//前后两条轨迹有一条是纯转动，取消上一条指令转弯区
 			{
-				//更新本plan的realzone//
-				this->realzone.store(target_count);
+				//更新本plan的planzone//
+				this->planzone.store(target_count);
 				//更新上一条转弯指令的realzone//
 				mvl_param.pre_plan->realzone.store(0);
 			}
@@ -2236,8 +2275,8 @@ namespace kaanh
 		}
 		else//本条指令设置了转弯区，但是与上一条指令无法实现转弯，比如moveJ,moveC,moveAbsJ
 		{
-			//更新本plan的realzone//
-			this->realzone.store(target_count);
+			//更新本plan的planzone//
+			this->planzone.store(target_count);
 			//上一条指令不进行转弯//
 			mvl_param.pre_plan->realzone.store(0);
 		}
@@ -2258,6 +2297,7 @@ namespace kaanh
 		{
 			if (pwinter.isAutoStopped() && (g_counter == 0))
 			{
+				this->cmd_finished.store(true);
 				g_plan = nullptr;
 				return 0;
 			}
@@ -2417,6 +2457,7 @@ namespace kaanh
 			else
 			{
 				//thisplan//
+				mvl_param->pre_plan->cmd_finished.store(true);
 				double pa[6]{ 0.0,0.0,0.0,0.0,0.0,0.0 }, pm[16], pm2[16];
 
 				traplan::sCurve(g_count, 0.0, mvl_param->norm_pos, mvl_param->vel / 1000 * mvl_param->pos_ratio, mvl_param->acc / 1000 / 1000 * mvl_param->pos_ratio* mvl_param->pos_ratio, mvl_param->jerk / 1000 / 1000 / 1000 * mvl_param->pos_ratio* mvl_param->pos_ratio* mvl_param->pos_ratio, p, v, a, j, pos_total_count);
@@ -2459,12 +2500,23 @@ namespace kaanh
 
 		if (mvl_param->max_total_count - rzcount - int32_t(g_count) == 0)
 		{
+			//realzone为0时，返回值为0时，本条指令执行完毕
+			if (rzcount == 0)this->cmd_finished.store(true);
 			controller()->mout() << "mvl_param->max_total_count:" << mvl_param->max_total_count << "this->realzone.load():" << rzcount << std::endl;
 		}
-		if (pwinter.isAutoStopped() && (g_counter == 0)) return 0;
+		
+		if (pwinter.isAutoStopped() && (g_counter == 0))
+		{
+			//指令停止且返回值为0时，本条指令执行完毕
+			this->cmd_finished.store(true);
+			return 0;
+		}
 		return mvl_param->max_total_count == 0 ? 0 : mvl_param->max_total_count - rzcount - int32_t(g_count);
 	}
-	auto MoveL::collectNrt()->void {}
+	auto MoveL::collectNrt()->void 
+	{
+		std::any_cast<MoveLParam>(&this->param())->pre_plan.reset();
+	}
 	MoveL::~MoveL() = default;
 	MoveL::MoveL(const MoveL &other) = default;
 	MoveL::MoveL(const std::string &name) :MoveBase(name)
@@ -2824,7 +2876,14 @@ namespace kaanh
 
 		mvc_param.jerk = mvc_param.jerk *mvc_param.acc;
 		mvc_param.angular_jerk = mvc_param.angular_jerk*mvc_param.angular_acc;
-		//更新全局变量g_zp//
+		
+		//本指令cmdid-上一条指令的cmdid>1，且上一条指令执行完毕，g_plan赋值为nullptr
+		if (mvc_param.pre_plan != nullptr)
+		{
+			if ((this->cmdId() - mvc_param.pre_plan->cmdId() > 1) && (mvc_param.pre_plan->cmd_finished.load()))g_plan = nullptr;
+		}
+
+		//更新全局变量g_plan//
 		mvc_param.pre_plan = g_plan;
 		g_plan = std::dynamic_pointer_cast<MoveBase>(sharedPtrForThis());//------这里需要潘博aris库提供一个plan接口，返回std::shared_ptr<MoveBase>类型指针
 
@@ -2937,22 +2996,22 @@ namespace kaanh
 		//更新转弯区//
 		if (mvc_param.pre_plan == nullptr)//转弯第一条指令
 		{
-			//更新本条指令的realzone//
-			this->realzone.store(target_count);
+			//更新本条指令的planzone//
+			this->planzone.store(target_count);
 		}
 		else if (mvc_param.pre_plan->name() == "MoveC")//转弯第二或第n条指令
 		{
 			auto param = std::any_cast<MoveCParam&>(mvc_param.pre_plan->param());
-			//更新本plan的realzone//
-			this->realzone.store(target_count);
+			//更新本plan的planzone//
+			this->planzone.store(target_count);
 			//更新上一条转弯指令的realzone//
-			aris::Size max_zone = std::min(mvc_param.pre_plan->realzone.load(), mvc_param.max_total_count / 2);//当前指令所需count数/2
-			mvc_param.pre_plan->realzone.store(max_zone);
+			aris::Size min_zone = std::min(mvc_param.pre_plan->planzone.load(), mvc_param.max_total_count / 2);//当前指令所需count数/2
+			mvc_param.pre_plan->realzone.store(min_zone);
 		}
 		else//本条指令设置了转弯区，但是与上一条指令无法实现转弯，比如moveJ,moveC,moveAbsJ
 		{
-			//更新本plan的realzone//
-			this->realzone.store(target_count);
+			//更新本plan的planzone//
+			this->planzone.store(target_count);
 			//上一条指令不进行转弯//
 			mvc_param.pre_plan->realzone.store(0);
 		}
@@ -2973,6 +3032,7 @@ namespace kaanh
 		{
 			if (pwinter.isAutoStopped() && (g_counter == 0))
 			{
+				this->cmd_finished.store(true);
 				g_plan = nullptr;
 				return 0;
 			}
@@ -3183,6 +3243,7 @@ namespace kaanh
 			}
 			else
 			{
+				mvc_param->pre_plan->cmd_finished.store(true);
 				cal_pqt(*mvc_param, *this, pqt);
 			}
 		}
@@ -3218,12 +3279,22 @@ namespace kaanh
 
 		if (mvc_param->max_total_count - rzcount - int32_t(g_count) == 0)
 		{
+			//realzone为0时，返回值为0时，本条指令执行完毕
+			if (rzcount == 0)this->cmd_finished.store(true);
 			controller()->mout() << "mvc_param->max_total_count:" << mvc_param->max_total_count << "this->realzone.load():" << rzcount << std::endl;
 		}
-		if (pwinter.isAutoStopped() && (g_counter == 0)) return 0;
+		if (pwinter.isAutoStopped() && (g_counter == 0))
+		{
+			//指令停止且返回值为0时，本条指令执行完毕
+			this->cmd_finished.store(true);
+			return 0;
+		}
 		return mvc_param->max_total_count == 0 ? 0 : mvc_param->max_total_count - rzcount - int32_t(g_count);
 	}
-	auto MoveC::collectNrt()->void {}
+	auto MoveC::collectNrt()->void 
+	{
+		std::any_cast<MoveCParam>(&this->param())->pre_plan.reset();
+	}
 	MoveC::~MoveC() = default;
 	MoveC::MoveC(const MoveC &other) = default;
 	MoveC::MoveC(const std::string &name) :MoveBase(name)

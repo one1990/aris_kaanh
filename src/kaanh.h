@@ -39,8 +39,9 @@ namespace kaanh
 	class MoveBase : public aris::plan::Plan
 	{
 	public:
-		std::atomic_uint32_t realzone = 0;
-		//与下一条指令总count数的一半进行取小，更新真实zone的大小//
+		std::atomic_uint32_t planzone = 0;//本条指令规划的zone
+		std::atomic_uint32_t realzone = 0;//与下一条指令总count数的一半进行取小，更新realzone的大小
+		std::atomic_bool cmd_finished = false;//判断指令是否执行完毕
 		explicit MoveBase(const std::string &name) :Plan(name) {};
 		MoveBase(const MoveBase &other);
 	};
