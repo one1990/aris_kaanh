@@ -920,7 +920,7 @@ namespace kaanh
 	ARIS_DEFINE_BIG_FOUR_CPP(Sleep);
 
 	MoveBase::MoveBase(const MoveBase &other) :Plan(other),
-		realzone(0), planzone(0), cmd_finished(false){};
+		realzone(0), planzone(0), cmd_finished(false), cmd_executing(false){};
 
 	struct MoveAbsJParam :public SetActiveMotor, SetInputMovement
 	{
@@ -1208,8 +1208,15 @@ namespace kaanh
 			//更新本plan的planzone//
 			this->planzone.store(target_count);
 			//更新上一条转弯指令的realzone//
-			uint32_t min_zone = std::min(param.pre_plan->planzone.load(), param.max_total_count / 2);//当前指令所需count数/2
-			param.pre_plan->realzone.store(min_zone);
+			if (param.pre_plan->cmd_executing.load())
+			{
+				param.pre_plan->realzone.store(0);
+			}
+			else
+			{
+				uint32_t min_zone = std::min(param.pre_plan->planzone.load(), param.max_total_count / 2);//当前指令所需count数/2
+				param.pre_plan->realzone.store(min_zone);
+			}
 		}
 		else//本条指令设置了转弯区，但是与上一条指令无法实现转弯，比如moveL,moveC,moveAbsJ
 		{
@@ -1227,6 +1234,7 @@ namespace kaanh
 	}
 	auto MoveAbsJ::executeRT()->int
 	{
+		this->cmd_executing.load();
 		auto param = std::any_cast<MoveAbsJParam>(&this->param());
 		auto &pwinter = dynamic_cast<aris::server::ProgramWebInterface&>(controlServer()->interfacePool().at(0));
 		/*
@@ -1781,8 +1789,15 @@ namespace kaanh
 			//更新本plan的planzone//
 			this->planzone.store(mvj_param.max_total_count*mvj_param.zone.per);
 			//更新上一条转弯指令的realzone//
-			Size min_zone = std::min(mvj_param.pre_plan->planzone.load(), mvj_param.max_total_count / 2);//当前指令所需count数/2
-			mvj_param.pre_plan->realzone.store(min_zone);
+			if (mvj_param.pre_plan->cmd_executing.load())
+			{
+				mvj_param.pre_plan->realzone.store(0);
+			}
+			else
+			{
+				Size min_zone = std::min(mvj_param.pre_plan->planzone.load(), mvj_param.max_total_count / 2);//当前指令所需count数/2
+				mvj_param.pre_plan->realzone.store(min_zone);
+			}
 		}
 		else//本条指令设置了转弯区，但是与上一条指令无法实现转弯，比如moveL,moveC,moveAbsJ
 		{
@@ -1800,6 +1815,7 @@ namespace kaanh
 	}
 	auto MoveJ::executeRT()->int
 	{
+		this->cmd_executing.load();
 		auto mvj_param = std::any_cast<MoveJParam>(&this->param());
 		auto &pwinter = dynamic_cast<aris::server::ProgramWebInterface&>(controlServer()->interfacePool().at(0));
 		/*
@@ -2253,16 +2269,30 @@ namespace kaanh
 				//更新本plan的planzone//
 				this->planzone.store(target_count);
 				//更新上一条转弯指令的realzone//
-				aris::Size min_zone = std::min(mvl_param.pre_plan->planzone.load(), mvl_param.max_total_count / 2);//当前指令所需count数/2
-				mvl_param.pre_plan->realzone.store(min_zone);
+				if (mvl_param.pre_plan->cmd_executing.load())
+				{
+					mvl_param.pre_plan->realzone.store(0);
+				}
+				else
+				{
+					aris::Size min_zone = std::min(mvl_param.pre_plan->planzone.load(), mvl_param.max_total_count / 2);//当前指令所需count数/2
+					mvl_param.pre_plan->realzone.store(min_zone);
+				}
 			}
 			else if ((std::abs(param.norm_pos) <= 2e-3) && (std::abs(param.norm_ori) > 2e-3) && (std::abs(mvl_param.norm_pos) <= 2e-3) && (std::abs(mvl_param.norm_ori) > 2e-3))//两条轨迹都是纯转动
 			{
 				//更新本plan的planzone//
 				this->planzone.store(target_count);
 				//更新上一条转弯指令的realzone//
-				aris::Size min_zone = std::min(mvl_param.pre_plan->planzone.load(), mvl_param.max_total_count / 2);//当前指令所需count数/2
-				mvl_param.pre_plan->realzone.store(min_zone);
+				if (mvl_param.pre_plan->cmd_executing.load())
+				{
+					mvl_param.pre_plan->realzone.store(0);
+				}
+				else
+				{
+					aris::Size min_zone = std::min(mvl_param.pre_plan->planzone.load(), mvl_param.max_total_count / 2);//当前指令所需count数/2
+					mvl_param.pre_plan->realzone.store(min_zone);
+				}
 			}
 			else//前后两条轨迹有一条是纯转动，取消上一条指令转弯区
 			{
@@ -2289,6 +2319,7 @@ namespace kaanh
 	}
 	auto MoveL::executeRT()->int
 	{
+		this->cmd_executing.load();
 		auto mvl_param = std::any_cast<MoveLParam>(&this->param());
 		auto &pwinter = dynamic_cast<aris::server::ProgramWebInterface&>(controlServer()->interfacePool().at(0));
 
@@ -3005,8 +3036,15 @@ namespace kaanh
 			//更新本plan的planzone//
 			this->planzone.store(target_count);
 			//更新上一条转弯指令的realzone//
-			aris::Size min_zone = std::min(mvc_param.pre_plan->planzone.load(), mvc_param.max_total_count / 2);//当前指令所需count数/2
-			mvc_param.pre_plan->realzone.store(min_zone);
+			if (mvc_param.pre_plan->cmd_executing.load())
+			{
+				mvc_param.pre_plan->realzone.store(0);
+			}
+			else
+			{
+				aris::Size min_zone = std::min(mvc_param.pre_plan->planzone.load(), mvc_param.max_total_count / 2);//当前指令所需count数/2
+				mvc_param.pre_plan->realzone.store(min_zone);
+			}
 		}
 		else//本条指令设置了转弯区，但是与上一条指令无法实现转弯，比如moveJ,moveC,moveAbsJ
 		{
@@ -3024,6 +3062,7 @@ namespace kaanh
 	}
 	auto MoveC::executeRT()->int
 	{
+		this->cmd_executing.load();
 		auto mvc_param = std::any_cast<MoveCParam>(&this->param());
 		auto &pwinter = dynamic_cast<aris::server::ProgramWebInterface&>(controlServer()->interfacePool().at(0));
 
