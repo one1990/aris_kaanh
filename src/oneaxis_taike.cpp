@@ -541,12 +541,17 @@ int main(int argc, char *argv[])
     //mst.scan();
     //std::cout<<mst.xmlString()<<std::endl;
 
+
 	//cs代表成员函数的引用，aris是头文件，server是命名空间，ControlServer是结构体
     auto&cs = aris::server::ControlServer::instance();
     cs.resetController(taike::createController().release());
     cs.resetPlanRoot(taike::createPlanRoot().release());
+    cs.interfacePool().add<aris::server::ProgramWebInterface>("", "5866", aris::core::Socket::WEB);//创建一个websocket服务，端口5866
+    cs.interfacePool().add<aris::server::WebInterface>("", "5867", aris::core::Socket::TCP); //创建一个socket服务，端口5867
     std::cout<<"start controller server"<<std::endl;
 	//启动线程
+
+    cs.init();
 	cs.start();
 
     auto &mot = dynamic_cast<aris::control::EthercatMotor &>(cs.controller().motionAtAbs(0));

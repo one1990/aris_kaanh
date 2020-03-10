@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
     std::cout << "path:" << path << std::endl;
     std::cout << "logfolder:" << logp << std::endl;
 
-
+    /*
     //-------for wuling robot begin//
     cs.resetController(wulingconfig::createControllerWuling().release());
     cs.resetModel(wulingconfig::createModelWuling().release());
@@ -68,12 +68,12 @@ int main(int argc, char *argv[])
 	cs.interfacePool().add<aris::server::WebInterface>("", "5866", aris::core::Socket::WEB);
 	cs.interfacePool().add<aris::server::WebInterface>("", "5867", aris::core::Socket::TCP);
 	cs.resetSensorRoot(new aris::sensor::SensorRoot);
-	cs.interfaceRoot().loadXmlFile(uixmlpath.string().c_str());
+    //cs.interfaceRoot().loadXmlFile(uixmlpath.string().c_str());
 	//cs.model().saveXmlFile(modelxmlpath.string().c_str());	//for new model
-	cs.model().loadXmlFile(modelxmlpath.string().c_str());
+    //cs.model().loadXmlFile(modelxmlpath.string().c_str());
     cs.saveXmlFile(path.string().c_str());
     //-------for wuling robot end//
-
+    */
 
     cs.loadXmlFile(path.string().c_str());
     cs.init();
