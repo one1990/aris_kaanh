@@ -1389,6 +1389,7 @@ namespace kaanh
 		{
 			//指令停止且返回值为0时，本条指令执行完毕
 			this->cmd_finished.store(true);
+            g_plan.reset();
 			return 0;
 		}
 		return param->max_total_count == 0 ? 0 : param->max_total_count - rzcount - int32_t(g_count);
@@ -1396,6 +1397,10 @@ namespace kaanh
 	}
 	auto MoveAbsJ::collectNrt()->void 
 	{
+        if(this->retCode()<0)
+        {
+            g_plan.reset();
+        }
 		std::any_cast<MoveAbsJParam>(&this->param())->pre_plan.reset();
 	}
 	MoveAbsJ::~MoveAbsJ() = default;
@@ -1992,6 +1997,7 @@ namespace kaanh
 		{
 			//指令停止且返回值为0时，本条指令执行完毕
 			this->cmd_finished.store(true);
+            g_plan.reset();
 			return 0;
 		}
 		return mvj_param->max_total_count == 0 ? 0 : mvj_param->max_total_count - rzcount - int32_t(g_count);
@@ -1999,6 +2005,10 @@ namespace kaanh
 	}
 	auto MoveJ::collectNrt()->void
 	{
+        if(this->retCode()<0)
+        {
+            g_plan.reset();
+        }
 		std::any_cast<MoveJParam>(&this->param())->pre_plan.reset();
 	}
 	MoveJ::~MoveJ() = default;
@@ -2540,12 +2550,17 @@ namespace kaanh
 		{
 			//指令停止且返回值为0时，本条指令执行完毕
 			this->cmd_finished.store(true);
+            g_plan.reset();
 			return 0;
 		}
 		return mvl_param->max_total_count == 0 ? 0 : mvl_param->max_total_count - rzcount - int32_t(g_count);
 	}
 	auto MoveL::collectNrt()->void 
 	{
+        if(this->retCode()<0)
+        {
+            g_plan.reset();
+        }
 		std::any_cast<MoveLParam>(&this->param())->pre_plan.reset();
 	}
 	MoveL::~MoveL() = default;
@@ -3326,12 +3341,17 @@ namespace kaanh
 		{
 			//指令停止且返回值为0时，本条指令执行完毕
 			this->cmd_finished.store(true);
+            g_plan.reset();
 			return 0;
 		}
 		return mvc_param->max_total_count == 0 ? 0 : mvc_param->max_total_count - rzcount - int32_t(g_count);
 	}
 	auto MoveC::collectNrt()->void 
 	{
+        if(this->retCode()<0)
+        {
+            g_plan.reset();
+        }
 		std::any_cast<MoveCParam>(&this->param())->pre_plan.reset();
 	}
 	MoveC::~MoveC() = default;
