@@ -4,6 +4,9 @@
 #include <memory>
 #include <aris.hpp>
 
+//global time speed array//
+extern double timespeed[101];
+
 namespace wulingconfig
 {
 	//其他参数和函数声明 
@@ -14,6 +17,8 @@ namespace wulingconfig
     auto createModelWuling(const double *robot_pm = nullptr)->std::unique_ptr<aris::dynamic::Model>;
 
 	auto createUserDataType(aris::core::Calculator &cal)->void;
+
+    auto createPauseTimeSpeed()->void;
 
 	auto createPlanRoot()->std::unique_ptr<aris::plan::PlanRoot>;
 }
