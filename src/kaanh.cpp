@@ -1015,6 +1015,20 @@ namespace kaanh
 			}
 		}
 	}
+	//雅克比矩阵判断奇异点//
+	auto IsSingular(Plan &plan)->bool
+	{
+		auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(plan.model()->solverPool()[1]);
+		fwd.cptJacobiWrtEE();
+		//QR分解求方程的解
+		double U[36], tau[6];
+		aris::Size p[6];
+		Size rank;
+		//auto inline s_householder_utp(Size m, Size n, const double *A, AType a_t, double *U, UType u_t, double *tau, TauType tau_t, Size *p, Size &rank, double zero_check = 1e-10)noexcept->void
+		//A为输入
+		s_householder_utp(6, 6, fwd.Jf(), U, tau, p, rank, 1e-3);
+		return rank < 6 ? true : false;
+	}
 
 	//走关节//
 	auto MoveAbsJ::prepareNrt()->void
@@ -1197,6 +1211,9 @@ namespace kaanh
 			}
 		}
 
+		//转弯区不能超过本条指令count数/2
+		target_count = std::min(target_count, param.max_total_count / 2);
+
 		//更新转弯区//
 		if (param.pre_plan == nullptr)//转弯第一条指令
 		{
@@ -1234,7 +1251,7 @@ namespace kaanh
 	}
 	auto MoveAbsJ::executeRT()->int
 	{
-		this->cmd_executing.load();
+		this->cmd_executing.store(true);
 		auto param = std::any_cast<MoveAbsJParam>(&this->param());
 		auto &pwinter = dynamic_cast<aris::server::ProgramWebInterface&>(controlServer()->interfacePool().at(0));
 		/*
@@ -1781,7 +1798,9 @@ namespace kaanh
 				}
 			}
 		}
-
+		
+		//转弯区不能超过本条指令count数/2
+		target_count = std::min(target_count, mvj_param.max_total_count / 2);
 
 		//更新转弯区//
 		if (mvj_param.pre_plan == nullptr)//转弯第一条指令
@@ -1820,7 +1839,7 @@ namespace kaanh
 	}
 	auto MoveJ::executeRT()->int
 	{
-		this->cmd_executing.load();
+		this->cmd_executing.store(true);
 		auto mvj_param = std::any_cast<MoveJParam>(&this->param());
 		auto &pwinter = dynamic_cast<aris::server::ProgramWebInterface&>(controlServer()->interfacePool().at(0));
 		/*
@@ -2265,6 +2284,9 @@ namespace kaanh
 			else{}
 		}
 		
+		//转弯区不能超过本条指令count数/2
+		target_count = std::min(target_count, mvl_param.max_total_count / 2);
+
 		//更新转弯区//
 		if (mvl_param.pre_plan == nullptr)//转弯第一条指令
 		{
@@ -2329,7 +2351,7 @@ namespace kaanh
 	}
 	auto MoveL::executeRT()->int
 	{
-		this->cmd_executing.load();
+		this->cmd_executing.store(true);
 		auto mvl_param = std::any_cast<MoveLParam>(&this->param());
 		auto &pwinter = dynamic_cast<aris::server::ProgramWebInterface&>(controlServer()->interfacePool().at(0));
 
@@ -2532,6 +2554,9 @@ namespace kaanh
 			mvl_param->tool->setPm(*mvl_param->wobj, pm2);
 			model()->generalMotionPool().at(0).updMpm();
 		}
+
+		//过奇异点判断
+		if (IsSingular(*this))return -1002;
 
 		if (model()->solverPool().at(0).kinPos())return -1;
 
@@ -3039,6 +3064,9 @@ namespace kaanh
 			}
 		}
 
+		//转弯区不能超过本条指令count数/2
+		target_count = std::min(target_count, mvc_param.max_total_count / 2);
+
 		//更新转弯区//
 		if (mvc_param.pre_plan == nullptr)//转弯第一条指令
 		{
@@ -3077,7 +3105,7 @@ namespace kaanh
 	}
 	auto MoveC::executeRT()->int
 	{
-		this->cmd_executing.load();
+		this->cmd_executing.store(true);
 		auto mvc_param = std::any_cast<MoveCParam>(&this->param());
 		auto &pwinter = dynamic_cast<aris::server::ProgramWebInterface&>(controlServer()->interfacePool().at(0));
 
@@ -3323,6 +3351,9 @@ namespace kaanh
 		// 更新目标点 //
 		mvc_param->tool->setPq(*mvc_param->wobj, pqt);
 		model()->generalMotionPool().at(0).updMpm();
+
+		//过奇异点判断
+		if (IsSingular(*this))return -1002;
 
 		//运动学反解//
 		if (model()->solverPool().at(0).kinPos())return -1;
