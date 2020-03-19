@@ -3,17 +3,6 @@
 
 #include <memory>
 #include <aris.hpp>
-#include "kaanhconfig.h"
-#include"planfuns.h"
-#include "json.hpp"
-#include"jointdynamics.h"
-#include "kinematic.h"
-#include"sixdistalfc.h"
-#include"sixdistaldynamics.h"
-#include <array>
-#include <stdlib.h>
-#include <string>
-#include <bitset>
 
 //statemachine old//
 # define M_RUN 0	//手动单步执行

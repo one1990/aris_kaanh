@@ -1,6 +1,5 @@
 ﻿#include <iostream>
 #include <aris.hpp>
-#include "kaanhconfig.h"
 #include "kaanh.h"
 #include<atomic>
 #include<string>
@@ -8,24 +7,7 @@
 
 
 using namespace aris::dynamic;
-
-//global vel//
-kaanh::Speed g_vel = { 0.1, 0.1, 3.4, 0.0, 0.0 };
-std::atomic_int g_vel_percent = 0;
-//global vel//
-
-//global time speed array//
-double timespeed[101] = { 0.0 };
-
-//state machine flag//
-std::atomic_bool g_is_enabled = false;
-std::atomic_bool g_is_error = false;
-std::atomic_bool g_is_manual = false;
-std::atomic_bool g_is_auto = false;
-std::atomic_bool g_is_running = false;
-std::atomic_bool g_is_paused = false;
-std::atomic_bool g_is_stopped = false;
-//state machine flag//
+aris::dynamic::Model g_model;
 
 auto xmlpath = std::filesystem::absolute(".");//获取当前工程所在的路径
 auto uixmlpath = std::filesystem::absolute(".");
@@ -35,11 +17,6 @@ const std::string xmlfile = "kaanh.xml";
 const std::string uixmlfile = "interface_kaanh.xml";
 const std::string modelxmlfile = "model_rokae.xml";
 const std::string logfolder = "log";
-
-//添加var类型
-aris::core::Calculator g_cal;
-aris::dynamic::Model g_model;
-aris::dynamic::Marker *g_tool, *g_wobj;
 
 
 int main(int argc, char *argv[])

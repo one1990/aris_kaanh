@@ -1,36 +1,36 @@
 ﻿#include <algorithm>
 #include "kaanh.h"
-#include "kaanhconfig.h"
 #include <array>
 #include <stdlib.h>
 #include <string>
 #include"planfuns.h"
 #include"sixdistalfc.h"
 #include <bitset>
-#include "json.hpp"
 
 
 using namespace aris::dynamic;
 using namespace aris::plan;
 
 //global vel//
-extern kaanh::Speed g_vel;
-extern std::atomic_int g_vel_percent;
+kaanh::Speed g_vel = { 0.1, 0.1, 3.4, 0.0, 0.0 };
+std::atomic_int g_vel_percent = 0;
 //global vel//
 
+//global time speed array//
+double timespeed[101] = { 0.0 };
+
 //state machine flag//
-extern std::atomic_bool g_is_enabled;
-extern std::atomic_bool g_is_error;
-extern std::atomic_bool g_is_manual;
-extern std::atomic_bool g_is_auto;
-extern std::atomic_bool g_is_running;
-extern std::atomic_bool g_is_paused;
-extern std::atomic_bool g_is_stopped;
+std::atomic_bool g_is_enabled = false;
+std::atomic_bool g_is_error = false;
+std::atomic_bool g_is_manual = false;
+std::atomic_bool g_is_auto = false;
+std::atomic_bool g_is_running = false;
+std::atomic_bool g_is_paused = false;
+std::atomic_bool g_is_stopped = false;
 //state machine flag//
 
-extern aris::core::Calculator g_cal;
-extern aris::dynamic::Model g_model;
-extern aris::dynamic::Marker *g_tool, *g_wobj;
+aris::core::Calculator g_cal;
+aris::dynamic::Marker *g_tool, *g_wobj;
 
 struct CmdListParam
 {
@@ -1002,7 +1002,7 @@ namespace kaanh
 		if (!param->zone_enabled)
 		{
 			//执行到最后一个count时,进行特殊处理
-			if ((param->max_total_count - rzcount - int32_t(g_count) == 0) || (param->max_total_count == 0))
+			if ((param->max_total_count - rzcount - int32_t(g_count) + 1 == 0) || (param->max_total_count == 0))
 			{
 				if (pwinter.isAutoPaused() || pwinter.isAutoStopped())
 				{
