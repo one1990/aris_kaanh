@@ -1002,7 +1002,7 @@ namespace kaanh
 		if (!param->zone_enabled)
 		{
 			//执行到最后一个count时,进行特殊处理
-			if ((param->max_total_count - rzcount - int32_t(g_count) + 1 == 0) || (param->max_total_count == 0))
+			if ((param->max_total_count - rzcount - int32_t(g_count) == 0) || (param->max_total_count == 0))
 			{
 				if (pwinter.isAutoPaused() || pwinter.isAutoStopped())
 				{
@@ -1244,7 +1244,7 @@ namespace kaanh
 		}
 
 		this->param() = param;
-        for (auto &option : motorOptions()) option |= aris::plan::Plan::NOT_CHECK_ENABLE;
+        for (auto &option : motorOptions()) option |= aris::plan::Plan::NOT_CHECK_ENABLE | USE_TARGET_POS;
 
 		std::vector<std::pair<std::string, std::any>> ret_value;
 		ret() = ret_value;
@@ -1309,6 +1309,11 @@ namespace kaanh
 			}
 		}
 
+		if (count() == 960)
+		{
+			controller()->mout() << count() << std::endl;
+		}
+
 		//暂停、恢复//
 		PauseContinueB(this, pwinter);
 		
@@ -1327,7 +1332,7 @@ namespace kaanh
 				//S形轨迹规划//
 				double p, v, a, j;
 				traplan::sCurve(g_count, param->axis_begin_pos_vec[i], param->axis_pos_vec[i],
-					param->axis_vel_vec[i] / 1000 * param->pos_ratio[i], param->axis_acc_vec[i] / 1000 / 1000 * param->pos_ratio[i] * param->pos_ratio[i], param->axis_jerk_vec[i] / 1000 / 1000 / 1000 * param->pos_ratio[i] * param->pos_ratio[i] * param->pos_ratio[i],
+					param->axis_vel_vec[i] / 1000.0 * param->pos_ratio[i], param->axis_acc_vec[i] / 1000.0 / 1000.0 * param->pos_ratio[i] * param->pos_ratio[i], param->axis_jerk_vec[i] / 1000.0 / 1000.0 / 1000.0 * param->pos_ratio[i] * param->pos_ratio[i] * param->pos_ratio[i],
 					p, v, a, j, param->total_count[i]);
 
 				controller()->motionPool()[i].setTargetPos(p);
@@ -1396,7 +1401,7 @@ namespace kaanh
 		//本条指令没有转弯区
 		PauseContinueE(param, pwinter, rzcount);
 
-        if (param->max_total_count - rzcount - int32_t(g_count) + 1== 0)
+        if (param->max_total_count - rzcount - int32_t(g_count)== 0)
 		{
 			//realzone为0时，返回值为0时，本条指令执行完毕
 			if(rzcount == 0)this->cmd_finished.store(true);
@@ -1409,7 +1414,7 @@ namespace kaanh
             g_plan.reset();
 			return 0;
 		}
-        return param->max_total_count == 0 ? 0 : param->max_total_count - rzcount - int32_t(g_count) + 1;
+        return param->max_total_count == 0 ? 0 : param->max_total_count - rzcount - int32_t(g_count);
 
 	}
 	auto MoveAbsJ::collectNrt()->void 
@@ -2006,7 +2011,7 @@ namespace kaanh
 		//本条指令没有转弯区
 		PauseContinueE(mvj_param, pwinter, rzcount);
 
-        if (mvj_param->max_total_count - rzcount - int32_t(g_count) +1 == 0)
+        if (mvj_param->max_total_count - rzcount - int32_t(g_count) == 0)
 		{
 			//realzone为0时，返回值为0时，本条指令执行完毕
 			if (rzcount == 0)this->cmd_finished.store(true);
@@ -2019,7 +2024,7 @@ namespace kaanh
             g_plan.reset();
 			return 0;
 		}
-        return mvj_param->max_total_count == 0 ? 0 : mvj_param->max_total_count - rzcount - int32_t(g_count) + 1;
+        return mvj_param->max_total_count == 0 ? 0 : mvj_param->max_total_count - rzcount - int32_t(g_count);
 	}
 	auto MoveJ::collectNrt()->void
 	{
@@ -2571,7 +2576,7 @@ namespace kaanh
         }
         lout << std::endl;
 
-        if (mvl_param->max_total_count - rzcount - int32_t(g_count) +1== 0)
+        if (mvl_param->max_total_count - rzcount - int32_t(g_count)== 0)
 		{
 			//realzone为0时，返回值为0时，本条指令执行完毕
 			if (rzcount == 0)this->cmd_finished.store(true);
@@ -2585,7 +2590,7 @@ namespace kaanh
             g_plan.reset();
 			return 0;
 		}
-        return mvl_param->max_total_count == 0 ? 0 : mvl_param->max_total_count - rzcount - int32_t(g_count) + 1;
+        return mvl_param->max_total_count == 0 ? 0 : mvl_param->max_total_count - rzcount - int32_t(g_count);
 	}
 	auto MoveL::collectNrt()->void 
 	{
@@ -3375,7 +3380,7 @@ namespace kaanh
 		//本条指令没有转弯区
 		PauseContinueE(mvc_param, pwinter, rzcount);
 
-        if (mvc_param->max_total_count - rzcount - int32_t(g_count) + 1== 0)
+        if (mvc_param->max_total_count - rzcount - int32_t(g_count) == 0)
 		{
 			//realzone为0时，返回值为0时，本条指令执行完毕
 			if (rzcount == 0)this->cmd_finished.store(true);
@@ -3388,7 +3393,7 @@ namespace kaanh
             g_plan.reset();
 			return 0;
 		}
-        return mvc_param->max_total_count == 0 ? 0 : mvc_param->max_total_count - rzcount - int32_t(g_count) + 1;
+        return mvc_param->max_total_count == 0 ? 0 : mvc_param->max_total_count - rzcount - int32_t(g_count);
 	}
 	auto MoveC::collectNrt()->void 
 	{

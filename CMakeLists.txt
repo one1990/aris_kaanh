@@ -20,11 +20,13 @@ add_library(kaanh_lib STATIC src/json.hpp src/kaanh.cpp src/kaanh.h src/kaanhcon
 add_executable(kaanh src/main.cpp)
 target_link_libraries(kaanh kaanh_lib)
 
-## install exports ##
-install(TARGETS kaanh_lib
-    LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib)
-install(FILES src/kaanh.h DESTINATION include/kaanh)
+## install ##
+if(UNIX)
+	install(TARGETS kaanh_lib
+		LIBRARY DESTINATION lib
+		ARCHIVE DESTINATION lib)
+	install(FILES src/kaanh.h DESTINATION include/kaanh)
+endif(UNIX)
 
 if(UNIX)
 	target_link_libraries(kaanh ${aris_LIBRARIES} atomic)

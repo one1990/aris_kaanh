@@ -407,7 +407,7 @@ namespace traplan
 		}
 		else
 		{
-			Tv = 0;
+			Tv = 0.0;
 			//vlim < vmax时，判断加速度是否到达最大
 			if ((q1 - q0) >= 2.0 * std::pow(amax, 3.0) / jmax / jmax)
 			{
@@ -460,37 +460,37 @@ namespace traplan
 	{
 		//参数初始化
 		//边界参数初始化
-		double q0 = 0;
-		double q1 = 0;
-		double v0 = 0;
-		double v1 = 0;
-		double a0 = 0;
-		double a1 = 0;
+		double q0 = 0.0;
+		double q1 = 0.0;
+		double v0 = 0.0;
+		double v1 = 0.0;
+		double a0 = 0.0;
+		double a1 = 0.0;
 		//约束参数初始化
-		double vmax = 0;
-		double amax = 0;
-		double jmax = 0;
-		double vmin = -0;
-		double amin = -0;
-		double jmin = -0;
+		double vmax = 0.0;
+		double amax = 0.0;
+		double jmax = 0.0;
+		double vmin = -0.0;
+		double amin = -0.0;
+		double jmin = -0.0;
 		//比较q_start和q_end，修改约束条件
 		double sigma = 1.0;
 		if (q_start <= q_end)
 		{
-			sigma = 1;
+			sigma = 1.0;
 		}
 		else if (q_start > q_end)
 		{
-			sigma = -1;
+			sigma = -1.0;
 		}
 		q0 = sigma * q_start;
 		q1 = sigma * q_end;
-		vmax = (sigma + 1) / 2.0 * std::abs(v_max) + (sigma - 1) / 2.0 * -std::abs(v_max);
-		vmin = (sigma + 1) / 2.0 * -std::abs(v_max) + (sigma - 1) / 2.0 * std::abs(v_max);
-		amax = (sigma + 1) / 2.0 * std::abs(a_max) + (sigma - 1) / 2.0 * -std::abs(a_max);
-		amin = (sigma + 1) / 2.0 * -std::abs(a_max) + (sigma - 1) / 2.0 * std::abs(a_max);
-		jmax = (sigma + 1) / 2.0 * std::abs(j_max) + (sigma - 1) / 2.0 * -std::abs(j_max);
-		jmin = (sigma + 1) / 2.0 * -std::abs(j_max) + (sigma - 1) / 2.0 * std::abs(j_max);
+		vmax = (sigma + 1.0) / 2.0 * std::abs(v_max) + (sigma - 1.0) / 2.0 * -std::abs(v_max);
+		vmin = (sigma + 1.0) / 2.0 * -std::abs(v_max) + (sigma - 1.0) / 2.0 * std::abs(v_max);
+		amax = (sigma + 1.0) / 2.0 * std::abs(a_max) + (sigma - 1.0) / 2.0 * -std::abs(a_max);
+		amin = (sigma + 1.0) / 2.0 * -std::abs(a_max) + (sigma - 1.0) / 2.0 * std::abs(a_max);
+		jmax = (sigma + 1.0) / 2.0 * std::abs(j_max) + (sigma - 1.0) / 2.0 * -std::abs(j_max);
+		jmin = (sigma + 1.0) / 2.0 * -std::abs(j_max) + (sigma - 1.0) / 2.0 * std::abs(j_max);
 
 		//时间离散化，最小单位时间1ms
 		double taj, ta, tv, tdj, td, vlim, alim, jlim;
@@ -504,22 +504,22 @@ namespace traplan
 		//开始计算轨迹，时间t的单位是ms
 		if (t <= taj)
 		{
-			q_crt = q0 + v0 * t + jlima * std::pow(t, 3) / 6.0;
-			v_crt = v0 + jlima * std::pow(t, 2) / 2.0;
+			q_crt = q0 + v0 * t + jlima * std::pow(t, 3.0) / 6.0;
+			v_crt = v0 + jlima * std::pow(t, 2.0) / 2.0;
 			a_crt = jlima * t;
 			j_crt = jlima;
 		}
 		else if (t <= ta - taj)
 		{
-			q_crt = q0 + v0 * t + alima / 6.0 * (3 * t * t - 3 * taj * t + taj * taj);
+			q_crt = q0 + v0 * t + alima / 6.0 * (3.0 * t * t - 3.0 * taj * t + taj * taj);
 			v_crt = v0 + alima * (t - taj / 2.0);
 			a_crt = alima;
 			j_crt = 0;
 		}
 		else if (t <= ta)
 		{
-			q_crt = q0 + (vlim + v0) * ta / 2.0 - vlim * (ta - t) - jlimd * std::pow(ta - t, 3) / 6.0;
-			v_crt = vlim + jlimd * std::pow(ta - t, 2) / 2.0;
+			q_crt = q0 + (vlim + v0) * ta / 2.0 - vlim * (ta - t) - jlimd * std::pow(ta - t, 3.0) / 6.0;
+			v_crt = vlim + jlimd * std::pow(ta - t, 2.0) / 2.0;
 			a_crt = -jlimd * (ta - t);
 			j_crt = jlimd;
 		}
@@ -527,27 +527,27 @@ namespace traplan
 		{
 			q_crt = q0 + (vlim + v0) * ta / 2.0 + vlim * (t - ta);
 			v_crt = vlim;
-			a_crt = 0;
-			j_crt = 0;
+			a_crt = 0.0;
+			j_crt = 0.0;
 		}
 		else if (t <= ta + tv + tdj)
 		{
-			q_crt = q1 - (vlim + v1) * td / 2.0 + vlim * (t - ta - tv) - jlima * (std::pow(t - ta - tv, 3)) / 6.0;
-			v_crt = vlim - jlima * std::pow(t - ta - tv, 2) / 2.0;
+			q_crt = q1 - (vlim + v1) * td / 2.0 + vlim * (t - ta - tv) - jlima * (std::pow(t - ta - tv, 3.0)) / 6.0;
+			v_crt = vlim - jlima * std::pow(t - ta - tv, 2.0) / 2.0;
 			a_crt = -jlima * (t - ta - tv);
 			j_crt = -jlima;
 		}
 		else if (t <= ta + tv + td - tdj)
 		{
-			q_crt = q1 - (vlim + v1) * td / 2.0 + vlim * (t - ta - tv) + alimd / 6.0 * (3 * std::pow(t - ta - tv, 2) - 3 * tdj * (t - ta - tv) + tdj * tdj);
+			q_crt = q1 - (vlim + v1) * td / 2.0 + vlim * (t - ta - tv) + alimd / 6.0 * (3.0 * std::pow(t - ta - tv, 2.0) - 3.0 * tdj * (t - ta - tv) + tdj * tdj);
 			v_crt = vlim + alimd * (t - ta - tv - tdj / 2.0);
 			a_crt = alimd;
-			j_crt = 0;
+			j_crt = 0.0;
 		}
 		else if (t <= ta + tv + td)
 		{
-			q_crt = q1 - v1 * (ta + tv + td - t) - jlima / 6.0 * std::pow(ta + tv + td - t, 3);
-			v_crt = v1 + jlima / 2.0 * std::pow(ta + tv + td - t, 2);
+			q_crt = q1 - v1 * (ta + tv + td - t) - jlima / 6.0 * std::pow(ta + tv + td - t, 3.0);
+			v_crt = v1 + jlima / 2.0 * std::pow(ta + tv + td - t, 2.0);
 			a_crt = -jlima * (ta + tv + td - t);
 			j_crt = jlima;
 		}
@@ -559,7 +559,7 @@ namespace traplan
 		//目标位置太小情况处理//
 		if (abs(q_end - q_start)<=1e-9)
 		{
-			T = 0;
+			T = 0.0;
 			q_crt = q_end;
 			v_crt = 0.0;
 			a_crt = 0.0;
@@ -613,7 +613,7 @@ namespace traplan
 			{
 				//加速度alim达到最大值amax或-amax
 				taj = (double) amax / jmax;
-				ta = (double) taj / 2 + std::sqrt(std::pow(taj / 2.0, 2.0) + (q1 - q0) / amax);
+				ta = (double) taj / 2.0 + std::sqrt(std::pow(taj / 2.0, 2.0) + (q1 - q0) / amax);
 			}
 			else
 			{
