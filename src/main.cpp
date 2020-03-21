@@ -7,7 +7,6 @@
 
 
 using namespace aris::dynamic;
-aris::dynamic::Model g_model;
 
 auto xmlpath = std::filesystem::absolute(".");//获取当前工程所在的路径
 auto uixmlpath = std::filesystem::absolute(".");

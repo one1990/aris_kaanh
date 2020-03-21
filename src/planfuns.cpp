@@ -359,17 +359,16 @@ namespace traplan
 		//double t1, t2, t3, t4, t5, t6, t7;//t1-加加速时间段，t2-匀加速时间段，t3-减加速时间段，t4-匀速时间段，t5-加减速时间段，t6-匀减速时间段，t7-减减速时间段
 		//计算tv,判断速度vlim是否达到最大值
 		double alima, alimd;
-		size_t Taj, Ta, Tv;
+		double Taj, Ta, Tv;
 		//加速阶段、减速阶段
 		if (vmax * jmax >= amax * amax)
 		{
 			//加速度alim达到amax或-amax
 			taj = amax / jmax;
 			ta = vmax / amax + taj;
-			Taj = (taj - std::floor(taj) <=1e-3) ? taj : static_cast<size_t>(std::ceil(taj));
-			//std::cout << taj << std::endl;
+			Taj = taj;
 			alim = amax;
-			Ta = (ta - std::floor(ta) <= 1e-3) ? ta : static_cast<size_t>(std::ceil(ta));
+			Ta = ta;
 			vlim = alim * (Ta - Taj);
 		}
 		else
@@ -377,9 +376,9 @@ namespace traplan
 			//加速度alim未达到amax或-amax
 			taj = std::sqrt(vmax / jmax);
 			ta = 2.0 * taj;
-			Taj = (taj - std::floor(taj) <= 1e-3) ? taj : static_cast<size_t>(std::ceil(taj));
+			Taj = taj;
 			alim = jmax * Taj;
-			Ta = static_cast<size_t>(2.0 * Taj);
+			Ta = 2.0 * Taj;
 			vlim = alim * (Ta - Taj);
 		}
 
@@ -390,7 +389,7 @@ namespace traplan
 		//sd = sa;
 		//sv = q1 - q0 - sa - sd;
 		//Tv = sv / vmax;
-		Tv = (tv - std::floor(tv) <= 1e-3) ? tv : static_cast<size_t>(std::ceil(tv));
+		Tv = tv;
 		
 		//判断vlim是否达到最大速度vmax
 		if (tv > 0)
@@ -414,9 +413,9 @@ namespace traplan
 				//加速度alim达到最大值amax或-amax
 				taj = amax / jmax;
 				ta = taj / 2.0 + std::sqrt(std::pow(taj / 2.0, 2.0) + (q1 - q0) / amax);
-				Taj = (taj - std::floor(taj) <= 1e-3) ? taj : static_cast<size_t>(std::ceil(taj));
+				Taj = taj;
 				alim = amax;
-				Ta = (ta - std::floor(ta) <= 1e-3) ? ta : static_cast<size_t>(std::ceil(ta));
+				Ta = ta;
 				vlim = (Ta - Taj) * alim;
 			}
 			else
@@ -424,9 +423,9 @@ namespace traplan
 				//加速度alim未达到最大值amax或-amax
 				taj = std::pow((q1 - q0) / 2.0 / jmax, 1.0 / 3.0);
 				//ta = 2.0 * taj;
-				Taj = (taj - std::floor(taj) <= 1e-3) ? taj : static_cast<size_t>(std::ceil(taj));
+				Taj = taj;
 				alim = jmax * Taj;
-				Ta = static_cast<size_t>(2.0 * Taj);
+				Ta = 2.0 * Taj;
 				vlim = (Ta - Taj) * alim;
 			}
 			//按比例修正约束条件
@@ -438,9 +437,9 @@ namespace traplan
 			alima = alim;
 			alimd = -alim;
 		}
-		td = ta = (double)Ta;
-		tdj = taj = (double)Taj;
-		tv = (double)Tv;
+		td = ta = Ta;
+		tdj = taj = Taj;
+		tv = Tv;
 		/*
 		std::cout << std::setiosflags(std::ios::fixed);
 		std::cout << std::setprecision(4);
