@@ -970,8 +970,9 @@ namespace kaanh
 	struct MoveCParam
 	{
 		std::vector<double> joint_vel, joint_acc, joint_dec, ee_begin_pq, ee_mid_pq, ee_end_pq, joint_pos_begin, joint_pos_end;
-		double total_count[6], begin_pm[16];
+		double total_count[6];
 		double acc, vel, dec, jerk, norm_pos;
+		double pos_total_count, ori_total_count;
 		double angular_acc, angular_vel, angular_dec, angular_jerk;
 		aris::dynamic::Marker *tool, *wobj;
 		double A[9], C[3], R, theta, ori_theta, pos_ratio, ori_ratio;
@@ -2555,7 +2556,6 @@ namespace kaanh
 
 				// relative_pa //
 				aris::dynamic::s_pm2pa(relative_pm, mvl_param->relative_pa.data());
-
 				mvl_param->norm_pos = aris::dynamic::s_norm(3, mvl_param->relative_pa.data());
 				mvl_param->norm_ori = aris::dynamic::s_norm(3, mvl_param->relative_pa.data() + 3);
 			}
@@ -2638,10 +2638,10 @@ namespace kaanh
 		{
 			double pa[6]{ 0,0,0,0,0,0 }, pm[16], pm2[16];
 
-			traplan::sCurved(g_count, 0.0, mvl_param->norm_pos, mvl_param->vel / 1000 * mvl_param->pos_ratio, mvl_param->acc / 1000 / 1000 * mvl_param->pos_ratio* mvl_param->pos_ratio, mvl_param->jerk / 1000 / 1000 / 1000 * mvl_param->pos_ratio* mvl_param->pos_ratio* mvl_param->pos_ratio, p, v, a, j, pos_total_count);
+			traplan::sCurved(g_count, 0.0, mvl_param->norm_pos, mvl_param->vel / 1000.0 * mvl_param->pos_ratio, mvl_param->acc / 1000.0 / 1000.0 * mvl_param->pos_ratio* mvl_param->pos_ratio, mvl_param->jerk / 1000.0 / 1000.0 / 1000.0 * mvl_param->pos_ratio* mvl_param->pos_ratio* mvl_param->pos_ratio, p, v, a, j, pos_total_count);
 			if (mvl_param->norm_pos > 1e-10)aris::dynamic::s_vc(3, p / mvl_param->norm_pos, mvl_param->relative_pa.data(), pa);
 
-			traplan::sCurved(g_count, 0.0, mvl_param->norm_ori, mvl_param->angular_vel / 1000 * mvl_param->ori_ratio, mvl_param->angular_acc / 1000 / 1000 * mvl_param->ori_ratio * mvl_param->ori_ratio, mvl_param->angular_jerk / 1000 / 1000 / 1000 * mvl_param->ori_ratio * mvl_param->ori_ratio * mvl_param->ori_ratio, p, v, a, j, ori_total_count);
+			traplan::sCurved(g_count, 0.0, mvl_param->norm_ori, mvl_param->angular_vel / 1000.0 * mvl_param->ori_ratio, mvl_param->angular_acc / 1000.0 / 1000.0 * mvl_param->ori_ratio * mvl_param->ori_ratio, mvl_param->angular_jerk / 1000.0 / 1000.0 / 1000.0 * mvl_param->ori_ratio * mvl_param->ori_ratio * mvl_param->ori_ratio, p, v, a, j, ori_total_count);
 			if (mvl_param->norm_ori > 1e-10)aris::dynamic::s_vc(3, p / mvl_param->norm_ori, mvl_param->relative_pa.data() + 3, pa + 3);
 
 			aris::dynamic::s_pa2pm(pa, pm);
@@ -2926,17 +2926,17 @@ namespace kaanh
 		if (normv <= 1e-10) return 0;
 
 		//通过AC=b 解出圆心C//
-		par.A[0] = 2 * (par.ee_begin_pq[0] - par.ee_mid_pq[0]);
-		par.A[1] = 2 * (par.ee_begin_pq[1] - par.ee_mid_pq[1]);
-		par.A[2] = 2 * (par.ee_begin_pq[2] - par.ee_mid_pq[2]);
-		par.A[3] = 2 * (par.ee_mid_pq[0] - par.ee_end_pq[0]);
-		par.A[4] = 2 * (par.ee_mid_pq[1] - par.ee_end_pq[1]);
-		par.A[5] = 2 * (par.ee_mid_pq[2] - par.ee_end_pq[2]);
-		par.A[6] = (par.A[1] * par.A[5] - par.A[4] * par.A[2]) / 4;
-		par.A[7] = -(par.A[0] * par.A[5] - par.A[3] * par.A[2]) / 4;
-		par.A[8] = (par.A[0] * par.A[4] - par.A[3] * par.A[1]) / 4;
-		b[0] = pow(par.ee_begin_pq[0], 2) + pow(par.ee_begin_pq[1], 2) + pow(par.ee_begin_pq[2], 2) - pow(par.ee_mid_pq[0], 2) - pow(par.ee_mid_pq[1], 2) - pow(par.ee_mid_pq[2], 2);
-		b[1] = pow(par.ee_mid_pq[0], 2) + pow(par.ee_mid_pq[1], 2) + pow(par.ee_mid_pq[2], 2) - pow(par.ee_end_pq[0], 2) - pow(par.ee_end_pq[1], 2) - pow(par.ee_end_pq[2], 2);
+		par.A[0] = 2.0 * (par.ee_begin_pq[0] - par.ee_mid_pq[0]);
+		par.A[1] = 2.0 * (par.ee_begin_pq[1] - par.ee_mid_pq[1]);
+		par.A[2] = 2.0 * (par.ee_begin_pq[2] - par.ee_mid_pq[2]);
+		par.A[3] = 2.0 * (par.ee_mid_pq[0] - par.ee_end_pq[0]);
+		par.A[4] = 2.0 * (par.ee_mid_pq[1] - par.ee_end_pq[1]);
+		par.A[5] = 2.0 * (par.ee_mid_pq[2] - par.ee_end_pq[2]);
+		par.A[6] = (par.A[1] * par.A[5] - par.A[4] * par.A[2]) / 4.0;
+		par.A[7] = -(par.A[0] * par.A[5] - par.A[3] * par.A[2]) / 4.0;
+		par.A[8] = (par.A[0] * par.A[4] - par.A[3] * par.A[1]) / 4.0;
+		b[0] = pow(par.ee_begin_pq[0], 2.0) + pow(par.ee_begin_pq[1], 2.0) + pow(par.ee_begin_pq[2], 2.0) - pow(par.ee_mid_pq[0], 2.0) - pow(par.ee_mid_pq[1], 2.0) - pow(par.ee_mid_pq[2], 2.0);
+		b[1] = pow(par.ee_mid_pq[0], 2.0) + pow(par.ee_mid_pq[1], 2.0) + pow(par.ee_mid_pq[2], 2.0) - pow(par.ee_end_pq[0], 2.0) - pow(par.ee_end_pq[1], 2.0) - pow(par.ee_end_pq[2], 2.0);
 		b[2] = par.A[6] * par.ee_begin_pq[0] + par.A[7] * par.ee_begin_pq[1] + par.A[8] * par.ee_begin_pq[2];
 
 		//解线性方程组
@@ -2971,11 +2971,11 @@ namespace kaanh
 		// 判断theta 与 pi 的关系
 		if (H >= 0)
 		{
-			par.theta = 2 * asin(sqrt(pow((par.ee_end_pq[0] - par.ee_begin_pq[0]), 2) + pow((par.ee_end_pq[1] - par.ee_begin_pq[1]), 2) + pow((par.ee_end_pq[2] - par.ee_begin_pq[2]), 2)) / (2 * par.R));
+			par.theta = 2.0 * asin(sqrt(pow((par.ee_end_pq[0] - par.ee_begin_pq[0]), 2) + pow((par.ee_end_pq[1] - par.ee_begin_pq[1]), 2) + pow((par.ee_end_pq[2] - par.ee_begin_pq[2]), 2)) / (2 * par.R));
 		}
 		else
 		{
-			par.theta = 2 * 3.1415 - 2 * asin(sqrt(pow((par.ee_end_pq[0] - par.ee_begin_pq[0]), 2) + pow((par.ee_end_pq[1] - par.ee_begin_pq[1]), 2) + pow((par.ee_end_pq[2] - par.ee_begin_pq[2]), 2)) / (2 * par.R));
+			par.theta = 2.0 * PI - 2.0 * asin(sqrt(pow((par.ee_end_pq[0] - par.ee_begin_pq[0]), 2) + pow((par.ee_end_pq[1] - par.ee_begin_pq[1]), 2) + pow((par.ee_end_pq[2] - par.ee_begin_pq[2]), 2)) / (2 * par.R));
 		}
 
 		double normv_begin_pq = aris::dynamic::s_norm(4, par.ee_begin_pq.data() + 3);
@@ -2984,17 +2984,16 @@ namespace kaanh
 		par.ori_theta = std::abs((par.ee_begin_pq[3] * par.ee_end_pq[3] + par.ee_begin_pq[4] * par.ee_end_pq[4] + par.ee_begin_pq[5] * par.ee_end_pq[5] + par.ee_begin_pq[6] * par.ee_end_pq[6]) / (normv_begin_pq* normv_end_pq));
 		return 1;
 	}
-	auto cal_pqt(MoveCParam &par, Plan &plan, double pqt[7])->void
+	auto cal_pqt(MoveCParam &par, Plan &plan, double *pqt)->void
 	{
         //位置规划//aris::Size
 		double p, v, a, j;
-		double pos_total_count, ori_total_count;
 		double w[3], pmr[16];
 		aris::dynamic::s_vc(3, par.A + 6, w);
 		auto normv = aris::dynamic::s_norm(3, w);
 		if (std::abs(normv) > 1e-10)aris::dynamic::s_nv(3, 1.0 / normv, w); //数乘
 		traplan::sCurved(g_count, 0.0, par.theta, par.vel / 1000.0 / par.R * par.pos_ratio, par.acc / 1000.0 / 1000.0 / par.R * par.pos_ratio * par.pos_ratio,
-			par.jerk / 1000.0 / 1000.0 / 1000.0 / par.R * par.pos_ratio * par.pos_ratio * par.pos_ratio, p, v, a, j, pos_total_count);
+			par.jerk / 1000.0 / 1000.0 / 1000.0 / par.R * par.pos_ratio * par.pos_ratio * par.pos_ratio, p, v, a, j, par.pos_total_count);
 		double pqr[7]{ par.C[0], par.C[1], par.C[2], w[0] * sin(p / 2.0), w[1] * sin(p / 2.0), w[2] * sin(p / 2.0), cos(p / 2.0) };
 		double pos[4]{ par.ee_begin_pq[0] - par.C[0], par.ee_begin_pq[1] - par.C[1], par.ee_begin_pq[2] - par.C[2], 1.0 };
 		aris::dynamic::s_pq2pm(pqr, pmr);
@@ -3002,7 +3001,7 @@ namespace kaanh
 
 		//姿态规划//
 		traplan::sCurved(g_count, 0.0, 1.0, par.angular_vel / 1000.0 / par.ori_theta / 2.0 * par.ori_ratio, par.angular_acc / 1000.0 / 1000.0 / par.ori_theta / 2.0 * par.ori_ratio * par.ori_ratio,
-			par.angular_jerk / 1000.0 / 1000.0 / 1000.0 / par.ori_theta / 2.0 * par.ori_ratio * par.ori_ratio * par.ori_ratio, p, v, a, j, ori_total_count);
+			par.angular_jerk / 1000.0 / 1000.0 / 1000.0 / par.ori_theta / 2.0 * par.ori_ratio * par.ori_ratio * par.ori_ratio, p, v, a, j, par.ori_total_count);
 		slerp(par.ee_begin_pq.data() + 3, par.ee_end_pq.data() + 3, pqt + 3, p);
 	}
 	struct MoveC::Imp {};
@@ -3114,7 +3113,7 @@ namespace kaanh
 		{
 			g_model.generalMotionPool().at(0).updMpm();
 			g_tool->getPq(*g_wobj, mvc_param.ee_begin_pq.data());
-			g_tool->getPm(*g_wobj, mvc_param.begin_pm);
+			
 		}
 		else if (std::string(mvc_param.pre_plan->name()) == "MoveC")//转弯第二或第n条指令
 		{
@@ -3124,7 +3123,7 @@ namespace kaanh
 			g_tool->setPq(*g_wobj, param->ee_end_pq.data());
 			g_model.generalMotionPool().at(0).updMpm();
 			g_tool->getPq(*g_wobj, mvc_param.ee_begin_pq.data());
-			g_tool->getPm(*g_wobj, mvc_param.begin_pm);
+			
 		}
 		else//本条指令设置了转弯区，但是与上一条指令无法实现转弯，比如moveJ,moveAbsJ
 		{
@@ -3136,7 +3135,7 @@ namespace kaanh
 				g_tool->setPq(*g_wobj, preparam->ee_pq.data());
 				g_model.generalMotionPool().at(0).updMpm();
 				g_tool->getPq(*g_wobj, mvc_param.ee_begin_pq.data());
-				g_tool->getPm(*g_wobj, mvc_param.begin_pm);
+				
 			}
 			if (std::string(mvc_param.pre_plan->name()) == "MoveL")
 			{
@@ -3144,7 +3143,7 @@ namespace kaanh
 				g_tool->setPq(*g_wobj, preparam->ee_pq.data());
 				g_model.generalMotionPool().at(0).updMpm();
 				g_tool->getPq(*g_wobj, mvc_param.ee_begin_pq.data());
-				g_tool->getPm(*g_wobj, mvc_param.begin_pm);
+				
 			}
 			if (std::string(mvc_param.pre_plan->name()) == "MoveAbsJ")
 			{
@@ -3155,7 +3154,7 @@ namespace kaanh
 				}
 				g_model.solverPool().at(1).kinPos();
 				g_model.generalMotionPool().at(0).getMpq(mvc_param.ee_begin_pq.data());
-				g_tool->getPm(*g_wobj, mvc_param.begin_pm);
+				
 			}
 		}
 
@@ -3416,7 +3415,8 @@ namespace kaanh
 		return std::max(pos_total_count, ori_total_count) > count() ? 1 : 0;
 		*/
 
-		double pqt[7], pre_pqt[7], pre_pm[16], pm[16], pm2[16], begin_pm[16], target_pm[16];
+		static double pre_pqt[7];
+		double pqt[7];
 		if (mvc_param->pre_plan == nullptr) //转弯第一条指令
 		{
 			if (count() == 1)
@@ -3429,7 +3429,6 @@ namespace kaanh
 				if (model()->solverPool().at(1).kinPos())return -1;
 				model()->generalMotionPool().at(0).updMpm();
 				mvc_param->tool->getPq(*mvc_param->wobj, mvc_param->ee_begin_pq.data());
-				mvc_param->tool->getPm(*mvc_param->wobj, mvc_param->begin_pm);
 				if(!cal_circle_par(*mvc_param)) return -1;
 			}
 			cal_pqt(*mvc_param, *this, pqt);
@@ -3448,14 +3447,13 @@ namespace kaanh
 			{
 				//preplan//				
 				double w[3], pmr[16], p, v, a, j;
-				double pos_total_count, ori_total_count;
 				
 				//位置规划//
 				aris::dynamic::s_vc(3, param.A + 6, w);
 				auto pre_normv = aris::dynamic::s_norm(3, w);
 				if (std::abs(pre_normv) > 1e-10)aris::dynamic::s_nv(3, 1.0 / pre_normv, w); //数乘
                 traplan::sCurved(param.last_count + g_count, 0.0, param.theta, param.vel / 1000.0 / param.R * param.pos_ratio, param.acc / 1000.0 / 1000.0 / param.R * param.pos_ratio * param.pos_ratio,
-					param.jerk / 1000.0 / 1000.0 / 1000.0 / param.R * param.pos_ratio * param.pos_ratio * param.pos_ratio, p, v, a, j, pos_total_count);
+					param.jerk / 1000.0 / 1000.0 / 1000.0 / param.R * param.pos_ratio * param.pos_ratio * param.pos_ratio, p, v, a, j, param.pos_total_count);
 
 				double pre_pqr[7]{ param.C[0], param.C[1], param.C[2], w[0] * sin(p / 2.0), w[1] * sin(p / 2.0), w[2] * sin(p / 2.0), cos(p / 2.0) };
 				double pre_pos[4]{ param.ee_begin_pq[0] - param.C[0], param.ee_begin_pq[1] - param.C[1], param.ee_begin_pq[2] - param.C[2], 1.0 };
@@ -3464,16 +3462,15 @@ namespace kaanh
 				
 				//姿态规划//
                 traplan::sCurved(param.last_count + g_count, 0.0, 1.0, param.angular_vel / 1000.0 / param.ori_theta / 2.0 * param.ori_ratio, param.angular_acc / 1000.0 / 1000.0 / param.ori_theta / 2.0 * param.ori_ratio * param.ori_ratio,
-					param.angular_jerk / 1000.0 / 1000.0 / 1000.0 / param.ori_theta / 2.0 * param.ori_ratio * param.ori_ratio * param.ori_ratio, p, v, a, j, ori_total_count);
+					param.angular_jerk / 1000.0 / 1000.0 / 1000.0 / param.ori_theta / 2.0 * param.ori_ratio * param.ori_ratio * param.ori_ratio, p, v, a, j, param.ori_total_count);
 				slerp(param.ee_begin_pq.data() + 3, param.ee_end_pq.data() + 3, pre_pqt + 3, p);
-				aris::dynamic::s_pq2pm(pre_pqt, pre_pm);
 
 				//thisplan//
 				aris::dynamic::s_vc(3, mvc_param->A + 6, w);
 				auto normv = aris::dynamic::s_norm(3, w);
 				if (std::abs(normv) > 1e-10)aris::dynamic::s_nv(3, 1.0 / normv, w); //数乘
 				traplan::sCurved(g_count, 0.0, mvc_param->theta, mvc_param->vel / 1000.0 / mvc_param->R * mvc_param->pos_ratio, mvc_param->acc / 1000.0 / 1000.0 / mvc_param->R * mvc_param->pos_ratio * mvc_param->pos_ratio,
-					mvc_param->jerk / 1000.0 / 1000.0 / 1000.0 / mvc_param->R * mvc_param->pos_ratio * mvc_param->pos_ratio * mvc_param->pos_ratio, p, v, a, j, pos_total_count);
+					mvc_param->jerk / 1000.0 / 1000.0 / 1000.0 / mvc_param->R * mvc_param->pos_ratio * mvc_param->pos_ratio * mvc_param->pos_ratio, p, v, a, j, param.pos_total_count);
 				double pqr[7]{ mvc_param->C[0], mvc_param->C[1], mvc_param->C[2], w[0] * sin(p / 2.0), w[1] * sin(p / 2.0), w[2] * sin(p / 2.0), cos(p / 2.0) };
 				double pos[4]{ pre_pqt[0] - mvc_param->C[0], pre_pqt[1] - mvc_param->C[1], pre_pqt[2] - mvc_param->C[2], 1.0 };
 				aris::dynamic::s_pq2pm(pqr, pmr);
@@ -3481,7 +3478,7 @@ namespace kaanh
 
 				//姿态规划//
 				traplan::sCurved(g_count, 0.0, 1.0, mvc_param->angular_vel / 1000.0 / mvc_param->ori_theta / 2.0 * mvc_param->ori_ratio, mvc_param->angular_acc / 1000.0 / 1000.0 / mvc_param->ori_theta / 2.0 * mvc_param->ori_ratio * mvc_param->ori_ratio,
-					mvc_param->angular_jerk / 1000.0 / 1000.0 / 1000.0 / mvc_param->ori_theta / 2.0 * mvc_param->ori_ratio * mvc_param->ori_ratio * mvc_param->ori_ratio, p, v, a, j, ori_total_count);
+					mvc_param->angular_jerk / 1000.0 / 1000.0 / 1000.0 / mvc_param->ori_theta / 2.0 * mvc_param->ori_ratio * mvc_param->ori_ratio * mvc_param->ori_ratio, p, v, a, j, param.ori_total_count);
 				slerp(pre_pqt + 3, mvc_param->ee_end_pq.data() + 3, pqt + 3, p);
 
 				// 更新目标点 //
