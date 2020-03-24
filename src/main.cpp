@@ -160,7 +160,7 @@ int main(int argc, char *argv[])
 
 
 #ifdef WIN32
-	for (auto &m : cs.controller().slavePool())
+	for (auto &m : cs.controller().motionPool())
 	{
 		dynamic_cast<aris::control::EthercatMotor&>(m).setVirtual(true);
 	}
