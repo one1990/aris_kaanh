@@ -10,7 +10,7 @@
     <InterfaceRoot/>
     <EthercatController name="ethercat_controller" sample_period_ns="1000000" esi_dirs="">
         <SlavePoolObject name="slave_pool">
-            <EthercatMotor phy_id="0" vendor_id="0x00000000" product_code="0x00000000" revision_num="0x00000000" dc_assign_activate="0x00000300" sync0_shift_ns="650000" max_pos="2.96706" min_pos="-2.96706" max_vel="5.4105210000000001" min_vel="-5.4105210000000001" max_acc="26.179939000000001" min_acc="-26.179939000000001" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1689721.292776" pos_offset="0" home_pos="0" is_virtual="false">
+            <EthercatMotor phy_id="0" vendor_id="0x000002e1" product_code="0x00000000" revision_num="0x00029001" dc_assign_activate="0x00000300" sync0_shift_ns="650000" max_pos="2.96706" min_pos="-2.96706" max_vel="5.4105210000000001" min_vel="-5.4105210000000001" max_acc="26.179939000000001" min_acc="-26.179939000000001" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1689721.292776" pos_offset="0.083326167813560906" home_pos="0" is_virtual="false">
                 <SyncManagerPoolObject>
                     <SyncManager is_tx="false"/>
                     <SyncManager is_tx="true"/>
@@ -35,7 +35,7 @@
                     </SyncManager>
                 </SyncManagerPoolObject>
             </EthercatMotor>
-            <EthercatMotor phy_id="1" vendor_id="0x00000000" product_code="0x00000000" revision_num="0x00000000" dc_assign_activate="0x00000300" sync0_shift_ns="650000" max_pos="2.2689279999999998" min_pos="-1.4660770000000001" max_vel="4.18879" min_vel="-4.18879" max_acc="26.179939000000001" min_acc="-26.179939000000001" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1689721.292776" pos_offset="0" home_pos="0" is_virtual="false">
+            <EthercatMotor phy_id="1" vendor_id="0x000002e1" product_code="0x00000000" revision_num="0x00029001" dc_assign_activate="0x00000300" sync0_shift_ns="650000" max_pos="2.2689279999999998" min_pos="-1.4660770000000001" max_vel="4.18879" min_vel="-4.18879" max_acc="26.179939000000001" min_acc="-26.179939000000001" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1689721.292776" pos_offset="0.40688722035956698" home_pos="0" is_virtual="false">
                 <SyncManagerPoolObject>
                     <SyncManager is_tx="false"/>
                     <SyncManager is_tx="true"/>
@@ -60,7 +60,7 @@
                     </SyncManager>
                 </SyncManagerPoolObject>
             </EthercatMotor>
-            <EthercatMotor phy_id="2" vendor_id="0x00000000" product_code="0x00000000" revision_num="0x00000000" dc_assign_activate="0x00000300" sync0_shift_ns="650000" max_pos="0.87266500000000002" min_pos="-3.2812190000000001" max_vel="5.4105210000000001" min_vel="-5.4105210000000001" max_acc="26.179939000000001" min_acc="-26.179939000000001" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1689721.292776" pos_offset="0" home_pos="0" is_virtual="false">
+            <EthercatMotor phy_id="2" vendor_id="0x000002e1" product_code="0x00000000" revision_num="0x00029001" dc_assign_activate="0x00000300" sync0_shift_ns="650000" max_pos="0.87266500000000002" min_pos="-3.2812190000000001" max_vel="5.4105210000000001" min_vel="-5.4105210000000001" max_acc="26.179939000000001" min_acc="-26.179939000000001" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1689721.292776" pos_offset="-0.063596878644675794" home_pos="0" is_virtual="false">
                 <SyncManagerPoolObject>
                     <SyncManager is_tx="false"/>
                     <SyncManager is_tx="true"/>
@@ -85,7 +85,7 @@
                     </SyncManager>
                 </SyncManagerPoolObject>
             </EthercatMotor>
-            <EthercatMotor phy_id="3" vendor_id="0x00000000" product_code="0x00000000" revision_num="0x00000000" dc_assign_activate="0x00000300" sync0_shift_ns="650000" max_pos="2.96706" min_pos="-2.96706" max_vel="4.3633230000000003" min_vel="-4.3633230000000003" max_acc="30.543261999999999" min_acc="-30.543261999999999" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1519852.15096" pos_offset="0" home_pos="0" is_virtual="false">
+            <EthercatMotor phy_id="3" vendor_id="0x000002e1" product_code="0x00000000" revision_num="0x00029001" dc_assign_activate="0x00000300" sync0_shift_ns="650000" max_pos="2.96706" min_pos="-2.96706" max_vel="4.3633230000000003" min_vel="-4.3633230000000003" max_acc="30.543261999999999" min_acc="-30.543261999999999" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1519852.15096" pos_offset="0.65575523199999997" home_pos="0" is_virtual="false">
                 <SyncManagerPoolObject>
                     <SyncManager is_tx="false"/>
                     <SyncManager is_tx="true"/>
@@ -110,7 +110,7 @@
                     </SyncManager>
                 </SyncManagerPoolObject>
             </EthercatMotor>
-            <EthercatMotor phy_id="4" vendor_id="0x00000000" product_code="0x00000000" revision_num="0x00000000" dc_assign_activate="0x00000300" sync0_shift_ns="650000" max_pos="2.0420349999999998" min_pos="-2.0420349999999998" max_vel="5.1487210000000001" min_vel="-5.1487210000000001" max_acc="26.179939000000001" min_acc="-26.179939000000001" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1689721.292776" pos_offset="0" home_pos="0" is_virtual="false">
+            <EthercatMotor phy_id="4" vendor_id="0x000002e1" product_code="0x00000000" revision_num="0x00029001" dc_assign_activate="0x00000300" sync0_shift_ns="650000" max_pos="2.0420349999999998" min_pos="-2.0420349999999998" max_vel="5.1487210000000001" min_vel="-5.1487210000000001" max_acc="26.179939000000001" min_acc="-26.179939000000001" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1689721.292776" pos_offset="-1.49538803280913" home_pos="0" is_virtual="false">
                 <SyncManagerPoolObject>
                     <SyncManager is_tx="false"/>
                     <SyncManager is_tx="true"/>
@@ -135,7 +135,7 @@
                     </SyncManager>
                 </SyncManagerPoolObject>
             </EthercatMotor>
-            <EthercatMotor phy_id="5" vendor_id="0x00000000" product_code="0x00000000" revision_num="0x00000000" dc_assign_activate="0x00000300" sync0_shift_ns="650000" max_pos="6.2831849999999996" min_pos="-6.2831849999999996" max_vel="8.7266460000000006" min_vel="-8.7266460000000006" max_acc="43.633231000000002" min_acc="-43.633231000000002" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1043037.835047" pos_offset="0" home_pos="0" is_virtual="false">
+            <EthercatMotor phy_id="5" vendor_id="0x000002e1" product_code="0x00000000" revision_num="0x00029001" dc_assign_activate="0x00000300" sync0_shift_ns="650000" max_pos="6.2831849999999996" min_pos="-6.2831849999999996" max_vel="8.7266460000000006" min_vel="-8.7266460000000006" max_acc="43.633231000000002" min_acc="-43.633231000000002" max_pos_following_error="0.10000000000000001" max_vel_following_error="0.5" pos_factor="1043037.835047" pos_offset="-1.76544794265974" home_pos="0" is_virtual="false">
                 <SyncManagerPoolObject>
                     <SyncManager is_tx="false"/>
                     <SyncManager is_tx="true"/>
@@ -160,6 +160,30 @@
                     </SyncManager>
                 </SyncManagerPoolObject>
             </EthercatMotor>
+            <EthercatSlave name="ethercat_slave" phy_id="6" vendor_id="0x00000009" product_code="0x00013d6e" revision_num="0x00000001" dc_assign_activate="0x00000000" sync0_shift_ns="650000">
+                <SyncManagerPoolObject name="sm_pool">
+                    <SyncManager name="sm" is_tx="false"/>
+                    <SyncManager name="sm" is_tx="true"/>
+                    <SyncManager name="sm" is_tx="false">
+                        <Pdo name="pdo" index="0x1601">
+                            <PdoEntry name="entry" index="0x7010" subindex="0x01" size="16"/>
+                            <PdoEntry name="entry" index="0x7010" subindex="0x02" size="16"/>
+                            <PdoEntry name="entry" index="0x7010" subindex="0x03" size="16"/>
+                        </Pdo>
+                    </SyncManager>
+                    <SyncManager name="sm" is_tx="true">
+                        <Pdo name="pdo" index="0x1a03">
+                            <PdoEntry name="entry" index="0x6030" subindex="0x00" size="16"/>
+                            <PdoEntry name="entry" index="0x6030" subindex="0x01" size="32"/>
+                            <PdoEntry name="entry" index="0x6030" subindex="0x02" size="32"/>
+                            <PdoEntry name="entry" index="0x6030" subindex="0x03" size="32"/>
+                            <PdoEntry name="entry" index="0x6030" subindex="0x04" size="32"/>
+                            <PdoEntry name="entry" index="0x6030" subindex="0x05" size="32"/>
+                            <PdoEntry name="entry" index="0x6030" subindex="0x06" size="32"/>
+                        </Pdo>
+                    </SyncManager>
+                </SyncManagerPoolObject>
+            </EthercatSlave>
         </SlavePoolObject>
         <Pipe name="mout_pipe"/>
         <Pipe name="lout_pipe"/>
@@ -167,7 +191,18 @@
     <Model name="model" time="0">
         <Environment name="environment" gravity="{0,0,-9.8,0,0,0}"/>
         <VariablePoolElement name="variable_pool">
-            <MatrixVariable name="tool0_axis_home">{0,0,0,0,0,0}</MatrixVariable>
+            <MatrixVariable name="v5">{0.01,0.005,3.49065850398866,0,0}</MatrixVariable>
+            <MatrixVariable name="v10">{0.03,0.01,3.49065850398866,0,0}</MatrixVariable>
+            <MatrixVariable name="v25">{0.05,0.025,3.49065850398866,0,0}</MatrixVariable>
+            <MatrixVariable name="v30">{0.05,0.03,3.49065850398866,0,0}</MatrixVariable>
+            <MatrixVariable name="v40">{0.05,0.04,3.49065850398866,0,0}</MatrixVariable>
+            <MatrixVariable name="v50">{0.08,0.05,3.49065850398866,0,0}</MatrixVariable>
+            <MatrixVariable name="v60">{0.08,0.06,3.49065850398866,0,0}</MatrixVariable>
+            <MatrixVariable name="v80">{0.08,0.08,3.49065850398866,0,0}</MatrixVariable>
+            <MatrixVariable name="v100">{0.1,0.1,3.49065850398866,0,0}</MatrixVariable>
+            <MatrixVariable name="v150">{0.15,0.15,3.49065850398866,0,0}</MatrixVariable>
+            <MatrixVariable name="v200">{0.2,0.2,3.49065850398866,0,0}</MatrixVariable>
+            <MatrixVariable name="v300">{0.3,0.3,3.49065850398866,0,0}</MatrixVariable>
         </VariablePoolElement>
         <PartPoolElement name="part_pool">
             <Part name="ground" active="true" pe="{0,0,0,-0,0,-0}" vel="{0,0,0,0,0,0}" acc="{0,0,0,0,0,0}" inertia="{1,0,0,0,1,1,1,0,0,0}">
@@ -207,42 +242,54 @@
                     <Marker name="wobj31" active="true" pe="{0,0,0,-0,0,-0}"/>
                     <Marker name="wobj32" active="true" pe="{0,0,0,-0,0,-0}"/>
                 </MarkerPoolElement>
-                <GeometryPoolElement name="geometry_pool"/>
+                <GeometryPoolElement name="geometry_pool">
+                    <FileGeometry name="test" pe="{0,0,0,-0,0,-0}" graphic_file_path="/RobotGallery/Rokae/XB4/l0.data"/>
+                </GeometryPoolElement>
             </Part>
             <Part name="L1" active="true" pe="{0,0,0,-0,0,-0}" vel="{0,0,0,0,0,0}" acc="{0,0,0,0,0,0}" inertia="{0,0,0,0,0,0,0.59026333537827,0,0,0}">
                 <MarkerPoolElement name="marker_pool">
                     <Marker name="joint_0_i" active="true" pe="{0,0,0.3295,0.785398163397448,0,0.785398163397448}"/>
                     <Marker name="joint_1_j" active="true" pe="{0.04,0,0.3295,3.14159265358979,1.5707963267949,4.71238898038469}"/>
                 </MarkerPoolElement>
-                <GeometryPoolElement name="geometry_pool"/>
+                <GeometryPoolElement name="geometry_pool">
+                    <FileGeometry name="test" pe="{0,0,0,-0,0,-0}" graphic_file_path="/RobotGallery/Rokae/XB4/l1.data"/>
+                </GeometryPoolElement>
             </Part>
             <Part name="L2" active="true" pe="{0,0,0,-0,0,-0}" vel="{0,0,0,0,0,0}" acc="{0,0,0,0,0,0}" inertia="{0,-0.02551872200978,0,3.05660683326413,2.85905166943306,0,0,-0.00855352993039,-0.09946674483372,-0.00712210734359}">
                 <MarkerPoolElement name="marker_pool">
                     <Marker name="joint_1_i" active="true" pe="{0.04,0,0.3295,3.14159265358979,1.5707963267949,4.71238898038469}"/>
                     <Marker name="joint_2_j" active="true" pe="{0.04,0,0.6045,3.14159265358979,1.5707963267949,4.71238898038469}"/>
                 </MarkerPoolElement>
-                <GeometryPoolElement name="geometry_pool"/>
+                <GeometryPoolElement name="geometry_pool">
+                    <FileGeometry name="test" pe="{0,0,0,-0,0,-0}" graphic_file_path="/RobotGallery/Rokae/XB4/l2.data"/>
+                </GeometryPoolElement>
             </Part>
             <Part name="L3" active="true" pe="{0,0,0,-0,0,-0}" vel="{0,0,0,0,0,0}" acc="{0,0,0,0,0,0}" inertia="{0,0,0,0.02733022277747,0,0.37382629693302,0,0.00312006493276,-0.00578410451516,0.0057060612854}">
                 <MarkerPoolElement name="marker_pool">
                     <Marker name="joint_2_i" active="true" pe="{0.04,0,0.6045,3.14159265358979,1.5707963267949,4.71238898038469}"/>
                     <Marker name="joint_3_j" active="true" pe="{0.32,0,0.6295,1.5707963267949,1.5707963267949,1.5707963267949}"/>
                 </MarkerPoolElement>
-                <GeometryPoolElement name="geometry_pool"/>
+                <GeometryPoolElement name="geometry_pool">
+                    <FileGeometry name="test" pe="{0,0,0,-0,0,-0}" graphic_file_path="/RobotGallery/Rokae/XB4/l3.data"/>
+                </GeometryPoolElement>
             </Part>
             <Part name="L4" active="true" pe="{0,0,0,-0,0,-0}" vel="{0,0,0,0,0,0}" acc="{0,0,0,0,0,0}" inertia="{0,1.06223330086669,0,0.0031174824296,0,0.24420385558544,0.24970286555981,0.00305759215246,-0.66644096559686,0.00228253380852}">
                 <MarkerPoolElement name="marker_pool">
                     <Marker name="joint_3_i" active="true" pe="{0.32,0,0.6295,1.5707963267949,1.5707963267949,1.5707963267949}"/>
                     <Marker name="joint_4_j" active="true" pe="{0.32,0,0.6295,3.14159265358979,1.5707963267949,4.71238898038469}"/>
                 </MarkerPoolElement>
-                <GeometryPoolElement name="geometry_pool"/>
+                <GeometryPoolElement name="geometry_pool">
+                    <FileGeometry name="test" pe="{0,0,0,-0,0,-0}" graphic_file_path="/RobotGallery/Rokae/XB4/l4.data"/>
+                </GeometryPoolElement>
             </Part>
             <Part name="L5" active="true" pe="{0,0,0,-0,0,-0}" vel="{0,0,0,0,0,0}" acc="{0,0,0,0,0,0}" inertia="{0,0.0536228689791,0.00528925153464,-0.00842588023014,0.00128498153337,-0.00389810210572,0,-0.00223677867576,-0.03365036368035,-0.00415647085627}">
                 <MarkerPoolElement name="marker_pool">
                     <Marker name="joint_4_i" active="true" pe="{0.32,0,0.6295,3.14159265358979,1.5707963267949,4.71238898038469}"/>
                     <Marker name="joint_5_j" active="true" pe="{0.32,0,0.6295,1.5707963267949,1.5707963267949,1.5707963267949}"/>
                 </MarkerPoolElement>
-                <GeometryPoolElement name="geometry_pool"/>
+                <GeometryPoolElement name="geometry_pool">
+                    <FileGeometry name="test" pe="{0,0,0,-0,0,-0}" graphic_file_path="/RobotGallery/Rokae/XB4/l5.data"/>
+                </GeometryPoolElement>
             </Part>
             <Part name="L6" active="true" pe="{0,0,0,-0,0,-0}" vel="{0,0,0,0,0,0}" acc="{0,0,0,0,0,0}" inertia="{0,0,0.00066049870832,0.00012563800445,-0.00085124094833,0.04209529937135,0.04102481443654,-0.00067596644891,0.00017482449876,-0.00041025776053}">
                 <MarkerPoolElement name="marker_pool">
@@ -265,7 +312,9 @@
                     <Marker name="tool15" active="true" pe="{0.398,0,0.6295,1.5707963267949,1.5707963267949,4.71238898038469}"/>
                     <Marker name="tool16" active="true" pe="{0.398,0,0.6295,1.5707963267949,1.5707963267949,4.71238898038469}"/>
                 </MarkerPoolElement>
-                <GeometryPoolElement name="geometry_pool"/>
+                <GeometryPoolElement name="geometry_pool">
+                    <FileGeometry name="test" pe="{0,0,0,-0,0,-0}" graphic_file_path="/RobotGallery/Rokae/XB4/l6.data"/>
+                </GeometryPoolElement>
             </Part>
         </PartPoolElement>
         <JointPoolElement name="joint_pool">
@@ -982,7 +1031,7 @@
                         <Param name="acc" default="0.5"/>
                         <Param name="vel" default="{0.025, 0.025, 3.4, 0.0, 0.0}"/>
                         <Param name="dec" default="0.5"/>
-                        <Param name="jerk" default="10"/>
+                        <Param name="jerk" default="10.0"/>
                         <Param name="angular_acc" default="0.5"/>
                         <Param name="angular_vel" default="0.1"/>
                         <Param name="angular_dec" default="0.5"/>

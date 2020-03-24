@@ -6398,11 +6398,13 @@ namespace kaanh
 		ec_controller.scan();
 		std::vector<std::pair<std::string, std::any>> ret_value;
         ret_value.push_back(std::make_pair<std::string, std::any>("controller_xml", ec_controller.xmlString()));
+        std::cout <<ec_controller.xmlString() <<std::endl;
 #endif
 #ifdef WIN32
 		std::vector<std::pair<std::string, std::any>> ret_value;
 		ret_value.push_back(std::make_pair<std::string, std::any>("controller_xml", cs.controller().xmlString()));
 #endif // WIN32
+
 
 		ret() = ret_value;
 		option() = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
