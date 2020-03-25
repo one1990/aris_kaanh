@@ -680,6 +680,15 @@ namespace kaanh
 		explicit Switch(const std::string &name = "Switch_plan");
 		ARIS_REGISTER_TYPE(Switch);
 	};
+
+    class Yuli : public aris::plan::Plan
+    {
+    public:
+        auto virtual prepareNrt()->void;
+        auto virtual executeRT()->int;
+        explicit Yuli(const std::string &name = "Yuli_plan");
+        ARIS_REGISTER_TYPE(Yuli);
+    };
 	
 }
 

@@ -3609,6 +3609,72 @@ namespace kaanh
 			"</Command>");
 	}
 
+
+    //get yuli force sensor data//
+    struct YuliParam
+    {
+        int times;
+    };
+    auto Yuli::prepareNrt()->void
+    {
+        YuliParam param;
+        for (auto &p : cmdParams())
+        {
+            if (p.first == "times")
+            {
+                param.times = int32Param(p.first);
+            }
+        }
+
+        this->param() = param;
+        std::vector<std::pair<std::string, std::any>> ret_value;
+        ret() = ret_value;
+        option() = aris::plan::Plan::NOT_CHECK_ENABLE;
+    }
+    auto Yuli::executeRT()->int
+    {
+
+        auto &param = std::any_cast<YuliParam&>(this->param());
+        int16_t datanum;
+        float rawdata[6];
+
+    #ifdef UNIX
+        auto slave7 = dynamic_cast<aris::control::EthercatSlave&>(controller()->slavePool().at(6));
+        slave7.readPdo(0x6030, 0x00, &datanum ,16);
+        slave7.readPdo(0x6030, 0x01, &rawdata[0] ,32);
+        slave7.readPdo(0x6030, 0x02, &rawdata[1], 32);
+        slave7.readPdo(0x6030, 0x03, &rawdata[2], 32);
+        slave7.readPdo(0x6030, 0x04, &rawdata[3], 32);
+        slave7.readPdo(0x6030, 0x05, &rawdata[4], 32);
+        slave7.readPdo(0x6030, 0x06, &rawdata[5], 32);
+    #endif
+
+        auto &cout = controller()->mout();
+
+        if(count()%100==0)
+        {
+            cout << "datanum:" << datanum << std::endl;
+            for(int i=0; i<6; i++)
+            {
+                cout << rawdata[i] << "    ";
+            }
+            cout << std::endl;
+        }
+
+        return param.times - count();
+
+    }
+    Yuli::Yuli(const std::string &name) :Plan(name)
+    {
+        command().loadXmlStr(
+            "<Command name=\"yuli\">"
+            "	<GroupParam>"
+            "		<Param name=\"times\" abbreviation=\"t\" default=\"1000\"/>"
+            "	</GroupParam>"
+            "</Command>");
+    }
+
+
 	
 	// 导纳控制 //
 	struct MoveJointParam
