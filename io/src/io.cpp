@@ -35,7 +35,7 @@ int main()
 			
 			//1、成员函数ecSlavePool()创建从站vector，在实时核中要使用ecSlavePool()，在非实时核使用SlavePool()，at(1)表示第2个从站，即EtherCAT IO板卡在物理连接层面属于第二个从站
             //2、writePdo是写函数，第一个形参是index，第二个形参是subindex，第三个形参写DO的数值，第四个形参表示写操作的bit数
-            mst.slavePool().at(0).writePdo(0x7001,0x01,&value,8);
+            mst.slavePool().at(0).writePdo(0x7010,0x01,&value,1);
         }
     });
 	

@@ -279,6 +279,25 @@ namespace kaanh
 		aris::core::ImpPtr<Imp> imp_;
 	};
 
+	class MoveJoint : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt()->void;
+		auto virtual executeRT()->int;
+		auto virtual collectNrt()->void;
+
+		explicit MoveJoint(const std::string &name = "MoveJoint");
+		ARIS_REGISTER_TYPE(MoveJoint);
+	};
+
+	class FCStop : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepairNrt()->void;
+		explicit FCStop(const std::string &name = "FCStop");
+		ARIS_REGISTER_TYPE(FCStop);
+	};
+
 	class JogC : public aris::plan::Plan
 	{
 	public:

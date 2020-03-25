@@ -3610,6 +3610,164 @@ namespace kaanh
 	}
 
 	
+	// 导纳控制 //
+	struct MoveJointParam
+	{
+		aris::dynamic::Marker *tool, *wobj;
+		double thelta;
+		double vel_limit[6];
+	};
+	static std::atomic_bool enable_mvJoint = true;
+	auto MoveJoint::prepairNrt()->void
+	{
+		auto param = std::any_cast<MoveJointParam&>(this->param());
+		enable_mvJoint = true;
+		param.tool = &*model()->generalMotionPool()[0].makI().fatherPart().markerPool().findByName(std::string(cmdParams().at("tool")));
+		param.wobj = &*model()->generalMotionPool()[0].makJ().fatherPart().markerPool().findByName(std::string(cmdParams().at("wobj")));
+		param.thelta = 180 - 51.166;
+
+		for (auto cmd_param : cmdParams())
+		{
+			if (cmd_param.first == "vel_limit")
+			{
+				auto a = matrixParam(cmd_param.first);
+				if (a.size() == 6)
+				{
+					std::copy(param.vel_limit, param.vel_limit + 6, a.data());
+				}
+				else
+				{
+					THROW_FILE_LINE("");
+				}
+			}
+		}
+
+		this->param() = param;
+
+		//for (auto &option : motorOptions())	option |= Plan::USE_TARGET_POS;
+		std::vector<std::pair<std::string, std::any>> ret_value;
+		ret() = ret_value;
+	}
+	auto MoveJoint::executeRT()->int
+	{
+		auto &param = std::any_cast<MoveJointParam&>(this->param());
+		auto &cout = controller()->mout();
+		auto &lout = controller()->lout();
+		char eu_type[4]{ '1', '2', '3', '\0' };
+
+		// 前三维为xyz，后三维是w的积分，注意没有物理含义
+		static double target_p[6];
+
+		// 获取起始点的pe //
+		static double p_now[6], v_now[6], a_now[6];
+		if (count() == 1)
+		{
+			//设置log文件名称//
+			controller()->logFileRawName("motion_replay");
+
+			model()->generalMotionPool()[0].getMpe(target_p);
+			std::fill_n(target_p + 3, 3, 0.0);
+
+			model()->generalMotionPool()[0].getMpe(p_now, eu_type);
+			std::fill_n(p_now + 3, 3, 0.0);
+
+			model()->generalMotionPool()[0].getMve(v_now, eu_type);
+			model()->generalMotionPool()[0].getMae(a_now, eu_type);
+		}
+
+		// init status //
+		double target_vel[6]{ 0,0,0,0,0,0 };
+
+		// calculate target pos and max vel //
+		for (int i = 0; i < 6; i++)
+		{
+			target_vel[i] = 1.0 * g_vel_percent.load() / 100.0;
+			target_vel[i] = std::min(std::max(target_vel[i], -param.vel_limit[i]), param.vel_limit[i]);
+			target_p[i] += target_vel[i] * 1e-3;
+		}
+
+		double p_next[6]{ 0,0,0,0,0,0 }, v_next[6]{ 0,0,0,0,0,0 }, a_next[6]{ 0,0,0,0,0,0 };
+		int finished[6]{ 0,0,0,0,0,0 };
+
+		//将欧拉角转换成四元数，求绕任意旋转轴转动的旋转矩阵//
+		double w[3], pm[16];
+		aris::dynamic::s_vc(3, v_next + 3, w);
+		auto normv = aris::dynamic::s_norm(3, w);
+		if (std::abs(normv) > 1e-10)aris::dynamic::s_nv(3, 1 / normv, w); //数乘
+		auto theta = normv * 1e-3;
+		double pq[7]{ p_next[0] - p_now[0], p_next[1] - p_now[1], p_next[2] - p_now[2], w[0] * sin(theta / 2.0), w[1] * sin(theta / 2.0), w[2] * sin(theta / 2.0), cos(theta / 2.0) };
+		s_pq2pm(pq, pm);
+
+		// 获取当前位姿矩阵 //
+		double pm_now[16], pm_target[16];
+		param.tool->getPm(*param.wobj, pm_now);
+
+		// 保存下个周期的copy //
+		s_vc(6, p_next, p_now);
+		s_vc(6, v_next, v_now);
+		s_vc(6, a_next, a_now);
+
+		//绝对坐标系
+		s_pm_dot_pm(pm, pm_now, pm_target);
+
+		//model()->generalMotionPool().at(0).setMpm(param.pm_target.data());
+		param.tool->setPm(*param.wobj, pm_target);
+		model()->generalMotionPool().at(0).updMpm();
+
+		// 运动学反解 //
+		if (model()->solverPool().at(0).kinPos())return -1;
+
+		return enable_mvJoint.load();
+
+		/*
+		if (is_running)
+		{
+			//位置环PID+速度限制
+			model()->generalMotionPool().at(0).getMpq(param.pqa.data());
+			for (Size i = 0; i < param.ft.size(); ++i)
+			{
+				double vinteg_limit;
+				vproportion[i] = param.kp_p[i] * (param.pqt[i] - param.pqa[i]);
+			}
+			s_c3a(param.pqa.data(), param.ft.data(), param.ft.data() + 3);
+
+			//通过雅克比矩阵将param.ft转换到关节param.ft_pid
+			auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(model()->solverPool()[1]);
+			fwd.cptJacobi();
+			s_mm(6, 1, 6, fwd.Jf(), aris::dynamic::ColMajor{ 6 }, param.ft.data(), 1, param.ft_pid.data(), 1);
+		}
+		*/
+
+	}
+	auto MoveJoint::collectNrt()->void {}
+	MoveJoint::MoveJoint(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"mvJoint\">"
+			"	<GroupParam>"
+			"		<Param name=\"vel_limit\" default=\"{0.01,0.01,0.01,0.15,0.15,0.15}\"/>"
+			"		<Param name=\"tool\" default=\"tool0\"/>"
+			"		<Param name=\"wobj\" default=\"wobj0\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
+
+
+	// 力控停止指令——停止MoveStop，去使能电机 //
+	auto FCStop::prepairNrt()->void
+	{
+		enable_mvJoint = false;
+		option() = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
+
+	}
+	FCStop::FCStop(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"FCStop\">"
+			"</Command>");
+	}
+
+
 	//复现文件位置//
 	struct MoveFParam
 	{
