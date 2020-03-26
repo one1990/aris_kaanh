@@ -6,7 +6,6 @@
 #include <stdlib.h>
 #include <string>
 #include"planfuns.h"
-#include"sixdistalfc.h"
 #include <bitset>
 
 
@@ -945,8 +944,6 @@ namespace kaanhconfig
 		plan_root->planPool().add<kaanh::Evaluate>();
 		
 		plan_root->planPool().add<kaanh::MoveC>();
-		plan_root->planPool().add<kaanh::JogC>();
-		plan_root->planPool().add<kaanh::JogJ>();
 		plan_root->planPool().add<kaanh::JogJ1>();
 		plan_root->planPool().add<kaanh::JogJ2>();
 		plan_root->planPool().add<kaanh::JogJ3>();
@@ -980,9 +977,8 @@ namespace kaanhconfig
 		plan_root->planPool().add<kaanh::Switch>();
         plan_root->planPool().add<kaanh::Yuli>();
         plan_root->planPool().add<kaanh::MoveJoint>();
-		plan_root->planPool().add<Replay>();
-		plan_root->planPool().add<ForceDirect>();
         plan_root->planPool().add<kaanh::FCStop>();
+		plan_root->planPool().add<kaanh::SetFS>();
 	
 		plan_root->planPool().add<CalibT4P>();
 		plan_root->planPool().add<CalibT5P>();

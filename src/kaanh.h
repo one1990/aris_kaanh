@@ -6,10 +6,10 @@
 #include "kaanhconfig.h"
 #include"planfuns.h"
 #include "json.hpp"
-#include"jointdynamics.h"
+//#include"jointdynamics.h"
 #include "kinematic.h"
-#include"sixdistalfc.h"
-#include"sixdistaldynamics.h"
+//#include"sixdistalfc.h"
+//#include"sixdistaldynamics.h"
 #include <array>
 #include <stdlib.h>
 #include <string>
@@ -282,62 +282,36 @@ namespace kaanh
 	class MoveJoint : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		auto virtual executeRT()->int;
 		auto virtual collectNrt()->void;
-
-		explicit MoveJoint(const std::string &name = "MoveJoint");
+		virtual ~MoveJoint();
+		explicit MoveJoint(const std::string &name = "MoveJoint_plan");
 		ARIS_REGISTER_TYPE(MoveJoint);
+		MoveJoint(const MoveJoint &);
+		MoveJoint(MoveJoint &);
+		MoveJoint& operator=(const MoveJoint &);
+		MoveJoint& operator=(MoveJoint &&);
+
+	private:
+		struct Imp;
+		aris::core::ImpPtr<Imp> imp_;
 	};
 
 	class FCStop : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepairNrt()->void;
+		auto virtual prepareNrt()->void;
 		explicit FCStop(const std::string &name = "FCStop");
 		ARIS_REGISTER_TYPE(FCStop);
 	};
 
-	class JogC : public aris::plan::Plan
+	class SetFS : public aris::plan::Plan
 	{
 	public:
 		auto virtual prepareNrt()->void;
-		auto virtual executeRT()->int;
-		auto virtual collectNrt()->void;
-
-		virtual ~JogC();
-		explicit JogC(const std::string &name = "JogC_plan");
-		ARIS_REGISTER_TYPE(JogC);
-		JogC(const JogC &);
-		JogC(JogC &);
-		JogC& operator=(const JogC &);
-		JogC& operator=(JogC &&);
-		
-
-	private:
-		struct Imp;
-		aris::core::ImpPtr<Imp> imp_;
-	};
-
-	class JogJ : public aris::plan::Plan
-	{
-	public:
-		auto virtual prepareNrt()->void;
-		auto virtual executeRT()->int;
-		auto virtual collectNrt()->void;
-
-		virtual ~JogJ();
-		explicit JogJ(const std::string &name = "JogJ_plan");
-		ARIS_REGISTER_TYPE(JogJ);
-		JogJ(const JogJ &);
-		JogJ(JogJ &);
-		JogJ& operator=(const JogJ &);
-		JogJ& operator=(JogJ &&);
-
-
-	private:
-		struct Imp;
-		aris::core::ImpPtr<Imp> imp_;
+		explicit SetFS(const std::string &name = "SetFS");
+		ARIS_REGISTER_TYPE(SetFS);
 	};
 
 	class JogJ1 : public aris::plan::Plan
