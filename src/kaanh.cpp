@@ -3746,6 +3746,7 @@ namespace kaanh
 			}
 		}
 
+        for (auto &option : motorOptions()) option |= aris::plan::Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | NOT_CHECK_VEL_CONTINUOUS;
 		std::vector<std::pair<std::string, std::any>> ret_value;
 		ret() = ret_value;
 		
@@ -3758,7 +3759,7 @@ namespace kaanh
 
 		// 前三维为xyz，后三维是w的积分，注意没有物理含义
 		static double p_next[6], v_now[6], v_tcp[6]{ 0.0,0.0,0.0,0.0,0.0,0.0 }, v_joint[6];
-		float rawdata[6], realdata[6];
+        static float rawdata[6], realdata[6];
 
 		if (count() == 1)
 		{
@@ -3789,12 +3790,13 @@ namespace kaanh
 			rawdata[5] = -0.05;
 #endif
 			//获取第一个周期末端所受的力
-			double xyz_temp[3]{ rawdata[0], rawdata[1], rawdata[2] }, abc_temp[3]{ rawdata[3], rawdata[4], rawdata[5] };
-			double xyz_begin[4], abc_begin[4], pm_begin[16];
+            double xyz_temp[3]{ rawdata[0], rawdata[1], rawdata[2]}, abc_temp[3]{ rawdata[3], rawdata[4], rawdata[5]};
+            double xyz_begin[3], abc_begin[3], pm_begin[16];
+            model()->generalMotionPool().at(0).updMpm();
 			imp_->tool->getPm(*imp_->wobj, pm_begin);
 			s_pm_dot_pm(pm_begin, imp_->fs2tpm, imp_->t2bpm);
-			s_mm(3, 1, 3, imp_->t2bpm, aris::dynamic::RowMajor{ 4 }, xyz_temp, 1, xyz_begin, 1);
-			s_mm(3, 1, 3, imp_->t2bpm, aris::dynamic::RowMajor{ 4 }, abc_temp, 1, abc_begin, 1);
+            s_mm(3, 1, 3, imp_->fs2tpm, aris::dynamic::RowMajor{ 4 }, xyz_temp, 1, xyz_begin, 1);
+            s_mm(3, 1, 3, imp_->fs2tpm, aris::dynamic::RowMajor{ 4 }, abc_temp, 1, abc_begin, 1);
 			s_vc(3, xyz_begin, imp_->force_offset);
 			s_vc(3, abc_begin, imp_->force_offset + 3);
 		}
@@ -3819,8 +3821,9 @@ namespace kaanh
 #endif
 	
 		//获取每个周期末端所受的力
-		double xyz_temp[3]{ realdata[0] - rawdata[0], realdata[1] - rawdata[1], realdata[2] - rawdata[2] }, abc_temp[3]{ realdata[3] - rawdata[3], realdata[4]-rawdata[4], realdata[5]-rawdata[5] };
+        double xyz_temp[3]{ realdata[0], realdata[1], realdata[2] }, abc_temp[3]{ realdata[3], realdata[4], realdata[5] };
 		double xyz_begin[4], abc_begin[4], pm_begin[16];
+        model()->generalMotionPool().at(0).updMpm();
 		imp_->tool->getPm(*imp_->wobj, pm_begin);
 		s_pm_dot_pm(pm_begin, imp_->fs2tpm, imp_->t2bpm);
 		s_mm(3, 1, 3, imp_->t2bpm, aris::dynamic::RowMajor{ 4 }, xyz_temp, 1, xyz_begin, 1);
@@ -3828,6 +3831,7 @@ namespace kaanh
 		s_vc(3, xyz_begin, imp_->force_target);
 		s_vc(3, abc_begin, imp_->force_target + 3);
 
+#ifdef WIN32
 		//test
 		imp_->force_target[0] = imp_->force_offset[0] + 1.0*x.load();
 		imp_->force_target[1] = imp_->force_offset[1] + 1.0*y.load();
@@ -3835,7 +3839,7 @@ namespace kaanh
 		imp_->force_target[3] = imp_->force_offset[3] + 1.0*rx.load();
 		imp_->force_target[4] = imp_->force_offset[4] + 1.0*ry.load();
 		imp_->force_target[5] = imp_->force_offset[5] + 1.0*rz.load();
-
+#endif
 
 		//减去力传感器初始偏置
 		s_vs(6, imp_->force_offset, imp_->force_target);
@@ -3858,20 +3862,33 @@ namespace kaanh
 			}
 			v_tcp[i] = std::min(std::max(v_tcp[i], -imp_->vel_limit[i]), imp_->vel_limit[i]);
 		}
-		if (count() % 100 == 0)
+        //print
+        if (count() % 500 == 0)
 		{
-			cout << "force_tcp:" << std::endl;
-			for (int i = 0; i < 6; i++)
-			{
-				cout << imp_->force_target[i] << "  ";
-			}
-			cout << std::endl;
-			cout << "v_tcp:" << std::endl;
-			for (int i = 0; i < 6; i++)
-			{
-				cout << v_tcp[i] << "  ";
-			}
-			cout << std::endl;
+            cout << "realdata:" << std::endl;
+            for (int i = 0; i < 6; i++)
+            {
+                cout << realdata[i] << "  ";
+            }
+            cout << std::endl;
+//            cout << "force_offset:" << std::endl;
+//            for (int i = 0; i < 6; i++)
+//            {
+//                cout << imp_->force_offset[i] << "  ";
+//            }
+//            cout << std::endl;
+//            cout << "force_target:" << std::endl;
+//			for (int i = 0; i < 6; i++)
+//			{
+//				cout << imp_->force_target[i] << "  ";
+//			}
+//			cout << std::endl;
+//			cout << "v_tcp:" << std::endl;
+//			for (int i = 0; i < 6; i++)
+//			{
+//				cout << v_tcp[i] << "  ";
+//			}
+//			cout << std::endl;
 		}
 		// 获取雅可比矩阵，并对过奇异点的雅可比矩阵进行特殊处理
 		double pinv[36];
@@ -3919,20 +3936,21 @@ namespace kaanh
 			p_next[i] += v_joint[i] * 1e-3;
 			p_next[i] = std::min(std::max(p_next[i], controller()->motionPool().at(i).minPos() + 0.1), controller()->motionPool().at(i).maxPos() - 0.1);
 
-			controller()->motionPool().at(i).setTargetPos(p_next[i]);
-			model()->motionPool().at(i).setMp(p_next[i]);
+//			controller()->motionPool().at(i).setTargetPos(p_next[i]);
+//			model()->motionPool().at(i).setMp(p_next[i]);
 		}
 		
 		// 运动学正解 //
 		if (model()->solverPool().at(1).kinPos())return -1;
 		
+        aris::Size total_count = 1;
 		if (enable_mvJoint.load())
 		{
+            total_count = count() + 1000;
 			return 1;
 		}
 		else
 		{
-			static aris::Size total_count = count() + 1000;
 			return total_count - count();
 		}
 	}
@@ -3947,9 +3965,9 @@ namespace kaanh
 		command().loadXmlStr(
 			"<Command name=\"mvJoint\">"
 			"	<GroupParam>"
-			"		<Param name=\"vellimit\" default=\"{0.01,0.01,0.01,0.15,0.15,0.15}\"/>"
-			"		<Param name=\"damping\" default=\"{0.05,0.05,0.05,0.05,0.05,0.05}\"/>"
-			"		<Param name=\"kd\" default=\"{0.05,0.05,0.05,0.15,0.15,0.15}\"/>"
+            "		<Param name=\"vellimit\" default=\"{0.1,0.1,0.1,0.5,0.5,0.5}\"/>"
+            "		<Param name=\"damping\" default=\"{0.01,0.01,0.01,0.01,0.01,0.01}\"/>"
+            "		<Param name=\"kd\" default=\"{2,2,1,3,3,3}\"/>"
 			"		<Param name=\"tool\" default=\"tool0\"/>"
 			"		<Param name=\"wobj\" default=\"wobj0\"/>"
 			"	</GroupParam>"
