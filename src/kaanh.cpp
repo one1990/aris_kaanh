@@ -3975,6 +3975,336 @@ namespace kaanh
 	}
 
 
+	//力传感器标定零点//
+	struct CalibFZeroParam
+	{
+		std::vector<Size> total_count_vec;
+		std::vector<double> p1, p2, p3;
+		std::vector<double> axis_first_pos_vec;
+		std::vector<double> vel, acc, dec;
+	};
+	auto CalibFZero::prepareNrt()->void
+	{
+		CalibFZeroParam param;
+		param.total_count_vec.resize(3, 0);
+		param.axis_first_pos_vec.resize(6, 0.0);
+		param.p1.resize(7, 0.0);
+		param.p2.resize(7, 0.0);
+		param.p3.resize(7, 0.0);
+		
+		for (auto cmd_param : cmdParams())
+		{
+			if (cmd_param.first == "p1")
+			{
+				auto p = matrixParam(cmd_param.first);
+				if (p.size() == 7)
+				{
+					param.p1.assign(p.begin(), p.end());
+				}
+				else
+				{
+					THROW_FILE_LINE("");
+				}
+			}
+			else if (cmd_param.first == "p2")
+			{
+				auto p = matrixParam(cmd_param.first);
+				if (p.size() == 7)
+				{
+					param.p1.assign(p.begin(), p.end());
+				}
+				else
+				{
+					THROW_FILE_LINE("");
+				}
+			}
+			else if (cmd_param.first == "p3")
+			{
+				auto p = matrixParam(cmd_param.first);
+				if (p.size() == 7)
+				{
+					param.p1.assign(p.begin(), p.end());
+				}
+				else
+				{
+					THROW_FILE_LINE("");
+				}
+			}
+			else if (cmd_param.first == "acc")
+			{
+				auto a = matrixParam(cmd_param.first);
+
+				if (a.size() == 1)
+				{
+					param.acc.resize(controller()->motionPool().size(), a.toDouble());
+				}
+				else if (a.size() == controller()->motionPool().size())
+				{
+					param.acc.assign(a.begin(), a.end());
+				}
+				else
+				{
+					THROW_FILE_LINE("");
+				}
+				for (int i = 0; i < controller()->motionPool().size(); ++i) param.acc[i] *= controller()->motionPool().at(i).maxAcc();
+			}
+			else if (cmd_param.first == "vel")
+			{
+				auto a = matrixParam(cmd_param.first);
+				if (a.size() == 1)
+				{
+					param.vel.resize(controller()->motionPool().size(), a.toDouble());
+				}
+				else if (a.size() == controller()->motionPool().size())
+				{
+					param.vel.assign(a.begin(), a.end());
+				}
+				else
+				{
+					THROW_FILE_LINE("");
+				}
+				for (int i = 0; i < controller()->motionPool().size(); ++i) param.vel[i] *= controller()->motionPool().at(i).maxVel();
+			}
+			else if (cmd_param.first == "dec")
+			{
+				auto d = matrixParam(cmd_param.first);
+
+				if (d.size() == 1)
+				{
+					param.dec.resize(controller()->motionPool().size(), d.toDouble());
+				}
+				else if (d.size() == controller()->motionPool().size())
+				{
+					param.dec.assign(d.begin(), d.end());
+				}
+				else
+				{
+					THROW_FILE_LINE("");
+				}
+				for (int i = 0; i < controller()->motionPool().size(); ++i) param.dec[i] *= controller()->motionPool().at(i).maxAcc();
+			}
+		}
+
+		this->param() = param;
+		std::vector<std::pair<std::string, std::any>> ret_value;
+		ret() = ret_value;
+	}
+	auto CalibFZero::executeRT()->int
+	{
+		auto &param = std::any_cast<CalibFZeroParam&>(this->param());
+
+		double p, v, a;
+		aris::Size t_count;
+		static aris::Size total_count = 1;
+		aris::Size return_value = 0;
+
+		// 获取6个电机初始位置 //
+		if (count() == 1)
+		{
+			for (int i = 0; i < 6; i++)
+			{
+				param.axis_first_pos_vec[i] = model()->motionPool().at(i).mp();
+			}
+			for (int i = 0; i < 6; i++)
+			{
+				// 梯形规划p1,p2,p3 //
+				aris::plan::moveAbsolute(count(), param.axis_first_pos_vec[i], param.p1[i], param.vel[i] / 1000, param.acc[i] / 1000 / 1000, param.dec[i] / 1000 / 1000, p, v, a, t_count);
+				param.total_count_vec[0] = std::max(param.total_count_vec[0], t_count);
+
+				aris::plan::moveAbsolute(count(), param.p1[i], param.p2[i], param.vel[i] / 1000, param.acc[i] / 1000 / 1000, param.dec[i] / 1000 / 1000, p, v, a, t_count);
+				param.total_count_vec[1] = std::max(param.total_count_vec[1], t_count);
+
+				aris::plan::moveAbsolute(count(), param.p2[i], param.p3[i], param.vel[i] / 1000, param.acc[i] / 1000 / 1000, param.dec[i] / 1000 / 1000, p, v, a, t_count);
+				param.total_count_vec[2] = std::max(param.total_count_vec[2], t_count);
+			}
+
+			total_count = param.total_count_vec[0] + param.total_count_vec[1] + param.total_count_vec[2] + 2000;
+		}
+
+		// 机械臂走到p1点 //
+		if (count() <= param.total_count_vec[0])
+		{
+			for (int i = 0; i < 6; i++)
+			{
+				// 在第一个周期走梯形规划复位
+				aris::plan::moveAbsolute(count(), param.axis_first_pos_vec[i], param.p1[i], param.vel[i] / 1000, param.acc[i] / 1000 / 1000, param.dec[i] / 1000 / 1000, p, v, a, t_count);
+				controller()->motionAtAbs(i).setTargetPos(p);
+				model()->motionPool().at(i).setMp(p);
+			}
+		}
+
+		// // 机械臂走到p2点 // //
+		if (count() > first_total_count)
+		{
+			for (int i = 0; i < 6; i++)
+			{
+				controller()->motionAtAbs(i).setTargetPos(param.pos_vec[i][count() - first_total_count]);
+				model()->motionPool().at(i).setMp(param.pos_vec[i][count() - first_total_count]);
+			}
+		}
+		if (model()->solverPool().at(1).kinPos())return -1;
+
+		return count() > (first_total_count - 2 + param.pos_vec[0].size()) ? 0 : 1;
+
+	}
+	auto CalibFZero::collectNrt()->void {}
+	CalibFZero::CalibFZero(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"mvf\">"
+			"	<GroupParam>"
+			"		<Param name=\"p1\" default=\"{0,0,0,0,0,0,1}\"/>"
+			"		<Param name=\"p2\" default=\"{0,0,0,0,0,0,1}\"/>"
+			"		<Param name=\"p3\" default=\"{0,0,0,0,0,0,1}\"/>"
+			"		<Param name=\"vel\" default=\"0.05\"/>"
+			"		<Param name=\"acc\" default=\"0.1\"/>"
+			"		<Param name=\"dec\" default=\"0.1\"/>"
+			"		<Param name=\"tool\" default=\"tool0\"/>"
+			"		<Param name=\"wobj\" default=\"wobj0\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
+
+
+	//力传感器标定负载//
+	struct CalibFLoadParam
+	{
+		std::vector<Size> total_count_vec;
+		std::vector<double> axis_begin_pos_vec;
+		std::vector<double> axis_first_pos_vec;
+		std::vector<std::vector<double>> pos_vec;
+		double vel, acc, dec;
+		std::string path;
+	};
+	auto CalibFLoad::prepareNrt()->void
+	{
+		CalibFLoadParam param;
+		param.vel = doubleParam("vel");
+		param.acc = doubleParam("acc");
+		param.dec = doubleParam("dec");
+		param.path = cmdParams().at("path");
+
+		std::cout << param.path;
+		param.total_count_vec.resize(6, 0);
+		param.axis_begin_pos_vec.resize(6, 0.0);
+		param.axis_first_pos_vec.resize(6, 0.0);
+
+		param.pos_vec.resize(6, std::vector<double>(1, 0.0));
+		//std::cout << "size:" << param.pos_vec.size() << std::endl;
+		//初始化pos_vec//
+		for (int j = 0; j < param.pos_vec.size(); j++)
+		{
+			param.pos_vec[j].clear();
+		}
+
+		//定义读取log文件的输入流oplog//
+		std::ifstream oplog;
+		int cal = 0;
+		oplog.open(param.path);
+
+		//以下检查是否成功读取文件//
+		if (!oplog)
+		{
+			throw std::runtime_error("fail to open the file");
+		}
+		while (!oplog.eof())
+		{
+			for (int j = 0; j < param.pos_vec.size(); j++)
+			{
+				double data;
+				oplog >> data;
+				param.pos_vec[j].push_back(data);
+			}
+		}
+		oplog.close();
+		//oplog.clear();
+		for (int j = 0; j < param.pos_vec.size(); j++)
+		{
+			param.pos_vec[j].pop_back();
+			param.axis_first_pos_vec[j] = param.pos_vec[j][0];
+		}
+
+		this->param() = param;
+		std::fill(motorOptions().begin(), motorOptions().end(),
+			Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER |
+			Plan::NOT_CHECK_POS_FOLLOWING_ERROR);
+		std::vector<std::pair<std::string, std::any>> ret_value;
+		ret() = ret_value;
+	}
+	auto CalibFLoad::executeRT()->int
+	{
+		auto &param = std::any_cast<CalibFLoadParam&>(this->param());
+
+		double p, v, a;
+		aris::Size t_count;
+		static aris::Size first_total_count = 1;
+		aris::Size total_count = 1;
+		aris::Size return_value = 0;
+
+		// 获取6个电机初始位置 //
+		if (count() == 1)
+		{
+			for (int i = 0; i < 6; i++)
+			{
+				param.axis_begin_pos_vec[i] = model()->motionPool().at(i).mp();
+			}
+			for (int i = 0; i < 6; i++)
+			{
+				// 梯形规划到log开始点 //
+				aris::plan::moveAbsolute(count(), param.axis_begin_pos_vec[i], param.axis_first_pos_vec[i], param.vel / 1000, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
+				first_total_count = std::max(first_total_count, t_count);
+			}
+		}
+
+		// 机械臂走到log开始点 //
+		if (count() <= first_total_count)
+		{
+			for (int i = 0; i < 6; i++)
+			{
+				// 在第一个周期走梯形规划复位
+				aris::plan::moveAbsolute(count(), param.axis_begin_pos_vec[i], param.axis_first_pos_vec[i], param.vel / 1000, param.acc / 1000 / 1000, param.dec / 1000 / 1000, p, v, a, t_count);
+				controller()->motionAtAbs(i).setTargetPos(p);
+				model()->motionPool().at(i).setMp(p);
+			}
+		}
+
+		// 机械臂开始从头到尾复现log中点 //
+		if (count() > first_total_count)
+		{
+			for (int i = 0; i < 6; i++)
+			{
+				controller()->motionAtAbs(i).setTargetPos(param.pos_vec[i][count() - first_total_count]);
+				model()->motionPool().at(i).setMp(param.pos_vec[i][count() - first_total_count]);
+			}
+		}
+		if (model()->solverPool().at(1).kinPos())return -1;
+
+		//输出6个轴的实时位置log文件//
+		auto &lout = controller()->lout();
+		for (int i = 0; i < 6; i++)
+		{
+			lout << controller()->motionAtAbs(i).actualPos() << " ";//第一列数字必须是位置
+		}
+		lout << std::endl;
+
+		return count() > (first_total_count - 2 + param.pos_vec[0].size()) ? 0 : 1;
+
+	}
+	auto CalibFLoad::collectNrt()->void {}
+	CalibFLoad::CalibFLoad(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"mvf\">"
+			"	<GroupParam>"
+			"		<Param name=\"path\" default=\"/home/kaanh/Desktop/build-Kaanh-gk-Desktop_Qt_5_11_2_GCC_64bit-Default/log/motion_replay.txt\"/>"
+			"		<Param name=\"vel\" default=\"0.5\" abbreviation=\"v\"/>"
+			"		<Param name=\"acc\" default=\"0.6\" abbreviation=\"a\"/>"
+			"		<Param name=\"dec\" default=\"0.6\" abbreviation=\"d\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
+
+
 	// 力传感信号仿真 //
 	auto SetFS::prepareNrt()->void
 	{
