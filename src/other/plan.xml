@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ServoPressor Name="Press_1" Modify="20180927 15:21" Create="20180927 15:21">
+    <CmdList Count="31" CH="1">
+        <cmd Num="1">moveJI --pq={3.656989e-001,-2.955130e-002,3.860146e-001,3.814761e-001,-2.151443e-002,-8.130945e-002,9.205443e-001} -v={5.2,5.2,5.2,5.2,5.2,5.2} -a={5.2,5.2,5.2,5.2,5.2,5.2} -d={5.2,5.2,5.2,5.2,5.2,5.2} --not_check_vel</cmd>
+        <cmd Num="2">moveJI --pq={2.217722e-001,-2.313713e-001,2.584152e-001,3.534221e-001,-1.462628e-001,-3.536169e-001,8.536130e-001} -v={5.2,5.2,5.2,5.2,5.2,5.2} -a={5.2,5.2,5.2,5.2,5.2,5.2} -d={5.2,5.2,5.2,5.2,5.2,5.2} --not_check_vel</cmd>
+        <cmd Num="3">mv --pq={2.255298e-001,-2.351491e-001,2.251460e-001,3.535753e-001,-1.464193e-001,-3.535308e-001,8.535584e-001}  --not_check_vel</cmd>
+        <cmd Num="4">mv --pq={2.806871e-001,-2.902937e-001,2.251375e-001,3.535740e-001,-1.464201e-001,-3.535329e-001,8.535579e-001}  --not_check_vel</cmd>
+        <cmd Num="5">sl</cmd>
+        <cmd Num="6">grasp --status=1</cmd>
+        <cmd Num="7">sl</cmd>
+        <cmd Num="8">mv --pq={2.764519e-001,-2.860586e-001,2.751451e-001,3.535730e-001,-1.464201e-001,-3.535371e-001,8.535566e-001} --velocity=0.2 --acceleration=0.2 --deceleration=0.2 --angular_velocity=0.2 --angular_acceleration=0.2 --angular_deceleration=0.2 --not_check_vel</cmd>
+        <cmd Num="9">moveJ --pos={-0.1547,0.6919,0.7447,-0.024,-1.4367,-0.7886,0.0125} --vel=5.0 --acc=6.5 --dec=6.5 --not_check_vel </cmd>
+        <cmd Num="10">mv --pq={6.405938e-001,-1.951477e-002,2.663961e-001,3.826677e-001,-4.030644e-003,-9.792912e-003,9.238254e-001} --velocity=1.2 --acceleration=2.3 --deceleration=2.3 --angular_velocity=1.0 --angular_acceleration=2.3 --angular_deceleration=2.3 --not_check_vel</cmd>
+        <cmd Num="11">mv --pq={6.468533e-001,-1.965773e-002,2.271066e-001,3.826696e-001,-4.029902e-003,-9.784083e-003,9.238247e-001} --velocity=0.2 --acceleration=0.2 --deceleration=0.2 --angular_velocity=0.2 --angular_acceleration=0.2 --angular_deceleration=0.2 --not_check_vel</cmd>
+        <cmd Num="12">sl</cmd>
+        <cmd Num="13">grasp --status=0</cmd>
+        <cmd Num="14">sl</cmd>
+        <cmd Num="15">mv --pq={3.865767e-001,-1.290202e-002,2.225380e-001,3.826799e-001,-3.343895e-003,-8.121504e-003,9.238393e-001}  --velocity=0.9 --acceleration=1.0 --deceleration=1.0 --angular_velocity=0.9 --angular_acceleration=1.0 --angular_deceleration=1.0 --not_check_vel</cmd>
+        <cmd Num="16">sl</cmd>
+        <cmd Num="17">moveEAP --begin_pos=0.1 --pos=0.17 --vel=0.02 --acc=0.1             </cmd>
+        <cmd Num="18">moveEAP --begin_pos=0.1 --pos=-0.17 --vel=0.02 --acc=0.2         </cmd>
+        <cmd Num="19">mv --pq={6.482152e-001,-1.948094e-002,2.241121e-001,3.826713e-001,-4.029011e-003,-9.776882e-003,9.238241e-001} --not_check_vel</cmd>
+        <cmd Num="20">sl</cmd>
+        <cmd Num="21">grasp --status=1</cmd>
+        <cmd Num="22">sl</cmd>
+        <cmd Num="23">mv --pq={6.486882e-001,-1.947343e-002,2.567036e-001,3.826714e-001,-4.027120e-003,-9.774363e-003,9.238240e-001} --not_check_vel</cmd>
+        <cmd Num="24">mv --pq={3.581382e-001,-1.212600e-002,2.576147e-001,3.826821e-001,-3.358554e-003,-8.157422e-003,9.238380e-001} --velocity=1.0 --acceleration=1.0 --deceleration=1.0 --angular_velocity=1.0 --angular_acceleration=1.0 --angular_deceleration=1.0 --not_check_vel</cmd>
+        <cmd Num="25">mv --pq={2.962211e-001,2.742073e-001,2.509894e-001,3.554854e-001,1.417266e-001,3.420904e-001,8.582063e-001} --velocity=1.0 --acceleration=5.0 --deceleration=5.0 --angular_velocity=1.0 --angular_acceleration=5.0 --angular_deceleration=5.0 --not_check_vel</cmd>
+        <cmd Num="26">mv --pq={2.911559e-001,2.693891e-001,2.259917e-001,3.554853e-001,1.417250e-001,3.420876e-001,8.582076e-001} --not_check_vel</cmd>
+        <cmd Num="27">sl</cmd>
+        <cmd Num="28">grasp --status=0</cmd>
+        <cmd Num="29">sl</cmd>
+        <cmd Num="30">mv --pq={2.560124e-001,2.395110e-001,2.259691e-001,3.549820e-001,1.429932e-001,3.451528e-001,8.569775e-001} --not_check_vel</cmd>
+        <cmd Num="31">moveJI --pq={3.656989e-001,-2.955130e-002,3.860146e-001,3.814761e-001,-2.151443e-002,-8.130945e-002,9.205443e-001} -v={5.2,5.2,5.2,5.2,5.2,5.2} -a={5.2,5.2,5.2,5.2,5.2,5.2} -d={5.2,5.2,5.2,5.2,5.2,5.2} --not_check_vel</cmd>
+    </CmdList>
+    <CmdList Count="31" CH="2">
+        <cmd Num="1">moveJI --pq={3.656989e-001,-2.955130e-002,3.860146e-001,3.814761e-001,-2.151443e-002,-8.130945e-002,9.205443e-001} -v={5.2,5.2,5.2,5.2,5.2,5.2} -a={5.2,5.2,5.2,5.2,5.2,5.2} -d={5.2,5.2,5.2,5.2,5.2,5.2} --not_check_vel</cmd>
+        <cmd Num="2">moveJI --pq={2.217722e-001,-2.313713e-001,2.584152e-001,3.534221e-001,-1.462628e-001,-3.536169e-001,8.536130e-001} -v={5.2,5.2,5.2,5.2,5.2,5.2} -a={5.2,5.2,5.2,5.2,5.2,5.2} -d={5.2,5.2,5.2,5.2,5.2,5.2} --not_check_vel</cmd>
+        <cmd Num="3">mv --pq={2.255298e-001,-2.351491e-001,2.251460e-001,3.535753e-001,-1.464193e-001,-3.535308e-001,8.535584e-001}  --not_check_vel</cmd>
+        <cmd Num="4">mv --pq={2.806871e-001,-2.902937e-001,2.251375e-001,3.535740e-001,-1.464201e-001,-3.535329e-001,8.535579e-001}  --not_check_vel</cmd>
+        <cmd Num="5">sl</cmd>
+        <cmd Num="6">grasp --status=1</cmd>
+        <cmd Num="7">sl</cmd>
+        <cmd Num="8">mv --pq={2.764519e-001,-2.860586e-001,2.751451e-001,3.535730e-001,-1.464201e-001,-3.535371e-001,8.535566e-001} --velocity=0.2 --acceleration=0.2 --deceleration=0.2 --angular_velocity=0.2 --angular_acceleration=0.2 --angular_deceleration=0.2 --not_check_vel</cmd>
+        <cmd Num="9">moveJ --pos={-0.1547,0.6919,0.7447,-0.024,-1.4367,-0.7886,0.0125} --vel=5.0 --acc=6.5 --dec=6.5 --not_check_vel </cmd>
+        <cmd Num="10">mv --pq={6.405938e-001,-1.951477e-002,2.663961e-001,3.826677e-001,-4.030644e-003,-9.792912e-003,9.238254e-001} --velocity=1.2 --acceleration=2.3 --deceleration=2.3 --angular_velocity=1.0 --angular_acceleration=2.3 --angular_deceleration=2.3 --not_check_vel</cmd>
+        <cmd Num="11">mv --pq={6.468533e-001,-1.965773e-002,2.271066e-001,3.826696e-001,-4.029902e-003,-9.784083e-003,9.238247e-001} --velocity=0.2 --acceleration=0.2 --deceleration=0.2 --angular_velocity=0.2 --angular_acceleration=0.2 --angular_deceleration=0.2 --not_check_vel</cmd>
+        <cmd Num="12">sl</cmd>
+        <cmd Num="13">grasp --status=0</cmd>
+        <cmd Num="14">sl</cmd>
+        <cmd Num="15">mv --pq={3.865767e-001,-1.290202e-002,2.225380e-001,3.826799e-001,-3.343895e-003,-8.121504e-003,9.238393e-001}  --velocity=0.9 --acceleration=1.0 --deceleration=1.0 --angular_velocity=0.9 --angular_acceleration=1.0 --angular_deceleration=1.0 --not_check_vel</cmd>
+        <cmd Num="16">sl</cmd>
+        <cmd Num="17">moveEAP --begin_pos=0.1 --pos=0.17 --vel=0.02 --acc=0.1             </cmd>
+        <cmd Num="18">moveEAP --begin_pos=0.1 --pos=-0.17 --vel=0.02 --acc=0.2         </cmd>
+        <cmd Num="19">mv --pq={6.482152e-001,-1.948094e-002,2.241121e-001,3.826713e-001,-4.029011e-003,-9.776882e-003,9.238241e-001} --not_check_vel</cmd>
+        <cmd Num="20">sl</cmd>
+        <cmd Num="21">grasp --status=1</cmd>
+        <cmd Num="22">sl</cmd>
+        <cmd Num="23">mv --pq={6.486882e-001,-1.947343e-002,2.567036e-001,3.826714e-001,-4.027120e-003,-9.774363e-003,9.238240e-001} --not_check_vel</cmd>
+        <cmd Num="24">mv --pq={3.581382e-001,-1.212600e-002,2.576147e-001,3.826821e-001,-3.358554e-003,-8.157422e-003,9.238380e-001} --velocity=1.0 --acceleration=1.0 --deceleration=1.0 --angular_velocity=1.0 --angular_acceleration=1.0 --angular_deceleration=1.0 --not_check_vel</cmd>
+        <cmd Num="25">mv --pq={2.962211e-001,2.742073e-001,2.509894e-001,3.554854e-001,1.417266e-001,3.420904e-001,8.582063e-001} --velocity=1.0 --acceleration=5.0 --deceleration=5.0 --angular_velocity=1.0 --angular_acceleration=5.0 --angular_deceleration=5.0 --not_check_vel</cmd>
+        <cmd Num="26">mv --pq={2.911559e-001,2.693891e-001,2.259917e-001,3.554853e-001,1.417250e-001,3.420876e-001,8.582076e-001} --not_check_vel</cmd>
+        <cmd Num="27">sl</cmd>
+        <cmd Num="28">grasp --status=0</cmd>
+        <cmd Num="29">sl</cmd>
+        <cmd Num="30">mv --pq={2.560124e-001,2.395110e-001,2.259691e-001,3.549820e-001,1.429932e-001,3.451528e-001,8.569775e-001} --not_check_vel</cmd>
+        <cmd Num="31">moveJI --pq={3.656989e-001,-2.955130e-002,3.860146e-001,3.814761e-001,-2.151443e-002,-8.130945e-002,9.205443e-001} -v={5.2,5.2,5.2,5.2,5.2,5.2} -a={5.2,5.2,5.2,5.2,5.2,5.2} -d={5.2,5.2,5.2,5.2,5.2,5.2} --not_check_vel</cmd>
+    </CmdList>
+    <CmdList Count="31" CH="4">
+        <cmd Num="1">moveJI --pq={3.656989e-001,-2.955130e-002,3.860146e-001,3.814761e-001,-2.151443e-002,-8.130945e-002,9.205443e-001} -v={5.2,5.2,5.2,5.2,5.2,5.2} -a={5.2,5.2,5.2,5.2,5.2,5.2} -d={5.2,5.2,5.2,5.2,5.2,5.2} --not_check_vel</cmd>
+        <cmd Num="2">moveJI --pq={2.217722e-001,-2.313713e-001,2.584152e-001,3.534221e-001,-1.462628e-001,-3.536169e-001,8.536130e-001} -v={5.2,5.2,5.2,5.2,5.2,5.2} -a={5.2,5.2,5.2,5.2,5.2,5.2} -d={5.2,5.2,5.2,5.2,5.2,5.2} --not_check_vel</cmd>
+        <cmd Num="3">mv --pq={2.255298e-001,-2.351491e-001,2.251460e-001,3.535753e-001,-1.464193e-001,-3.535308e-001,8.535584e-001}  --not_check_vel</cmd>
+        <cmd Num="4">mv --pq={2.806871e-001,-2.902937e-001,2.251375e-001,3.535740e-001,-1.464201e-001,-3.535329e-001,8.535579e-001}  --not_check_vel</cmd>
+        <cmd Num="5">sl</cmd>
+        <cmd Num="6">grasp --status=1</cmd>
+        <cmd Num="7">sl</cmd>
+        <cmd Num="8">mv --pq={2.764519e-001,-2.860586e-001,2.751451e-001,3.535730e-001,-1.464201e-001,-3.535371e-001,8.535566e-001} --velocity=0.2 --acceleration=0.2 --deceleration=0.2 --angular_velocity=0.2 --angular_acceleration=0.2 --angular_deceleration=0.2 --not_check_vel</cmd>
+        <cmd Num="9">moveJ --pos={-0.1547,0.6919,0.7447,-0.024,-1.4367,-0.7886,0.0125} --vel=5.0 --acc=6.5 --dec=6.5 --not_check_vel </cmd>
+        <cmd Num="10">mv --pq={6.405938e-001,-1.951477e-002,2.663961e-001,3.826677e-001,-4.030644e-003,-9.792912e-003,9.238254e-001} --velocity=1.2 --acceleration=2.3 --deceleration=2.3 --angular_velocity=1.0 --angular_acceleration=2.3 --angular_deceleration=2.3 --not_check_vel</cmd>
+        <cmd Num="11">mv --pq={6.468533e-001,-1.965773e-002,2.271066e-001,3.826696e-001,-4.029902e-003,-9.784083e-003,9.238247e-001} --velocity=0.2 --acceleration=0.2 --deceleration=0.2 --angular_velocity=0.2 --angular_acceleration=0.2 --angular_deceleration=0.2 --not_check_vel</cmd>
+        <cmd Num="12">sl</cmd>
+        <cmd Num="13">grasp --status=0</cmd>
+        <cmd Num="14">sl</cmd>
+        <cmd Num="15">mv --pq={3.865767e-001,-1.290202e-002,2.225380e-001,3.826799e-001,-3.343895e-003,-8.121504e-003,9.238393e-001}  --velocity=0.9 --acceleration=1.0 --deceleration=1.0 --angular_velocity=0.9 --angular_acceleration=1.0 --angular_deceleration=1.0 --not_check_vel</cmd>
+        <cmd Num="16">sl</cmd>
+        <cmd Num="17">moveEAP --begin_pos=0.1 --pos=0.17 --vel=0.02 --acc=0.1             </cmd>
+        <cmd Num="18">moveEAP --begin_pos=0.1 --pos=-0.17 --vel=0.02 --acc=0.2         </cmd>
+        <cmd Num="19">mv --pq={6.482152e-001,-1.948094e-002,2.241121e-001,3.826713e-001,-4.029011e-003,-9.776882e-003,9.238241e-001} --not_check_vel</cmd>
+        <cmd Num="20">sl</cmd>
+        <cmd Num="21">grasp --status=1</cmd>
+        <cmd Num="22">sl</cmd>
+        <cmd Num="23">mv --pq={6.486882e-001,-1.947343e-002,2.567036e-001,3.826714e-001,-4.027120e-003,-9.774363e-003,9.238240e-001} --not_check_vel</cmd>
+        <cmd Num="24">mv --pq={3.581382e-001,-1.212600e-002,2.576147e-001,3.826821e-001,-3.358554e-003,-8.157422e-003,9.238380e-001} --velocity=1.0 --acceleration=1.0 --deceleration=1.0 --angular_velocity=1.0 --angular_acceleration=1.0 --angular_deceleration=1.0 --not_check_vel</cmd>
+        <cmd Num="25">mv --pq={2.962211e-001,2.742073e-001,2.509894e-001,3.554854e-001,1.417266e-001,3.420904e-001,8.582063e-001} --velocity=1.0 --acceleration=5.0 --deceleration=5.0 --angular_velocity=1.0 --angular_acceleration=5.0 --angular_deceleration=5.0 --not_check_vel</cmd>
+        <cmd Num="26">mv --pq={2.911559e-001,2.693891e-001,2.259917e-001,3.554853e-001,1.417250e-001,3.420876e-001,8.582076e-001} --not_check_vel</cmd>
+        <cmd Num="27">sl</cmd>
+        <cmd Num="28">grasp --status=0</cmd>
+        <cmd Num="29">sl</cmd>
+        <cmd Num="30">mv --pq={2.560124e-001,2.395110e-001,2.259691e-001,3.549820e-001,1.429932e-001,3.451528e-001,8.569775e-001} --not_check_vel</cmd>
+        <cmd Num="31">moveJI --pq={3.656989e-001,-2.955130e-002,3.860146e-001,3.814761e-001,-2.151443e-002,-8.130945e-002,9.205443e-001} -v={5.2,5.2,5.2,5.2,5.2,5.2} -a={5.2,5.2,5.2,5.2,5.2,5.2} -d={5.2,5.2,5.2,5.2,5.2,5.2} --not_check_vel</cmd>
+    </CmdList>
+</ServoPressor>

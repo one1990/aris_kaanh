@@ -1,4 +1,0 @@
-cs_stop
-scanslave
-setesipath --path=C:\Users\kevin\Desktop\test
-getesipdolist --vendor_id=0x0000066f --product_code=0x60380000 --revision_num=0x00010000

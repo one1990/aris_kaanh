@@ -1,6 +1,6 @@
 ﻿#include <iostream>
 #include <aris.hpp>
-#include "kaanh.h"
+#include "kaanh/kaanh.h"
 #include<atomic>
 #include<string>
 #include<filesystem>
@@ -37,8 +37,7 @@ int main(int argc, char *argv[])
 	std::cout << "logfolder:" << logp << std::endl;
 
 	//生成kaanh.xml文档
-
-    //-------for rokae robot begin//
+    //-------for rokae robot begin
     cs.resetController(kaanhconfig::createControllerRokaeXB4().release());
     cs.resetModel(kaanhconfig::createModelRokae().release());
     cs.resetPlanRoot(kaanhconfig::createPlanRoot().release());
@@ -157,7 +156,6 @@ int main(int argc, char *argv[])
 	//实时回调函数，每个实时周期调用一次//
 	cs.setRtPlanPostCallback(kaanh::update_state);
 	g_model = cs.model();
-
 
 #ifdef WIN32
 	for (auto &m : cs.controller().motionPool())
