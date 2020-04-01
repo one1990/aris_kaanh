@@ -1,11 +1,11 @@
 ﻿#include <algorithm>
-#include "kaanhconfig.h"
-#include "kinematic.h"
+#include "kaanh/kaanhconfig.h"
+#include "kaanh/kinematic.h"
 #include "kaanh.h"
 #include <array>
 #include <stdlib.h>
 #include <string>
-#include"planfuns.h"
+#include "kaanh/planfuns.h"
 #include <bitset>
 
 

@@ -3,10 +3,10 @@
 
 #include <memory>
 #include <aris.hpp>
-#include "kaanhconfig.h"
-#include "planfuns.h"
-#include "json.hpp"
-#include "kinematic.h"
+#include "kaanh/kaanhconfig.h"
+#include "kaanh/planfuns.h"
+#include "kaanh/json.hpp"
+#include "kaanh/kinematic.h"
 #include <array>
 #include <stdlib.h>
 #include <string>

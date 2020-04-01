@@ -2,7 +2,7 @@
 
 project(kaanh VERSION 1.0)
 
-# aris use c++ 17 standard
+# kaanh use c++ 17 standard
 set(EXECUTABLE_OUTPUT_PATH bin)
 set(LIBRARY_OUTPUT_PATH lib)
 set(CMAKE_CXX_STANDARD 17)
@@ -25,20 +25,15 @@ if(WIN32)
 endif(WIN32)
 add_definitions(-DKAANH_INSTALL_PATH="${CMAKE_INSTALL_PREFIX}")
 
-# find aris
 if(UNIX)
-	add_definitions(-DUNIX)
-	find_package(aris REQUIRED PATHS /usr/aris)
-endif(UNIX)
-IF(WIN32)
-	find_package(aris REQUIRED PATHS C:/aris/aris-1.5.0)
-endif(WIN32)
-include_directories(${aris_INCLUDE_DIRS})
+	set(RELY_LINK_LIB atomic pthread stdc++fs)#pthread is needed for concurrency
+	set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/config)
+elseif(WIN32)
+	set(RELY_LINK_LIB "ws2_32")#ws2_32 is needed for socket
+endif()
 
-message(${aris_DIR})
-
-file(GLOB HEADERS src/kaanh/*.hpp src/kaanh/*.h)
-file(GLOB SOURCES src/kaanh/*.cpp src/kaanh/*.c src/kaanh/*.hpp src/kaanh/*.h ${HEADERS})
+file(GLOB HEADERS include/kaanh/*.hpp include/kaanh/*.h)
+file(GLOB SOURCES src/kaanh/*.cpp src/kaanh/*.c include/kaanh/*.hpp include/kaanh/*.h ${HEADERS})
 add_library(kaanh_lib STATIC ${HEADERS} ${SOURCES})
 target_include_directories(kaanh_lib
 	PUBLIC 
@@ -46,6 +41,7 @@ target_include_directories(kaanh_lib
 		$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
 	PRIVATE
 		${PROJECT_SOURCE_DIR}/src
+		${RELY_INCL_DIR}
 )
 	
 set_target_properties(kaanh_lib PROPERTIES PUBLIC_HEADER "${HEADERS}")
@@ -64,6 +60,15 @@ install(EXPORT kaanh-lib-debug NAMESPACE kaanh::debug:: FILE kaanh-lib-debug.cma
 install(EXPORT kaanh-lib-release NAMESPACE kaanh:: FILE kaanh-lib-release.cmake DESTINATION "share/kaanh/cmake")
 install(FILES include/kaanh.h DESTINATION include)
 
+## install config ##
+include(CMakePackageConfigHelpers)
+set(kaanh_INCLUDE_DIRS ${CMAKE_INSTALL_PREFIX}/include)
+set(kaanh_LIBRARIES ${kaanh_LIBRARIES} ${RELY_LINK_LIB})
+configure_package_config_file(config/kaanh-config.cmake.in ${PROJECT_BINARY_DIR}/kaanh-config.cmake INSTALL_DESTINATION "share/kaanh/cmake")
+install(FILES ${PROJECT_BINARY_DIR}/kaanh-config.cmake DESTINATION "share/kaanh/cmake")
+
+link_directories(${RELY_LINK_DIR})
+
 ## install ##
 #if(UNIX)
 #	install(TARGETS kaanh_lib
@@ -72,7 +77,18 @@ install(FILES include/kaanh.h DESTINATION include)
 #	install(FILES src/kaanh.h DESTINATION include/kaanh)
 #endif(UNIX)
 
-add_executable(kaanh src/main.cpp)
+# find aris
+if(UNIX)
+	add_definitions(-DUNIX)
+	find_package(aris REQUIRED PATHS /usr/aris)
+endif(UNIX)
+IF(WIN32)
+	find_package(aris REQUIRED PATHS C:/aris/aris-1.5.0)
+endif(WIN32)
+include_directories(${aris_INCLUDE_DIRS})
+message(${aris_DIR})
+
+add_executable(kaanh src/kaanh/main.cpp)
 target_link_libraries(kaanh kaanh_lib)
 if(UNIX)
 	target_link_libraries(kaanh ${aris_LIBRARIES} atomic)

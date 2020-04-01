@@ -11,6 +11,8 @@ using namespace aris::plan;
 
 namespace config
 {
+
+
     auto createController()->std::unique_ptr<aris::control::Controller>	/*函数返回的是一个类指针，指针指向Controller,controller的类型是智能指针std::unique_ptr*/
     {
         std::unique_ptr<aris::control::Controller> controller(aris::robot::createControllerRokaeXB4());/*创建std::unique_ptr实例*/
@@ -92,7 +94,6 @@ namespace config
 		auto model = aris::dynamic::createModelSerial3Axis(param);
 		return std::move(model);
     }
-	
 	auto createPlanRoot()->std::unique_ptr<aris::plan::PlanRoot>
 	{
 		std::unique_ptr<aris::plan::PlanRoot> plan_root(new aris::plan::PlanRoot);
@@ -103,20 +104,19 @@ namespace config
 		plan_root->planPool().add<aris::plan::Stop>();
 		plan_root->planPool().add<aris::plan::Mode>();
 		plan_root->planPool().add<aris::plan::Clear>();
-		plan_root->planPool().add<kaanh::Home>();
-		plan_root->planPool().add<kaanh::Sleep>();
+
 		plan_root->planPool().add<kaanh::Recover>();
 		plan_root->planPool().add<kaanh::Reset>();
-
-		plan_root->planPool().add<aris::server::GetInfo>();
 		plan_root->planPool().add<kaanh::MoveAbsJ>();
 		plan_root->planPool().add<kaanh::MoveL>();
 		plan_root->planPool().add<kaanh::MoveJ>();
+		plan_root->planPool().add<kaanh::MoveC>();
+
+		plan_root->planPool().add<aris::server::GetInfo>();
 		plan_root->planPool().add<kaanh::Get>();
 		plan_root->planPool().add<kaanh::Var>();
 		plan_root->planPool().add<kaanh::Evaluate>();
 		
-		plan_root->planPool().add<kaanh::MoveC>();
 		plan_root->planPool().add<kaanh::JogJ1>();
 		plan_root->planPool().add<kaanh::JogJ2>();
 		plan_root->planPool().add<kaanh::JogJ3>();
