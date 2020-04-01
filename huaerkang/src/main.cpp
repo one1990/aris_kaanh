@@ -1,7 +1,7 @@
 ﻿#include <iostream>
 #include <aris.hpp>
 #include "config.h"
-#include "kaanhconfig.h"
+#include "kaanh/kaanhconfig.h"
 #include "kaanh.h"
 #include<atomic>
 #include<string>
@@ -38,6 +38,7 @@ int main(int argc, char *argv[])
     std::cout << "path:" << path << std::endl;
 	std::cout << "logfolder:" << logp << std::endl;
 
+	/*
 	//生成kaanh.xml文档
 	cs.resetController(config::createController().release());
 	cs.resetModel(config::createModel().release());
@@ -45,35 +46,40 @@ int main(int argc, char *argv[])
 	cs.interfacePool().add<aris::server::ProgramWebInterface>("", "5866", aris::core::Socket::WEB);
 	cs.interfacePool().add<aris::server::WebInterface>("", "5867", aris::core::Socket::TCP);
 	cs.resetSensorRoot(new aris::sensor::SensorRoot);
-	//cs.model().saveXmlFile(modelxmlpath.string().c_str());	//when creat new model
-	cs.model().loadXmlFile(modelxmlpath.string().c_str());
+	cs.model().saveXmlFile(modelxmlpath.string().c_str());	//when creat new model
 	cs.saveXmlFile(xmlpath.string().c_str());
+	*/
 
     cs.loadXmlFile(path.string().c_str());
 	cs.init();
 
+	//修改log路径
 	aris::core::logDirectory(logp);
 
+	//kaanh namespace变量初始化函数
     auto &cal = cs.model().calculator();
     kaanhconfig::createUserDataType(cal);
 	kaanhconfig::createPauseTimeSpeed();
-    //cs.start();
-
-	//实时回调函数，每个实时周期调用一次//
-	cs.setRtPlanPostCallback(kaanh::update_state);
 	g_model = cs.model();
 
+	//开启controller server
+	//cs.start();
+
+	//实时回调函数，每个实时周期执行后调用一次， kaanh::update_state函数可以替换成用户的函数
+	cs.setRtPlanPostCallback(kaanh::update_state);
+
+	//设置虚拟轴，保证window不做ethercat连接检查
 #ifdef WIN32
 	for (auto &m : cs.controller().slavePool())
 	{
 		dynamic_cast<aris::control::EthercatMotor&>(m).setVirtual(true);
 	}
-#endif // WIN32
+#endif
 
-	//Start Web Socket//
+	//start Web Socket
     cs.open();
 
-	//Receive Command//
+	//Receive Command from terminal
 	cs.runCmdLine();
 
 	return 0;

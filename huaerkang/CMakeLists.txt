@@ -26,7 +26,7 @@ endif(WIN32)
 include_directories(${kaanh_INCLUDE_DIRS})
 
 message(${aris_DIR} ${kaanh_DIR})
-add_executable(huaerkang src/main.cpp src/kaanh.h src/config.cpp src/config.h src/kaanhconfig.h)
+add_executable(huaerkang src/main.cpp src/config.cpp src/config.h)
 if(UNIX)
     target_link_libraries(huaerkang ${aris_LIBRARIES} ${kaanh_LIBRARIES} atomic)
 endif(UNIX)
