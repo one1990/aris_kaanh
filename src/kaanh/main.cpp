@@ -36,6 +36,7 @@ int main(int argc, char *argv[])
     std::cout << "path:" << path << std::endl;
 	std::cout << "logfolder:" << logp << std::endl;
 
+    /*
 	//生成kaanh.xml文档
     //-------for rokae robot begin
     cs.resetController(kaanhconfig::createControllerRokaeXB4().release());
@@ -47,10 +48,10 @@ int main(int argc, char *argv[])
     cs.resetSensorRoot(new aris::sensor::SensorRoot);
 	//cs.interfaceRoot().loadXmlFile(uixmlpath.string().c_str());
 	//cs.model().saveXmlFile(modelxmlpath.string().c_str());	//when creat new model
-    cs.model().loadXmlFile(modelxmlpath.string().c_str());
+    //cs.model().loadXmlFile(modelxmlpath.string().c_str());
     cs.saveXmlFile(xmlpath.string().c_str());
     //-------for rokae robot end// 
-
+    */
     
     /*
 	auto ret_load = cal.calculateExpression("pose({1,2,3,4,5,6,7})");
