@@ -1,11 +1,10 @@
 ﻿#include <iostream>
 #include <aris.hpp>
 #include "config.h"
-#include "kaanh/kaanhconfig.h"
 #include "kaanh.h"
-#include<atomic>
-#include<string>
-#include<filesystem>
+#include <atomic>
+#include <string>
+#include <filesystem>
 
 
 using namespace aris::dynamic;

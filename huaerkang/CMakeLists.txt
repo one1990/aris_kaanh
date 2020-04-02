@@ -17,7 +17,7 @@ include_directories(${aris_INCLUDE_DIRS})
 
 # find kaanh
 if(UNIX)
-	add_definitions(-DUNIX)
+        add_definitions(-DUNIX)
         find_package(kaanh REQUIRED PATHS /usr/kaanh)
 endif(UNIX)
 IF(WIN32)

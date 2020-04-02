@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <aris.hpp>
+#include "kaanh/kaanhconfig.h"
 
 //global time speed array//
 extern double timespeed[101];

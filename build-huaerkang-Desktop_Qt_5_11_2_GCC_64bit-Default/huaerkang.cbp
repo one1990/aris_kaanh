@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6"/>
+	<Project>
+		<Option title="huaerkang"/>
+		<Option makefile_is_custom="1"/>
+		<Option compiler="gcc"/>
+		<Option virtualFolders="CMake Files\;CMake Files\..\;CMake Files\..\..\;CMake Files\..\..\..\;CMake Files\..\..\..\..\;CMake Files\..\..\..\..\usr\;CMake Files\..\..\..\..\usr\aris\;CMake Files\..\..\..\..\usr\aris\aris-1.5.0\;CMake Files\..\..\..\..\usr\aris\aris-1.5.0\share\;CMake Files\..\..\..\..\usr\aris\aris-1.5.0\share\aris\;CMake Files\..\..\..\..\usr\aris\aris-1.5.0\share\aris\cmake\;CMake Files\..\..\..\..\usr\kaanh\;CMake Files\..\..\..\..\usr\kaanh\kaanh-1.0\;CMake Files\..\..\..\..\usr\kaanh\kaanh-1.0\share\;CMake Files\..\..\..\..\usr\kaanh\kaanh-1.0\share\kaanh\;CMake Files\..\..\..\..\usr\kaanh\kaanh-1.0\share\kaanh\cmake\;"/>
+		<Build>
+			<Target title="all">
+				<Option working_dir="/home/kaanh/Desktop/aris_kaanh/build-huaerkang-Desktop_Qt_5_11_2_GCC_64bit-Default"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/home/kaanh/Desktop/aris_kaanh/build-huaerkang-Desktop_Qt_5_11_2_GCC_64bit-Default/Makefile&quot;  VERBOSE=1 all"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/home/kaanh/Desktop/aris_kaanh/build-huaerkang-Desktop_Qt_5_11_2_GCC_64bit-Default/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/home/kaanh/Desktop/aris_kaanh/build-huaerkang-Desktop_Qt_5_11_2_GCC_64bit-Default/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/home/kaanh/Desktop/aris_kaanh/build-huaerkang-Desktop_Qt_5_11_2_GCC_64bit-Default/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="rebuild_cache">
+				<Option working_dir="/home/kaanh/Desktop/aris_kaanh/build-huaerkang-Desktop_Qt_5_11_2_GCC_64bit-Default"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/home/kaanh/Desktop/aris_kaanh/build-huaerkang-Desktop_Qt_5_11_2_GCC_64bit-Default/Makefile&quot;  VERBOSE=1 rebuild_cache"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/home/kaanh/Desktop/aris_kaanh/build-huaerkang-Desktop_Qt_5_11_2_GCC_64bit-Default/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/home/kaanh/Desktop/aris_kaanh/build-huaerkang-Desktop_Qt_5_11_2_GCC_64bit-Default/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/home/kaanh/Desktop/aris_kaanh/build-huaerkang-Desktop_Qt_5_11_2_GCC_64bit-Default/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="edit_cache">
+				<Option working_dir="/home/kaanh/Desktop/aris_kaanh/build-huaerkang-Desktop_Qt_5_11_2_GCC_64bit-Default"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/home/kaanh/Desktop/aris_kaanh/build-huaerkang-Desktop_Qt_5_11_2_GCC_64bit-Default/Makefile&quot;  VERBOSE=1 edit_cache"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/home/kaanh/Desktop/aris_kaanh/build-huaerkang-Desktop_Qt_5_11_2_GCC_64bit-Default/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/home/kaanh/Desktop/aris_kaanh/build-huaerkang-Desktop_Qt_5_11_2_GCC_64bit-Default/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/home/kaanh/Desktop/aris_kaanh/build-huaerkang-Desktop_Qt_5_11_2_GCC_64bit-Default/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="huaerkang">
+				<Option output="/home/kaanh/Desktop/aris_kaanh/build-huaerkang-Desktop_Qt_5_11_2_GCC_64bit-Default/huaerkang" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/kaanh/Desktop/aris_kaanh/build-huaerkang-Desktop_Qt_5_11_2_GCC_64bit-Default"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-DUNIX"/>
+					<Add directory="/usr/aris/aris-1.5.0/include"/>
+					<Add directory="/usr/kaanh/kaanh-1.0/include"/>
+					<Add directory="/usr/include/c++/8"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/8"/>
+					<Add directory="/usr/include/c++/8/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/8/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/8/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/home/kaanh/Desktop/aris_kaanh/build-huaerkang-Desktop_Qt_5_11_2_GCC_64bit-Default/Makefile&quot;  VERBOSE=1 huaerkang"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/home/kaanh/Desktop/aris_kaanh/build-huaerkang-Desktop_Qt_5_11_2_GCC_64bit-Default/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/home/kaanh/Desktop/aris_kaanh/build-huaerkang-Desktop_Qt_5_11_2_GCC_64bit-Default/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/home/kaanh/Desktop/aris_kaanh/build-huaerkang-Desktop_Qt_5_11_2_GCC_64bit-Default/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="huaerkang/fast">
+				<Option output="/home/kaanh/Desktop/aris_kaanh/build-huaerkang-Desktop_Qt_5_11_2_GCC_64bit-Default/huaerkang" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/kaanh/Desktop/aris_kaanh/build-huaerkang-Desktop_Qt_5_11_2_GCC_64bit-Default"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-DUNIX"/>
+					<Add directory="/usr/aris/aris-1.5.0/include"/>
+					<Add directory="/usr/kaanh/kaanh-1.0/include"/>
+					<Add directory="/usr/include/c++/8"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/8"/>
+					<Add directory="/usr/include/c++/8/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/8/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/8/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/home/kaanh/Desktop/aris_kaanh/build-huaerkang-Desktop_Qt_5_11_2_GCC_64bit-Default/Makefile&quot;  VERBOSE=1 huaerkang/fast"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/home/kaanh/Desktop/aris_kaanh/build-huaerkang-Desktop_Qt_5_11_2_GCC_64bit-Default/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/home/kaanh/Desktop/aris_kaanh/build-huaerkang-Desktop_Qt_5_11_2_GCC_64bit-Default/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/home/kaanh/Desktop/aris_kaanh/build-huaerkang-Desktop_Qt_5_11_2_GCC_64bit-Default/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+		</Build>
+		<Unit filename="/home/kaanh/Desktop/huaerkang/src/config.cpp">
+			<Option target="huaerkang"/>
+		</Unit>
+		<Unit filename="/home/kaanh/Desktop/huaerkang/src/config.h">
+			<Option target="huaerkang"/>
+		</Unit>
+		<Unit filename="/home/kaanh/Desktop/huaerkang/src/main.cpp">
+			<Option target="huaerkang"/>
+		</Unit>
+		<Unit filename="/home/kaanh/Desktop/huaerkang/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\"/>
+		</Unit>
+		<Unit filename="/home/kaanh/Desktop/huaerkang/../../../../usr/aris/aris-1.5.0/share/aris/cmake/aris-config.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\usr\aris\aris-1.5.0\share\aris\cmake\"/>
+		</Unit>
+		<Unit filename="/home/kaanh/Desktop/huaerkang/../../../../usr/aris/aris-1.5.0/share/aris/cmake/aris-targets-debug-release.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\usr\aris\aris-1.5.0\share\aris\cmake\"/>
+		</Unit>
+		<Unit filename="/home/kaanh/Desktop/huaerkang/../../../../usr/aris/aris-1.5.0/share/aris/cmake/aris-targets-debug.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\usr\aris\aris-1.5.0\share\aris\cmake\"/>
+		</Unit>
+		<Unit filename="/home/kaanh/Desktop/huaerkang/../../../../usr/aris/aris-1.5.0/share/aris/cmake/aris-targets-release-release.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\usr\aris\aris-1.5.0\share\aris\cmake\"/>
+		</Unit>
+		<Unit filename="/home/kaanh/Desktop/huaerkang/../../../../usr/aris/aris-1.5.0/share/aris/cmake/aris-targets-release.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\usr\aris\aris-1.5.0\share\aris\cmake\"/>
+		</Unit>
+		<Unit filename="/home/kaanh/Desktop/huaerkang/../../../../usr/kaanh/kaanh-1.0/share/kaanh/cmake/kaanh-config.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\usr\kaanh\kaanh-1.0\share\kaanh\cmake\"/>
+		</Unit>
+		<Unit filename="/home/kaanh/Desktop/huaerkang/../../../../usr/kaanh/kaanh-1.0/share/kaanh/cmake/kaanh-lib-debug-release.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\usr\kaanh\kaanh-1.0\share\kaanh\cmake\"/>
+		</Unit>
+		<Unit filename="/home/kaanh/Desktop/huaerkang/../../../../usr/kaanh/kaanh-1.0/share/kaanh/cmake/kaanh-lib-debug.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\usr\kaanh\kaanh-1.0\share\kaanh\cmake\"/>
+		</Unit>
+		<Unit filename="/home/kaanh/Desktop/huaerkang/../../../../usr/kaanh/kaanh-1.0/share/kaanh/cmake/kaanh-lib-release-release.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\usr\kaanh\kaanh-1.0\share\kaanh\cmake\"/>
+		</Unit>
+		<Unit filename="/home/kaanh/Desktop/huaerkang/../../../../usr/kaanh/kaanh-1.0/share/kaanh/cmake/kaanh-lib-release.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\usr\kaanh\kaanh-1.0\share\kaanh\cmake\"/>
+		</Unit>
+	</Project>
+</CodeBlocks_project_file>

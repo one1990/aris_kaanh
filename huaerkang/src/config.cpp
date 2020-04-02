@@ -4,6 +4,7 @@
 #include <string>
 #include <bitset>
 #include "kaanh.h"
+#include "kaanh/kaanhconfig.h"
 #include "config.h"
 
 using namespace aris::dynamic;
@@ -336,7 +337,7 @@ namespace config
 		plan_root->planPool().add<kaanh::Var>();
 		plan_root->planPool().add<kaanh::Evaluate>();
 		
-		plan_root->planPool().add<kaanh::JogJ1>();
+        plan_root->planPool().add<kaanh::JogJ1>();
 		plan_root->planPool().add<kaanh::JogJ2>();
 		plan_root->planPool().add<kaanh::JogJ3>();
 		plan_root->planPool().add<kaanh::JogJ4>();

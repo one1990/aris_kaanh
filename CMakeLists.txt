@@ -47,7 +47,7 @@ target_include_directories(kaanh_lib
 set_target_properties(kaanh_lib PROPERTIES PUBLIC_HEADER "${HEADERS}")
 set(kaanh_LIBRARIES ${kaanh_LIBRARIES} optimized kaanh::kaanh_lib debug kaanh::debug::kaanh_lib)
 set(KAANH_LINK_LIB ${KAANH_LINK_LIB} kaanh_lib)
-	
+
 install(TARGETS kaanh_lib EXPORT kaanh-lib-debug PUBLIC_HEADER DESTINATION "include/kaanh" ARCHIVE CONFIGURATIONS Debug DESTINATION "lib/debug")
 install(TARGETS kaanh_lib EXPORT kaanh-lib-release PUBLIC_HEADER DESTINATION "include/kaanh" ARCHIVE CONFIGURATIONS Release DESTINATION "lib/release")
 

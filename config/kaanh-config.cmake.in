@@ -6,7 +6,7 @@ link_directories(${RELY_LINK_DIR})
 set_and_check(kaanh_INCLUDE_DIRS "@kaanh_INCLUDE_DIRS@")
 set(kaanh_LIBRARIES "@kaanh_LIBRARIES@")
 if(UNIX)
-	set(kaanh_LIBRARIES -Wl,--start-group ${aris_LIBRARIES} -Wl,--end-group)
+	set(kaanh_LIBRARIES -Wl,--start-group ${kaanh_LIBRARIES} -Wl,--end-group)
 endif(UNIX)
 
 
