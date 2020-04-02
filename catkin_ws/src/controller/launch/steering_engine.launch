@@ -1,0 +1,29 @@
+<launch>
+ <!-- Turtlesim Node-->
+  <!-- node pkg="turtlesim" type="turtlesim_node" name="sim"/ -->
+
+ <!-- joy node -->
+  <node respawn="true" pkg="joy_dynamixel"
+        type="joy_node" name="joy_node" >
+    <param name="dev" type="string" value="/dev/input/js0" />
+    <param name="deadzone" value="0.12" />
+  </node>
+
+ <!-- Axes -->
+  <param name="axis_linear" value="1" type="int"/>
+  <param name="axis_angular" value="0" type="int"/>
+  <param name="scale_linear" value="2" type="double"/>
+  <param name="scale_angular" value="2" type="double"/>
+  <node pkg="controller" type="RobotJoy" name="RobotJoy"/>
+  <!-- node pkg="controller" type="listener" name="listener"/ -->
+  <!-- node pkg="controller" type="controller" name="controller"/ -->
+
+  <node pkg="controller" type="dynamixel_Controller" name="dynamixel_Controller"/>
+  <node pkg="controller" type="steering_engine" name="steering_engine"/>
+
+  <!-- param name="rz" value="1.0" type="double"/ -->
+  <!-- param name="j6" value="1.0" type="double"/ -->
+  <!-- node pkg="controller" type="listener" name="listener"/ -->
+
+
+</launch>
