@@ -12,7 +12,7 @@ using namespace aris::plan;
 
 namespace config
 {
-	//创建controller
+	//创建controller，具体参考手册
     auto createController()->std::unique_ptr<aris::control::Controller>	/*函数返回的是一个类指针，指针指向Controller,controller的类型是智能指针std::unique_ptr*/
     {
         std::unique_ptr<aris::control::Controller> controller(new aris::control::EthercatController);/*创建std::unique_ptr实例*/
@@ -91,7 +91,7 @@ namespace config
         }
         return controller;
     }
-    //创建model
+    //创建model，具体参考手册
 	auto createModel(const double *robot_pm)->std::unique_ptr<aris::dynamic::Model>
     {
 		aris::dynamic::Serial3Param param;
@@ -103,7 +103,8 @@ namespace config
 		return std::move(model);
     }
 	
-	//MoveAbs的指令参数结构体
+	//MoveAbs的指令参数结构体，单位为m或rad制
+	//每条指令先执行prepareNrt;然后执行executeRT,执行的时间由用户指定或者规划出;执行结束后，本指令会被析构
 	struct MoveAbsParam
 	{
 		std::vector<double> axis_begin_pos_vec;	//起始位置
@@ -328,34 +329,30 @@ namespace config
 			"</Command>");
 	}
 	
-	//MoveLine的指令参数结构体
+	//MoveLine的指令参数结构体，单位为m或rad
+	//每条指令先执行prepareNrt;然后执行executeRT,执行的时间由用户指定或者规划出;执行结束后，本指令会被析构
 	struct MoveLineParam
 	{
 		std::vector<double> axis_begin_pos_vec;	//起始位置
 		std::vector<double> axis_pos_vec;		//目标位置
-		std::vector<double> axis_vel_vec;		//目标速度
-		std::vector<double> axis_acc_vec;		//目标加速度
-		std::vector<double> axis_dec_vec;		//目标加速度
-		std::vector<double> axis_jerk_vec;		//目标跃度
+		double axis_vel_vec;		//目标速度
+		double axis_acc_vec;		//目标加速度
+		double axis_dec_vec;		//目标加速度
+		double axis_jerk_vec;		//目标跃度
 	};
 	auto MoveLine::prepareNrt()->void
 	{
 		std::cout << "movel:" << std::endl;
 		MoveLineParam param;
+		param.axis_begin_pos_vec.resize(model()->motionPool().size(), 0.0);
 
-		param.axis_begin_pos_vec.resize(controller()->motionPool().size(), 0.0);
-
-		//解析指令参数
+		//解析指令参数，单位为m或rad
 		for (auto cmd_param : cmdParams())
 		{
 			if (cmd_param.first == "pos")
 			{
 				auto p = matrixParam(cmd_param.first);
-				if (p.size() == 1)
-				{
-					param.axis_pos_vec.resize(controller()->motionPool().size(), p.toDouble());
-				}
-				else if (p.size() == controller()->motionPool().size())
+				if (p.size() == model()->motionPool().size())
 				{
 					param.axis_pos_vec.assign(p.begin(), p.end());
 				}
@@ -363,162 +360,97 @@ namespace config
 				{
 					THROW_FILE_LINE("");
 				}
-				for (Size i = 0; i < controller()->motionPool().size(); ++i)
+				//tcp位置的最大最小值需要用户自己设定，这里默认设置为0.5
+				for (Size i = 0; i < model()->motionPool().size(); ++i)
 				{
-					if (param.axis_pos_vec[i] > controller()->motionPool()[i].maxPos() || param.axis_pos_vec[i] < controller()->motionPool()[i].minPos())
+					if (param.axis_pos_vec[i] > 0.5 || param.axis_pos_vec[i] < -0.5)
 						THROW_FILE_LINE("input pos beyond range");
 				}
 			}
 			else if (cmd_param.first == "acc")
 			{
-				auto a = matrixParam(cmd_param.first);
+				param.axis_acc_vec = doubleParam(cmd_param.first);
 
-				if (a.size() == 1)
-				{
-					param.axis_acc_vec.resize(controller()->motionPool().size(), a.toDouble());
-				}
-				else if (a.size() == controller()->motionPool().size())
-				{
-					param.axis_acc_vec.assign(a.begin(), a.end());
-				}
-				else
-				{
-					THROW_FILE_LINE("");
-				}
-				for (Size i = 0; i < controller()->motionPool().size(); ++i)
-				{
-					if (param.axis_acc_vec[i] > controller()->motionPool()[i].maxAcc() || param.axis_acc_vec[i] < controller()->motionPool()[i].minAcc())
-						THROW_FILE_LINE("input acc beyond range");
-				}
+				//线加速度的最大最小值需要用户自己设定，这里默认设置为50
+				if (param.axis_acc_vec > 50 || param.axis_acc_vec < -50)
+					THROW_FILE_LINE("input acc beyond range");
+
 
 			}
 			else if (cmd_param.first == "vel")
 			{
-				auto v = matrixParam(cmd_param.first);
+				param.axis_vel_vec = doubleParam(cmd_param.first);
 
-				if (v.size() == 1)
-				{
-					param.axis_vel_vec.resize(controller()->motionPool().size(), v.toDouble());
-				}
-				else if (v.size() == controller()->motionPool().size())
-				{
-					param.axis_vel_vec.assign(v.begin(), v.end());
-				}
-				else
-				{
-					THROW_FILE_LINE("");
-				}
-				for (Size i = 0; i < controller()->motionPool().size(); ++i)
-				{
-					if (param.axis_vel_vec[i] > controller()->motionPool()[i].maxVel() || param.axis_vel_vec[i] < controller()->motionPool()[i].minVel())
-						THROW_FILE_LINE("input vel beyond range");
-				}
+				//线加速度的最大最小值需要用户自己设定，这里默认设置为10
+				if (param.axis_vel_vec > 10 || param.axis_vel_vec < -10)
+					THROW_FILE_LINE("input vel beyond range");
 			}
 			else if (cmd_param.first == "dec")
 			{
-				auto d = matrixParam(cmd_param.first);
+				param.axis_dec_vec = doubleParam(cmd_param.first);
 
-				if (d.size() == 1)
-				{
-					param.axis_dec_vec.resize(controller()->motionPool().size(), d.toDouble());
-				}
-				else if (d.size() == controller()->motionPool().size())
-				{
-					param.axis_dec_vec.assign(d.begin(), d.end());
-				}
-				else
-				{
-					THROW_FILE_LINE("");
-				}
-				for (Size i = 0; i < controller()->motionPool().size(); ++i)
-				{
-					if (param.axis_dec_vec[i] > controller()->motionPool()[i].maxAcc() || param.axis_dec_vec[i] < controller()->motionPool()[i].minAcc())
-						THROW_FILE_LINE("input dec beyond range");
-				}
+				//线加速度的最大最小值需要用户自己设定
+				if (param.axis_dec_vec > 50 || param.axis_dec_vec < -50)
+					THROW_FILE_LINE("input dec beyond range");
 			}
 			else if (cmd_param.first == "jerk")
 			{
-				auto d = matrixParam(cmd_param.first);
+				param.axis_jerk_vec = doubleParam(cmd_param.first);
 
-				if (d.size() == 1)
-				{
-					param.axis_jerk_vec.resize(controller()->motionPool().size(), d.toDouble());
-				}
-				else if (d.size() == controller()->motionPool().size())
-				{
-					param.axis_jerk_vec.assign(d.begin(), d.end());
-				}
-				else
-				{
-					THROW_FILE_LINE("");
-				}
-				for (Size i = 0; i < controller()->motionPool().size(); ++i)
-				{
-					if (param.axis_jerk_vec[i] > controller()->motionPool()[i].maxAcc()*100.0 || param.axis_jerk_vec[i] < controller()->motionPool()[i].minAcc()*100.0)
-						THROW_FILE_LINE("input jerk beyond range");
-				}
+				//线加速度的最大最小值需要用户自己设定
+				if (param.axis_jerk_vec > 100 || param.axis_jerk_vec < -100)
+					THROW_FILE_LINE("input jerk beyond range");
 			}
 		}
 
 		this->param() = param;
+		
+		for (auto &option : motorOptions())	option |= USE_TARGET_POS;//使用模型
+		
+		//返回值格式
 		std::vector<std::pair<std::string, std::any>> ret_value;
 		ret() = ret_value;
 	}
 	auto MoveLine::executeRT()->int
 	{
-		auto param = std::any_cast<MoveAbsParam>(&this->param());
-
+		auto param = std::any_cast<MoveLineParam>(&this->param());
+		static double xyz_norm;
 		if (count() == 1)
 		{
-			for (Size i = 0; i < param->active_motor.size(); ++i)
-			{
-				if (param->active_motor[i])
-				{
-					param->axis_begin_pos_vec[i] = controller()->motionPool()[i].actualPos();
-				}
-			}
+			model()->generalMotionPool().at(0).getMpe(param->axis_begin_pos_vec.data());
+			xyz_norm = std::sqrt(std::pow(param->axis_pos_vec[0]-param->axis_begin_pos_vec[0], 2) + std::pow(param->axis_pos_vec[1]-param->axis_begin_pos_vec[1], 2) + std::pow(param->axis_pos_vec[2]-param->axis_begin_pos_vec[2], 2));
 		}
 
 		aris::Size total_count{ 1 };
-		for (Size i = 0; i < param->active_motor.size(); ++i)
-		{
-			if (param->active_motor[i])
-			{
-				double p, v, a, j;
-				aris::Size t_count;
-				//梯形轨迹规划
-				//aris::plan::moveAbsolute(count(),
-				//	param->axis_begin_pos_vec[i], param->axis_pos_vec[i],
-				//	param->axis_vel_vec[i] / 1000, param->axis_acc_vec[i] / 1000 / 1000, param->axis_dec_vec[i] / 1000 / 1000,
-				//	p, v, a, t_count);
 
-				//s形规划//
-				traplan::sCurve(count(), param->axis_begin_pos_vec[i], param->axis_pos_vec[i],
-					param->axis_vel_vec[i] / 1000, param->axis_acc_vec[i] / 1000 / 1000, param->axis_jerk_vec[i] / 1000 / 1000 / 1000,
-					p, v, a, j, t_count);
-				controller()->motionPool()[i].setTargetPos(p);
-				if (i < model()->motionPool().size())
-				{
-					model()->motionPool()[i].setMp(p);
-				}
-				total_count = std::max(total_count, t_count);
+		double p, v, a, j;
+		aris::Size t_count;
+		//梯形轨迹规划
+		//aris::plan::moveAbsolute(count(),
+		//	0.0, xyz_norm,
+		//	param->axis_vel_vec / 1000, param->axis_acc_vec / 1000 / 1000, param->axis_dec_vec / 1000 / 1000,
+		//	p, v, a, t_count);
 
-			}
-		}
-
-		// 设置末端位置 //
-		//double ee[3]{ 1.68070023071933, 0.35446729674924, -0.22165182186613 };
-		//solver.setPosEE(ee);
+		//s形规划//
+		traplan::sCurve(count(), 0.0, xyz_norm,
+			param->axis_vel_vec / 1000, param->axis_acc_vec / 1000 / 1000, param->axis_jerk_vec / 1000 / 1000 / 1000,
+			p, v, a, j, t_count);
+		total_count = std::max(total_count, t_count);
 
 		// 获得求解器，求反解 //
 		auto &solver = dynamic_cast<aris::dynamic::Serial3InverseKinematicSolver&>(model()->solverPool()[0]);
+		
 		// 设置解，一共4个，设为4时会选最优解 //
 		solver.setWhichRoot(4);
-		if (solver.kinPos())return -1;
+		
+		// 设置末端位置 //
+		double ee[3]{ param->axis_begin_pos_vec[0] + p*(param->axis_pos_vec[0] - param->axis_begin_pos_vec[0])/xyz_norm, 
+			param->axis_begin_pos_vec[1] + p * (param->axis_pos_vec[1] - param->axis_begin_pos_vec[1]) / xyz_norm, 
+		param->axis_begin_pos_vec[2] + p * (param->axis_pos_vec[2] - param->axis_begin_pos_vec[2]) / xyz_norm};
+		solver.setPosEE(ee);
 
-		// 获取正解求解器，求正解//
-		auto &forward = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(model()->solverPool()[1]);
-		forward.kinPos();
+		//求反解，模型会相应的给电机发指令
+		if (solver.kinPos())return -1;//prepareNrt中添加了USE_TARGET_POS,控制才会生效
 
 		//返回0表示正常结束，返回负数表示报错，返回正数表示正在执行
 		return total_count - count();
@@ -538,8 +470,7 @@ namespace config
 			"</Command>");
 	}
 
-
-
+	//每一条用户开发的指令都要添加到如下planPool()中，格式参考其他指令
 	auto createPlanRoot()->std::unique_ptr<aris::plan::PlanRoot>
 	{
 		std::unique_ptr<aris::plan::PlanRoot> plan_root(new aris::plan::PlanRoot);
