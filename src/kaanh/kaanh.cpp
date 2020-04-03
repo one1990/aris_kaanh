@@ -617,31 +617,44 @@ namespace kaanh
 		auto &cs = *controlServer();
 		auto &inter = dynamic_cast<aris::server::ProgramWebInterface&>(cs.interfacePool().at(0));
 
-        std::vector<std::pair<std::string, std::any>> out_param;
-        out_param.push_back(std::make_pair<std::string, std::any>("part_pq", out_data.part_pq));
-        out_param.push_back(std::make_pair<std::string, std::any>("end_pq", out_data.end_pq));
-        out_param.push_back(std::make_pair<std::string, std::any>("end_pe", out_data.end_pe));
-        out_param.push_back(std::make_pair<std::string, std::any>("motion_pos", out_data.motion_pos));
-        out_param.push_back(std::make_pair<std::string, std::any>("motion_vel", out_data.motion_vel));
-        out_param.push_back(std::make_pair<std::string, std::any>("motion_acc", out_data.motion_acc));
-        out_param.push_back(std::make_pair<std::string, std::any>("motion_toq", out_data.motion_toq));
-        out_param.push_back(std::make_pair<std::string, std::any>("ai", out_data.ai));
-        out_param.push_back(std::make_pair<std::string, std::any>("di", out_data.di));
-        out_param.push_back(std::make_pair<std::string, std::any>("state_code", out_data.state_code));
-        out_param.push_back(std::make_pair<std::string, std::any>("slave_link_num", std::int32_t(out_data.mls.slaves_responding)));
-        out_param.push_back(std::make_pair<std::string, std::any>("slave_online_state", slave_online));
-        out_param.push_back(std::make_pair<std::string, std::any>("slave_al_state", slave_al_state));
-        out_param.push_back(std::make_pair<std::string, std::any>("motion_state", out_data.motion_state));
-        out_param.push_back(std::make_pair<std::string, std::any>("current_plan", out_data.currentplan));
-        out_param.push_back(std::make_pair<std::string, std::any>("current_plan_id", cmdparam.current_plan_id));
-		out_param.push_back(std::make_pair(std::string("cs_err_code"), std::make_any<int>(cs.errorCode())));
-		out_param.push_back(std::make_pair(std::string("cs_err_msg"), std::make_any<std::string>(cs.errorMsg())));
-		out_param.push_back(std::make_pair(std::string("pro_err_code"), std::make_any<int>(inter.lastErrorCode())));
-		out_param.push_back(std::make_pair(std::string("pro_err_msg"), std::make_any<std::string>(inter.lastError())));
-		out_param.push_back(std::make_pair(std::string("pro_err_line"), std::make_any<int>(inter.lastErrorLine())));
-		out_param.push_back(std::make_pair(std::string("line"), std::make_any<int>(inter.currentLine())));
-
-
+		std::vector<std::pair<std::string, std::any>> out_param;
+		for (auto p : cmdParams())
+		{
+			if (p.first == "all")
+			{
+				out_param.push_back(std::make_pair<std::string, std::any>("part_pq", out_data.part_pq));
+				out_param.push_back(std::make_pair<std::string, std::any>("end_pq", out_data.end_pq));
+				out_param.push_back(std::make_pair<std::string, std::any>("end_pe", out_data.end_pe));
+				out_param.push_back(std::make_pair<std::string, std::any>("motion_pos", out_data.motion_pos));
+				out_param.push_back(std::make_pair<std::string, std::any>("motion_vel", out_data.motion_vel));
+				out_param.push_back(std::make_pair<std::string, std::any>("motion_acc", out_data.motion_acc));
+				out_param.push_back(std::make_pair<std::string, std::any>("motion_toq", out_data.motion_toq));
+				out_param.push_back(std::make_pair<std::string, std::any>("ai", out_data.ai));
+				out_param.push_back(std::make_pair<std::string, std::any>("di", out_data.di));
+				out_param.push_back(std::make_pair<std::string, std::any>("state_code", out_data.state_code));
+				out_param.push_back(std::make_pair<std::string, std::any>("slave_link_num", std::int32_t(out_data.mls.slaves_responding)));
+				out_param.push_back(std::make_pair<std::string, std::any>("slave_online_state", slave_online));
+				out_param.push_back(std::make_pair<std::string, std::any>("slave_al_state", slave_al_state));
+				out_param.push_back(std::make_pair<std::string, std::any>("motion_state", out_data.motion_state));
+				out_param.push_back(std::make_pair<std::string, std::any>("current_plan", out_data.currentplan));
+				out_param.push_back(std::make_pair<std::string, std::any>("current_plan_id", cmdparam.current_plan_id));
+				out_param.push_back(std::make_pair(std::string("cs_err_code"), std::make_any<int>(cs.errorCode())));
+				out_param.push_back(std::make_pair(std::string("cs_err_msg"), std::make_any<std::string>(cs.errorMsg())));
+				out_param.push_back(std::make_pair(std::string("pro_err_code"), std::make_any<int>(inter.lastErrorCode())));
+				out_param.push_back(std::make_pair(std::string("pro_err_msg"), std::make_any<std::string>(inter.lastError())));
+				out_param.push_back(std::make_pair(std::string("pro_err_line"), std::make_any<int>(inter.lastErrorLine())));
+				out_param.push_back(std::make_pair(std::string("line"), std::make_any<int>(inter.currentLine())));
+			}
+			else if (p.first == "pos")
+			{
+				out_param.push_back(std::make_pair<std::string, std::any>("motion_pos", out_data.motion_pos));
+			}
+			else if (p.first == "vel")
+			{
+				out_param.push_back(std::make_pair<std::string, std::any>("motion_vel", out_data.motion_vel));
+			}
+		}
+        
         ret() = out_param;
         option() |= NOT_RUN_EXECUTE_FUNCTION | NOT_PRINT_CMD_INFO | NOT_PRINT_CMD_INFO;
     }
@@ -650,6 +663,13 @@ namespace kaanh
     {
         command().loadXmlStr(
             "<Command name=\"get\">"
+			"	<GroupParam>"
+			"		<UniqueParam default=\"all\">"
+			"			<Param name=\"all\"/>"
+			"			<Param name=\"pos\"/>"
+			"			<Param name=\"vel\"/>"
+			"		</UniqueParam>"
+			"	</GroupParam>"
             "</Command>");
     }
 

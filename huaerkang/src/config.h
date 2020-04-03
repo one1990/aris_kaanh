@@ -14,15 +14,26 @@ namespace config
 	using Size = std::size_t;
 	constexpr double PI = 3.141592653589793;
 
-	class MoveAbsJ :public aris::plan::Plan
+	class MoveAbs :public aris::plan::Plan
 	{
 	public:
 		auto virtual prepareNrt()->void;
 		auto virtual executeRT()->int;
 
-		virtual ~MoveAbsJ();
-		explicit MoveAbsJ(const std::string &name = "mvaj");
-		ARIS_REGISTER_TYPE(config::MoveAbsJ);
+		virtual ~MoveAbs();
+		explicit MoveAbs(const std::string &name = "mvaj");
+		ARIS_REGISTER_TYPE(config::MoveAbs);
+	};
+
+	class MoveLine :public aris::plan::Plan
+	{
+	public:
+		auto virtual prepareNrt()->void;
+		auto virtual executeRT()->int;
+
+		virtual ~MoveLine();
+		explicit MoveLine(const std::string &name = "movel");
+		ARIS_REGISTER_TYPE(config::MoveLine);
 	};
 
     auto createController()->std::unique_ptr<aris::control::Controller>;

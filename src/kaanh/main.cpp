@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
     cs.resetSensorRoot(new aris::sensor::SensorRoot);
 	//cs.interfaceRoot().loadXmlFile(uixmlpath.string().c_str());
 	//cs.model().saveXmlFile(modelxmlpath.string().c_str());	//when creat new model
-    //cs.model().loadXmlFile(modelxmlpath.string().c_str());
+    cs.model().loadXmlFile(modelxmlpath.string().c_str());
     cs.saveXmlFile(xmlpath.string().c_str());
     //-------for rokae robot end// 
     */
