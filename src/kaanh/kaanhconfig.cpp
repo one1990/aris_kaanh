@@ -939,11 +939,11 @@ namespace kaanhconfig
 		plan_root->planPool().add<kaanh::MoveAbsJ>();
 		plan_root->planPool().add<kaanh::MoveL>();
 		plan_root->planPool().add<kaanh::MoveJ>();
+		plan_root->planPool().add<kaanh::MoveC>();
 		plan_root->planPool().add<kaanh::Get>();
 		plan_root->planPool().add<kaanh::Var>();
 		plan_root->planPool().add<kaanh::Evaluate>();
 		
-		plan_root->planPool().add<kaanh::MoveC>();
 		plan_root->planPool().add<kaanh::JogJ1>();
 		plan_root->planPool().add<kaanh::JogJ2>();
 		plan_root->planPool().add<kaanh::JogJ3>();
@@ -957,6 +957,7 @@ namespace kaanhconfig
 		plan_root->planPool().add<kaanh::JRX>();
 		plan_root->planPool().add<kaanh::JRY>();
 		plan_root->planPool().add<kaanh::JRZ>();
+
 		plan_root->planPool().add<kaanh::ClearCon>();
 		plan_root->planPool().add<kaanh::SetCon>();
 		plan_root->planPool().add<kaanh::SetDH>();
@@ -989,7 +990,6 @@ namespace kaanhconfig
 		plan_root->planPool().add<CalibZL>();
 		plan_root->planPool().add<SwitchTool>();
 		
-
 		return plan_root;
 	}
 }

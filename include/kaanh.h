@@ -545,6 +545,14 @@ namespace kaanh
 		ARIS_REGISTER_TYPE(SaveXml);
 	};
 
+	class SetPdo : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepareNrt()->void;
+		explicit SetPdo(const std::string &name = "SetPdo_plan");
+		ARIS_REGISTER_TYPE(SetPdo);
+	};
+
 	class ScanSlave : public aris::plan::Plan
 	{
 	public:

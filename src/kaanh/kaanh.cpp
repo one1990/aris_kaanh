@@ -6790,6 +6790,7 @@ namespace kaanh
 	struct SaveXmlParam
 	{
 		std::string path;
+		std::string filename;
 	};
 	auto SaveXml::prepareNrt()->void
 	{
@@ -6803,13 +6804,20 @@ namespace kaanh
 			{
 				param.path = p.second;
 			}
+			else if (p.first == "filename")
+			{
+				param.filename = p.second;
+			}
 		}
         if (param.path == "")
 		{
 			param.path = std::filesystem::absolute(".").string();
 		}
-		const std::string xmlfile = "kaanh.xml";
-		param.path = param.path + '/' + xmlfile;
+		if (param.filename == "")
+		{
+			param.filename = "kaanh.xml";
+		};
+		param.path = param.path + '/' + param.filename;
 
 		std::cout << "input path:" << param.path << std::endl;
         cs.saveXmlFile(param.path.c_str());
@@ -6824,6 +6832,66 @@ namespace kaanh
 			"<Command name=\"savexml\">"
 			"	<GroupParam>"
 			"		<Param name=\"path\" default=\"\"/>"
+			"		<Param name=\"filename\" default=\"\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
+
+
+	// 写pdo //
+	struct SetPdoParam
+	{
+		int motion_id;
+		std::uint16_t index;
+		std::uint8_t subindex;
+		std::int32_t value;
+		aris::Size bit_size;
+	};
+	auto SetPdo::prepareNrt()->void
+	{
+		auto&cs = aris::server::ControlServer::instance();
+
+		SetPdoParam param;
+		for (auto &p : cmdParams())
+		{
+			if (p.first == "motion_id")
+			{
+				
+				param.motion_id = int32Param(p.first);
+			}
+			else if (p.first == "index")
+			{
+				param.index = int32Param(p.first);
+			}
+			else if (p.first == "subindex")
+			{
+				param.subindex = int32Param(p.first);
+			}
+			else if (p.first == "value")
+			{
+				param.value = int32Param(p.first);
+			}
+			else if (p.first == "bitsize")
+			{
+				param.bit_size = int32Param(p.first);
+			}
+		}
+		ecController()->slavePool().at(param.motion_id).writePdo(0x60c2, 0x01, &param.value, param.bit_size);
+		
+		std::vector<std::pair<std::string, std::any>> ret_value;
+		ret() = ret_value;
+		option() = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION|aris::plan::Plan::NOT_RUN_COLLECT_FUNCTION;
+	}
+	SetPdo::SetPdo(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"setpdo\">"
+			"	<GroupParam>"
+			"		<Param name=\"motion_id\" default=\"0\"/>"
+			"		<Param name=\"index\" default=\"0x6040\"/>"
+			"		<Param name=\"subindex\" default=\"0x00\"/>"
+			"		<Param name=\"value\" default=\"1\"/>"
+			"		<Param name=\"bitsize\" default=\"16\"/>"
 			"	</GroupParam>"
 			"</Command>");
 	}

@@ -39,8 +39,8 @@ int main(int argc, char *argv[])
 
 	/*
 	//生成kaanh.xml文档
-	cs.resetController(config::createController().release());
-	cs.resetModel(config::createModel().release());
+	cs.resetController(config::createController().release());	//根据createController()返回值创建controller
+	cs.resetModel(config::createModel().release());				//根据createModel()返回值创建controller
 	cs.resetPlanRoot(config::createPlanRoot().release());
 	cs.interfacePool().add<aris::server::ProgramWebInterface>("", "5866", aris::core::Socket::WEB);
 	cs.interfacePool().add<aris::server::WebInterface>("", "5867", aris::core::Socket::TCP);
