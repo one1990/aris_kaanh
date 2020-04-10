@@ -17,7 +17,7 @@ namespace config
     {
         std::unique_ptr<aris::control::Controller> controller(new aris::control::EthercatController);/*创建std::unique_ptr实例*/
  
-        for (aris::Size i = 0; i < 4; ++i)
+        for (aris::Size i = 0; i < 2; ++i)
         {
 #ifdef WIN32
 			//配置零位偏置
@@ -60,8 +60,8 @@ namespace config
             };
 			//根据从站的ESI文件，以及上述参数配置从站信息，格式是xml格式
             std::string xml_str =
-                "<EthercatMotor phy_id=\"" + std::to_string(i) + "\" product_code=\"0x01\""
-                " vendor_id=\"0x00000748\" revision_num=\"0x0002\" dc_assign_activate=\"0x0300\""
+                "<EthercatMotor phy_id=\"" + std::to_string(i) + "\" product_code=\"0x60500000\""
+                " vendor_id=\"251\" revision_num=\"0x01500000\" dc_assign_activate=\"0x0300\""
                 " min_pos=\"" + std::to_string(min_pos[i]) + "\" max_pos=\"" + std::to_string(max_pos[i]) + "\" max_vel=\"" + std::to_string(max_vel[i]) + "\" min_vel=\"" + std::to_string(-max_vel[i]) + "\""
                 " max_acc=\"" + std::to_string(max_acc[i]) + "\" min_acc=\"" + std::to_string(-max_acc[i]) + "\" max_pos_following_error=\"0.1\" max_vel_following_error=\"0.5\""
                 " home_pos=\"0\" pos_factor=\"" + std::to_string(pos_factor[i]) + "\" pos_offset=\"" + std::to_string(pos_offset[i]) + "\">"
@@ -103,6 +103,68 @@ namespace config
 		return std::move(model);
     }
 	
+    double g_count = 0.0;
+    std::atomic_int g_vel_percent = 100;
+
+    template<typename MoveType>
+    auto updatecount(MoveType *plan)->void
+    {
+        if (plan->count() == 1)
+        {
+            g_count = 0.0;
+        }
+        //渐变调速
+        static double g_vel_percent_last = g_vel_percent.load();
+        static double g_vel_percent_now = g_vel_percent.load();
+        g_vel_percent_now = g_vel_percent.load();
+        if (g_vel_percent_now - g_vel_percent_last >= 0.5)
+        {
+            g_vel_percent_last = g_vel_percent_last + 0.5;
+        }
+        else if (g_vel_percent_now - g_vel_percent_last <= -0.5 )
+        {
+            g_vel_percent_last = g_vel_percent_last - 0.5;
+        }
+        else
+        {
+            g_vel_percent_last = g_vel_percent_now;
+        }
+
+        g_count = g_count + g_vel_percent_last / 100.0;
+    }
+
+    //设置全局速度//
+    struct GVelParam
+    {
+        int vel_percent;
+    };
+    auto GVel::prepareNrt()->void
+    {
+        GVelParam param;
+        for (auto &p : cmdParams())
+        {
+            if (p.first == "vel_percent")
+            {
+                param.vel_percent = int32Param(p.first);
+            }
+        }
+        g_vel_percent.store(param.vel_percent);
+
+        std::vector<std::pair<std::string, std::any>> ret_value;
+        ret() = ret_value;
+        option() = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
+    }
+    GVel::GVel(const std::string &name) :Plan(name)
+    {
+        command().loadXmlStr(
+            "<Command name=\"gvel\">"
+            "	<GroupParam>"
+            "		<Param name=\"vel_percent\" abbreviation=\"p\" default=\"0\"/>"
+            "	</GroupParam>"
+            "</Command>");
+    }
+
+
 	//MoveAbs的指令参数结构体，长度单位是m，角度单位是rad
 	//每条指令的执行顺序
 	//1、先执行prepareNrt，每条指令只执行一次
@@ -261,7 +323,9 @@ namespace config
 		
 		if (count() == 1)
 		{
-			for (Size i = 0; i < param->active_motor.size(); ++i)
+            controller()->logFileRawName("motion_replay");//log name
+
+            for (Size i = 0; i < param->active_motor.size(); ++i)
 			{
 				if (param->active_motor[i])
 				{
@@ -270,13 +334,14 @@ namespace config
 			}
 		}
 
+        updatecount(this);
 		aris::Size total_count{ 1 };
 		for (Size i = 0; i < param->active_motor.size(); ++i)
 		{
 			if (param->active_motor[i])
 			{
 				double p, v, a, j;
-				aris::Size t_count;
+                double t_count;
 				//梯形轨迹规划
 				//aris::plan::moveAbsolute(count(),
 				//	param->axis_begin_pos_vec[i], param->axis_pos_vec[i],
@@ -284,30 +349,16 @@ namespace config
 				//	p, v, a, t_count);
 
 				//s形规划//
-				traplan::sCurve(count(), param->axis_begin_pos_vec[i], param->axis_pos_vec[i],
+                traplan::sCurved(g_count, param->axis_begin_pos_vec[i], param->axis_pos_vec[i],
 					param->axis_vel_vec[i] / 1000, param->axis_acc_vec[i] / 1000 / 1000, param->axis_jerk_vec[i] / 1000 / 1000 / 1000,
 					p, v, a, j, t_count);
 				controller()->motionPool()[i].setTargetPos(p);
-				total_count = std::max(total_count, t_count);
+                total_count = std::max(total_count, aris::Size(t_count));
 			}
 		}
-		
-		// 设置末端位置 //
-		//double ee[3]{ 1.68070023071933, 0.35446729674924, -0.22165182186613 };
-		//solver.setPosEE(ee);
-
-		// 获得求解器，求反解 //
-		 auto &solver = dynamic_cast<aris::dynamic::Serial3InverseKinematicSolver&>(model()->solverPool()[0]);
-		// 设置解，一共4个，设为4时会选最优解 //
-		 solver.setWhichRoot(4);
-		 solver.kinPos();
-		 
-		// 获取正解求解器，求正解//
-		auto &forward = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(model()->solverPool()[1]);
-		forward.kinPos();
-		
+			
 		//返回0表示正常结束，返回负数表示报错，返回正数表示正在执行
-		return total_count - count();
+        return total_count - int(g_count);
 	}
 	auto MoveAbs::collectNrt()->void {}
 	MoveAbs::~MoveAbs() = default;
@@ -317,9 +368,9 @@ namespace config
 			"<Command name=\"moveabs\">"
 			"	<GroupParam>"
 			"		<Param name=\"pos\" default=\"0.0\"/>"
-			"		<Param name=\"vel\" default=\"1.0\"/>"
-			"		<Param name=\"acc\" default=\"1.0\"/>"
-			"		<Param name=\"dec\" default=\"1.0\"/>"
+            "		<Param name=\"vel\" default=\"0.5\"/>"
+            "		<Param name=\"acc\" default=\"0.5\"/>"
+            "		<Param name=\"dec\" default=\"0.5\"/>"
 			"		<Param name=\"jerk\" default=\"10.0\"/>"
 			"		<UniqueParam default=\"all\">"\
 			"			<Param name=\"all\" abbreviation=\"a\"/>"\
@@ -503,6 +554,7 @@ namespace config
 
 		if (count() == 1)
 		{
+            controller()->logFileRawName("motion_replay");//log name
 			//获取外部轴的起始位置
 			for (int i = 0; i < param->ext_pos_begin.size(); i++)
 			{
@@ -554,8 +606,9 @@ namespace config
 			param->max_total_count = std::max(ori_total_count, ext_max_count);
 		}
 
+        updatecount(this);
 		//姿态规划
-		traplan::sCurve(count(), 0.0, 1.0, param->vel / 1000.0 / param->ori_theta / 2.0*param->ori_ratio, param->acc / 1000.0 / 1000.0 / param->ori_theta / 2.0*param->ori_ratio*param->ori_ratio,
+        traplan::sCurve(g_count, 0.0, 1.0, param->vel / 1000.0 / param->ori_theta / 2.0*param->ori_ratio, param->acc / 1000.0 / 1000.0 / param->ori_theta / 2.0*param->ori_ratio*param->ori_ratio,
 			param->jerk / 1000.0 / 1000.0 / 1000.0 / param->ori_theta / 2.0*param->ori_ratio*param->ori_ratio*param->ori_ratio, p, v, a, j, ori_total_count);
 		kaanh::slerp(q_begin, q_end, q_target, p);//求每个count规划的四元数
 		solver.setQuaternionAngle(q_target);//发送四元数给model
@@ -564,13 +617,13 @@ namespace config
 		//外部轴规划
 		for (int i = 0; i < param->ext_pos_begin.size(); i++)
 		{
-			traplan::sCurve(count(), param->ext_pos_begin[i], param->ext_pos[i], param->ext_vel[i] / 1000.0*param->pos_ratio, param->ext_acc[i] / 1000.0 / 1000.0*param->pos_ratio*param->pos_ratio,
+            traplan::sCurve(g_count, param->ext_pos_begin[i], param->ext_pos[i], param->ext_vel[i] / 1000.0*param->pos_ratio, param->ext_acc[i] / 1000.0 / 1000.0*param->pos_ratio*param->pos_ratio,
 				param->ext_jerk[i] / 1000.0 / 1000.0 / 1000.0*param->pos_ratio*param->pos_ratio*param->pos_ratio, p, v, a, j, ext_total_count);
 			controller()->motionPool().at(i + model()->motionPool().size()).setTargetPos(p);
 		}
 
 		//返回0表示正常结束，返回负数表示报错，返回正数表示正在执行
-		return param->max_total_count - count();
+        return param->max_total_count - int(g_count);
 	}
 	auto MoveLine::collectNrt()->void {}
 	MoveLine::~MoveLine() = default;
@@ -732,6 +785,7 @@ namespace config
 		//在第一个周期，获取3个关节的起始角度值，同时根据目标姿态ee求反解，得出3个关节的目标角度值
 		if (count() == 1)
 		{
+            controller()->logFileRawName("motion_replay");//log name
 			// 获得求解器 //
 			auto &solver = dynamic_cast<aris::dynamic::Serial3InverseKinematicSolver&>(model()->solverPool()[0]);
 			solver.setEulaAngle(mvj_param->ee.data(), mvj_param->eul_type.c_str());
@@ -752,11 +806,6 @@ namespace config
 					mvj_param->axis_pos_vec[i] = mvj_param->ee[i];//获取外部轴的目标角度值
 				}			
 				
-				//梯形轨迹规划//
-				//aris::plan::moveAbsolute(count(), mvj_param->axis_begin_pos_vec[i], mvj_param->axis_pos_vec[i]
-				//	, mvj_param->axis_vel_vec[i] / 1000, mvj_param->axis_acc_vec[i] / 1000 / 1000, mvj_param->axis_dec_vec[i] / 1000 / 1000
-				//	, p, v, a, mvj_param->total_count[i]);
-
 				//S形轨迹规划//
 				traplan::sCurve(count(), mvj_param->axis_begin_pos_vec[i], mvj_param->axis_begin_pos_vec[i],
 					mvj_param->axis_vel_vec[i] / 1000, mvj_param->axis_acc_vec[i] / 1000 / 1000, mvj_param->axis_jerk_vec[i] / 1000 / 1000 / 1000,
@@ -767,17 +816,13 @@ namespace config
 			max_total_count = *std::max_element(mvj_param->total_count.begin(), mvj_param->total_count.end());
 		}
 
+        updatecount(this);
+
 		//根据T型规划或者S型规划，控制每个关节运动
 		for (Size i = 0; i < controller()->motionPool().size(); ++i)
 		{
-			//梯形轨迹规划//
-			//aris::plan::moveAbsolute(static_cast<double>(count()) * mvj_param->total_count[i] / max_total_count,
-			//	mvj_param->axis_begin_pos_vec[i], mvj_param->axis_pos_vec[i],
-			//	mvj_param->axis_vel_vec[i] / 1000, mvj_param->axis_acc_vec[i] / 1000 / 1000, mvj_param->axis_dec_vec[i] / 1000 / 1000,
-			//	p, v, a, mvj_param->total_count[i]);
-
 			//S形轨迹规划//
-			traplan::sCurve(static_cast<double>(count()) * mvj_param->total_count[i] / max_total_count,
+            traplan::sCurve(g_count * mvj_param->total_count[i] / max_total_count,
 				mvj_param->axis_begin_pos_vec[i], mvj_param->axis_pos_vec[i],
 				mvj_param->axis_vel_vec[i] / 1000, mvj_param->axis_acc_vec[i] / 1000 / 1000, mvj_param->axis_jerk_vec[i] / 1000 / 1000 / 1000,
 				p, v, a, j, mvj_param->total_count[i]);
@@ -785,14 +830,14 @@ namespace config
 			controller()->motionPool()[i].setTargetPos(p);
 		}
 
-		return max_total_count == 0 ? 0 : max_total_count - count();
+        return max_total_count == 0 ? 0 : max_total_count - int(g_count);
 	}
 	auto MoveJ::collectNrt()->void{}
 	MoveJ::~MoveJ() = default;
 	MoveJ::MoveJ(const std::string &name) :Plan(name)
 	{
 		command().loadXmlStr(
-			"<Command name=\"movej\">"
+            "<Command name=\"movejoint\">"
 			"	<GroupParam>"
 			"		<Param name=\"ee\" default=\"{0,0,0,0}\"/>"
 			"		<Param name=\"eul_type\" default=\"321\"/>"
@@ -813,45 +858,18 @@ namespace config
 		plan_root->planPool().add<config::MoveAbs>();
 		plan_root->planPool().add<config::MoveLine>();
 		plan_root->planPool().add<config::MoveJ>();
+        plan_root->planPool().add<config::GVel>();
 
-		//
 		plan_root->planPool().add<aris::plan::Enable>();
 		plan_root->planPool().add<aris::plan::Disable>();
 		plan_root->planPool().add<aris::plan::Start>();
 		plan_root->planPool().add<aris::plan::Stop>();
 		plan_root->planPool().add<aris::plan::Mode>();
 		plan_root->planPool().add<aris::plan::Clear>();
-		plan_root->planPool().add<kaanh::Recover>();
-		plan_root->planPool().add<kaanh::Reset>();
+        plan_root->planPool().add<kaanh::Recover>();
+        plan_root->planPool().add<kaanh::Reset>();
 
-		plan_root->planPool().add<aris::server::GetInfo>();
-		plan_root->planPool().add<kaanh::Get>();
-		plan_root->planPool().add<kaanh::Var>();
-		plan_root->planPool().add<kaanh::Evaluate>();
-		
-        plan_root->planPool().add<kaanh::JogJ1>();
-		plan_root->planPool().add<kaanh::JogJ2>();
-		plan_root->planPool().add<kaanh::JogJ3>();
-		plan_root->planPool().add<kaanh::JogJ4>();
-		plan_root->planPool().add<kaanh::JogJ5>();
-		plan_root->planPool().add<kaanh::JogJ6>();
-		plan_root->planPool().add<kaanh::JogJ7>();
-		plan_root->planPool().add<kaanh::JX>();
-		plan_root->planPool().add<kaanh::JY>();
-		plan_root->planPool().add<kaanh::JZ>();
-		plan_root->planPool().add<kaanh::JRX>();
-		plan_root->planPool().add<kaanh::JRY>();
-		plan_root->planPool().add<kaanh::JRZ>();
-		plan_root->planPool().add<kaanh::SetDH>();
-		plan_root->planPool().add<kaanh::SetPPath>();
-		plan_root->planPool().add<kaanh::SetUI>();
-		plan_root->planPool().add<kaanh::SetDriver>();
-		plan_root->planPool().add<kaanh::SaveXml>();
-		plan_root->planPool().add<kaanh::ScanSlave>();
-		plan_root->planPool().add<kaanh::GetXml>();
-		plan_root->planPool().add<kaanh::SetXml>();
-		plan_root->planPool().add<kaanh::SetCT>();
-		plan_root->planPool().add<kaanh::SetVel>();
+        plan_root->planPool().add<kaanh::Get>();
 
 		return plan_root;
 	}

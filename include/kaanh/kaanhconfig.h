@@ -16,7 +16,7 @@ namespace kaanhconfig
 	auto createControllerEA()->std::unique_ptr<aris::control::Controller>;
 
 	auto createModelRokaeXB4(const double *robot_pm = nullptr)->std::unique_ptr<aris::dynamic::Model>;
-	auto createControllerRokaeXB4()->std::unique_ptr<aris::control::Controller>;
+    auto createControllerRokaeXB4()->std::unique_ptr<aris::control::Controller>;
 	auto createModelRokae()->std::unique_ptr<aris::dynamic::Model>;
 	
 	auto createControllerSanXiang()->std::unique_ptr<aris::control::Controller>;

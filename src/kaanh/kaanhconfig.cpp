@@ -11,6 +11,7 @@
 
 using namespace aris::dynamic;
 using namespace aris::plan;
+using namespace aris::robot;
 
 namespace kaanhconfig
 {
@@ -52,12 +53,11 @@ namespace kaanhconfig
 		return controller;
 	};
 
-	auto createControllerRokaeXB4()->std::unique_ptr<aris::control::Controller>	/*函数返回的是一个类指针，指针指向Controller,controller的类型是智能指针std::unique_ptr*/
+    auto createControllerRokaeXB4()->std::unique_ptr<aris::control::Controller>	/*函数返回的是一个类指针，指针指向Controller,controller的类型是智能指针std::unique_ptr*/
 	{
-		std::unique_ptr<aris::control::Controller> controller(aris::robot::createControllerRokaeXB4());/*创建std::unique_ptr实例*/
+        std::unique_ptr<aris::control::Controller>controller(aris::robot::createControllerRokaeXB4());
 
 #ifdef UNIX
-
         dynamic_cast<aris::control::Motor&>(controller->slavePool()[0]).setPosOffset(0.083326167813560906);
         dynamic_cast<aris::control::Motor&>(controller->slavePool()[1]).setPosOffset(0.40688722035956698);
         dynamic_cast<aris::control::Motor&>(controller->slavePool()[2]).setPosOffset(-0.063596878644675794);
@@ -235,8 +235,8 @@ namespace kaanhconfig
 
     auto createControllerDaye()->std::unique_ptr<aris::control::Controller>	/*函数返回的是一个类指针，指针指向Controller,controller的类型是智能指针std::unique_ptr*/
     {
-        std::unique_ptr<aris::control::Controller> controller(aris::robot::createControllerRokaeXB4());/*创建std::unique_ptr实例*/
-        controller->slavePool().clear();	//清除slavePool中的元素，后面重新添加
+        std::unique_ptr<aris::control::Controller>controller(new aris::control::EthercatController);/*创建std::unique_ptr实例*/
+
         for (aris::Size i = 0; i < 6; ++i)
         {
 #ifdef WIN32

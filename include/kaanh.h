@@ -164,6 +164,7 @@ namespace kaanh
 	public:
 		auto virtual prepareNrt()->void;
 		auto virtual executeRT()->int;
+        auto virtual collectNrt()->void;
 
 		virtual ~Reset();
 		explicit Reset(const std::string &name = "reset_plan");

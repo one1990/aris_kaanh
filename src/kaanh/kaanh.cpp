@@ -437,7 +437,7 @@ namespace kaanh
 			{
 				param.axis_vel_vec.resize(plan.controller()->motionPool().size(), 0.0);
                 auto v = std::any_cast<kaanh::Speed>(cal.calculateExpression("speed(" + std::string(cmd_param.second) + ")").second);
-                for (int i = 0; i < 6; ++i)
+                for (int i = 0; i < plan.controller()->motionPool().size(); ++i)
                 {
                     param.axis_vel_vec[i] = plan.controller()->motionPool()[i].maxVel()*v.w_per;
                 }
@@ -780,7 +780,7 @@ namespace kaanh
         set_check_option(cmdParams(), *this);
         set_active_motor(cmdParams(), *this, *imp_);
         set_input_movement(cmdParams(), *this, *imp_);
-/*
+        /*
         for (Size i = 0; i < controller()->motionPool().size(); ++i)
         {
             auto &cm = controller()->motionPool()[i];
@@ -788,9 +788,10 @@ namespace kaanh
             imp_->axis_acc_vec[i] = imp_->axis_acc_vec[i] * cm.maxAcc();
             imp_->axis_dec_vec[i] = imp_->axis_dec_vec[i] * cm.maxAcc();
         }
-*/
+        */
         check_input_movement(cmdParams(), *this, *imp_, *imp_);
-
+        imp_->axis_pos_vec.clear();
+        imp_->axis_pos_vec.resize(controller()->motionPool().size(),0);
         imp_->total_count_vec.resize(controller()->motionPool().size(), 1);
 
         std::vector<std::pair<std::string, std::any>> ret_value;
@@ -820,12 +821,13 @@ namespace kaanh
                 aris::plan::moveAbsolute(static_cast<double>(count()), imp_->axis_begin_pos_vec[i], imp_->axis_pos_vec[i], imp_->axis_vel_vec[i] / 1000
                     , imp_->axis_acc_vec[i] / 1000 / 1000, imp_->axis_dec_vec[i] / 1000 / 1000, p, v, a, imp_->total_count_vec[i]);
                 controller()->motionAtAbs(i).setTargetPos(p);
-                model()->motionPool().at(i).setMp(p);
+                //model()->motionPool().at(i).setMp(p);//huaerkang
             }
         }
-        if (model()->solverPool().at(1).kinPos())return -1;
+        //if (model()->solverPool().at(1).kinPos())return -1;//huaerkang
         return (static_cast<int>(*std::max_element(imp_->total_count_vec.begin(), imp_->total_count_vec.end())) > count()) ? 1 : 0;
     }
+    auto Reset::collectNrt()->void{}
     Reset::~Reset() = default;
     Reset::Reset(const std::string &name) :Plan(name), imp_(new Imp)
     {
@@ -886,7 +888,7 @@ namespace kaanh
             for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
             {
                 controller()->motionPool()[i].setTargetPos(controller()->motionPool().at(i).actualPos());
-                model()->motionPool()[i].setMp(controller()->motionPool().at(i).actualPos());
+                //model()->motionPool()[i].setMp(controller()->motionPool().at(i).actualPos());
             }
 
             param->is_rt_waiting_ready_.store(true);
@@ -1062,7 +1064,8 @@ namespace kaanh
 			}
 		}
 	}
-	//雅克比矩阵判断奇异点//
+
+    //雅克比矩阵判断奇异点//
 	auto IsSingular(Plan &plan)->bool
 	{
 		auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(plan.model()->solverPool()[1]);

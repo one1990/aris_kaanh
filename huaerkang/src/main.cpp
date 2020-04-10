@@ -22,19 +22,18 @@ int main(int argc, char *argv[])
 	
 	//生成控制器配置文件kaanh.xml，里面包括从站配置信息、模型、websocket\socket端口等信息
 	//生成一次kaanh.xml配置后，用户可以取消如下注释，后面可以自动加载kaanh.xml配置
-	/*
+
 	cs.resetController(config::createController().release());	//根据createController()返回值创建controller对象池
 	cs.resetModel(config::createModel().release());				//根据createModel()返回值创建model对象池
 	cs.resetPlanRoot(config::createPlanRoot().release());		//根据createPlanRoot()函数的返回值创建plan对象池
-	cs.interfacePool().add<aris::server::ProgramWebInterface>("", "5866", aris::core::Socket::WEB);	//创建websocket服务，端口号5866
+    cs.interfacePool().add<aris::server::ProgramWebInterface>("", "5866", aris::core::Socket::WEB);	//创建websocket服务，端口号5866
 	cs.interfacePool().add<aris::server::WebInterface>("", "5867", aris::core::Socket::TCP);		//创建socket服务，端口号5867
 	cs.resetSensorRoot(new aris::sensor::SensorRoot);			//aris自身配置，原封不动添加即可
 	cs.saveXmlFile(xmlpath.string().c_str());					//保存上述配置信息到xmlpath指定的路径
-	*/
+    //cs.loadXmlFile(xmlpath.string().c_str());//加载已有的kaanh.xml配置
+    cs.init();//注册controller、model、plan对象池
 
-    cs.loadXmlFile(xmlpath.string().c_str());//加载已有的kaanh.xml配置
-	cs.init();//注册controller、model、plan对象池
-
+    cs.controller().setSamplePeriodNs(2000000);
 	//修改log路径
 	aris::core::logDirectory(logpath);
 

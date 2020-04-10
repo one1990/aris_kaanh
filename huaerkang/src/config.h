@@ -4,6 +4,7 @@
 #include <memory>
 #include <aris.hpp>
 #include "kaanh/kaanhconfig.h"
+#include "kaanh.h"
 
 //global time speed array//
 extern double timespeed[101];
@@ -14,6 +15,15 @@ namespace config
 	using Size = std::size_t;
 	constexpr double PI = 3.141592653589793;
 
+    class GVel : public aris::plan::Plan
+    {
+    public:
+        auto virtual prepareNrt()->void;
+        explicit GVel(const std::string &name = "GVel");
+        ARIS_REGISTER_TYPE(GVel);
+
+    };
+
 	class MoveAbs :public aris::plan::Plan
 	{
 	public:
@@ -22,8 +32,8 @@ namespace config
 		auto virtual collectNrt()->void;
 
 		virtual ~MoveAbs();
-		explicit MoveAbs(const std::string &name = "mvaj");
-		ARIS_REGISTER_TYPE(config::MoveAbs);
+        explicit MoveAbs(const std::string &name = "moveabs");
+        ARIS_REGISTER_TYPE(MoveAbs);
 	};
 
 	class MoveLine :public aris::plan::Plan
@@ -34,8 +44,8 @@ namespace config
 		auto virtual collectNrt()->void;
 
 		virtual ~MoveLine();
-		explicit MoveLine(const std::string &name = "movel");
-		ARIS_REGISTER_TYPE(config::MoveLine);
+        explicit MoveLine(const std::string &name = "moveline");
+        ARIS_REGISTER_TYPE(MoveLine);
 	};
 
 	class MoveJ : public aris::plan::Plan
@@ -46,8 +56,8 @@ namespace config
 		auto virtual collectNrt()->void;
 
 		virtual ~MoveJ();
-		explicit MoveJ(const std::string &name = "movej");
-		ARIS_REGISTER_TYPE(config::MoveJ);
+        explicit MoveJ(const std::string &name = "movejoint");
+        ARIS_REGISTER_TYPE(MoveJ);
 
 	};
 
