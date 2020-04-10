@@ -53,7 +53,9 @@ namespace kaanh
 	//其他参数和函数声明 
 	using Size = std::size_t;
 	constexpr double PI = 3.141592653589793;
-
+	auto cal_ori_theta(double *q_begin, double *q_end, double &ori_theta)->void;
+	void slerp(double starting[4], double ending[4], double result[4], double t);
+	auto check_eul_validity(const std::string &eul_type)->bool;
 
 	class MoveBase : public aris::plan::Plan
 	{

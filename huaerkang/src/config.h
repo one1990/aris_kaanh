@@ -19,6 +19,7 @@ namespace config
 	public:
 		auto virtual prepareNrt()->void;
 		auto virtual executeRT()->int;
+		auto virtual collectNrt()->void;
 
 		virtual ~MoveAbs();
 		explicit MoveAbs(const std::string &name = "mvaj");
@@ -30,10 +31,24 @@ namespace config
 	public:
 		auto virtual prepareNrt()->void;
 		auto virtual executeRT()->int;
+		auto virtual collectNrt()->void;
 
 		virtual ~MoveLine();
 		explicit MoveLine(const std::string &name = "movel");
 		ARIS_REGISTER_TYPE(config::MoveLine);
+	};
+
+	class MoveJ : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepareNrt()->void;
+		auto virtual executeRT()->int;
+		auto virtual collectNrt()->void;
+
+		virtual ~MoveJ();
+		explicit MoveJ(const std::string &name = "movej");
+		ARIS_REGISTER_TYPE(config::MoveJ);
+
 	};
 
     auto createController()->std::unique_ptr<aris::control::Controller>;

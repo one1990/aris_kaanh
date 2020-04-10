@@ -3004,6 +3004,13 @@ namespace kaanh
 		par.ori_theta = std::abs((par.ee_begin_pq[3] * par.ee_end_pq[3] + par.ee_begin_pq[4] * par.ee_end_pq[4] + par.ee_begin_pq[5] * par.ee_end_pq[5] + par.ee_begin_pq[6] * par.ee_end_pq[6]) / (normv_begin_pq* normv_end_pq));
 		return 1;
 	}
+	auto cal_ori_theta(double *q_begin, double *q_end, double &ori_theta)->void
+	{
+		double normv_begin_pq = aris::dynamic::s_norm(4, q_begin);
+		double normv_end_pq = aris::dynamic::s_norm(4, q_end);
+
+		ori_theta = std::abs((q_begin[0] * q_end[0] + q_begin[1] * q_end[1] + q_begin[2] * q_end[2] + q_begin[3] * q_end[3]) / (normv_begin_pq* normv_end_pq));
+	}
 	auto cal_pqt(MoveCParam &par, Plan &plan, double *pqt)->void
 	{
         //位置规划//aris::Size
