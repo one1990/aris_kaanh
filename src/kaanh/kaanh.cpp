@@ -888,7 +888,7 @@ namespace kaanh
             for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
             {
                 controller()->motionPool()[i].setTargetPos(controller()->motionPool().at(i).actualPos());
-                //model()->motionPool()[i].setMp(controller()->motionPool().at(i).actualPos());
+                model()->motionPool()[i].setMp(controller()->motionPool().at(i).actualPos());
             }
 
             param->is_rt_waiting_ready_.store(true);
