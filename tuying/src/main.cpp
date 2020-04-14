@@ -293,6 +293,7 @@ int main(int argc, char *argv[])
     CPU_SET(2, &mask);
     */
 
+
     //Start t_Dynamixel thread//
     t_dynamixel = std::thread([&]()->bool
     {
@@ -851,7 +852,7 @@ int main(int argc, char *argv[])
 					std::cout << e.what() << std::endl;
 					LOG_ERROR << e.what() << std::endl;
 				}
-				std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			}
 		}
 
@@ -869,6 +870,7 @@ int main(int argc, char *argv[])
 		return 0;
     });
 
+
     std::cout <<"new"<<std::endl;
     xmlpath = xmlpath / xmlfile;
     uixmlpath = uixmlpath / uixmlfile;
@@ -881,40 +883,24 @@ int main(int argc, char *argv[])
     //生成kaanh.xml文档//
     
 	//-------for qifan robot begin//
-    /*
-    cs.resetController(kaanh::createControllerQifan().release());
-    cs.resetModel(kaanh::createModelQifan().release());
-    cs.resetPlanRoot(kaanh::createPlanRootRokaeXB4().release());
+    cs.resetController(tuying::createControllerQifan().release());
+    cs.resetModel(tuying::createModelQifan().release());
+    cs.resetPlanRoot(tuying::createPlanRoot().release());
     cs.interfacePool().add<aris::server::ProgramWebInterface>("", "5866", aris::core::Socket::WEB);
     cs.interfacePool().add<aris::server::WebInterface>("", "5867", aris::core::Socket::TCP);
     cs.interfacePool().add<aris::server::WebInterface>("", "5868", aris::core::Socket::TCP);
     cs.interfacePool().add<aris::server::WebInterface>("", "5869", aris::core::Socket::TCP);
     cs.resetSensorRoot(new aris::sensor::SensorRoot);
-    cs.model().loadXmlFile(modelxmlpath.string().c_str());
-    cs.interfaceRoot().loadXmlFile(uixmlpath.string().c_str());
+    //cs.model().loadXmlFile(modelxmlpath.string().c_str());
     cs.saveXmlFile(xmlpath.string().c_str());
-    */
+
     //-------for qifan robot end//
 
-
-    //-------for rokae robot begin//
-    /*
-    cs.resetController(kaanh::createControllerRokaeXB4().release());
-    cs.resetModel(kaanh::createModelRokae().release());
-    cs.resetPlanRoot(kaanh::createPlanRootRokaeXB4().release());
-    cs.interfacePool().add<aris::server::ProgramWebInterface>("", "5866", aris::core::Socket::WEB);
-    cs.interfacePool().add<aris::server::WebInterface>("", "5867", aris::core::Socket::TCP);
-    cs.resetSensorRoot(new aris::sensor::SensorRoot);
-    cs.model().loadXmlFile(modelxmlpath.string().c_str());
-    cs.interfaceRoot().loadXmlFile(uixmlpath.string().c_str());
-    cs.saveXmlFile(xmlpath.string().c_str());
-    */
-    //-------for rokae robot end//
-
     cs.loadXmlFile(xmlpath.string().c_str());
-    cs.resetPlanRoot(tuying::createPlanRootRokaeXB4().release());
+    cs.resetPlanRoot(tuying::createPlanRoot().release());
     cs.saveXmlFile(xmlpath.string().c_str());
 
+    cs.init();
 	auto &cal = cs.model().calculator();
 	kaanhconfig::createUserDataType(cal);
 	kaanhconfig::createPauseTimeSpeed();

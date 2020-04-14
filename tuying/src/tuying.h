@@ -23,10 +23,7 @@ namespace tuying
 	auto createControllerQifan()->std::unique_ptr<aris::control::Controller>;
 	auto createModelQifan()->std::unique_ptr<aris::dynamic::Model>;
 
-	auto createControllerRokaeXB4()->std::unique_ptr<aris::control::Controller>;
-	auto createModelRokae()->std::unique_ptr<aris::dynamic::Model>;
-
-	auto createPlanRootRokaeXB4()->std::unique_ptr<aris::plan::PlanRoot>;
+    auto createPlanRoot()->std::unique_ptr<aris::plan::PlanRoot>;
 
 	struct CmdListParam
 	{
@@ -38,8 +35,8 @@ namespace tuying
 	class Enable : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepareNrt()->void;
-		auto virtual executeRT()->int;
+        auto virtual prepareNrt()->void override;
+        auto virtual executeRT()->int override;
 
 		virtual ~Enable();
 		explicit Enable(const std::string &name = "enable_plan");
@@ -54,8 +51,8 @@ namespace tuying
 	class Disable : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepareNrt()->void;
-		auto virtual executeRT()->int;
+        auto virtual prepareNrt()->void override;
+        auto virtual executeRT()->int override;
 
 		virtual ~Disable();
 		explicit Disable(const std::string &name = "enable_plan");
@@ -67,21 +64,106 @@ namespace tuying
 		aris::core::ImpPtr<Imp> imp_;
 	};
 
+    class JogJ1 : public aris::plan::Plan
+    {
+    public:
+                auto virtual prepareNrt()->void override;
+                auto virtual executeRT()->int override;
+                auto virtual collectNrt()->void override;
+
+        virtual ~JogJ1();
+        explicit JogJ1(const std::string &name = "JogJ1_plan");
+        ARIS_REGISTER_TYPE(tuying::JogJ1);
+    };
+
+    class JogJ2 : public aris::plan::Plan
+    {
+    public:
+                auto virtual prepareNrt()->void override;
+                auto virtual executeRT()->int override;
+                auto virtual collectNrt()->void override;
+
+        virtual ~JogJ2();
+        explicit JogJ2(const std::string &name = "JogJ2_plan");
+        ARIS_REGISTER_TYPE(tuying::JogJ2);
+    };
+
+    class JogJ3 : public aris::plan::Plan
+    {
+    public:
+                auto virtual prepareNrt()->void override;
+                auto virtual executeRT()->int override;
+                auto virtual collectNrt()->void override;
+
+        virtual ~JogJ3();
+        explicit JogJ3(const std::string &name = "JogJ3_plan");
+        ARIS_REGISTER_TYPE(tuying::JogJ3);
+    };
+
+    class JogJ4 : public aris::plan::Plan
+    {
+    public:
+                auto virtual prepareNrt()->void override;
+                auto virtual executeRT()->int override;
+                auto virtual collectNrt()->void override;
+
+        virtual ~JogJ4();
+        explicit JogJ4(const std::string &name = "JogJ4_plan");
+        ARIS_REGISTER_TYPE(tuying::JogJ4);
+    };
+
+    class JogJ5 : public aris::plan::Plan
+    {
+    public:
+                auto virtual prepareNrt()->void override;
+                auto virtual executeRT()->int override;
+                auto virtual collectNrt()->void override;
+
+        virtual ~JogJ5();
+        explicit JogJ5(const std::string &name = "JogJ5_plan");
+        ARIS_REGISTER_TYPE(tuying::JogJ5);
+    };
+
+    class JogJ6 : public aris::plan::Plan
+    {
+    public:
+                auto virtual prepareNrt()->void override;
+                auto virtual executeRT()->int override;
+                auto virtual collectNrt()->void override;
+
+        virtual ~JogJ6();
+        explicit JogJ6(const std::string &name = "JogJ6_plan");
+        ARIS_REGISTER_TYPE(tuying::JogJ6);
+    };
+
+    class JogJ7 : public aris::plan::Plan
+    {
+    public:
+                auto virtual prepareNrt()->void override;
+                auto virtual executeRT()->int override;
+                auto virtual collectNrt()->void override;
+
+        virtual ~JogJ7();
+        explicit JogJ7(const std::string &name = "JogJ7_plan");
+        ARIS_REGISTER_TYPE(tuying::JogJ7);
+    };
+
+
 	class Get : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepareNrt()->void;
-		auto virtual collectNrt()->void;
+        auto virtual prepareNrt()->void override;
+        auto virtual collectNrt()->void override;
 
 		explicit Get(const std::string &name = "Get_plan");
-		ARIS_REGISTER_TYPE(Get);
+        ARIS_REGISTER_TYPE(tuying::Get);
 	};
 
     class Getp : public aris::plan::Plan
     {
     public:
-        auto virtual prepareNrt()->void;
-        auto virtual collectNrt()->void;
+        auto virtual prepareNrt()->void override;
+        auto virtual collectNrt()->void override;
 
         explicit Getp(const std::string &name = "Getp_plan");
         ARIS_REGISTER_TYPE(Getp);
@@ -90,9 +172,9 @@ namespace tuying
 	class MoveT : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepareNrt()->void;
-		auto virtual executeRT()->int;
-		auto virtual collectNrt()->void;
+        auto virtual prepareNrt()->void override;
+        auto virtual executeRT()->int override;
+        auto virtual collectNrt()->void override;
 
 		explicit MoveT(const std::string &name = "MoveT_plan");
 		ARIS_REGISTER_TYPE(MoveT);
@@ -101,9 +183,9 @@ namespace tuying
 	class MoveE0 : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepareNrt()->void;
-		auto virtual executeRT()->int;
-		auto virtual collectNrt()->void;
+        auto virtual prepareNrt()->void override;
+        auto virtual executeRT()->int override;
+        auto virtual collectNrt()->void override;
 
 		explicit MoveE0(const std::string &name = "MoveE0_plan");
 		ARIS_REGISTER_TYPE(MoveE0);
@@ -112,9 +194,9 @@ namespace tuying
 	class MoveE : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepareNrt()->void;
-		auto virtual executeRT()->int;
-		auto virtual collectNrt()->void;
+        auto virtual prepareNrt()->void override;
+        auto virtual executeRT()->int override;
+        auto virtual collectNrt()->void override;
 
 		explicit MoveE(const std::string &name = "MoveE_plan");
 		ARIS_REGISTER_TYPE(MoveE);
@@ -123,9 +205,9 @@ namespace tuying
 	class MoveAbJ : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepareNrt()->void;
-		auto virtual executeRT()->int;
-		auto virtual collectNrt()->void;
+        auto virtual prepareNrt()->void override;
+        auto virtual executeRT()->int override;
+        auto virtual collectNrt()->void override;
 
 		explicit MoveAbJ(const std::string &name = "MoveAbJ_plan");
 		ARIS_REGISTER_TYPE(MoveAbJ);
@@ -134,9 +216,9 @@ namespace tuying
 	class MoveJM : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepareNrt()->void;
-		auto virtual executeRT()->int;
-		auto virtual collectNrt()->void;
+        auto virtual prepareNrt()->void override;
+        auto virtual executeRT()->int override;
+        auto virtual collectNrt()->void override;
 
 		explicit MoveJM(const std::string &name = "MoveJM_plan");
 		ARIS_REGISTER_TYPE(MoveJM);
@@ -145,8 +227,8 @@ namespace tuying
 	class Xbox : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepareNrt()->void;
-		auto virtual collectNrt()->void;
+        auto virtual prepareNrt()->void override;
+        auto virtual collectNrt()->void override;
 		explicit Xbox(const std::string &name = "Xbox_plan");
 		ARIS_REGISTER_TYPE(Xbox);
 	};
@@ -154,8 +236,8 @@ namespace tuying
 	class DMode : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepareNrt()->void;
-		auto virtual collectNrt()->void;
+        auto virtual prepareNrt()->void override;
+        auto virtual collectNrt()->void override;
 		explicit DMode(const std::string &name = "DMode_plan");
 		ARIS_REGISTER_TYPE(DMode);
 	};
@@ -163,8 +245,8 @@ namespace tuying
 	class DEnable : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepareNrt()->void;
-		auto virtual collectNrt()->void;
+        auto virtual prepareNrt()->void override;
+        auto virtual collectNrt()->void override;
 		explicit DEnable(const std::string &name = "DEnable_plan");
 		ARIS_REGISTER_TYPE(DEnable);
 	};
@@ -172,8 +254,8 @@ namespace tuying
 	class DDisable : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepareNrt()->void;
-		auto virtual collectNrt()->void;
+        auto virtual prepareNrt()->void override;
+        auto virtual collectNrt()->void override;
 		explicit DDisable(const std::string &name = "DDisable_plan");
 		ARIS_REGISTER_TYPE(DDisable);
 	};
@@ -181,8 +263,8 @@ namespace tuying
 	class DJ1 : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepareNrt()->void;
-		auto virtual collectNrt()->void;
+        auto virtual prepareNrt()->void override;
+        auto virtual collectNrt()->void override;
 		explicit DJ1(const std::string &name = "DJ1_plan");
 		ARIS_REGISTER_TYPE(DJ1);
 	};
@@ -190,8 +272,8 @@ namespace tuying
 	class DJ2 : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepareNrt()->void;
-		auto virtual collectNrt()->void;
+        auto virtual prepareNrt()->void override;
+        auto virtual collectNrt()->void override;
 		explicit DJ2(const std::string &name = "DJ2_plan");
 		ARIS_REGISTER_TYPE(DJ2);
 	};
@@ -199,8 +281,8 @@ namespace tuying
 	class DJ3 : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepareNrt()->void;
-		auto virtual collectNrt()->void;
+        auto virtual prepareNrt()->void override;
+        auto virtual collectNrt()->void override;
 		explicit DJ3(const std::string &name = "DJ3_plan");
 		ARIS_REGISTER_TYPE(DJ3);
 	};
@@ -208,8 +290,8 @@ namespace tuying
     class DHome : public aris::plan::Plan
     {
     public:
-        auto virtual prepareNrt()->void;
-        auto virtual collectNrt()->void;
+        auto virtual prepareNrt()->void override;
+        auto virtual collectNrt()->void override;
         explicit DHome(const std::string &name = "DHome_plan");
         ARIS_REGISTER_TYPE(DHome);
     };
@@ -217,8 +299,8 @@ namespace tuying
 	class DMoveAbsJ : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepareNrt()->void;
-		auto virtual collectNrt()->void;
+        auto virtual prepareNrt()->void override;
+        auto virtual collectNrt()->void override;
 		explicit DMoveAbsJ(const std::string &name = "DMoveAbsJ_plan");
 		ARIS_REGISTER_TYPE(DMoveAbsJ);
 	};
@@ -226,7 +308,7 @@ namespace tuying
 	class SaveHome : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepareNrt()->void;
+        auto virtual prepareNrt()->void override;
 		explicit SaveHome(const std::string &name = "SaveHome_plan");
 		ARIS_REGISTER_TYPE(SaveHome);
 	};
@@ -234,7 +316,7 @@ namespace tuying
 	class SetHome : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepareNrt()->void;
+        auto virtual prepareNrt()->void override;
 		explicit SetHome(const std::string &name = "SetHome_plan");
 		ARIS_REGISTER_TYPE(SetHome);
 	};
@@ -242,9 +324,9 @@ namespace tuying
 	class ToHome : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepareNrt()->void;
-		auto virtual executeRT()->int;
-		auto virtual collectNrt()->void;
+        auto virtual prepareNrt()->void override;
+        auto virtual executeRT()->int override;
+        auto virtual collectNrt()->void override;
 
 		explicit ToHome(const std::string &name = "ToHome_plan");
 		ARIS_REGISTER_TYPE(ToHome);
@@ -253,9 +335,9 @@ namespace tuying
 	class SaveP : public aris::plan::Plan
 	{
 	public:
-		auto virtual prepareNrt()->void;
+        auto virtual prepareNrt()->void override;
 		explicit SaveP(const std::string &name = "SaveP_plan");
-        auto virtual collectNrt()->void;
+        auto virtual collectNrt()->void override;
 		ARIS_REGISTER_TYPE(SaveP);
 	};
 
