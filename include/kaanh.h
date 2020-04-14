@@ -42,7 +42,7 @@ extern std::atomic_bool g_is_stopped;
 extern aris::core::Calculator g_cal;
 extern aris::dynamic::Model g_model;
 extern aris::dynamic::Marker *g_tool, *g_wobj;
-
+extern std::atomic_int g_vel_percent;
 
 namespace kaanh
 {

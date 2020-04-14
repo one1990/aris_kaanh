@@ -106,6 +106,7 @@ namespace config
     double g_count = 0.0;
     std::atomic_int g_vel_percent = 100;
 
+	//全局速度函数，每个循环周期会指令的executeRT调用一次
     template<typename MoveType>
     auto updatecount(MoveType *plan)->void
     {
@@ -323,7 +324,7 @@ namespace config
 		
 		if (count() == 1)
 		{
-            controller()->logFileRawName("motion_replay");//log name
+            controller()->logFileRawName("motion_replay");//实时循环log的名称，用户可以自己定义
 
             for (Size i = 0; i < param->active_motor.size(); ++i)
 			{
@@ -357,6 +358,9 @@ namespace config
 			}
 		}
 			
+		controller()->mout() << total_count << std::endl;//实时循环内的打印函数，不能用cout非实时的打印函数
+		controller()->lout() << total_count << std::endl;//实时循环内的log函数，不能非实时读写硬盘的函数
+
 		//返回0表示正常结束，返回负数表示报错，返回正数表示正在执行
         return total_count - int(g_count);
 	}
@@ -554,7 +558,7 @@ namespace config
 
 		if (count() == 1)
 		{
-            controller()->logFileRawName("motion_replay");//log name
+            controller()->logFileRawName("motion_replay");//实时循环log的名称，用户可以自己定义
 			//获取外部轴的起始位置
 			for (int i = 0; i < param->ext_pos_begin.size(); i++)
 			{
@@ -785,7 +789,7 @@ namespace config
 		//在第一个周期，获取3个关节的起始角度值，同时根据目标姿态ee求反解，得出3个关节的目标角度值
 		if (count() == 1)
 		{
-            controller()->logFileRawName("motion_replay");//log name
+            controller()->logFileRawName("motion_replay");//实时循环log的名称，用户可以自己定义
 			// 获得求解器 //
 			auto &solver = dynamic_cast<aris::dynamic::Serial3InverseKinematicSolver&>(model()->solverPool()[0]);
 			solver.setEulaAngle(mvj_param->ee.data(), mvj_param->eul_type.c_str());
@@ -854,22 +858,23 @@ namespace config
 	auto createPlanRoot()->std::unique_ptr<aris::plan::PlanRoot>
 	{
 		std::unique_ptr<aris::plan::PlanRoot> plan_root(new aris::plan::PlanRoot);
-		//for 华尔康
-		plan_root->planPool().add<config::MoveAbs>();
-		plan_root->planPool().add<config::MoveLine>();
-		plan_root->planPool().add<config::MoveJ>();
-        plan_root->planPool().add<config::GVel>();
+		
+		//以下指令详细说明，请参考说明手册。另外，说明手册中的其他指令并不适用于本工程
+		plan_root->planPool().add<config::MoveAbs>();//关节运动指令
+		plan_root->planPool().add<config::MoveLine>();//走姿态规划指令
+		plan_root->planPool().add<config::MoveJ>();//关节空间插补指令
+        plan_root->planPool().add<config::GVel>();//全局调速指令
 
-		plan_root->planPool().add<aris::plan::Enable>();
-		plan_root->planPool().add<aris::plan::Disable>();
-		plan_root->planPool().add<aris::plan::Start>();
-		plan_root->planPool().add<aris::plan::Stop>();
-		plan_root->planPool().add<aris::plan::Mode>();
-		plan_root->planPool().add<aris::plan::Clear>();
-        plan_root->planPool().add<kaanh::Recover>();
-        plan_root->planPool().add<kaanh::Reset>();
+		plan_root->planPool().add<aris::plan::Enable>();//使能指令
+		plan_root->planPool().add<aris::plan::Disable>();//去使能指令
+		plan_root->planPool().add<aris::plan::Start>();//开始控制器服务指令
+		plan_root->planPool().add<aris::plan::Stop>();//关闭控制器服务指令
+		plan_root->planPool().add<aris::plan::Mode>();//切换电机控制模式指令
+		plan_root->planPool().add<aris::plan::Clear>();//清楚错误指令
+        plan_root->planPool().add<kaanh::Recover>();//模型同步指令
+        plan_root->planPool().add<kaanh::Reset>();//复位指令
 
-        plan_root->planPool().add<kaanh::Get>();
+        plan_root->planPool().add<kaanh::Get>();//获取电机数据指令
 
 		return plan_root;
 	}
