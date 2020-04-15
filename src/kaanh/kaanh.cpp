@@ -42,7 +42,7 @@ std::shared_ptr<kaanh::MoveBase> g_plan;
 
 namespace kaanh
 {
-	int g_counter = 100;
+    std::atomic_int g_counter = 100;
 	double g_count = 0.0;
 	aris::dynamic::Marker tool1;
 
@@ -87,7 +87,7 @@ namespace kaanh
 		//暂停、恢复功能复位//
 		if (!inter.isAutoRunning())
 		{
-			g_counter = 100;
+            g_counter.store(100);
 		}
 
 	}
@@ -1022,8 +1022,10 @@ namespace kaanh
 		else
 		{
 			g_counter++;
-		}
-		g_counter = std::max(std::min(g_counter, 100), 0);
+        }
+
+        auto temp = g_counter.load();
+        g_counter.store(std::max(std::min(temp, 100), 0));
 
 		//渐变调速
 		static double g_vel_percent_last = g_vel_percent.load();
@@ -1042,8 +1044,8 @@ namespace kaanh
 			g_vel_percent_last = g_vel_percent_now;
 		}
 
-		g_count = g_count + timespeed[g_counter] * g_vel_percent_last / 100.0;
-		return timespeed[g_counter] * g_vel_percent_last / 100.0;
+        g_count = g_count + timespeed[temp] * g_vel_percent_last / 100.0;
+        return timespeed[temp] * g_vel_percent_last / 100.0;
 	}
 	template<typename ParamType>
 	auto PauseContinueE(ParamType *param, aris::server::ProgramWebInterface &pwinter, double &rzcount)->void
@@ -1055,11 +1057,11 @@ namespace kaanh
 			{
 				if (pwinter.isAutoPaused() || pwinter.isAutoStopped())
 				{
-					g_counter = 0;
+                    g_counter.store(0);
 				}
 				else
 				{
-					g_counter = 100;
+                    g_counter.store(100);
 				}
 			}
 		}
@@ -1357,7 +1359,7 @@ namespace kaanh
 		//如果停止功能开启，并且时间已经停止，退出本条指令//
 		if (count() == 1)
 		{
-			if (pwinter.isAutoStopped() && (g_counter == 0))
+            if (pwinter.isAutoStopped() && (g_counter.load() == 0))
 			{
 				this->cmd_finished.store(true);
 				g_plan = nullptr;
@@ -1490,7 +1492,7 @@ namespace kaanh
 			param->last_count = g_count;
 			controller()->mout() << "param->max_total_count:" << param->max_total_count << "this->realzone.load():" << rzcount << std::endl;
 		}
-		if (pwinter.isAutoStopped() && (g_counter == 0))
+        if (pwinter.isAutoStopped() && (g_counter.load() == 0))
 		{
 			//指令停止且返回值为0时，本条指令执行完毕
 			this->cmd_finished.store(true);
@@ -1998,7 +2000,7 @@ namespace kaanh
 		//如果停止功能开启，并且时间已经停止，退出本条指令//
 		if (count() == 1)
 		{
-			if (pwinter.isAutoStopped() && (g_counter == 0))
+            if (pwinter.isAutoStopped() && (g_counter.load() == 0))
 			{
 				this->cmd_finished.store(true);
 				g_plan = nullptr;
@@ -2128,7 +2130,7 @@ namespace kaanh
 			mvj_param->last_count = g_count;
 			controller()->mout() << "mvj_param->max_total_count:" << mvj_param->max_total_count <<"this->realzone.load():" << rzcount << std::endl;
 		}
-		if (pwinter.isAutoStopped() && (g_counter == 0))
+        if (pwinter.isAutoStopped() && (g_counter.load() == 0))
 		{
 			//指令停止且返回值为0时，本条指令执行完毕
 			this->cmd_finished.store(true);
@@ -2486,7 +2488,7 @@ namespace kaanh
 		//如果停止功能开启，并且时间已经停止，退出本条指令//
 		if (count() == 1)
 		{
-			if (pwinter.isAutoStopped() && (g_counter == 0))
+            if (pwinter.isAutoStopped() && (g_counter.load() == 0))
 			{
 				this->cmd_finished.store(true);
 				g_plan = nullptr;
@@ -2722,7 +2724,7 @@ namespace kaanh
 			auto &cout = controller()->mout();
 			cout << "mvl_param->max_total_count:" << mvl_param->max_total_count << "this->realzone.load():" << rzcount << std::endl;
 		}	
-		if (pwinter.isAutoStopped() && (g_counter == 0))
+        if (pwinter.isAutoStopped() && (g_counter.load() == 0))
 		{
 			//指令停止且返回值为0时，本条指令执行完毕
 			this->cmd_finished.store(true);
@@ -3289,7 +3291,7 @@ namespace kaanh
 		if (count() == 1)
 		{
 			step = g_count;
-			if (pwinter.isAutoStopped() && (g_counter == 0))
+            if (pwinter.isAutoStopped() && (g_counter.load() == 0))
 			{
 				this->cmd_finished.store(true);
 				g_plan = nullptr;
@@ -3572,7 +3574,7 @@ namespace kaanh
 			auto &cout = controller()->mout();
 			controller()->mout() << "mvc_param->max_total_count:" << mvc_param->max_total_count << "this->realzone.load():" << rzcount << std::endl;
 		}
-		if (pwinter.isAutoStopped() && (g_counter == 0))
+        if (pwinter.isAutoStopped() && (g_counter.load() == 0))
 		{
 			//指令停止且返回值为0时，本条指令执行完毕
 			this->cmd_finished.store(true);
