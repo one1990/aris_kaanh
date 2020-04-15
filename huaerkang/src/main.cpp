@@ -18,14 +18,16 @@ int main(int argc, char *argv[])
     xmlpath = xmlpath / xmlfile;	//配置文件kaanh.xml的保存路径
 	logpath = logpath / logfolder;	//log文件保存路径
     
+
 	auto&cs = aris::server::ControlServer::instance();//创建控制器服务实例
 	
 	//生成控制器配置文件kaanh.xml，里面包括从站配置信息、模型、websocket\socket端口等信息
 	//生成一次kaanh.xml配置后，用户可以取消如下注释，后面可以自动加载kaanh.xml配置
 
 	cs.resetController(config::createController().release());	//根据createController()返回值创建controller对象池
-	cs.resetModel(config::createModel().release());				//根据createModel()返回值创建model对象池
-	cs.resetPlanRoot(config::createPlanRoot().release());		//根据createPlanRoot()函数的返回值创建plan对象池
+    cs.resetModel(config::createModel().release());				//根据createModel()返回值创建model对象池
+
+    cs.resetPlanRoot(config::createPlanRoot().release());		//根据createPlanRoot()函数的返回值创建plan对象池
     cs.interfacePool().add<aris::server::ProgramWebInterface>("", "5866", aris::core::Socket::WEB);	//创建websocket服务，端口号5866
 	cs.interfacePool().add<aris::server::WebInterface>("", "5867", aris::core::Socket::TCP);		//创建socket服务，端口号5867
 	cs.resetSensorRoot(new aris::sensor::SensorRoot);			//aris自身配置，原封不动添加即可
@@ -47,7 +49,9 @@ int main(int argc, char *argv[])
 	cs.start();
 
 	//实时回调函数，每个实时周期执行后调用一次， kaanh::update_state函数可以替换成用户的函数
-	cs.setRtPlanPostCallback(kaanh::update_state);
+    cs.setRtPlanPostCallback(kaanh::update_state);
+
+
 
 	//设置虚拟轴，保证window不做ethercat连接检查
 #ifdef WIN32

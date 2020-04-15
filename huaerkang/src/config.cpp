@@ -17,7 +17,7 @@ namespace config
     {
         std::unique_ptr<aris::control::Controller> controller(new aris::control::EthercatController);/*创建std::unique_ptr实例*/
  
-        for (aris::Size i = 0; i < 2; ++i)
+        for (aris::Size i = 0; i < 4; ++i)
         {
 #ifdef WIN32
 			//配置零位偏置
@@ -36,55 +36,72 @@ namespace config
 			//配置规划值与电机count数的比例系数=2的N次方*减速比/2Π，其中N为编码器位数
             double pos_factor[4]
             {
-                131072.0 * 129.6 / 2 / PI, -131072.0 * 100 / 2 / PI, 131072.0 * 101 / 2 / PI, 131072.0 * 101 / 2 / PI
+                400000.0, -400000.0, 400000.0, 131072.0 * 101 / 2 / PI
             };
+//            double pos_factor[4]
+//            {
+//                40000.0 * 129.6 / 2 / PI, -40000.0 * 100 / 2 / PI, 40000.0 * 101 / 2 / PI, 131072.0 * 101 / 2 / PI
+//            };
 			//关节最大位置，角度单位转换成弧度单位
             double max_pos[4]
             {
-                170.0 / 360 * 2 * PI, 40.0 / 360 * 2 * PI,	150.0 / 360 * 2 * PI,  150.0 / 360 * 2 * PI
+                170000.0 / 360 * 2 * PI, 170000.0 / 360 * 2 * PI,	170000.0 / 360 * 2 * PI,  150.0 / 360 * 2 * PI
             };
+//            double max_pos[4]
+//            {
+//                170000.0 / 360 * 2 * PI, 400000.0 / 360 * 2 * PI,	1500000.0 / 360 * 2 * PI,  150.0 / 360 * 2 * PI
+//            };
 			//关节最小位置，角度单位转换成弧度单位
             double min_pos[4]
             {
-                -170.0 / 360 * 2 * PI, -165.0 / 360 * 2 * PI, -125.0 / 360 * 2 * PI, -125.0 / 360 * 2 * PI
+                -170000.0 / 360 * 2 * PI, -170000.0 / 360 * 2 * PI, -170000.0 / 360 * 2 * PI, -125.0 / 360 * 2 * PI
             };
 			//关节最大速度，角度单位转换成弧度单位
+//            double max_vel[4]
+//            {
+//                230.0 / 360 * 2 * PI, 300.0 / 360 * 2 * PI, 300.0 / 360 * 2 * PI, 300.0 / 360 * 2 * PI
+//            };
             double max_vel[4]
             {
-                230.0 / 360 * 2 * PI, 300.0 / 360 * 2 * PI, 300.0 / 360 * 2 * PI, 300.0 / 360 * 2 * PI
+                300.0 / 360 * 2 * PI, 300.0 / 360 * 2 * PI, 300.0 / 360 * 2 * PI, 300.0 / 360 * 2 * PI
             };
 			//关节最大加速度，角度单位转换成弧度单位
+//            double max_acc[4]
+//            {
+//                1150.0 / 360 * 2 * PI, 1500.0 / 360 * 2 * PI, 1500.0 / 360 * 2 * PI, 1500.0 / 360 * 2 * PI
+//            };
             double max_acc[4]
             {
-                1150.0 / 360 * 2 * PI, 1500.0 / 360 * 2 * PI, 1500.0 / 360 * 2 * PI, 1500.0 / 360 * 2 * PI
+                1500.0 / 360 * 2 * PI, 1500.0 / 360 * 2 * PI, 1500.0 / 360 * 2 * PI, 1500.0 / 360 * 2 * PI
             };
-			//根据从站的ESI文件，以及上述参数配置从站信息，格式是xml格式
+
+            //根据从站的ESI文件，以及上述参数配置从站信息，格式是xml格式
             std::string xml_str =
                 "<EthercatMotor phy_id=\"" + std::to_string(i) + "\" product_code=\"0x60500000\""
-                " vendor_id=\"251\" revision_num=\"0x01500000\" dc_assign_activate=\"0x0300\""
+                " vendor_id=\"251\" revision_num=\"0x01500000\" dc_assign_activate=\"0x0300\" sync0_shift_ns=\"800000\""
                 " min_pos=\"" + std::to_string(min_pos[i]) + "\" max_pos=\"" + std::to_string(max_pos[i]) + "\" max_vel=\"" + std::to_string(max_vel[i]) + "\" min_vel=\"" + std::to_string(-max_vel[i]) + "\""
                 " max_acc=\"" + std::to_string(max_acc[i]) + "\" min_acc=\"" + std::to_string(-max_acc[i]) + "\" max_pos_following_error=\"0.1\" max_vel_following_error=\"0.5\""
                 " home_pos=\"0\" pos_factor=\"" + std::to_string(pos_factor[i]) + "\" pos_offset=\"" + std::to_string(pos_offset[i]) + "\">"
-				"	<SyncManagerPoolObject>"
-				"       <SyncManager is_tx=\"false\"/>"
-				"       <SyncManager is_tx=\"true\"/>"
-				"       <SyncManager is_tx=\"false\">"
-				"           <Pdo index=\"0x1600\" is_tx=\"false\">"
-				"               <PdoEntry name=\"entry\" index=\"0x6040\" subindex=\"0x00\" size=\"16\"/>"
-				"               <PdoEntry name=\"entry\" index=\"0x6060\" subindex=\"0x00\" size=\"8\"/>"
-				"               <PdoEntry name=\"entry\" index=\"0x607a\" subindex=\"0x00\" size=\"32\"/>"
-				"               <PdoEntry name=\"entry\" index=\"0x60ff\" subindex=\"0x00\" size=\"32\"/>"
-				"           </Pdo>"
-				"       </SyncManager>"
-				"       <SyncManager is_tx=\"true\">"
-				"           <Pdo index=\"0x1a00\" is_tx=\"true\">"
-				"               <PdoEntry name=\"entry\" index=\"0x6041\" subindex=\"0x00\" size=\"16\"/>"
-				"               <PdoEntry name=\"entry\" index=\"0x6061\" subindex=\"0x00\" size=\"8\"/>"
-				"               <PdoEntry name=\"entry\" index=\"0x6064\" subindex=\"0x00\" size=\"32\"/>"
-				"               <PdoEntry name=\"entry\" index=\"0x606C\" subindex=\"0x00\" size=\"32\"/>"
-				"           </Pdo>"
-				"       </SyncManager>"
-				"	</SyncManagerPoolObject>"
+                "	<SyncManagerPoolObject>"
+                "       <SyncManager is_tx=\"false\"/>"
+                "       <SyncManager is_tx=\"true\"/>"
+                "       <SyncManager is_tx=\"false\">"
+                "           <Pdo index=\"0x1600\" is_tx=\"false\">"
+                "               <PdoEntry name=\"entry\" index=\"0x6040\" subindex=\"0x00\" size=\"16\"/>"
+                "               <PdoEntry name=\"entry\" index=\"0x6060\" subindex=\"0x00\" size=\"8\"/>"
+                "               <PdoEntry name=\"entry\" index=\"0x607a\" subindex=\"0x00\" size=\"32\"/>"
+                "               <PdoEntry name=\"entry\" index=\"0x60ff\" subindex=\"0x00\" size=\"32\"/>"
+                "           </Pdo>"
+                "       </SyncManager>"
+                "       <SyncManager is_tx=\"true\">"
+                "           <Pdo index=\"0x1a00\" is_tx=\"true\">"
+                "               <PdoEntry name=\"entry\" index=\"0x6041\" subindex=\"0x00\" size=\"16\"/>"
+                "               <PdoEntry name=\"entry\" index=\"0x6061\" subindex=\"0x00\" size=\"8\"/>"
+                "               <PdoEntry name=\"entry\" index=\"0x6064\" subindex=\"0x00\" size=\"32\"/>"
+                "               <PdoEntry name=\"entry\" index=\"0x606C\" subindex=\"0x00\" size=\"32\"/>"
+                "           </Pdo>"
+                "       </SyncManager>"
+                "	</SyncManagerPoolObject>"
                 "</EthercatMotor>";
 
             controller->slavePool().add<aris::control::EthercatMotor>().loadXmlStr(xml_str);//添加从站
@@ -103,10 +120,11 @@ namespace config
 		return std::move(model);
     }
 	
+
+
     double g_count = 0.0;
     std::atomic_int g_vel_percent = 100;
 
-	//全局速度函数，每个循环周期会指令的executeRT调用一次
     template<typename MoveType>
     auto updatecount(MoveType *plan)->void
     {
@@ -220,6 +238,7 @@ namespace config
 				{
 					if (param.axis_pos_vec[i] > controller()->motionPool()[i].maxPos() || param.axis_pos_vec[i] < controller()->motionPool()[i].minPos())
 						THROW_FILE_LINE("input pos beyond range");
+                    std::cout << "param.axis_pos_vec[i]:" << param.axis_pos_vec[i] << "  controller()->motionPool()[i].maxPos():"<< controller()->motionPool()[i].maxPos()<< std::endl;
 				}
 			}
 			else if (cmd_param.first == "acc")
@@ -324,13 +343,15 @@ namespace config
 		
 		if (count() == 1)
 		{
-            controller()->logFileRawName("motion_replay");//实时循环log的名称，用户可以自己定义
+            controller()->logFileRawName("motion_replay");//log name
 
             for (Size i = 0; i < param->active_motor.size(); ++i)
 			{
 				if (param->active_motor[i])
 				{
 					param->axis_begin_pos_vec[i] = controller()->motionPool()[i].targetPos();
+
+
 				}
 			}
 		}
@@ -344,23 +365,39 @@ namespace config
 				double p, v, a, j;
                 double t_count;
 				//梯形轨迹规划
-				//aris::plan::moveAbsolute(count(),
-				//	param->axis_begin_pos_vec[i], param->axis_pos_vec[i],
-				//	param->axis_vel_vec[i] / 1000, param->axis_acc_vec[i] / 1000 / 1000, param->axis_dec_vec[i] / 1000 / 1000,
-				//	p, v, a, t_count);
+                //aris::plan::moveAbsolute(count(),
+                //    param->axis_begin_pos_vec[i], param->axis_pos_vec[i],
+                //    param->axis_vel_vec[i] / 1000, param->axis_acc_vec[i] / 1000 / 1000, param->axis_dec_vec[i] / 1000 / 1000,
+                //    p, v, a, t_count);
 
-				//s形规划//
+                //s形规划//
                 traplan::sCurved(g_count, param->axis_begin_pos_vec[i], param->axis_pos_vec[i],
-					param->axis_vel_vec[i] / 1000, param->axis_acc_vec[i] / 1000 / 1000, param->axis_jerk_vec[i] / 1000 / 1000 / 1000,
-					p, v, a, j, t_count);
-				controller()->motionPool()[i].setTargetPos(p);
+                    param->axis_vel_vec[i] / 1000, param->axis_acc_vec[i] / 1000 / 1000, param->axis_jerk_vec[i] / 1000 / 1000 / 1000,
+                    p, v, a, j, t_count);
+                controller()->motionPool()[i].setTargetPos(p);
+                //controller()->motionPool()[i].setTargetVel(v*1000);
                 total_count = std::max(total_count, aris::Size(t_count));
 			}
 		}
 			
-		controller()->mout() << total_count << std::endl;//实时循环内的打印函数，不能用cout非实时的打印函数
-		controller()->lout() << total_count << std::endl;//实时循环内的log函数，不能非实时读写硬盘的函数
+        //auto &cout = controller()->mout();
+        //if(count()%50 ==0)
+        //{
+         //   for(int i=0; i<param->active_motor.size();i++)
+         //   {
+          //      cout << "targetpos:" << controller()->motionPool()[i].targetPos()<<"  ";
+           //     cout << "actualpos:" << controller()->motionPool()[i].actualPos()<<"  ";
 
+          //  }
+          //  cout << std::endl;
+        //}
+
+        //for(int i=0; i<param->active_motor.size();i++)
+        //{
+        //   lout() <<std::setprecision(10) << controller()->motionPool()[i].targetPos()<<"  ";
+        //    lout() << controller()->motionPool()[i].actualPos()<<"  ";
+        //}
+        //controller()->lout() << std::endl;
 		//返回0表示正常结束，返回负数表示报错，返回正数表示正在执行
         return total_count - int(g_count);
 	}
@@ -558,7 +595,7 @@ namespace config
 
 		if (count() == 1)
 		{
-            controller()->logFileRawName("motion_replay");//实时循环log的名称，用户可以自己定义
+            controller()->logFileRawName("motion_replay");//log name
 			//获取外部轴的起始位置
 			for (int i = 0; i < param->ext_pos_begin.size(); i++)
 			{
@@ -789,7 +826,7 @@ namespace config
 		//在第一个周期，获取3个关节的起始角度值，同时根据目标姿态ee求反解，得出3个关节的目标角度值
 		if (count() == 1)
 		{
-            controller()->logFileRawName("motion_replay");//实时循环log的名称，用户可以自己定义
+            controller()->logFileRawName("motion_replay");//log name
 			// 获得求解器 //
 			auto &solver = dynamic_cast<aris::dynamic::Serial3InverseKinematicSolver&>(model()->solverPool()[0]);
 			solver.setEulaAngle(mvj_param->ee.data(), mvj_param->eul_type.c_str());
@@ -858,24 +895,32 @@ namespace config
 	auto createPlanRoot()->std::unique_ptr<aris::plan::PlanRoot>
 	{
 		std::unique_ptr<aris::plan::PlanRoot> plan_root(new aris::plan::PlanRoot);
-		
-		//以下指令详细说明，请参考说明手册。另外，说明手册中的其他指令并不适用于本工程
-		plan_root->planPool().add<config::MoveAbs>();//关节运动指令
-		plan_root->planPool().add<config::MoveLine>();//走姿态规划指令
-		plan_root->planPool().add<config::MoveJ>();//关节空间插补指令
-        plan_root->planPool().add<config::GVel>();//全局调速指令
+		//for 华尔康
+		plan_root->planPool().add<config::MoveAbs>();
+		plan_root->planPool().add<config::MoveLine>();
+		plan_root->planPool().add<config::MoveJ>();
+        plan_root->planPool().add<config::GVel>();
 
-		plan_root->planPool().add<aris::plan::Enable>();//使能指令
-		plan_root->planPool().add<aris::plan::Disable>();//去使能指令
-		plan_root->planPool().add<aris::plan::Start>();//开始控制器服务指令
-		plan_root->planPool().add<aris::plan::Stop>();//关闭控制器服务指令
-		plan_root->planPool().add<aris::plan::Mode>();//切换电机控制模式指令
-		plan_root->planPool().add<aris::plan::Clear>();//清楚错误指令
-        plan_root->planPool().add<kaanh::Recover>();//模型同步指令
-        plan_root->planPool().add<kaanh::Reset>();//复位指令
 
-        plan_root->planPool().add<kaanh::Get>();//获取电机数据指令
+		plan_root->planPool().add<aris::plan::Enable>();
+		plan_root->planPool().add<aris::plan::Disable>();
+		plan_root->planPool().add<aris::plan::Start>();
+		plan_root->planPool().add<aris::plan::Stop>();
+		plan_root->planPool().add<aris::plan::Mode>();
+        plan_root->planPool().add<aris::plan::Show>();
+		plan_root->planPool().add<aris::plan::Clear>();
+        plan_root->planPool().add<kaanh::Recover>();
+        plan_root->planPool().add<kaanh::Reset>();
 
+        plan_root->planPool().add<kaanh::SetPdo>();
+        plan_root->planPool().add<kaanh::Get>();
+        plan_root->planPool().add<kaanh::SetVel>();
+        plan_root->planPool().add<kaanh::JogJ1>();
+        plan_root->planPool().add<kaanh::JogJ2>();
+        plan_root->planPool().add<kaanh::JogJ3>();
+        plan_root->planPool().add<kaanh::JogJ4>();
+        plan_root->planPool().add<kaanh::JogJ5>();
+        plan_root->planPool().add<kaanh::JogJ6>();
 		return plan_root;
 	}
 }
