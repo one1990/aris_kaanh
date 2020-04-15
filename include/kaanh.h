@@ -552,6 +552,8 @@ namespace kaanh
 	{
 	public:
 		auto virtual prepareNrt()->void;
+		auto virtual executeRT()->int;
+		auto virtual collectNrt()->void;
 		explicit SetPdo(const std::string &name = "SetPdo_plan");
 		ARIS_REGISTER_TYPE(SetPdo);
 	};

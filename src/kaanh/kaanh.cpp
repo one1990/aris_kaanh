@@ -6886,12 +6886,18 @@ namespace kaanh
 				param.bit_size = int32Param(p.first);
 			}
 		}
-		ecController()->slavePool().at(param.motion_id).writePdo(0x60c2, 0x01, &param.value, param.bit_size);
 		
 		std::vector<std::pair<std::string, std::any>> ret_value;
 		ret() = ret_value;
-		option() = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION|aris::plan::Plan::NOT_RUN_COLLECT_FUNCTION;
+		//option() = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION|aris::plan::Plan::NOT_RUN_COLLECT_FUNCTION;
 	}
+	auto SetPdo::executeRT()->int
+	{
+		auto param = std::any_cast<SetPdoParam>(&this->param());	
+		ecController()->slavePool().at(param->motion_id).writePdo(param->index, param->subindex, &param->value, param->bit_size);
+		return 0;
+	}
+	auto SetPdo::collectNrt()->void{}
 	SetPdo::SetPdo(const std::string &name) :Plan(name)
 	{
 		command().loadXmlStr(
