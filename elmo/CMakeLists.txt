@@ -5,13 +5,6 @@ project(kaanh)
 # aris use c++ 17 standard
 set(CMAKE_CXX_STANDARD 17)
 
-
-find_package(Qt5  REQUIRED COMPONENTS  Widgets  )
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTOUIC ON)
-set(CMAKE_INCLUDE_CURRENT_DIR ON)
-
-
 # find aris
 if(UNIX)
 	add_definitions(-DUNIX)
@@ -42,6 +35,4 @@ endif(UNIX)
 IF(WIN32)
         target_link_libraries(kaanh_maxon ${kaanh_LIBRARIES} ${aris_LIBRARIES})
 endif(WIN32)
-
-target_link_libraries(kaanh_maxon  Qt5::Widgets )
 

@@ -21,26 +21,4 @@ public:
     ARIS_REGISTER_TYPE(MoveJS);
 };
 
-class Move : public aris::plan::Plan
-{
-public:
-    auto virtual prepareNrt()->void;
-    auto virtual executeRT()->int;
-    auto virtual collectNrt()->void;
-
-    explicit Move(const std::string &name = "Move_plan");
-    ARIS_REGISTER_TYPE(Move);
-};
-
-class MoveAbs :public aris::plan::Plan
-{
-public:
-    auto virtual prepareNrt()->void;
-    auto virtual executeRT()->int;
-
-    virtual ~MoveAbs();
-    explicit MoveAbs(const std::string &name = "mvaj");
-    ARIS_REGISTER_TYPE(MoveAbs);
-};
-
 #endif
