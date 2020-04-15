@@ -13,7 +13,6 @@ using namespace aris::dynamic;
 //创建ethercat主站控制器controller，并根据电机驱动xml文件添加从站信息，具体可以参考佳安控制器使用手册-UI界面版
 auto createController()->std::unique_ptr<aris::control::Controller>	
 {
-    //" home_pos=\"0\" pos_factor=\"79205.6869\" pos_offset=\"0.0\">"
 	std::unique_ptr<aris::control::Controller> controller(new aris::control::EthercatController);
     controller->slavePool().clear();
 	std::string xml_str =
@@ -49,9 +48,6 @@ auto createController()->std::unique_ptr<aris::control::Controller>
 
 	//在controller对象的从站池中添加一个电机从站//
     controller->slavePool().add<aris::control::EthercatMotor>().loadXmlStr(xml_str);
-    //auto m = (aris::control::EthercatController*)(controller.get());
-    //m->scanInfoForCurrentSlaves();
-    //m->scanPdoForCurrentSlaves();
     return controller;
 };
 
@@ -135,10 +131,10 @@ auto MoveJS::executeRT()->int
 			//可以用如下两条注释的代码替代，但是pos的值为电机编码器返回的脉冲数
 			//int32_t pos;
 			//dynamic_cast<aris::control::EthercatMotor &>(controller()->motionAtAbs(0)).readPdo(0x6064, 0x00, &pos, 32);
-			begin_pjs = controller()->motionPool()[0].actualPos();
-			step_pjs = controller()->motionPool()[0].actualPos();
-            //begin_pjs_j2 = controller()->motionPool()[1].actualPos();
-            //step_pjs_j2 = controller()->motionPool()[1].actualPos();
+            begin_pjs = controller()->motionPool()[0].targetPos();
+            step_pjs = controller()->motionPool()[0].targetPos();
+            //begin_pjs_j2 = controller()->motionPool()[1].targetPos();
+            //step_pjs_j2 = controller()->motionPool()[1].targetPos();
 		}
 		step_pjs = begin_pjs + param.j1 * (1 - std::cos(2 * PI*count() / time)) / 2;
         //step_pjs_j2 = begin_pjs_j2 + param.j2 * (1 - std::cos(2 * PI*count() / time)) / 2;
@@ -153,11 +149,11 @@ auto MoveJS::executeRT()->int
 		// 获取当前起始点位置 //
 		if (count() == time / 2 + 1)
 		{
-			begin_pjs = controller()->motionPool()[0].actualPos();
-			step_pjs = controller()->motionPool()[0].actualPos();
+            begin_pjs = controller()->motionPool()[0].targetPos();
+            step_pjs = controller()->motionPool()[0].targetPos();
 
-            //begin_pjs_j2 = controller()->motionPool()[1].actualPos();
-           // step_pjs_j2 = controller()->motionPool()[1].actualPos();
+            //begin_pjs_j2 = controller()->motionPool()[1].targetPos();
+           // step_pjs_j2 = controller()->motionPool()[1].targetPos();
 		}
 
 		step_pjs = begin_pjs - 2 * param.j1 * (1 - std::cos(2 * PI*(count() - time / 2) / time)) / 2;
@@ -171,11 +167,11 @@ auto MoveJS::executeRT()->int
 		// 获取当前起始点位置 //
 		if (count() == totaltime - time / 2 + 1)
 		{
-			begin_pjs = controller()->motionPool()[0].actualPos();
-			step_pjs = controller()->motionPool()[0].actualPos();
+            begin_pjs = controller()->motionPool()[0].targetPos();
+            step_pjs = controller()->motionPool()[0].targetPos();
 
-            //begin_pjs_j2 = controller()->motionPool()[1].actualPos();
-            //step_pjs_j2 = controller()->motionPool()[1].actualPos();
+            //begin_pjs_j2 = controller()->motionPool()[1].targetPos();
+            //step_pjs_j2 = controller()->motionPool()[1].targetPos();
 		}
 		step_pjs = begin_pjs - param.j1 * (1 - std::cos(2 * PI*(count() - totaltime + time / 2) / time)) / 2;
 		controller()->motionPool().at(0).setTargetPos(step_pjs);
@@ -189,8 +185,8 @@ auto MoveJS::executeRT()->int
 	// 打印 //
 	if (count() % 100 == 0)
 	{
-		cout << "pos"  << ":" << controller()->motionAtAbs(0).actualPos() << "  ";
-        //cout << "pos2"  << ":" << controller()->motionAtAbs(1).actualPos() << "  ";
+        cout << "pos"  << ":" << controller()->motionAtAbs(0).targetPos() << "  ";
+        //cout << "pos2"  << ":" << controller()->motionAtAbs(1).targetPos() << "  ";
 
 		cout << std::endl;
 	}
