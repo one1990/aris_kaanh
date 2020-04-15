@@ -1,6 +1,6 @@
 ﻿cmake_minimum_required(VERSION 3.12)
 
-project(kaanh)
+project(elmo)
 
 # aris use c++ 17 standard
 set(CMAKE_CXX_STANDARD 17)
@@ -26,13 +26,13 @@ include_directories(${kaanh_INCLUDE_DIRS})
 
 message(${aris_DIR})
 
-project(kaanh_maxon)
-set(SOURCE_FILES src/oneaxis_maxon.cpp src/oneaxis_maxon.h)
-add_executable(kaanh_maxon ${SOURCE_FILES})
+project(elmo)
+set(SOURCE_FILES src/elmo.cpp src/elmo.h)
+add_executable(elmo ${SOURCE_FILES})
 if(UNIX)
-        target_link_libraries(kaanh_maxon ${kaanh_LIBRARIES} ${aris_LIBRARIES} atomic)
+        target_link_libraries(elmo ${kaanh_LIBRARIES} ${aris_LIBRARIES} atomic)
 endif(UNIX)
 IF(WIN32)
-        target_link_libraries(kaanh_maxon ${kaanh_LIBRARIES} ${aris_LIBRARIES})
+        target_link_libraries(elmo ${kaanh_LIBRARIES} ${aris_LIBRARIES})
 endif(WIN32)
 

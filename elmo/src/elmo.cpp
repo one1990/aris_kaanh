@@ -1,7 +1,7 @@
 ﻿#include<iostream>
 #include<aris.hpp>
 #include"kaanh.h"
-#include"oneaxis_maxon.h"
+#include"elmo.h"
 
 
 using namespace std;
@@ -256,9 +256,11 @@ int main(int argc, char *argv[])
     cs.init();
     cs.start();
 
+    //set max torque//
     auto &c = dynamic_cast<aris::control::EthercatMotor &>(cs.controller().motionAtAbs(0));
     uint16_t value = 1000;
     c.writePdo(0x6072, 0x00, &value);
+
 	//Start Web Socket//
     cs.open();
 
