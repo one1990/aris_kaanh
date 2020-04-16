@@ -56,7 +56,6 @@ auto createController()->std::unique_ptr<aris::control::Controller>
 struct MoveJSParam
 {
 	double j1;
-    //double j2;
 	double time;
 	uint32_t timenum;
 };
@@ -67,7 +66,6 @@ auto MoveJS::prepareNrt()->void
 	MoveJSParam param;
 
 	param.j1 = 0.0;
-    //param.j2 = 0.0;
 	param.time = 0.0;
 	param.timenum = 0;
 
@@ -85,18 +83,6 @@ auto MoveJS::prepareNrt()->void
 			}
 
 		}
-        /*else if (p.first == "j2")
-        {
-            if (p.second == "current_pos")
-            {
-                param.j2 = 0;
-            }
-            else
-            {
-                param.j2 = doubleParam(p.first);
-            }
-
-        }*/
 		else if (p.first == "time")
 		{
 			param.time = doubleParam(p.first);
@@ -117,8 +103,8 @@ auto MoveJS::executeRT()->int
 	auto &param = std::any_cast<MoveJSParam&>(this->param());
 	auto time = static_cast<int32_t>(param.time * 1000);
 	auto totaltime = static_cast<int32_t>(param.timenum * time);
-    static double begin_pjs;//,begin_pjs_j2;
-    static double step_pjs;//,step_pjs_j2;
+    static double begin_pjs;
+    static double step_pjs;
 
 	//控制器提供两条基本的函数writePdo()和readPdo()，与驱动器的交互都可以根据这两条基本函数完成
 	if ((1 <= count()) && (count() <= time / 2))
@@ -130,18 +116,16 @@ auto MoveJS::executeRT()->int
 			//可以用如下两条注释的代码替代，但是pos的值为电机编码器返回的脉冲数
 			//int32_t pos;
 			//dynamic_cast<aris::control::EthercatMotor &>(controller()->motionAtAbs(0)).readPdo(0x6064, 0x00, &pos, 32);
+
             begin_pjs = controller()->motionPool()[0].targetPos();
             step_pjs = controller()->motionPool()[0].targetPos();
-            //begin_pjs_j2 = controller()->motionPool()[1].targetPos();
-            //step_pjs_j2 = controller()->motionPool()[1].targetPos();
 		}
 		step_pjs = begin_pjs + param.j1 * (1 - std::cos(2 * PI*count() / time)) / 2;
-        //step_pjs_j2 = begin_pjs_j2 + param.j2 * (1 - std::cos(2 * PI*count() / time)) / 2;
+
 		//本条函数controller()->motionPool().at(0).setTargetPos(step_pjs)是aris封装好的写电机目标位置的函数，后面类似
 		//可以用如下注释的代码替代,但是需要将step_pjs转换成电机编码器的脉冲数
 		//dynamic_cast<aris::control::EthercatMotor &>(controller()->motionAtAbs(0)).writePdo(0x607a, 0x00, &step_pjs, 32);
 		controller()->motionPool().at(0).setTargetPos(step_pjs);
-        //controller()->motionPool().at(1).setTargetPos(step_pjs_j2);
 	}
 	else if ((time / 2 < count()) && (count() <= totaltime - time / 2))
 	{
@@ -150,16 +134,11 @@ auto MoveJS::executeRT()->int
 		{
             begin_pjs = controller()->motionPool()[0].targetPos();
             step_pjs = controller()->motionPool()[0].targetPos();
-
-            //begin_pjs_j2 = controller()->motionPool()[1].targetPos();
-           // step_pjs_j2 = controller()->motionPool()[1].targetPos();
 		}
 
 		step_pjs = begin_pjs - 2 * param.j1 * (1 - std::cos(2 * PI*(count() - time / 2) / time)) / 2;
 		controller()->motionPool().at(0).setTargetPos(step_pjs);
 
-        //step_pjs_j2 = begin_pjs_j2 - 2 * param.j2 * (1 - std::cos(2 * PI*(count() - time / 2) / time)) / 2;
-        //controller()->motionPool().at(1).setTargetPos(step_pjs_j2);
 	}
 	else if ((totaltime - time / 2 < count()) && (count() <= totaltime))
 	{
@@ -168,15 +147,9 @@ auto MoveJS::executeRT()->int
 		{
             begin_pjs = controller()->motionPool()[0].targetPos();
             step_pjs = controller()->motionPool()[0].targetPos();
-
-            //begin_pjs_j2 = controller()->motionPool()[1].targetPos();
-            //step_pjs_j2 = controller()->motionPool()[1].targetPos();
 		}
 		step_pjs = begin_pjs - param.j1 * (1 - std::cos(2 * PI*(count() - totaltime + time / 2) / time)) / 2;
 		controller()->motionPool().at(0).setTargetPos(step_pjs);
-
-        //step_pjs_j2 = begin_pjs_j2 - param.j2 * (1 - std::cos(2 * PI*(count() - totaltime + time / 2) / time)) / 2;
-        //controller()->motionPool().at(1).setTargetPos(step_pjs_j2);
 	}
 
 	// 实时打印函数 //
@@ -185,14 +158,11 @@ auto MoveJS::executeRT()->int
 	if (count() % 100 == 0)
 	{
         cout << "pos"  << ":" << controller()->motionAtAbs(0).targetPos() << "  ";
-        //cout << "pos2"  << ":" << controller()->motionAtAbs(1).targetPos() << "  ";
-
 		cout << std::endl;
 	}
 
-	// 实时记录log函数 //
+    // logging //
 	auto &lout = controller()->lout();
-	// logging //
     lout << "Pos:" << controller()->motionAtAbs(0).actualPos() << ",";
     lout << "Vel:" << controller()->motionAtAbs(0).actualVel() << ",";
 	lout << std::endl;
@@ -249,7 +219,6 @@ int main(int argc, char *argv[])
     std::cout<<"start controller server"<<std::endl;
 	
     //cs.controller().setSamplePeriodNs(2000000);//设置通讯周期为2ms
-
     //std::cout << cs.xmlString() <<std::endl;
 
     //启动控制器服务
@@ -260,6 +229,12 @@ int main(int argc, char *argv[])
     auto &c = dynamic_cast<aris::control::EthercatMotor &>(cs.controller().motionAtAbs(0));
     uint16_t value = 1000;
     c.writePdo(0x6072, 0x00, &value);
+
+
+    //enable interface
+    cs.executeCmd("md --mode=8");//
+    cs.executeCmd("en");
+
 
 	//Start Web Socket//
     cs.open();
