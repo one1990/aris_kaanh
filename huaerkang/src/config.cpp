@@ -116,8 +116,6 @@ namespace config
 		return std::move(model);
     }
 	
-
-
     double g_count = 0.0;
     std::atomic_int g_vel_percent = 100;
 
