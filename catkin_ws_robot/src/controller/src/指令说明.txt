@@ -1,0 +1,90 @@
+控制器指令说明
+2019年8月16日
+17:06
+一、指令支持通讯方式：
+socket/websocket通讯
+ 
+二、手柄指令：（1）手柄控制只给定方向、速度，每20ms给控制器一个指令；（2）控制器内部有一个毫秒计时器，不断递减，每接收到一个指令，会把毫秒计时器的值刷新为100ms（好处就是通讯断了，只会多走100ms）
+1、单关节点动指令
+j1 --vel_percent=10 --direction=1
+j2 --vel_percent=10 --direction=1
+j3 --vel_percent=10 --direction=1
+j4 --vel_percent=10 --direction=1
+j5 --vel_percent=10 --direction=1
+j6 --vel_percent=10 --direction=1
+其中，
+（1）vel_percent的取值范围是0~100;
+（2）direction=1表示正方向，direction=-1表示负方向
+ 
+2、末端点动指令
+jx --vel_percent=10 --direction=1 --cor=1
+jy --vel_percent=10 --direction=1 --cor=1
+jz --vel_percent=10 --direction=1 --cor=1
+jrx --vel_percent=10 --direction=1 --cor=1
+jry --vel_percent=10 --direction=1 --cor=1
+jrz --vel_percent=10 --direction=1 --cor=1
+其中，
+（1）vel_percent的取值范围是0~100;
+（2）direction=1表示正方向，direction=-1表示负方向
+（3）cor=0表示世界坐标系，cor=1表示工具坐标系
+ 
+3、机械臂复位指令
+rs --vel=0.05
+ 
+4、外部轴
+j7--vel_percent=10 --direction=1
+其中，
+（1）vel_percent的取值范围是0~100;
+（2）direction=1表示正方向，direction=-1表示负方向
+ 
+5、舵机
+（1）denable，使能
+（2）ddisable，去使能
+（3）dmode --mode=0，手动-自动模式切换
+其中，mode=0表示手动，mode=1表示自动
+（4）dj1 --direction=-1，1号舵机反转；dj1 --direction=1，1号舵机正转
+（5）dj2 --direction=-1，2号舵机反转；dj2 --direction=1，2号舵机正转
+（6）dj3 --direction=-1，3号舵机反转；dj3 --direction=1，3号舵机正转
+其中，direction=1表示正方向，direction=-1表示负方向
+（7）dmvaj，3个舵机复位到0位
+ 
+三、编程指令：（以下指令都是以速度梯形轨迹规划）
+1、关节指令——指定目标位置
+mvaj --pos={0,0,0,0,0,0} --vel={0.1,0.1,0.1,0.1,0.1,0.1} --acc={0.1,0.1,0.1,0.1,0.1,0.1} --dec={0.1,0.1,0.1,0.1,0.1,0.1}
+ 
+2、末端点到点指令——关节插值，给定末端位姿，各个关节独立、同时插值到目标点，不用考虑奇异问题
+mvj --pq={x,y,z,w1,w2,w3,w4} --pe={x,y,z,a,b,c} --joint_vel={0.1,0.1,0.1,0.1,0.1,0.1} --joint_acc={0.1,0.1,0.1,0.1,0.1,0.1} --joint_dec={0.1,0.1,0.1,0.1,0.1,0.1}
+ 
+3、末端走直线指令——末端走直线
+mvl --pq={x,y,z,w1,w2,w3,w4} --pe={x,y,z,a,b,c} --vel=0.1 --acc=0.1 --dec=0.1
+ 
+4、执行emily轨迹指令
+movet --col=10 --path="C:\\Users\\kevin\\Desktop\\tuying\\example.emily\" --line=0
+其中，
+（1）col=10表示有10列数据，机械臂6列，外部轴1列，舵机3列
+（2）path指定emily文件的路径
+（3）line=0表示执行emily的第一行，line=1表示执行emily所有行
+ 
+四、获取机器人信息指令：
+Get，其返回值以json格式返回，格式如下：
+{part_pq（机器人7个杆件四元素位姿），double*7*7
+end_pq（末端四元素位姿），double*7
+end_pe（末端欧拉角位姿），double*6
+motion_pos(关节角度：机械臂+1个外部轴+3个舵机)，double*10
+motion_vel(关节速度)，double*6
+motion_acc(关节加速度)，double*6
+motion_toq(关节力矩)，double*6
+ai（模拟量输入信号），double*100
+di（数字量输入信号），bool*100
+state_code（状态机），int32
+slave_link_num（从站连接数量），int32
+slave_online_state（从站在线/离线状态），int32*6
+slave_al_state（从站ethercat状态），int32*6
+motion_state（电机使能状态）, int32*6
+current_plan（当前执行指令名称）, int32}
+current_plan_id, int32
+dxl_connected, bool*1（0:表示没有连上，1:表示连上）
+dxl_enabled, bool*1（0:表示未使能，1:表示使能）
+dxl_auto, bool*1（0:表示手动，1:表示自动）
+dxl_normal, bool*1（0:表示异常，1:表示正常）
+ 

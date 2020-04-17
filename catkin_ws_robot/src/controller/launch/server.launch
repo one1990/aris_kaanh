@@ -1,0 +1,7 @@
+<launch>
+ <!-- Turtlesim Node-->
+  <!-- node pkg="turtlesim" type="turtlesim_node" name="sim"/ -->
+  <node pkg="controller" type="controller" name="controller"/>
+  <node pkg="controller" type="fake_client" name="fake_client"/>
+  <node pkg="controller" type="listener" name="listener"/>
+</launch>
