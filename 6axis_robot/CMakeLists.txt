@@ -1,6 +1,6 @@
 ﻿cmake_minimum_required(VERSION 3.12)
 
-project(kaanh)
+project(sixaxisrobot)
 
 # aris use c++ 17 standard
 set(CMAKE_CXX_STANDARD 17)
@@ -14,15 +14,24 @@ IF(WIN32)
         find_package(aris REQUIRED PATHS C:/aris/aris-1.5.0)
 endif(WIN32)
 include_directories(${aris_INCLUDE_DIRS})
-include_directories(usr/include/kaanh)
 
-message(${aris_DIR})
-add_executable(kaanh src/main.cpp src/kaanh.h src/config.cpp src/config.h src/kaanhconfig.h)
-target_link_libraries(kaanh libkaanh_lib.a)
-
+# find kaanh
 if(UNIX)
-        target_link_libraries(kaanh ${aris_LIBRARIES} atomic)
+        add_definitions(-DUNIX)
+        find_package(kaanh REQUIRED PATHS /usr/kaanh)
 endif(UNIX)
 IF(WIN32)
-	target_link_libraries(kaanh ${aris_LIBRARIES})
+        find_package(kaanh REQUIRED PATHS C:/kaanh/kaanh-1.0)
 endif(WIN32)
+include_directories(${kaanh_INCLUDE_DIRS})
+
+message(${aris_DIR} ${kaanh_DIR})
+add_executable(sixaxisrobot src/main.cpp src/robot.cpp src/robot.h)
+
+if(UNIX)
+    target_link_libraries(sixaxisrobot ${kaanh_LIBRARIES} ${aris_LIBRARIES} atomic)
+endif(UNIX)
+IF(WIN32)
+    target_link_libraries(sixaxisrobot ${kaanh_LIBRARIES} ${aris_LIBRARIES})
+endif(WIN32)
+
