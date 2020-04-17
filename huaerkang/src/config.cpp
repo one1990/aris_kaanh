@@ -17,7 +17,7 @@ namespace config
     {
         std::unique_ptr<aris::control::Controller> controller(new aris::control::EthercatController);/*创建std::unique_ptr实例*/
  
-        for (aris::Size i = 0; i < 4; ++i)
+        for (aris::Size i = 0; i < 2; ++i)
         {
 #ifdef WIN32
 			//配置零位偏置
@@ -36,12 +36,8 @@ namespace config
 			//配置规划值与电机count数的比例系数=2的N次方*减速比/2Π，其中N为编码器位数
             double pos_factor[4]
             {
-                400000.0, -400000.0, 400000.0, 131072.0 * 101 / 2 / PI
+                243.0*2048/2/PI, -243.0*2048/2/PI, 243.0*2048/2/PI, 131072.0 * 101 / 2 / PI
             };
-//            double pos_factor[4]
-//            {
-//                40000.0 * 129.6 / 2 / PI, -40000.0 * 100 / 2 / PI, 40000.0 * 101 / 2 / PI, 131072.0 * 101 / 2 / PI
-//            };
 			//关节最大位置，角度单位转换成弧度单位
             double max_pos[4]
             {
@@ -149,7 +145,7 @@ namespace config
             g_vel_percent_last = g_vel_percent_now;
         }
 
-        g_count = g_count + g_vel_percent_last / 100.0;
+        g_count = g_count + 2*g_vel_percent_last / 100.0;
     }
 
     //设置全局速度//
@@ -238,7 +234,6 @@ namespace config
 				{
 					if (param.axis_pos_vec[i] > controller()->motionPool()[i].maxPos() || param.axis_pos_vec[i] < controller()->motionPool()[i].minPos())
 						THROW_FILE_LINE("input pos beyond range");
-                    std::cout << "param.axis_pos_vec[i]:" << param.axis_pos_vec[i] << "  controller()->motionPool()[i].maxPos():"<< controller()->motionPool()[i].maxPos()<< std::endl;
 				}
 			}
 			else if (cmd_param.first == "acc")
@@ -282,6 +277,7 @@ namespace config
 				}
 				for (Size i = 0; i < controller()->motionPool().size(); ++i)
 				{
+                    std::cout << "param.axis_vel_vec[i]:" << param.axis_vel_vec[i] << "maxvel:"<< controller()->motionPool()[i].maxVel() << std::endl;
 					if (param.axis_vel_vec[i] > controller()->motionPool()[i].maxVel() || param.axis_vel_vec[i] < controller()->motionPool()[i].minVel())
 						THROW_FILE_LINE("input vel beyond range");
 				}
@@ -358,39 +354,43 @@ namespace config
 
         updatecount(this);
 		aris::Size total_count{ 1 };
+        double p, v, a, j;
 		for (Size i = 0; i < param->active_motor.size(); ++i)
 		{
 			if (param->active_motor[i])
 			{
-				double p, v, a, j;
-                double t_count;
-				//梯形轨迹规划
-                //aris::plan::moveAbsolute(count(),
-                //    param->axis_begin_pos_vec[i], param->axis_pos_vec[i],
-                //    param->axis_vel_vec[i] / 1000, param->axis_acc_vec[i] / 1000 / 1000, param->axis_dec_vec[i] / 1000 / 1000,
-                //    p, v, a, t_count);
+
+//                Size t_count;
+//				//梯形轨迹规划
+//                aris::plan::moveAbsolute(g_count,
+//                    param->axis_begin_pos_vec[i], param->axis_pos_vec[i],
+//                    param->axis_vel_vec[i] / 1000, param->axis_acc_vec[i] / 1000 / 1000, param->axis_dec_vec[i] / 1000 / 1000,
+//                    p, v, a, t_count);
 
                 //s形规划//
+                double t_count;
                 traplan::sCurved(g_count, param->axis_begin_pos_vec[i], param->axis_pos_vec[i],
-                    param->axis_vel_vec[i] / 1000, param->axis_acc_vec[i] / 1000 / 1000, param->axis_jerk_vec[i] / 1000 / 1000 / 1000,
+                    param->axis_vel_vec[i] / 1000.0, param->axis_acc_vec[i] / 1000.0 / 1000.0, param->axis_jerk_vec[i] / 1000.0 / 1000.0 / 1000.0,
                     p, v, a, j, t_count);
                 controller()->motionPool()[i].setTargetPos(p);
-                //controller()->motionPool()[i].setTargetVel(v*1000);
+                //controller()->motionPool()[i].setTargetVel(v*500);
                 total_count = std::max(total_count, aris::Size(t_count));
 			}
 		}
-			
-        //auto &cout = controller()->mout();
-        //if(count()%50 ==0)
-        //{
-         //   for(int i=0; i<param->active_motor.size();i++)
-         //   {
-          //      cout << "targetpos:" << controller()->motionPool()[i].targetPos()<<"  ";
-           //     cout << "actualpos:" << controller()->motionPool()[i].actualPos()<<"  ";
 
-          //  }
-          //  cout << std::endl;
-        //}
+        auto &cout = controller()->mout();
+        if(count()%100 ==0)
+        {
+            for(int i=0; i<param->active_motor.size();i++)
+            {
+                cout << "targetpos:" << controller()->motionPool()[i].targetPos()<<"  ";
+                cout << "actualpos:" << controller()->motionPool()[i].actualPos()<<"  ";
+                cout << "targetvel:" << 1000.0*v <<"  ";
+                cout << "actualvel:" << controller()->motionPool()[i].actualVel()<<"  ";
+
+            }
+            cout << std::endl;
+        }
 
         //for(int i=0; i<param->active_motor.size();i++)
         //{
@@ -399,7 +399,7 @@ namespace config
         //}
         //controller()->lout() << std::endl;
 		//返回0表示正常结束，返回负数表示报错，返回正数表示正在执行
-        return total_count - int(g_count);
+        return (total_count%2==1)?(total_count+1 - int(g_count)):(total_count - int(g_count));
 	}
 	auto MoveAbs::collectNrt()->void {}
 	MoveAbs::~MoveAbs() = default;
@@ -410,9 +410,9 @@ namespace config
 			"	<GroupParam>"
 			"		<Param name=\"pos\" default=\"0.0\"/>"
             "		<Param name=\"vel\" default=\"0.5\"/>"
-            "		<Param name=\"acc\" default=\"0.5\"/>"
-            "		<Param name=\"dec\" default=\"0.5\"/>"
-			"		<Param name=\"jerk\" default=\"10.0\"/>"
+            "		<Param name=\"acc\" default=\"10\"/>"
+            "		<Param name=\"dec\" default=\"10\"/>"
+            "		<Param name=\"jerk\" default=\"100.0\"/>"
 			"		<UniqueParam default=\"all\">"\
 			"			<Param name=\"all\" abbreviation=\"a\"/>"\
 			"			<Param name=\"motion_id\" abbreviation=\"m\" default=\"0\"/>"
@@ -664,7 +664,8 @@ namespace config
 		}
 
 		//返回0表示正常结束，返回负数表示报错，返回正数表示正在执行
-        return param->max_total_count - int(g_count);
+        return (param->max_total_count%2==1)?(param->max_total_count+1 - int(g_count)):(param->max_total_count - int(g_count));
+
 	}
 	auto MoveLine::collectNrt()->void {}
 	MoveLine::~MoveLine() = default;
@@ -848,7 +849,7 @@ namespace config
 				}			
 				
 				//S形轨迹规划//
-				traplan::sCurve(count(), mvj_param->axis_begin_pos_vec[i], mvj_param->axis_begin_pos_vec[i],
+                traplan::sCurve(count(), mvj_param->axis_begin_pos_vec[i], mvj_param->axis_pos_vec[i],
 					mvj_param->axis_vel_vec[i] / 1000, mvj_param->axis_acc_vec[i] / 1000 / 1000, mvj_param->axis_jerk_vec[i] / 1000 / 1000 / 1000,
 					p, v, a, j, mvj_param->total_count[i]);
 			}
@@ -871,7 +872,15 @@ namespace config
 			controller()->motionPool()[i].setTargetPos(p);
 		}
 
-        return max_total_count == 0 ? 0 : max_total_count - int(g_count);
+        if(max_total_count == 0)
+        {
+            return 0;
+        }
+        else
+        {
+            return (max_total_count%2==1)?(max_total_count+1 - int(g_count)):(max_total_count - int(g_count));
+        }
+
 	}
 	auto MoveJ::collectNrt()->void{}
 	MoveJ::~MoveJ() = default;

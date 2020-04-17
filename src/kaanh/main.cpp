@@ -38,6 +38,7 @@ int main(int argc, char *argv[])
 
     /*
 	//生成kaanh.xml文档
+    /*
     //-------for rokae robot begin
     cs.resetController(kaanhconfig::createControllerRokaeXB4().release());
     cs.resetModel(kaanhconfig::createModelRokae().release());
