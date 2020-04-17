@@ -1030,13 +1030,15 @@ namespace kaanh
 		static double g_vel_percent_last = g_vel_percent.load();
 		static double g_vel_percent_now = g_vel_percent.load();
 		g_vel_percent_now = g_vel_percent.load();
-		if (g_vel_percent_now - g_vel_percent_last >= 0.5)
+        //
+        double step = 100.0*(1.0-g_vel_percent_last / 100.0*g_vel_percent_last / 100.0)/200;
+        if (g_vel_percent_now - g_vel_percent_last > step)
 		{
-			g_vel_percent_last = g_vel_percent_last + 0.5;
+            g_vel_percent_last = g_vel_percent_last + step;
 		}
-		else if (g_vel_percent_now - g_vel_percent_last <= -0.5 )
+        else if (g_vel_percent_now - g_vel_percent_last < -step )
 		{
-			g_vel_percent_last = g_vel_percent_last - 0.5;
+            g_vel_percent_last = g_vel_percent_last - step;
 		}
 		else
 		{
@@ -1523,8 +1525,8 @@ namespace kaanh
 			"	<GroupParam>"
 			"		<Param name=\"pos\" default=\"{0.0,0.0,0.0,0.0,0.0,0.0}\"/>"
 			"		<Param name=\"vel\" default=\"{0.025, 0.025, 3.4, 0.0, 0.0}\"/>"
-			"		<Param name=\"acc\" default=\"0.5\"/>"
-			"		<Param name=\"dec\" default=\"0.5\"/>"
+            "		<Param name=\"acc\" default=\"0.9\"/>"
+            "		<Param name=\"dec\" default=\"0.9\"/>"
 			"		<Param name=\"jerk\" default=\"10.0\"/>"
 			"		<Param name=\"zone\" default=\"fine\"/>"
 			"		<Param name=\"load\" default=\"{1,0.05,0.05,0.05,0,0.97976,0,0.200177,1.0,1.0,1.0}\"/>"
@@ -2033,6 +2035,16 @@ namespace kaanh
 					mvj_param->joint_vel[i] / 1000 * mvj_param->pos_ratio[i], mvj_param->joint_acc[i] / 1000 / 1000 * mvj_param->pos_ratio[i] * mvj_param->pos_ratio[i], mvj_param->joint_jerk[i] / 1000 / 1000 / 1000 * mvj_param->pos_ratio[i] * mvj_param->pos_ratio[i] * mvj_param->pos_ratio[i],
 					p, v, a, j, mvj_param->total_count[i]);
 
+
+                if(i == 0 && a >= this->ecController()->motionPool()[0].maxAcc())
+                {
+                    this->mout() << "acc:"<<a<<"  joint_acc" << mvj_param->joint_acc[i] << "  ratio:"<< mvj_param->pos_ratio[i] << std::endl;
+
+
+
+                }
+
+
 				controller()->motionPool()[i].setTargetPos(p);
 				model()->motionPool()[i].setMp(p);
 			}
@@ -2170,9 +2182,9 @@ namespace kaanh
 			"				<Param name=\"eul_type\" default=\"321\"/>"
 			"			</GroupParam>"
 			"		</UniqueParam>"
-			"		<Param name=\"joint_acc\" default=\"0.5\"/>"
+            "		<Param name=\"joint_acc\" default=\"0.9\"/>"
             "		<Param name=\"vel\" default=\"{0.025, 0.025, 3.4, 0.0, 0.0}\"/>"
-			"		<Param name=\"joint_dec\" default=\"0.5\"/>"
+            "		<Param name=\"joint_dec\" default=\"0.9\"/>"
 			"		<Param name=\"joint_jerk\" default=\"10.0\"/>"
 			"		<Param name=\"speed\" default=\"{0.1, 0.1, 3.49, 0.0, 0.0}\"/>"
 			"		<Param name=\"zone\" default=\"fine\"/>"
@@ -2569,7 +2581,7 @@ namespace kaanh
 				// init joint_pos //
 				for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
 				{
-					model()->motionPool().at(i).setMp(controller()->motionPool()[i].targetPos());
+                    model()->motionPool().at(i).setMp(controller()->motionPool()[i].targetPos());
 				}
 				if (model()->solverPool().at(1).kinPos())return -1;
 				double end_pm[16];
@@ -2764,14 +2776,14 @@ namespace kaanh
 			"				<Param name=\"eul_type\" default=\"321\"/>"
 			"			</GroupParam>"
 			"		</UniqueParam>"
-			"		<Param name=\"acc\" default=\"0.5\"/>"
+            "		<Param name=\"acc\" default=\"1.0\"/>"
             "		<Param name=\"vel\" default=\"{0.025, 0.025, 3.4, 0.0, 0.0}\"/>"
-			"		<Param name=\"dec\" default=\"0.5\"/>"
+            "		<Param name=\"dec\" default=\"1.0\"/>"
 			"		<Param name=\"jerk\" default=\"10.0\"/>"
-			"		<Param name=\"angular_acc\" default=\"0.5\"/>"
-            "		<Param name=\"angular_vel\" default=\"0.1\"/>"
-			"		<Param name=\"angular_dec\" default=\"0.5\"/>"
-			"		<Param name=\"angular_jerk\" default=\"10.0\"/>"
+            "		<Param name=\"angular_acc\" default=\"10\"/>"
+            "		<Param name=\"angular_vel\" default=\"2\"/>"
+            "		<Param name=\"angular_dec\" default=\"10\"/>"
+            "		<Param name=\"angular_jerk\" default=\"10.0\"/>"
 			"		<Param name=\"zone\" default=\"fine\"/>"
 			"		<Param name=\"load\" default=\"{1,0.05,0.05,0.05,0,0.97976,0,0.200177,1.0,1.0,1.0}\"/>"
 			"		<Param name=\"tool\" default=\"tool0\"/>"
@@ -3623,14 +3635,14 @@ namespace kaanh
 			"				<Param name=\"end_eul_type\" default=\"321\"/>"
 			"			</GroupParam>"
 			"		</UniqueParam>"
-			"		<Param name=\"acc\" default=\"0.5\"/>"
+            "		<Param name=\"acc\" default=\"1\"/>"
             "		<Param name=\"vel\" default=\"{0.025, 0.025, 3.4, 0.0, 0.0}\"/>"
-			"		<Param name=\"dec\" default=\"0.5\"/>"
+            "		<Param name=\"dec\" default=\"1\"/>"
 			"		<Param name=\"jerk\" default=\"10.0\"/>"
-			"		<Param name=\"angular_acc\" default=\"0.5\"/>"
-			"		<Param name=\"angular_vel\" default=\"0.1\"/>"
-			"		<Param name=\"angular_dec\" default=\"0.5\"/>"
-			"		<Param name=\"angular_jerk\" default=\"10\"/>"
+            "		<Param name=\"angular_acc\" default=\"10\"/>"
+            "		<Param name=\"angular_vel\" default=\"2\"/>"
+            "		<Param name=\"angular_dec\" default=\"10\"/>"
+            "		<Param name=\"angular_jerk\" default=\"10\"/>"
 			"		<Param name=\"speed\" default=\"{0.1, 0.1, 3.49, 0.0, 0.0}\"/>"
 			"		<Param name=\"zone\" default=\"fine\"/>"
 			"		<Param name=\"load\" default=\"{1,0.05,0.05,0.05,0,0.97976,0,0.200177,1.0,1.0,1.0}\"/>"
