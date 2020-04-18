@@ -3904,7 +3904,6 @@ namespace tuying
 			"</Command>");
 	}
 
-
     auto createPlanRoot()->std::unique_ptr<aris::plan::PlanRoot>
 	{
         std::unique_ptr<aris::plan::PlanRoot> plan_root(new aris::plan::PlanRoot);

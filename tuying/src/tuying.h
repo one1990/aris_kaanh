@@ -148,7 +148,6 @@ namespace tuying
         ARIS_REGISTER_TYPE(tuying::JogJ7);
     };
 
-
 	class Get : public aris::plan::Plan
 	{
 	public:
