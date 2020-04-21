@@ -34,7 +34,7 @@ endif(WIN32)
 message(${aris_DIR})
 
 # user program started...
-set(SOURCE_FILES src/main.cpp src/tuying.cpp src/tuying.h src/json.hpp)
+set(SOURCE_FILES src/main.cpp src/tuying.cpp src/tuying.h src/dxl.cpp src/dxl.h src/json.hpp)
 add_executable(tuying ${SOURCE_FILES})
 
 if(UNIX)

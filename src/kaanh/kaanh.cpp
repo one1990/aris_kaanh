@@ -939,7 +939,6 @@ namespace kaanh
 			"</Command>");
 	}
 	ARIS_DEFINE_BIG_FOUR_CPP(Sleep);
-
 	MoveBase::MoveBase(const MoveBase &other) :Plan(other),
 		realzone(0), planzone(0), cmd_finished(false), cmd_executing(false){};
 
