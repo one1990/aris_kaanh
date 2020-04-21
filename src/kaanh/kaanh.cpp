@@ -42,7 +42,7 @@ std::shared_ptr<kaanh::MoveBase> g_plan;
 
 namespace kaanh
 {
-    int g_counter = 100;
+    double g_counter = 1.0;
 	double g_count = 0.0;
 	aris::dynamic::Marker tool1;
 
@@ -87,7 +87,7 @@ namespace kaanh
 		//暂停、恢复功能复位//
 		if (!inter.isAutoRunning())
 		{
-            g_counter = 100;
+            g_counter = 1.0;
 		}
 
 	}
@@ -1010,27 +1010,38 @@ namespace kaanh
 	template<typename MoveType>
 	auto PauseContinueB(MoveType *plan, aris::server::ProgramWebInterface &pwinter)->double
 	{
+		static double max_acc = 1.0;
+		static double max_vel = 0.0;
 		if (plan->count() == 1)
 		{
 			g_count = 0.0;
+			for (int i = 0; i < plan->controller()->motionPool().size(); i++)
+			{
+				max_acc = std::max(plan->controller()->motionPool().at(i).maxAcc(), max_acc);
+				max_vel = std::max(plan->controller()->motionPool().at(i).maxVel(), max_vel);
+			}
 		}
+
+		//暂停/停止、恢复功能
+		double temp = max_acc / max_vel * (1.0 - g_counter * g_counter) / 1000;//规划temp的大小，避免二阶不连续
+		temp = std::max(temp, max_acc / max_vel * (1.0 - 0.99 * 0.99) / 1000);//限定temp的最小值，避免g_vel_percent_last=100时，step很小而无法减速
 		if (pwinter.isAutoPaused() || pwinter.isAutoStopped())
 		{
-			g_counter--;
+			g_counter = g_counter - temp;
 		}
 		else
 		{
-			g_counter++;
+			g_counter = g_counter + temp;
         }
-
-        g_counter = std::max(std::min(g_counter, 100), 0);
+        g_counter = std::max(std::min(g_counter, 1.0), 0.0);
 
 		//渐变调速
 		static double g_vel_percent_last = g_vel_percent.load();
 		static double g_vel_percent_now = g_vel_percent.load();
 		g_vel_percent_now = g_vel_percent.load();
-        //
-        double step = 100.0*(1.0-g_vel_percent_last / 100.0*g_vel_percent_last / 100.0)/200;
+        
+        double step = max_acc / max_vel * 100.0*(1.0-g_vel_percent_last / 100.0*g_vel_percent_last / 100.0) / 1000;//规划step的大小，避免二阶不连续
+		step = std::max(step, max_acc / max_vel *100.0*(1.0 - 99.0 / 100.0*99.0 / 100.0) / 1000);//限定step的最小值，避免g_vel_percent_last=100时，step很小而无法减速
         if (g_vel_percent_now - g_vel_percent_last > step)
 		{
             g_vel_percent_last = g_vel_percent_last + step;
@@ -1043,9 +1054,10 @@ namespace kaanh
 		{
 			g_vel_percent_last = g_vel_percent_now;
 		}
+		g_vel_percent_last = std::max(std::min(g_vel_percent_last, 100.0), 0.0);
 
-        g_count = g_count + timespeed[g_counter] * g_vel_percent_last / 100.0;
-        return timespeed[g_counter] * g_vel_percent_last / 100.0;
+        g_count = g_count + g_counter * g_vel_percent_last / 100.0;
+        return g_counter * g_vel_percent_last / 100.0;
 	}
 	template<typename ParamType>
 	auto PauseContinueE(ParamType *param, aris::server::ProgramWebInterface &pwinter, double &rzcount)->void
@@ -7074,7 +7086,6 @@ namespace kaanh
 
 		std::vector<std::pair<std::string, std::any>> ret_value;
 		ret() = ret_value;
-		option() = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION;
 	}
 	SetVel::SetVel(const std::string &name) :Plan(name)
 	{
