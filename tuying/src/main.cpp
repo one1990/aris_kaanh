@@ -507,7 +507,15 @@ int main(int argc, char *argv[])
 					std::cout << "enable_dynamixel 1, dxl1_state:" << dxl1_state.load() << std::endl;
 					std::cout << "enable_dynamixel 2, dxl2_state:" << dxl2_state.load() << std::endl;
 					std::cout << "enable_dynamixel 3, dxl3_state:" << dxl3_state.load() << std::endl;
-
+					
+					// 使能第一个周期设置目标位置为当前位置，避免点动时舵机快速回零
+					groupBulkread_dynamixel(packetHandler, groupBulkRead);
+					auto dxl1 = std::int16_t(dxl_present_position1);
+					auto dxl2 = std::int16_t(dxl_present_position2);
+					auto dxl3 = std::int16_t(dxl_present_position3);
+					target_pos1.store(1.0*dxl1 / SCALING);
+					target_pos2.store(1.0*dxl2 / SCALING);
+					target_pos3.store(1.0*dxl3 / SCALING);
 					is_enabled.store(2);
 					enabled = true;
 					dxl_enabled.store(true);//第一版
@@ -565,7 +573,6 @@ int main(int argc, char *argv[])
 					current_pos2.store(1.0 * dxl2 / SCALING);
 					current_pos3.store(1.0 * dxl3 / SCALING);
 					*/
-					std::this_thread::sleep_for(std::chrono::milliseconds(100)); //will use bulk read to speed up，对点动的响应速度会有一些影响，但不大。
 				}
 				else if (dynamixel_control_mode.load() == 1)//manual mode
 				{
@@ -940,6 +947,8 @@ int main(int argc, char *argv[])
 				LOG_ERROR << e.what() << std::endl;
 				goto close;
 			}
+			
+			std::this_thread::sleep_for(std::chrono::milliseconds(1)); 
 		}
 
 		// 关闭舵机端口，等待用户DEnable来进行重连 //

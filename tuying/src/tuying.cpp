@@ -790,9 +790,9 @@ namespace tuying
         out_data.state_code = kaanh::get_state_code();
 
 		//舵机//
-		out_data.motion_pos[7] = current_pos1.load();
-		out_data.motion_pos[8] = current_pos2.load();
-		out_data.motion_pos[9] = current_pos3.load();
+		out_data.motion_pos[7] = current_pos1.load() * 10;
+		out_data.motion_pos[8] = current_pos2.load() * 10;
+		out_data.motion_pos[9] = current_pos3.load() * 10;
 		//out_data.motion_pos[7] = target_pos1.load()*10;
 		//out_data.motion_pos[8] = target_pos2.load()*10;
 		//out_data.motion_pos[9] = target_pos3.load()*10;
