@@ -16,7 +16,7 @@ auto get_teachpt_data(std::string datastr, double *data, size_t data_size)->int;
 class CalibT4P : public aris::plan::Plan
 {
 public:
-	auto virtual prepairNrt()->void;
+	auto virtual prepareNrt()->void;
 	explicit CalibT4P(const std::string &name = "CalibT4P");
 	ARIS_REGISTER_TYPE(CalibT4P);
 	
@@ -30,7 +30,7 @@ public:
 class CalibT5P : public aris::plan::Plan
 {
 public:
-	auto virtual prepairNrt()->void;
+	auto virtual prepareNrt()->void;
 	explicit CalibT5P(const std::string &name = "CalibT5P");
 	ARIS_REGISTER_TYPE(CalibT5P);
 	
@@ -44,7 +44,7 @@ public:
 class CalibT6P : public aris::plan::Plan
 {
 public:
-	auto virtual prepairNrt()->void;
+	auto virtual prepareNrt()->void;
 	explicit CalibT6P(const std::string &name = "CalibT6P");
 	ARIS_REGISTER_TYPE(CalibT6P);
 	
@@ -60,7 +60,7 @@ public:
 class SetTF : public aris::plan::Plan
 {
 public:
-	auto virtual prepairNrt()->void;
+	auto virtual prepareNrt()->void;
 	explicit SetTF(const std::string &name = "SetTF");
 	ARIS_REGISTER_TYPE(SetTF);
 };
@@ -85,7 +85,7 @@ private:
 class CalibZF : public aris::plan::Plan
 {
 public:
-	auto virtual prepairNrt()->void;
+	auto virtual prepareNrt()->void;
 	explicit CalibZF(const std::string &name = "CalibZF");
 	ARIS_REGISTER_TYPE(CalibZF);
 
@@ -99,7 +99,7 @@ private:
 class CalibZO : public aris::plan::Plan
 {
 public:
-	auto virtual prepairNrt()->void;
+	auto virtual prepareNrt()->void;
 	explicit CalibZO(const std::string &name = "CalibZO");
 	ARIS_REGISTER_TYPE(CalibZO);
 private:
@@ -112,7 +112,7 @@ private:
 class CalibZL : public aris::plan::Plan
 {
 public:
-	auto virtual prepairNrt()->void;
+	auto virtual prepareNrt()->void;
 	explicit CalibZL(const std::string &name = "CalibZL");
 	ARIS_REGISTER_TYPE(CalibZL);
 private:
@@ -126,7 +126,7 @@ private:
 class SwitchTool : public aris::plan::Plan
 {
 public:
-	auto virtual prepairNrt()->void;
+	auto virtual prepareNrt()->void;
 	explicit SwitchTool(const std::string &name = "SwitchTool");
 	ARIS_REGISTER_TYPE(SwitchTool);
 };

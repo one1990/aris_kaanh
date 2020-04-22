@@ -98,7 +98,7 @@ struct CalibT4PParam
 	std::string calib_info;
 	
 };
-auto CalibT4P::prepairNrt()->void
+auto CalibT4P::prepareNrt()->void
 {
 	//参数初始化
 	CalibT4PParam param;
@@ -113,9 +113,9 @@ auto CalibT4P::prepairNrt()->void
 	}
 	this->param() = param;
 	double pm_4pt[64];
-	double tcp[3];		//计算获得的tcp
+	double tcp[3];				//计算获得的tcp
 	double tcp_error = 0;		//计算tcp的误差
-	//double tcf[9];		//计算获得的tcf
+	//double tcf[9];			//计算获得的tcf
 	for (int i = 0; i < 4; i++)
 	{
 		double temp_pe[6];
@@ -134,19 +134,17 @@ auto CalibT4P::prepairNrt()->void
 	if (ret2 == 0)
 	{
 		//将标定结果转换为欧拉角形式
-		//const double pose[6] = { tcp[0] *1000, tcp[1] * 1000, tcp[2] * 1000, 0, 0, 0 };
 		const double pose[6] = { tcp[0], tcp[1], tcp[2], 0, 0, 0 };
 		for (int i = 0; i < 6; i++)
 		{
 			param.tool_pe.push_back(pose[i]);
 		}
-		//const std::string calib_info = "工具坐标系4点标定完成！工具中心点（TCP）的拟合误差是：" + std::to_string(tcp_error * 1000) + "mm";
 		const std::string calib_info = "The calculation is done! The calibration error of TCP is:" + std::to_string(tcp_error * 1000) + "mm";
 		param.calib_info = calib_info.c_str();
 	}
 	else
 	{
-		throw std::runtime_error("The calculation process was aborted!");		//"无法计算标定结果，获取的示教点异常，请重新执行标定过程。"
+		throw std::runtime_error("The calculation process was aborted!");		//无法计算标定结果，获取的示教点异常，请重新执行标定过程
 		param.calib_info = std::string("The calculation process was aborted!").c_str();
 		//return;
 	}
@@ -160,9 +158,9 @@ auto CalibT4P::prepairNrt()->void
 CalibT4P::CalibT4P(const std::string &name) :Plan(name)
 {
 	command().loadXmlStr(
-		"<Command name=\"calib_t4p\">"
+		"<Command name=\"CalibT4P\">"
 		"	<GroupParam>"
-		"		<Param name=\"pose\" default=\"{0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0}\"/>"
+		"		<Param name=\"pose\" default=\"{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}\"/>"
 		"   </GroupParam>"
 		"</Command>");
 }
@@ -184,7 +182,7 @@ auto CalibT4P::cal_TCP(double transmatric[64], double tcp[3], double &tcp_error)
 	aris::Size p[9];
 	aris::Size rank;
 	s_householder_utp(9, 3, deltaR, U, tau, p, rank, 1e-10);
-	////判断是否列满秩
+	//判断是否列满秩
 	if (rank < 3)
 	{
 		//throw std::runtime_error("示教点数据异常，请重新获取示教点！");
@@ -278,7 +276,7 @@ struct CalibT5PParam
 	std::vector<double> tool_pe;
 	std::string calib_info;
 };
-auto CalibT5P::prepairNrt()->void
+auto CalibT5P::prepareNrt()->void
 {
 	//参数初始化
 	CalibT5PParam param;
@@ -342,7 +340,7 @@ auto CalibT5P::prepairNrt()->void
 CalibT5P::CalibT5P(const std::string &name) :Plan(name)
 {
 	command().loadXmlStr(
-		"<Command name=\"calib_t5p\">"
+		"<Command name=\"CalibT5P\">"
 		"	<GroupParam>"
 		"		<Param name=\"pose\" default=\"{0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0}\"/>"
 		"   </GroupParam>"
@@ -546,7 +544,7 @@ struct CalibT6PParam
 	std::vector<double> tool_pe;
 	std::string calib_info;
 };
-auto CalibT6P::prepairNrt()->void
+auto CalibT6P::prepareNrt()->void
 {
 	//参数初始化，获取当前示教点位姿数据
 	CalibT6PParam param;
@@ -612,7 +610,7 @@ auto CalibT6P::prepairNrt()->void
 CalibT6P::CalibT6P(const std::string &name) :Plan(name)
 {
 	command().loadXmlStr(
-		"<Command name=\"calib_t6p\">"
+		"<Command name=\"CalibT6P\">"
 		"	<GroupParam>"
 		"		<Param name=\"pose\" default=\"{0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0}\"/>"
 		"   </GroupParam>"
@@ -811,7 +809,7 @@ struct SetTFParam
 	double tool_pe[6];
 	std::string calib_info;
 };
-auto SetTF::prepairNrt()->void
+auto SetTF::prepareNrt()->void
 {
 	//参数初始化
 	SetTFParam param;
@@ -929,7 +927,7 @@ struct CalibZFParam
 	std::string calib_info;
 };
 double CalibZF::zeroVal[6] = { 0 };
-auto CalibZF::prepairNrt()->void
+auto CalibZF::prepareNrt()->void
 {
 	//参数初始化
 	CalibZFParam param;
@@ -1002,7 +1000,7 @@ struct CalibZOParam
 size_t CalibZO::axisNum = 0;		//已标定零点的轴数量
 double CalibZO::zeroVal[6] = { 0 };
 double CalibZO::offsetVal[6] = { 0 };
-auto CalibZO::prepairNrt()->void
+auto CalibZO::prepareNrt()->void
 {
 	//参数初始化
 	CalibZOParam param;
@@ -1093,7 +1091,7 @@ struct CalibZLParam
 size_t CalibZL::axisNum = 0;		//已标定零点的轴数量
 double CalibZL::zeroVal[6] = { 0 };
 double CalibZL::offsetVal[6] = { 0 };
-auto CalibZL::prepairNrt()->void
+auto CalibZL::prepareNrt()->void
 {
 	//参数初始化
 	CalibZLParam param;
@@ -1183,7 +1181,7 @@ struct SwitchToolParam
 	double offsetVal[6] = { 0 };
 	std::string calib_info;
 };
-auto SwitchTool::prepairNrt()->void
+auto SwitchTool::prepareNrt()->void
 {
 	//参数初始化
 	SwitchToolParam param;

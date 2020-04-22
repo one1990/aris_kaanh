@@ -821,10 +821,10 @@ namespace kaanh
                 aris::plan::moveAbsolute(static_cast<double>(count()), imp_->axis_begin_pos_vec[i], imp_->axis_pos_vec[i], imp_->axis_vel_vec[i] / 1000
                     , imp_->axis_acc_vec[i] / 1000 / 1000, imp_->axis_dec_vec[i] / 1000 / 1000, p, v, a, imp_->total_count_vec[i]);
                 controller()->motionAtAbs(i).setTargetPos(p);
-                //model()->motionPool().at(i).setMp(p);//huaerkang
+                model()->motionPool().at(i).setMp(p);
             }
         }
-        //if (model()->solverPool().at(1).kinPos())return -1;//huaerkang
+        if (model()->solverPool().at(1).kinPos())return -1;
         return (static_cast<int>(*std::max_element(imp_->total_count_vec.begin(), imp_->total_count_vec.end())) > count()) ? 1 : 0;
     }
     auto Reset::collectNrt()->void{}
