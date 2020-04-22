@@ -22,6 +22,8 @@ int main(int argc, char *argv[])
 	auto&cs = aris::server::ControlServer::instance();
 	
     cs.loadXmlFile(xmlpath.string().c_str());	//加载kaanh.xml配置
+    cs.resetPlanRoot(robot::createPlanRoot().release());//加载cmd配置
+    cs.saveXmlFile(xmlpath.string().c_str());	//save kaanh.xml配置
 	cs.init();									//初始化
 	aris::core::logDirectory(logpath);			//设置log路径
 

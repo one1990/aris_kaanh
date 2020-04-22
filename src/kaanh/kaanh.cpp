@@ -821,10 +821,13 @@ namespace kaanh
                 aris::plan::moveAbsolute(static_cast<double>(count()), imp_->axis_begin_pos_vec[i], imp_->axis_pos_vec[i], imp_->axis_vel_vec[i] / 1000
                     , imp_->axis_acc_vec[i] / 1000 / 1000, imp_->axis_dec_vec[i] / 1000 / 1000, p, v, a, imp_->total_count_vec[i]);
                 controller()->motionAtAbs(i).setTargetPos(p);
-                model()->motionPool().at(i).setMp(p);
+                if(model()->generalMotionPool().size()>0)model()->motionPool().at(i).setMp(p);
             }
         }
-        if (model()->solverPool().at(1).kinPos())return -1;
+        if(model()->generalMotionPool().size()>0)
+        {
+            if (model()->solverPool().at(1).kinPos())return -1;
+        }
         return (static_cast<int>(*std::max_element(imp_->total_count_vec.begin(), imp_->total_count_vec.end())) > count()) ? 1 : 0;
     }
     auto Reset::collectNrt()->void{}
@@ -888,7 +891,7 @@ namespace kaanh
             for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
             {
                 controller()->motionPool()[i].setTargetPos(controller()->motionPool().at(i).actualPos());
-                model()->motionPool()[i].setMp(controller()->motionPool().at(i).actualPos());
+                if(model()->generalMotionPool().size()>0)model()->motionPool()[i].setMp(controller()->motionPool().at(i).actualPos());
             }
 
             param->is_rt_waiting_ready_.store(true);

@@ -22,7 +22,7 @@ namespace robot
 		double pos;
 		double time;
 		uint32_t timenum;
-		std::vector<int> active_motor;			//目标电机
+        std::vector<bool> active_motor;			//目标电机
 		std::vector<double> begin_pjs;			//起始位置
 		std::vector<double> step_pjs;			//目标位置
 	};
@@ -30,7 +30,7 @@ namespace robot
 	{
 		MoveSParam param;
 		param.active_motor.clear();
-		param.active_motor.resize(controller()->motionPool().size(), 0);
+        param.active_motor.resize(controller()->motionPool().size(), false);
 		param.begin_pjs.resize(controller()->motionPool().size(), 0.0);
 		param.step_pjs.resize(controller()->motionPool().size(), 0.0);
 		param.pos = 0.0;
@@ -42,13 +42,13 @@ namespace robot
 		{
 			if (p.first == "all")
 			{
-				std::fill(param.active_motor.begin(), param.active_motor.end(), 1);
+                std::fill(param.active_motor.begin(), param.active_motor.end(), true);
 			}
 			else if (p.first == "motion_id")
 			{
-				param.active_motor.at(int32Param(p.first)) = 1;
+                param.active_motor.at(int32Param(p.first)) = true;
 			}
-			else if (p.first == "j1")
+            else if (p.first == "pos")
 			{
 				if (p.second == "current_pos")
 				{
@@ -76,10 +76,10 @@ namespace robot
 	}
 	auto MoveS::executeRT()->int
 	{
-		auto param = std::any_cast<MoveSParam&>(this->param());
+        auto &param = std::any_cast<MoveSParam&>(this->param());
 		auto time = static_cast<int32_t>(param.time * 1000);		//运行周期
 		auto totaltime = static_cast<int32_t>(param.timenum * time);//运行总时间
-		
+
 		//第一个周期设置log文件名称，获取当前电机所在位置
 		if (count() == 1)
 		{
@@ -92,6 +92,7 @@ namespace robot
 					param.begin_pjs[i] = controller()->motionPool()[i].targetPos();
 				}
 			}
+
 		}
 		
 		//1-cos(theta)轨迹运行
@@ -99,25 +100,26 @@ namespace robot
 		{
 			if (param.active_motor[i])
 			{
-				param.step_pjs[i] = param.begin_pjs[i] + param.pos*(1 - std::cos(2 * PI*count() / time));
+                param.step_pjs[i] = param.begin_pjs[i] + param.pos*(1.0 - std::cos(2.0 * PI*count() / time));
 				controller()->motionPool().at(i).setTargetPos(param.step_pjs[i]);
 			}
 		}
 
 		//打印
-		auto &cout = controller()->mout();
-		if (count() % 100 == 0)
+        auto &cout = controller()->mout();
+        if (count() % 100 == 0)
 		{
 			for (int i = 0; i < param.active_motor.size(); i++)
 			{
-				cout << std::setprecision(10) << "targetpos:" << controller()->motionPool()[i].targetPos() << "  ";
+                cout << std::setprecision(10) << "targetpos:" << param.step_pjs[i] << "  ";
 				cout << std::setprecision(10) << "actualpos:" << controller()->motionPool()[i].actualPos() << "  ";
 			}
 			cout << std::endl;
+
 		}
 		
-		//记录
-		auto &lout = controller()->lout();
+        //记录
+        auto &lout = controller()->lout();
 		for(int i=0; i<param.active_motor.size();i++)
 		{
 			lout << controller()->motionPool()[i].targetPos()<<"  ";
