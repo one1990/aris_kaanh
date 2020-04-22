@@ -11,11 +11,12 @@ using namespace aris::plan;
 
 namespace robot
 {
-//MoveAbs的指令参数结构体，长度单位是m，角度单位是rad
-//每条指令的执行顺序
+//MoveJS的指令参数结构体，长度单位是m，角度单位是rad
+//指令的执行顺序
 //1、先执行prepareNrt，每条指令只执行一次
 //2、然后执行executeRT,executeRT每一个循环周期(默认1ms)会被实时核调用一次，执行的总时间由用户给定
 //3、执行结束后，本指令会被析构
+//指令功能：某一电机或者所有电机1-cos(theta)轨迹运行，幅值为pos，周期为time，周期数为timenum
 	struct MoveSParam
 	{
 		double pos;
@@ -131,6 +132,10 @@ namespace robot
 	MoveS::~MoveS() = default;
 	MoveS::MoveS(const std::string &name) : Plan(name)
 	{
+		//构造函数参数说明，构造函数通过xml的格式定义本条指令的接口，name表示参数名，default表示输入参数，abbreviation表示参数名的缩写(缩写只能单个字符)
+		//1 GroupParam下面的各个节点都是输入参数，如果没有给定会使用默认值
+		//2 UniqueParam下面的各个节点互斥，有且只能使用其中的一个
+		//3 例如，通过terminal或者socket发送“mvs --pos=0.1”，控制器实际会按照mvs --pos=0.1rad --time=1s --timenum=2 --all执行
 		command().loadXmlStr(
 			"<Command name=\"mvs\">"
 			"	<GroupParam>"
