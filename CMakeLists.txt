@@ -90,7 +90,8 @@ message(${aris_DIR})
 
 add_executable(kaanh src/kaanh/main.cpp)
 target_link_libraries(kaanh kaanh_lib)
-file(COPY src/kaanh.xml DESTINATION ./)
+
+file(COPY src/kaanh/kaanh.xml DESTINATION ./)
 
 if(UNIX)
 	target_link_libraries(kaanh ${aris_LIBRARIES} atomic)
