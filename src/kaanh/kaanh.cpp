@@ -1026,9 +1026,10 @@ namespace kaanh
 		}
 
 		//暂停/停止、恢复功能
-		double temp = max_acc / max_vel * (1.0 - g_counter * g_counter) / 1000;//规划temp的大小，避免二阶不连续
-        temp = std::max(temp, max_acc / max_vel * (1.0 - 0.99) / 1000);//限定temp的最小值，避免g_vel_percent_last=100时，step很小而无法减速
-		if (pwinter.isAutoPaused() || pwinter.isAutoStopped())
+        //double temp = max_acc / max_vel * (1.0 - g_counter * g_counter) / 1000;//规划temp的大小，避免二阶不连续
+        //temp = std::max(temp, max_acc / max_vel * (1.0 - 0.99) / 1000);//限定temp的最小值，避免g_vel_percent_last=100时，step很小而无法减速
+        double temp = max_acc / max_vel * (0.75) / 1000;//规划temp的大小，避免二阶不连续
+        if (pwinter.isAutoPaused() || pwinter.isAutoStopped())
 		{
 			g_counter = g_counter - temp;
 		}
