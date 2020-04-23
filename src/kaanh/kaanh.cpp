@@ -1027,7 +1027,7 @@ namespace kaanh
 
 		//暂停/停止、恢复功能
 		double temp = max_acc / max_vel * (1.0 - g_counter * g_counter) / 1000;//规划temp的大小，避免二阶不连续
-		temp = std::max(temp, max_acc / max_vel * (1.0 - 0.99 * 0.99) / 1000);//限定temp的最小值，避免g_vel_percent_last=100时，step很小而无法减速
+        temp = std::max(temp, max_acc / max_vel * (1.0 - 0.99) / 1000);//限定temp的最小值，避免g_vel_percent_last=100时，step很小而无法减速
 		if (pwinter.isAutoPaused() || pwinter.isAutoStopped())
 		{
 			g_counter = g_counter - temp;
@@ -1044,7 +1044,7 @@ namespace kaanh
 		g_vel_percent_now = g_vel_percent.load();
         
         double step = max_acc / max_vel * 100.0*(1.0-g_vel_percent_last / 100.0*g_vel_percent_last / 100.0) / 1000;//规划step的大小，避免二阶不连续
-		step = std::max(step, max_acc / max_vel *100.0*(1.0 - 99.0 / 100.0*99.0 / 100.0) / 1000);//限定step的最小值，避免g_vel_percent_last=100时，step很小而无法减速
+        step = std::max(step, max_acc / max_vel *100.0*(1.0 - 99.0 / 100.0) / 1000);//限定step的最小值，避免g_vel_percent_last=100时，step很小而无法减速
         if (g_vel_percent_now - g_vel_percent_last > step)
 		{
             g_vel_percent_last = g_vel_percent_last + step;

@@ -739,8 +739,8 @@
                     <GroupParam>
                         <Param name="pos" default="{0.0,0.0,0.0,0.0,0.0,0.0}"/>
                         <Param name="vel" default="{0.025, 0.025, 3.4, 0.0, 0.0}"/>
-                        <Param name="acc" default="0.5"/>
-                        <Param name="dec" default="0.5"/>
+                        <Param name="acc" default="0.9"/>
+                        <Param name="dec" default="0.9"/>
                         <Param name="jerk" default="10.0"/>
                         <Param name="zone" default="fine"/>
                         <Param name="load" default="{1,0.05,0.05,0.05,0,0.97976,0,0.200177,1.0,1.0,1.0}"/>
@@ -826,13 +826,13 @@
                                 <Param name="eul_type" default="321"/>
                             </GroupParam>
                         </UniqueParam>
-                        <Param name="acc" default="0.5"/>
+                        <Param name="acc" default="1.0"/>
                         <Param name="vel" default="{0.025, 0.025, 3.4, 0.0, 0.0}"/>
-                        <Param name="dec" default="0.5"/>
+                        <Param name="dec" default="1.0"/>
                         <Param name="jerk" default="10.0"/>
-                        <Param name="angular_acc" default="0.5"/>
-                        <Param name="angular_vel" default="0.1"/>
-                        <Param name="angular_dec" default="0.5"/>
+                        <Param name="angular_acc" default="10"/>
+                        <Param name="angular_vel" default="2"/>
+                        <Param name="angular_dec" default="10"/>
                         <Param name="angular_jerk" default="10.0"/>
                         <Param name="zone" default="fine"/>
                         <Param name="load" default="{1,0.05,0.05,0.05,0,0.97976,0,0.200177,1.0,1.0,1.0}"/>
@@ -912,9 +912,9 @@
                                 <Param name="eul_type" default="321"/>
                             </GroupParam>
                         </UniqueParam>
-                        <Param name="joint_acc" default="0.5"/>
+                        <Param name="joint_acc" default="0.9"/>
                         <Param name="vel" default="{0.025, 0.025, 3.4, 0.0, 0.0}"/>
-                        <Param name="joint_dec" default="0.5"/>
+                        <Param name="joint_dec" default="0.9"/>
                         <Param name="joint_jerk" default="10.0"/>
                         <Param name="speed" default="{0.1, 0.1, 3.49, 0.0, 0.0}"/>
                         <Param name="zone" default="fine"/>
@@ -982,30 +982,6 @@
                     </GroupParam>
                 </Command>
             </kaanh.MoveJ>
-            <Get name="Get_plan">
-                <Command name="get"/>
-            </Get>
-            <Var name="Var_plan">
-                <Command name="var">
-                    <GroupParam>
-                        <UniqueParam>
-                            <GroupParam>
-                                <Param name="name" default="0"/>
-                                <Param name="value" default="0"/>
-                                <Param name="type" default="0"/>
-                            </GroupParam>
-                            <Param name="clear"/>
-                        </UniqueParam>
-                    </GroupParam>
-                </Command>
-            </Var>
-            <Evaluate name="Evaluate_plan">
-                <Command name="evaluate">
-                    <GroupParam>
-                        <Param name="value" default="0"/>
-                    </GroupParam>
-                </Command>
-            </Evaluate>
             <kaanh.MoveC name="MoveC">
                 <Command name="mvc">
                     <GroupParam>
@@ -1028,13 +1004,13 @@
                                 <Param name="end_eul_type" default="321"/>
                             </GroupParam>
                         </UniqueParam>
-                        <Param name="acc" default="0.5"/>
+                        <Param name="acc" default="1"/>
                         <Param name="vel" default="{0.025, 0.025, 3.4, 0.0, 0.0}"/>
-                        <Param name="dec" default="0.5"/>
+                        <Param name="dec" default="1"/>
                         <Param name="jerk" default="10.0"/>
-                        <Param name="angular_acc" default="0.5"/>
-                        <Param name="angular_vel" default="0.1"/>
-                        <Param name="angular_dec" default="0.5"/>
+                        <Param name="angular_acc" default="10"/>
+                        <Param name="angular_vel" default="2"/>
+                        <Param name="angular_dec" default="10"/>
                         <Param name="angular_jerk" default="10"/>
                         <Param name="speed" default="{0.1, 0.1, 3.49, 0.0, 0.0}"/>
                         <Param name="zone" default="fine"/>
@@ -1044,53 +1020,38 @@
                     </GroupParam>
                 </Command>
             </kaanh.MoveC>
-            <JogC name="JogC_plan">
-                <Command name="jogC">
+            <Get name="Get_plan">
+                <Command name="get">
                     <GroupParam>
-                        <UniqueParam>
-                            <GroupParam name="start_group">
-                                <Param name="start"/>
-                                <Param name="increase_count" default="100"/>
-                                <Param name="vel" default="{0.05,0.05,0.05,0.25,0.25,0.25}"/>
-                                <Param name="acc" default="{0.2,0.2,0.2,1,1,1}"/>
-                                <Param name="dec" default="{0.2,0.2,0.2,1,1,1}"/>
-                            </GroupParam>
-                            <Param name="stop"/>
-                            <GroupParam>
-                                <Param name="cor" default="0"/>
-                                <Param name="vel_percent" default="10"/>
-                                <Param name="x" default="0"/>
-                                <Param name="y" default="0"/>
-                                <Param name="z" default="0"/>
-                                <Param name="a" default="0"/>
-                                <Param name="b" default="0"/>
-                                <Param name="c" default="0"/>
-                            </GroupParam>
+                        <UniqueParam default="all">
+                            <Param name="all"/>
+                            <Param name="pos"/>
+                            <Param name="vel"/>
                         </UniqueParam>
                     </GroupParam>
                 </Command>
-            </JogC>
-            <JogJ name="JogJ_plan">
-                <Command name="jogJ">
+            </Get>
+            <Var name="Var_plan">
+                <Command name="var">
                     <GroupParam>
                         <UniqueParam>
-                            <GroupParam name="start_group">
-                                <Param name="start"/>
-                                <Param name="increase_count" default="100"/>
-                                <Param name="vel" abbreviation="v" default="1"/>
-                                <Param name="acc" abbreviation="a" default="5"/>
-                                <Param name="dec" abbreviation="d" default="5"/>
-                            </GroupParam>
-                            <Param name="stop"/>
                             <GroupParam>
-                                <Param name="vel_percent" default="10"/>
-                                <Param name="motion_id" abbreviation="m" default="0"/>
-                                <Param name="direction" default="1"/>
+                                <Param name="name" default="0"/>
+                                <Param name="value" default="0"/>
+                                <Param name="type" default="0"/>
                             </GroupParam>
+                            <Param name="clear"/>
                         </UniqueParam>
                     </GroupParam>
                 </Command>
-            </JogJ>
+            </Var>
+            <Evaluate name="Evaluate_plan">
+                <Command name="evaluate">
+                    <GroupParam>
+                        <Param name="value" default="0"/>
+                    </GroupParam>
+                </Command>
+            </Evaluate>
             <JogJ1 name="JogJ1_plan">
                 <Command name="j1">
                     <UniqueParam>
@@ -1186,10 +1147,10 @@
                     <GroupParam>
                         <UniqueParam>
                             <GroupParam>
-                                <Param name="increase_count" default="500"/>
-                                <Param name="vel" abbreviation="v" default="1"/>
-                                <Param name="acc" abbreviation="a" default="5"/>
-                                <Param name="dec" abbreviation="d" default="5"/>
+                                <Param name="increase_count" default="200"/>
+                                <Param name="vel" abbreviation="v" default="0.5"/>
+                                <Param name="acc" abbreviation="a" default="0.5"/>
+                                <Param name="dec" abbreviation="d" default="0.5"/>
                                 <Param name="vel_percent" default="10"/>
                                 <Param name="direction" default="1"/>
                             </GroupParam>
@@ -1322,6 +1283,17 @@
                     </GroupParam>
                 </Command>
             </SetCon>
+            <SetPdo name="SetPdo_plan">
+                <Command name="setpdo">
+                    <GroupParam>
+                        <Param name="motion_id" default="0"/>
+                        <Param name="index" default="0x6040"/>
+                        <Param name="subindex" default="0x00"/>
+                        <Param name="value" default="1"/>
+                        <Param name="bitsize" default="16"/>
+                    </GroupParam>
+                </Command>
+            </SetPdo>
             <SetDH name="SetDH_plan">
                 <Command name="setdh">
                     <GroupParam>
@@ -1392,6 +1364,7 @@
                 <Command name="savexml">
                     <GroupParam>
                         <Param name="path"/>
+                        <Param name="filename"/>
                     </GroupParam>
                 </Command>
             </SaveXml>
@@ -1464,51 +1437,50 @@
                     <Param name="manual" default="1"/>
                 </Command>
             </Switch>
-            <MoveJoint name="MoveJoint">
+            <Yuli name="Yuli_plan">
+                <Command name="yuli">
+                    <GroupParam>
+                        <Param name="times" abbreviation="t" default="1000"/>
+                    </GroupParam>
+                </Command>
+            </Yuli>
+            <MoveJoint name="MoveJoint_plan">
                 <Command name="mvJoint">
                     <GroupParam>
-                        <Param name="PressF" default="0"/>
-                        <Param name="SensorType" default="-20.0"/>
+                        <Param name="vellimit" default="{0.1,0.1,0.1,0.5,0.5,0.5}"/>
+                        <Param name="damping" default="{0.01,0.01,0.01,0.01,0.01,0.01}"/>
+                        <Param name="kd" default="{2,2,1,3,3,3}"/>
+                        <Param name="tool" default="tool0"/>
+                        <Param name="wobj" default="wobj0"/>
                     </GroupParam>
                 </Command>
             </MoveJoint>
-            <Replay name="Replay">
-                <Command name="MotionReplay">
-                    <GroupParam>
-                        <Param name="path" default="C:\Users\kevin\Desktop\file\rt_log--2019-09-06--19-14-16--moveJR.txt"/>
-                        <Param name="vel" abbreviation="v" default="0.05"/>
-                        <Param name="acc" abbreviation="a" default="0.1"/>
-                        <Param name="dec" abbreviation="d" default="0.1"/>
-                    </GroupParam>
-                </Command>
-            </Replay>
-            <ForceDirect name="ForceDirect">
-                <Command name="FCPressL">
-                    <GroupParam>
-                        <Param name="PressF" default="0"/>
-                        <Param name="SensorType" default="-20.0"/>
-                    </GroupParam>
-                </Command>
-            </ForceDirect>
             <FCStop name="FCStop">
                 <Command name="FCStop"/>
             </FCStop>
-            <CalibT4P name="CalibT4P">
-                <Command name="calib_t4p">
+            <SetFS name="SetFS">
+                <Command name="setfs">
                     <GroupParam>
-                        <Param name="pose" default="{0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0}"/>
+                        <Param name="f" default="{1,0,0,0,0,0}"/>
+                    </GroupParam>
+                </Command>
+            </SetFS>
+            <CalibT4P name="CalibT4P">
+                <Command name="CalibT4P">
+                    <GroupParam>
+                        <Param name="pose" default="{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}"/>
                     </GroupParam>
                 </Command>
             </CalibT4P>
             <CalibT5P name="CalibT5P">
-                <Command name="calib_t5p">
+                <Command name="CalibT5P">
                     <GroupParam>
                         <Param name="pose" default="{0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0}"/>
                     </GroupParam>
                 </Command>
             </CalibT5P>
             <CalibT6P name="CalibT6P">
-                <Command name="calib_t6p">
+                <Command name="CalibT6P">
                     <GroupParam>
                         <Param name="pose" default="{0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0}"/>
                     </GroupParam>
