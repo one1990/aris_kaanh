@@ -298,6 +298,27 @@ namespace kaanh
 		aris::core::ImpPtr<Imp> imp_;
 	};
 
+
+	class MoveD : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepareNrt()->void;
+		auto virtual executeRT()->int;
+		auto virtual collectNrt()->void;
+		virtual ~MoveD();
+		explicit MoveD(const std::string &name = "MoveD_plan");
+		ARIS_REGISTER_TYPE(MoveD);
+		MoveD(const MoveD &);
+		MoveD(MoveD &);
+		MoveD& operator=(const MoveD &);
+		MoveD& operator=(MoveD &&);
+
+	private:
+		struct Imp;
+		aris::core::ImpPtr<Imp> imp_;
+	};
+
+
 	class CalibFZero : public aris::plan::Plan
 	{
 	public:

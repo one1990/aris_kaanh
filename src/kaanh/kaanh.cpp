@@ -3732,7 +3732,604 @@ namespace kaanh
             "</Command>");
     }
 
-	
+
+	//力传感器标定:零点、机械臂安装倾角、负载重量、重心数据//
+	double thelta_setup = 51.166;//力传感器安装位置相对tcp偏移角
+	double pos_setup = 0.061;//力传感器安装位置相对tcp偏移距离
+	std::vector<double> Gravity_value(6, 0.0);		//负载重力分量
+	std::vector<double> Gravity_center(3, 0.0);		//重心数据:x,y,z
+	std::vector<double> Gravity_xyzindex(3, 0.0);	//重力系数:Lx,Ly,Lz
+	std::vector<double> Zero_value(6, 0.0);			//力传感器零点偏移量
+	double U = 0.0;		//机械臂安装倾角:世界坐标系绕X轴旋转角度U
+	double V = 0.0;		//机械臂安装倾角:世界坐标系绕基座坐标系的Y1轴选择V
+	struct CalibFZeroParam
+	{
+		aris::dynamic::Marker *tool, *wobj;
+		std::vector<Size> total_count_vec;
+		std::vector<double> p1, p2, p3;
+		std::vector<double> sdata1, sdata2, sdata3;
+		std::vector<double> axis_first_pos_vec;
+		std::vector<double> vel, acc, dec;
+		std::vector<double> F;	//力矩阵
+		std::vector<double> p;	//重心向量-求解：重心坐标，及常数k1,k2,k3
+		std::vector<double> m;	//转矩向量
+		std::vector<double> R;	//姿态转换矩阵
+		std::vector<double> l;	//零点力偏移向量-求解：重力xyz分量，零点偏移量xyz分量
+		std::vector<double> f;	//力向量
+		double U = 0.0;	//世界坐标系绕X轴旋转角度U
+		double V = 0.0;	//世界坐标系绕基座坐标系的Y1轴选择V
+	};
+	auto CalibFZero::prepareNrt()->void
+	{
+		CalibFZeroParam param;
+		{
+			param.total_count_vec.resize(3, 0);
+			param.axis_first_pos_vec.resize(6, 0.0);
+			param.p1.resize(6, 0.0);
+			param.p2.resize(6, 0.0);
+			param.p3.resize(6, 0.0);
+			param.sdata1.resize(6, 0.0);
+			param.sdata2.resize(6, 0.0);
+			param.sdata3.resize(6, 0.0);
+
+			param.F.resize(54, 0.0);
+			param.p.resize(6, 0.0);
+			param.m.resize(9, 0.0);
+			param.R.resize(54, 0.0);
+			param.l.resize(6, 0.0);
+			param.f.resize(9, 0.0);
+
+		}
+
+		std::vector<double> p1(7, 0.0), p2(7, 0.0), p3(7, 0.0);
+
+		param.tool = &*model()->generalMotionPool()[0].makI().fatherPart().markerPool().findByName(std::string(cmdParams().at("tool")));
+		param.wobj = &*model()->generalMotionPool()[0].makJ().fatherPart().markerPool().findByName(std::string(cmdParams().at("wobj")));
+
+		for (auto cmd_param : cmdParams())
+		{
+			if (cmd_param.first == "p1")
+			{
+				auto p = matrixParam(cmd_param.first);
+				if (p.size() == 7)
+				{
+					p1.assign(p.begin(), p.end());
+				}
+				else
+				{
+					THROW_FILE_LINE("");
+				}
+				param.tool->setPq(*param.wobj, p1.data());
+				model()->generalMotionPool().at(0).updMpm();
+				if (model()->solverPool().at(0).kinPos())THROW_FILE_LINE("");
+				for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
+				{
+					param.p1[i] = model()->motionPool()[i].mp();
+				}
+			}
+			else if (cmd_param.first == "p2")
+			{
+				auto p = matrixParam(cmd_param.first);
+				if (p.size() == 7)
+				{
+					p2.assign(p.begin(), p.end());
+				}
+				else
+				{
+					THROW_FILE_LINE("");
+				}
+				param.tool->setPq(*param.wobj, p2.data());
+				model()->generalMotionPool().at(0).updMpm();
+				if (model()->solverPool().at(0).kinPos())THROW_FILE_LINE("");
+				for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
+				{
+					param.p2[i] = model()->motionPool()[i].mp();
+				}
+			}
+			else if (cmd_param.first == "p3")
+			{
+				auto p = matrixParam(cmd_param.first);
+				if (p.size() == 7)
+				{
+					p3.assign(p.begin(), p.end());
+				}
+				else
+				{
+					THROW_FILE_LINE("");
+				}
+				param.tool->setPq(*param.wobj, p3.data());
+				model()->generalMotionPool().at(0).updMpm();
+				if (model()->solverPool().at(0).kinPos())THROW_FILE_LINE("");
+				for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
+				{
+					param.p3[i] = model()->motionPool()[i].mp();
+				}
+			}
+			else if (cmd_param.first == "acc")
+			{
+				auto a = matrixParam(cmd_param.first);
+
+				if (a.size() == 1)
+				{
+					param.acc.resize(controller()->motionPool().size(), a.toDouble());
+				}
+				else if (a.size() == controller()->motionPool().size())
+				{
+					param.acc.assign(a.begin(), a.end());
+				}
+				else
+				{
+					THROW_FILE_LINE("");
+				}
+				for (int i = 0; i < controller()->motionPool().size(); ++i) param.acc[i] *= controller()->motionPool().at(i).maxAcc();
+			}
+			else if (cmd_param.first == "vel")
+			{
+				auto a = matrixParam(cmd_param.first);
+				if (a.size() == 1)
+				{
+					param.vel.resize(controller()->motionPool().size(), a.toDouble());
+				}
+				else if (a.size() == controller()->motionPool().size())
+				{
+					param.vel.assign(a.begin(), a.end());
+				}
+				else
+				{
+					THROW_FILE_LINE("");
+				}
+				for (int i = 0; i < controller()->motionPool().size(); ++i) param.vel[i] *= controller()->motionPool().at(i).maxVel();
+			}
+			else if (cmd_param.first == "dec")
+			{
+				auto d = matrixParam(cmd_param.first);
+
+				if (d.size() == 1)
+				{
+					param.dec.resize(controller()->motionPool().size(), d.toDouble());
+				}
+				else if (d.size() == controller()->motionPool().size())
+				{
+					param.dec.assign(d.begin(), d.end());
+				}
+				else
+				{
+					THROW_FILE_LINE("");
+				}
+				for (int i = 0; i < controller()->motionPool().size(); ++i) param.dec[i] *= controller()->motionPool().at(i).maxAcc();
+			}
+		}
+
+		this->param() = param;
+		std::vector<std::pair<std::string, std::any>> ret_value;
+		ret() = ret_value;
+	}
+	auto CalibFZero::executeRT()->int
+	{
+		auto &param = std::any_cast<CalibFZeroParam&>(this->param());
+		double p, v, a;
+		aris::Size t_count;
+		static aris::Size total_count = 1;
+		aris::Size return_value = 0;
+		static double fs2tpm[16];
+		// 获取6个电机初始位置 //
+		if (count() == 1)
+		{
+			//获取力传感器相对tcp的旋转矩阵//
+			auto thelta = (180 - thelta_setup)*PI / 180;
+			double pq_setup[7]{ 0.0,0.0,pos_setup,0.0,0.0,sin(thelta_setup / 2.0),cos(thelta_setup / 2.0) };
+			s_pq2pm(pq_setup, fs2tpm);
+
+			for (int i = 0; i < 6; i++)
+			{
+				param.axis_first_pos_vec[i] = controller()->motionPool().at(i).targetPos();
+			}
+
+			for (int i = 0; i < 6; i++)
+			{
+				// 梯形规划p1,p2,p3 //
+				aris::plan::moveAbsolute(count(), param.axis_first_pos_vec[i], param.p1[i], param.vel[i] / 1000, param.acc[i] / 1000 / 1000, param.dec[i] / 1000 / 1000, p, v, a, t_count);
+				param.total_count_vec[0] = std::max(param.total_count_vec[0], t_count);
+
+				aris::plan::moveAbsolute(count(), param.p1[i], param.p2[i], param.vel[i] / 1000, param.acc[i] / 1000 / 1000, param.dec[i] / 1000 / 1000, p, v, a, t_count);
+				param.total_count_vec[1] = std::max(param.total_count_vec[1], t_count);
+
+				aris::plan::moveAbsolute(count(), param.p2[i], param.p3[i], param.vel[i] / 1000, param.acc[i] / 1000 / 1000, param.dec[i] / 1000 / 1000, p, v, a, t_count);
+				param.total_count_vec[2] = std::max(param.total_count_vec[2], t_count);
+			}
+			total_count = param.total_count_vec[0] + param.total_count_vec[1] + param.total_count_vec[2] + 3000;
+		}
+
+		// 机械臂先后走到p1、p2、p3点 //
+		if (count() <= param.total_count_vec[0] + 1000)
+		{
+			for (int i = 0; i < 6; i++)
+			{
+				// 在第一个周期走梯形规划复位
+				aris::plan::moveAbsolute(count(), param.axis_first_pos_vec[i], param.p1[i], param.vel[i] / 1000, param.acc[i] / 1000 / 1000, param.dec[i] / 1000 / 1000, p, v, a, t_count);
+				controller()->motionAtAbs(i).setTargetPos(p);
+				model()->motionPool().at(i).setMp(p);
+			}
+		}
+		else if ((count() > param.total_count_vec[0] + 1000) && (count() <= param.total_count_vec[0] + param.total_count_vec[1] + 2000))
+		{
+			for (int i = 0; i < 6; i++)
+			{
+				// 在第一个周期走梯形规划复位
+				aris::plan::moveAbsolute(count() - param.total_count_vec[0] - 1000, param.axis_first_pos_vec[i], param.p1[i], param.vel[i] / 1000, param.acc[i] / 1000 / 1000, param.dec[i] / 1000 / 1000, p, v, a, t_count);
+				controller()->motionAtAbs(i).setTargetPos(p);
+				model()->motionPool().at(i).setMp(p);
+			}
+		}
+		else if ((count() > param.total_count_vec[0] + param.total_count_vec[1] + 2000) && (count() <= param.total_count_vec[0] + param.total_count_vec[1] + param.total_count_vec[2] + 3000))
+		{
+			for (int i = 0; i < 6; i++)
+			{
+				// 在第一个周期走梯形规划复位
+				aris::plan::moveAbsolute(count() - param.total_count_vec[0] - param.total_count_vec[1] - 2000, param.axis_first_pos_vec[i], param.p1[i], param.vel[i] / 1000, param.acc[i] / 1000 / 1000, param.dec[i] / 1000 / 1000, p, v, a, t_count);
+				controller()->motionAtAbs(i).setTargetPos(p);
+				model()->motionPool().at(i).setMp(p);
+			}
+		}
+		if (model()->solverPool().at(1).kinPos())return -1;
+
+		//提取p1,p2,p3三个位姿下的力传感器数据，并构造矩阵和向量
+		if (count() == param.total_count_vec[0] + 1000)
+		{
+			auto slave7 = dynamic_cast<aris::control::EthercatSlave&>(controller()->slavePool().at(6));
+			for (uint8_t i = 0; i < 6; i++)
+			{
+				slave7.readPdo(0x6030, i, &param.sdata1[i], 32);
+			}
+			std::copy(param.sdata1.begin() + 3, param.sdata1.end(), param.m.begin());
+			std::copy(param.sdata1.begin(), param.sdata1.begin() + 3, param.f.begin());
+
+			double temp[18] = { 0,param.sdata1[2],-param.sdata1[1],1,0,0,-param.sdata1[2],0,param.sdata1[0],0,1,0,param.sdata1[1],-param.sdata1[0],0,0,0,1 };
+			std::copy(temp, temp + 18, param.F.begin());
+			double pm[16], pmr[16];
+			model()->generalMotionPool().at(0).updMpm();
+			param.tool->getPm(*param.wobj, pmr);
+			s_pm_dot_pm(pmr, fs2tpm, pm);
+			double rm[18] = { pm[0],pm[1],pm[2],1,0,0,pm[4],pm[5],pm[6],0,1,0,pm[8],pm[9],pm[10],0,0,1 };
+			std::copy(rm, rm + 18, param.R.begin());
+		}
+		else if (count() == param.total_count_vec[0] + param.total_count_vec[1] + 2000)
+		{
+			auto slave7 = dynamic_cast<aris::control::EthercatSlave&>(controller()->slavePool().at(6));
+			for (uint8_t i = 0; i < 6; i++)
+			{
+				slave7.readPdo(0x6030, i, &param.sdata2[i], 32);
+			}
+			std::copy(param.sdata2.begin() + 3, param.sdata2.end(), param.m.begin() + 3);
+			std::copy(param.sdata2.begin(), param.sdata2.begin() + 3, param.f.begin() + 3);
+
+			double temp[18] = { 0,param.sdata2[2],-param.sdata2[1],1,0,0,-param.sdata2[2],0,param.sdata2[0],0,1,0,param.sdata2[1],-param.sdata2[0],0,0,0,1 };
+			std::copy(temp, temp + 18, param.F.begin() + 18);
+			double pm[16], pmr[16];
+			model()->generalMotionPool().at(0).updMpm();
+			param.tool->getPm(*param.wobj, pmr);
+			s_pm_dot_pm(pmr, fs2tpm, pm);
+			double rm[18] = { pm[0],pm[1],pm[2],1,0,0,pm[4],pm[5],pm[6],0,1,0,pm[8],pm[9],pm[10],0,0,1 };
+			std::copy(rm, rm + 18, param.R.begin() + 18);
+		}
+		else if (count() == param.total_count_vec[0] + param.total_count_vec[1] + param.total_count_vec[2] + 3000)
+		{
+			auto slave7 = dynamic_cast<aris::control::EthercatSlave&>(controller()->slavePool().at(6));
+			for (uint8_t i = 0; i < 6; i++)
+			{
+				slave7.readPdo(0x6030, i, &param.sdata3[i], 32);
+			}
+			std::copy(param.sdata3.begin() + 3, param.sdata3.end(), param.m.begin() + 6);
+			std::copy(param.sdata3.begin(), param.sdata3.begin() + 3, param.f.begin() + 6);
+
+			double temp[18] = { 0,param.sdata3[2],-param.sdata3[1],1,0,0,-param.sdata3[2],0,param.sdata3[0],0,1,0,param.sdata3[1],-param.sdata3[0],0,0,0,1 };
+			std::copy(temp, temp + 18, param.F.begin() + 36);
+
+			double pm[16], pmr[16];
+			model()->generalMotionPool().at(0).updMpm();
+			param.tool->getPm(*param.wobj, pmr);
+			s_pm_dot_pm(pmr, fs2tpm, pm);
+			double rm[18] = { pm[0],pm[1],pm[2],1,0,0,pm[4],pm[5],pm[6],0,1,0,pm[8],pm[9],pm[10],0,0,1 };
+			std::copy(rm, rm + 18, param.R.begin() + 36);
+		}
+
+		return total_count - count();
+	}
+	auto CalibFZero::collectNrt()->void
+	{
+		auto &param = std::any_cast<CalibFZeroParam&>(this->param());
+		// QR分解求方程的解
+		double U[54], tau[9], tau2[9];
+		aris::Size p[9];
+		Size rank;
+		double pinv[54];
+		// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A)
+		s_householder_utp(6, 6, param.F.data(), U, tau, p, rank, 1e-3);
+		s_householder_utp2pinv(6, 6, rank, U, tau, p, pinv, tau2, 1e-10);
+		s_mm(6, 1, 9, pinv, param.m.data(), param.p.data());
+
+		// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A)
+		s_householder_utp(6, 6, param.R.data(), U, tau, p, rank, 1e-3);
+		s_householder_utp2pinv(6, 6, rank, U, tau, p, pinv, tau2, 1e-10);
+		s_mm(6, 1, 9, pinv, param.f.data(), param.l.data());
+
+		//求重心
+		Gravity_center.assign(param.p.begin(), param.p.begin() + 3);
+		std::cout << "gravity center:" << std::endl;
+		for (int i = 0; i < param.p.size(); i++)
+		{
+			std::cout << param.p[i] << "  ";
+		}
+		std::cout << std::endl;
+
+		//求力传感器零点偏移量
+		std::copy(param.l.begin() + 3, param.l.end(), Zero_value.begin());
+		//p:x, y, z, k1, k2, k3
+		//l:Lx,Ly,Lz,Fx0,Fy0,Fz0
+		Zero_value[3] = param.p[3] - param.l[4] * param.p[2] + param.l[5] * param.p[1];
+		Zero_value[4] = param.p[4] - param.l[5] * param.p[0] + param.l[3] * param.p[2];
+		Zero_value[5] = param.p[5] - param.l[3] * param.p[1] + param.l[4] * param.p[0];
+		std::cout << "zero value:" << std::endl;
+		for (int i = 0; i < Zero_value.size(); i++)
+		{
+			std::cout << Zero_value[i] << "  ";
+		}
+		std::cout << std::endl;
+
+		//负载重力xyz方向系数
+		Gravity_xyzindex[0] = param.l[0];
+		Gravity_xyzindex[1] = param.l[1];
+		Gravity_xyzindex[2] = param.l[2];
+	}
+	CalibFZero::CalibFZero(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"CalibFZero\">"
+			"	<GroupParam>"
+			"		<Param name=\"p1\" default=\"{0,0,0,0,0,0,1}\"/>"
+			"		<Param name=\"p2\" default=\"{0,0,0,0,0,0,1}\"/>"
+			"		<Param name=\"p3\" default=\"{0,0,0,0,0,0,1}\"/>"
+			"		<Param name=\"vel\" default=\"0.05\"/>"
+			"		<Param name=\"acc\" default=\"0.1\"/>"
+			"		<Param name=\"dec\" default=\"0.1\"/>"
+			"		<Param name=\"tool\" default=\"tool0\"/>"
+			"		<Param name=\"wobj\" default=\"wobj0\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
+
+
+	std::atomic_bool enable_mvd = true;
+	struct MoveDParam
+	{
+		aris::dynamic::Marker *tool, *wobj;
+		double thelta;
+		double vel_limit[6], k[6], damping[6];
+		double fs2tpm[16], t2bpm[16], fs2bpm[16];
+		double force_offset[6], force_target[6];
+		double force_damp[6]{ 0.0,0.0,0.0,0.0,0.0,0.0 };
+		double thelta_setup = 51.166;//力传感器安装位置相对tcp偏移角
+		double pos_setup = 0.061;//力传感器安装位置相对tcp偏移距离
+		double threshold = 1e-6;
+	};
+	struct MoveD::Imp :public MoveDParam {};
+	auto MoveD::prepareNrt()->void
+	{
+		enable_mvd.store(true);
+		imp_->tool = &*model()->generalMotionPool()[0].makI().fatherPart().markerPool().findByName(std::string(cmdParams().at("tool")));
+		imp_->wobj = &*model()->generalMotionPool()[0].makJ().fatherPart().markerPool().findByName(std::string(cmdParams().at("wobj")));
+
+		for (auto cmd_param : cmdParams())
+		{
+			if (cmd_param.first == "vellimit")
+			{
+				auto a = matrixParam(cmd_param.first);
+				if (a.size() == 6)
+				{
+					std::copy(a.data(), a.data() + 6, imp_->vel_limit);
+				}
+				else
+				{
+					THROW_FILE_LINE("");
+				}
+			}
+			else if (cmd_param.first == "kd")
+			{
+				auto temp = matrixParam(cmd_param.first);
+				if (temp.size() == 6)
+				{
+					std::copy(temp.data(), temp.data() + 6, imp_->k);
+				}
+				else
+				{
+					THROW_FILE_LINE("");
+				}
+			}
+			else if (cmd_param.first == "damping")
+			{
+				auto temp = matrixParam(cmd_param.first);
+				if (temp.size() == 1)
+				{
+					std::fill(imp_->damping, imp_->damping + 6, temp.toDouble());
+				}
+				else if (temp.size() == 6)
+				{
+					std::copy(temp.data(), temp.data() + 6, imp_->damping);
+				}
+				else
+				{
+					THROW_FILE_LINE("");
+				}
+			}
+		}
+
+		for (auto &option : motorOptions()) option |= aris::plan::Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | NOT_CHECK_VEL_CONTINUOUS;
+		std::vector<std::pair<std::string, std::any>> ret_value;
+		ret() = ret_value;
+
+	}
+	auto MoveD::executeRT()->int
+	{
+		auto &cout = controller()->mout();
+		auto &lout = controller()->lout();
+		char eu_type[4]{ '1', '2', '3', '\0' };
+
+		// 前三维为xyz，后三维是w的积分，注意没有物理含义
+		static double p_next[6], v_now[6], v_tcp[6]{ 0.0,0.0,0.0,0.0,0.0,0.0 }, v_joint[6];
+		static float rawdata[6], realdata[6];
+
+		if (count() == 1)
+		{
+			//设置log文件名称//
+			controller()->logFileRawName("motion_replay");
+
+			//获取力传感器相对tcp的旋转矩阵//
+			imp_->thelta = (180 - imp_->thelta_setup)*PI / 180;
+			double pq_setup[7]{ 0.0,0.0,imp_->pos_setup,0.0,0.0,sin(imp_->thelta / 2.0),cos(imp_->thelta / 2.0) };
+			s_pq2pm(pq_setup, imp_->fs2tpm);
+		}
+
+		//获取力传感器数值
+		auto slave7 = dynamic_cast<aris::control::EthercatSlave&>(controller()->slavePool().at(6));
+		for (uint8_t i = 0; i < 6; i++)
+		{
+			slave7.readPdo(0x6030, i, &imp_->force_target[i], 32);
+		}
+
+		//获取每个周期力传感器坐标系相对与基座坐标系的位姿矩阵
+		model()->generalMotionPool().at(0).updMpm();
+		imp_->tool->getPm(*imp_->wobj, imp_->t2bpm);
+		s_pm_dot_pm(imp_->t2bpm, imp_->fs2tpm, imp_->fs2bpm);
+
+		//求重力分量
+		double G[6];
+		s_mm(3, 1, 3, imp_->fs2bpm, aris::dynamic::RowMajor{ 4 }, Gravity_xyzindex.data(), 1, G, 1);
+		G[3] = G[2] * Gravity_center[1] - G[1] * Gravity_center[2];
+		G[4] = G[0] * Gravity_center[2] - G[2] * Gravity_center[0];
+		G[5] = G[1] * Gravity_center[0] - G[0] * Gravity_center[1];
+
+		//求外部力=imp_->force_target = realdata - Zero_value - G
+		s_vs(6, Zero_value.data(), imp_->force_target);
+		s_vs(6, G, imp_->force_target);
+
+		//求阻尼力
+		model()->generalMotionPool()[0].getMve(v_now, eu_type);
+		model()->generalMotionPool()[0].getMve(v_tcp, eu_type);
+		for (int i = 0; i < 6; i++)
+		{
+			imp_->force_damp[i] = imp_->damping[i] * v_now[i];
+		}
+		s_vs(6, imp_->force_damp, imp_->force_target);
+
+		// 根据力传感器受力和阻尼力计算v_tcp //
+		for (int i = 0; i < 6; i++)
+		{
+			if (std::abs(imp_->force_target[i]) > imp_->threshold)
+			{
+				v_tcp[i] += imp_->k[i] * imp_->force_target[i] * 1e-3;
+			}
+			v_tcp[i] = std::min(std::max(v_tcp[i], -imp_->vel_limit[i]), imp_->vel_limit[i]);
+		}
+
+		// 获取雅可比矩阵，并对过奇异点的雅可比矩阵进行特殊处理
+		double pinv[36];
+		{
+			auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(model()->solverPool()[1]);
+			fwd.cptJacobiWrtEE();
+			//QR分解求方程的解
+			double U[36], tau[6], tau2[6];
+			aris::Size p[6];
+			Size rank;
+			//auto inline s_householder_utp(Size m, Size n, const double *A, AType a_t, double *U, UType u_t, double *tau, TauType tau_t, Size *p, Size &rank, double zero_check = 1e-10)noexcept->void
+			//A为输入,根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A) //
+			s_householder_utp(6, 6, fwd.Jf(), U, tau, p, rank, 1e-3);
+			//对奇异点进行特殊处理,对U进行处理
+			if (rank < 6)
+			{
+				for (int i = 0; i < 6; i++)
+				{
+					if (U[7 * i] >= 0)
+					{
+						U[7 * i] = U[7 * i] + 0.1;
+					}
+					else
+					{
+						U[7 * i] = U[7 * i] - 0.1;
+					}
+				}
+			}
+			// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A) //
+			s_householder_utp2pinv(6, 6, rank, U, tau, p, pinv, tau2, 1e-10);
+		}
+
+		// 根据v_tcp以及雅可比矩阵反算到关节v_joint
+		s_mm(6, 1, 6, pinv, v_tcp, v_joint);
+
+		// 根据关节速度v_joint规划每个关节的运动角度 //
+		for (int i = 0; i < 6; i++)
+		{
+			p_next[i] = controller()->motionPool().at(i).targetPos();
+			p_next[i] += v_joint[i] * 1e-3;
+			p_next[i] = std::min(std::max(p_next[i], controller()->motionPool().at(i).minPos() + 0.1), controller()->motionPool().at(i).maxPos() - 0.1);
+
+			controller()->motionPool().at(i).setTargetPos(p_next[i]);
+			model()->motionPool().at(i).setMp(p_next[i]);
+		}
+
+		// 运动学正解
+		if (model()->solverPool().at(1).kinPos())return -1;
+
+		// 打印
+		if (count() % 500 == 0)
+		{
+			cout << "realdata:" << std::endl;
+			for (int i = 0; i < 6; i++)
+			{
+				cout << realdata[i] << "  ";
+			}
+			cout << std::endl;
+		}
+
+		// log
+		for (int i = 0; i < 6; i++)
+		{
+			lout << controller()->motionPool().at(i).actualPos() << "  ";
+		}
+		lout << std::endl;
+
+		//延时1000ms停止力控
+		aris::Size total_count = 1;
+		if (enable_mvd.load())
+		{
+			total_count = count() + 1000;
+			return 1;
+		}
+		else
+		{
+			return total_count - count();
+		}
+	}
+	auto MoveD::collectNrt()->void {}
+	MoveD::~MoveD() = default;
+	MoveD::MoveD(const MoveD &other) = default;
+	MoveD::MoveD(MoveD &other) = default;
+	MoveD& MoveD::operator=(const MoveD &other) = default;
+	MoveD& MoveD::operator=(MoveD &&other) = default;
+	MoveD::MoveD(const std::string &name) :Plan(name), imp_(new Imp)
+	{
+		command().loadXmlStr(
+			"<Command name=\"mvd\">"
+			"	<GroupParam>"
+			"		<Param name=\"vellimit\" default=\"{0.1,0.1,0.1,0.5,0.5,0.5}\"/>"
+			"		<Param name=\"damping\" default=\"{0.01,0.01,0.01,0.01,0.01,0.01}\"/>"
+			"		<Param name=\"kd\" default=\"{2,2,1,3,3,3}\"/>"
+			"		<Param name=\"tool\" default=\"tool0\"/>"
+			"		<Param name=\"wobj\" default=\"wobj0\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
+
+
 	// 导纳控制 //
 	std::atomic_int x = 0;
 	std::atomic_int y = 0;
@@ -3826,7 +4423,7 @@ namespace kaanh
 
 			//获取力传感器相对tcp的旋转矩阵//
 			imp_->thelta = (180 - imp_->thelta_setup)*PI / 180;
-			double pq_setup[7]{ 0.0,0.0,imp_->pos_setup,0.0,0.0,sin(imp_->thelta_setup / 2.0),cos(imp_->thelta_setup / 2.0) };
+			double pq_setup[7]{ 0.0,0.0,imp_->pos_setup,0.0,0.0,sin(imp_->thelta / 2.0),cos(imp_->thelta / 2.0) };
 			s_pq2pm(pq_setup, imp_->fs2tpm);
 
 #ifdef UNIX
@@ -3929,24 +4526,6 @@ namespace kaanh
                 cout << realdata[i] << "  ";
             }
             cout << std::endl;
-//            cout << "force_offset:" << std::endl;
-//            for (int i = 0; i < 6; i++)
-//            {
-//                cout << imp_->force_offset[i] << "  ";
-//            }
-//            cout << std::endl;
-//            cout << "force_target:" << std::endl;
-//			for (int i = 0; i < 6; i++)
-//			{
-//				cout << imp_->force_target[i] << "  ";
-//			}
-//			cout << std::endl;
-//			cout << "v_tcp:" << std::endl;
-//			for (int i = 0; i < 6; i++)
-//			{
-//				cout << v_tcp[i] << "  ";
-//			}
-//			cout << std::endl;
 		}
 		// 获取雅可比矩阵，并对过奇异点的雅可比矩阵进行特殊处理
 		double pinv[36];
@@ -3994,8 +4573,8 @@ namespace kaanh
 			p_next[i] += v_joint[i] * 1e-3;
 			p_next[i] = std::min(std::max(p_next[i], controller()->motionPool().at(i).minPos() + 0.1), controller()->motionPool().at(i).maxPos() - 0.1);
 
-//			controller()->motionPool().at(i).setTargetPos(p_next[i]);
-//			model()->motionPool().at(i).setMp(p_next[i]);
+			controller()->motionPool().at(i).setTargetPos(p_next[i]);
+			model()->motionPool().at(i).setMp(p_next[i]);
 		}
 		
 		// 运动学正解 //
@@ -4026,220 +4605,6 @@ namespace kaanh
             "		<Param name=\"vellimit\" default=\"{0.1,0.1,0.1,0.5,0.5,0.5}\"/>"
             "		<Param name=\"damping\" default=\"{0.01,0.01,0.01,0.01,0.01,0.01}\"/>"
             "		<Param name=\"kd\" default=\"{2,2,1,3,3,3}\"/>"
-			"		<Param name=\"tool\" default=\"tool0\"/>"
-			"		<Param name=\"wobj\" default=\"wobj0\"/>"
-			"	</GroupParam>"
-			"</Command>");
-	}
-
-
-	//力传感器标定零点//
-	struct CalibFZeroParam
-	{
-		std::vector<Size> total_count_vec;
-		std::vector<double> p1, p2, p3;
-		std::vector<double> axis_first_pos_vec;
-		std::vector<double> vel, acc, dec;
-	};
-	auto CalibFZero::prepareNrt()->void
-	{
-		CalibFZeroParam param;
-		param.total_count_vec.resize(3, 0);
-		param.axis_first_pos_vec.resize(6, 0.0);
-		param.p1.resize(7, 0.0);
-		param.p2.resize(7, 0.0);
-		param.p3.resize(7, 0.0);
-		
-		for (auto cmd_param : cmdParams())
-		{
-			if (cmd_param.first == "p1")
-			{
-				auto p = matrixParam(cmd_param.first);
-				if (p.size() == 7)
-				{
-					param.p1.assign(p.begin(), p.end());
-				}
-				else
-				{
-					THROW_FILE_LINE("");
-				}
-			}
-			else if (cmd_param.first == "p2")
-			{
-				auto p = matrixParam(cmd_param.first);
-				if (p.size() == 7)
-				{
-					param.p1.assign(p.begin(), p.end());
-				}
-				else
-				{
-					THROW_FILE_LINE("");
-				}
-			}
-			else if (cmd_param.first == "p3")
-			{
-				auto p = matrixParam(cmd_param.first);
-				if (p.size() == 7)
-				{
-					param.p1.assign(p.begin(), p.end());
-				}
-				else
-				{
-					THROW_FILE_LINE("");
-				}
-			}
-			else if (cmd_param.first == "acc")
-			{
-				auto a = matrixParam(cmd_param.first);
-
-				if (a.size() == 1)
-				{
-					param.acc.resize(controller()->motionPool().size(), a.toDouble());
-				}
-				else if (a.size() == controller()->motionPool().size())
-				{
-					param.acc.assign(a.begin(), a.end());
-				}
-				else
-				{
-					THROW_FILE_LINE("");
-				}
-				for (int i = 0; i < controller()->motionPool().size(); ++i) param.acc[i] *= controller()->motionPool().at(i).maxAcc();
-			}
-			else if (cmd_param.first == "vel")
-			{
-				auto a = matrixParam(cmd_param.first);
-				if (a.size() == 1)
-				{
-					param.vel.resize(controller()->motionPool().size(), a.toDouble());
-				}
-				else if (a.size() == controller()->motionPool().size())
-				{
-					param.vel.assign(a.begin(), a.end());
-				}
-				else
-				{
-					THROW_FILE_LINE("");
-				}
-				for (int i = 0; i < controller()->motionPool().size(); ++i) param.vel[i] *= controller()->motionPool().at(i).maxVel();
-			}
-			else if (cmd_param.first == "dec")
-			{
-				auto d = matrixParam(cmd_param.first);
-
-				if (d.size() == 1)
-				{
-					param.dec.resize(controller()->motionPool().size(), d.toDouble());
-				}
-				else if (d.size() == controller()->motionPool().size())
-				{
-					param.dec.assign(d.begin(), d.end());
-				}
-				else
-				{
-					THROW_FILE_LINE("");
-				}
-				for (int i = 0; i < controller()->motionPool().size(); ++i) param.dec[i] *= controller()->motionPool().at(i).maxAcc();
-			}
-		}
-
-		this->param() = param;
-		std::vector<std::pair<std::string, std::any>> ret_value;
-		ret() = ret_value;
-	}
-	auto CalibFZero::executeRT()->int
-	{
-		auto &param = std::any_cast<CalibFZeroParam&>(this->param());
-
-		double p, v, a;
-		aris::Size t_count;
-		static aris::Size total_count = 1;
-		aris::Size return_value = 0;
-
-		// 获取6个电机初始位置 //
-		if (count() == 1)
-		{
-			for (int i = 0; i < 6; i++)
-			{
-				param.axis_first_pos_vec[i] = model()->motionPool().at(i).mp();
-			}
-			for (int i = 0; i < 6; i++)
-			{
-				// 梯形规划p1,p2,p3 //
-				aris::plan::moveAbsolute(count(), param.axis_first_pos_vec[i], param.p1[i], param.vel[i] / 1000, param.acc[i] / 1000 / 1000, param.dec[i] / 1000 / 1000, p, v, a, t_count);
-				param.total_count_vec[0] = std::max(param.total_count_vec[0], t_count);
-
-				aris::plan::moveAbsolute(count(), param.p1[i], param.p2[i], param.vel[i] / 1000, param.acc[i] / 1000 / 1000, param.dec[i] / 1000 / 1000, p, v, a, t_count);
-				param.total_count_vec[1] = std::max(param.total_count_vec[1], t_count);
-
-				aris::plan::moveAbsolute(count(), param.p2[i], param.p3[i], param.vel[i] / 1000, param.acc[i] / 1000 / 1000, param.dec[i] / 1000 / 1000, p, v, a, t_count);
-				param.total_count_vec[2] = std::max(param.total_count_vec[2], t_count);
-			}
-			total_count = param.total_count_vec[0] + param.total_count_vec[1] + param.total_count_vec[2] + 3000;
-		}
-
-		// 机械臂走到p1点 //
-		if (count() <= param.total_count_vec[0] + 1000)
-		{
-			for (int i = 0; i < 6; i++)
-			{
-				// 在第一个周期走梯形规划复位
-				aris::plan::moveAbsolute(count(), param.axis_first_pos_vec[i], param.p1[i], param.vel[i] / 1000, param.acc[i] / 1000 / 1000, param.dec[i] / 1000 / 1000, p, v, a, t_count);
-				controller()->motionAtAbs(i).setTargetPos(p);
-				model()->motionPool().at(i).setMp(p);
-			}
-		}
-		// 机械臂走到p2点 //
-		if ((count() > param.total_count_vec[0] + 1000) && (count() <= param.total_count_vec[0] + param.total_count_vec[1] + 2000))
-		{
-			for (int i = 0; i < 6; i++)
-			{
-				// 在第一个周期走梯形规划复位
-				aris::plan::moveAbsolute(count()- param.total_count_vec[0] - 1000, param.axis_first_pos_vec[i], param.p1[i], param.vel[i] / 1000, param.acc[i] / 1000 / 1000, param.dec[i] / 1000 / 1000, p, v, a, t_count);
-				controller()->motionAtAbs(i).setTargetPos(p);
-				model()->motionPool().at(i).setMp(p);
-			}
-		}
-		// 机械臂走到p3点 //
-		if ((count() > param.total_count_vec[0] + param.total_count_vec[1] + 2000) && (count() <= param.total_count_vec[0] + param.total_count_vec[1] + param.total_count_vec[2] + 3000))
-		{
-			for (int i = 0; i < 6; i++)
-			{
-				// 在第一个周期走梯形规划复位
-				aris::plan::moveAbsolute(count() - param.total_count_vec[0] - param.total_count_vec[1] - 2000, param.axis_first_pos_vec[i], param.p1[i], param.vel[i] / 1000, param.acc[i] / 1000 / 1000, param.dec[i] / 1000 / 1000, p, v, a, t_count);
-				controller()->motionAtAbs(i).setTargetPos(p);
-				model()->motionPool().at(i).setMp(p);
-			}
-		}
-
-		if (count() == param.total_count_vec[0] + 1000)
-		{
-
-		}
-		else if (count() == param.total_count_vec[0] + param.total_count_vec[1] + 2000)
-		{
-
-		}
-		else if (count() == param.total_count_vec[0] + param.total_count_vec[1] + param.total_count_vec[2] + 3000)
-		{
-
-		}
-
-		if (model()->solverPool().at(1).kinPos())return -1;
-		return total_count - count();
-	}
-	auto CalibFZero::collectNrt()->void {}
-	CalibFZero::CalibFZero(const std::string &name) :Plan(name)
-	{
-		command().loadXmlStr(
-			"<Command name=\"mvf\">"
-			"	<GroupParam>"
-			"		<Param name=\"p1\" default=\"{0,0,0,0,0,0,1}\"/>"
-			"		<Param name=\"p2\" default=\"{0,0,0,0,0,0,1}\"/>"
-			"		<Param name=\"p3\" default=\"{0,0,0,0,0,0,1}\"/>"
-			"		<Param name=\"vel\" default=\"0.05\"/>"
-			"		<Param name=\"acc\" default=\"0.1\"/>"
-			"		<Param name=\"dec\" default=\"0.1\"/>"
 			"		<Param name=\"tool\" default=\"tool0\"/>"
 			"		<Param name=\"wobj\" default=\"wobj0\"/>"
 			"	</GroupParam>"
@@ -4429,6 +4794,7 @@ namespace kaanh
 	auto FCStop::prepareNrt()->void
 	{
 		enable_mvJoint.store(false);
+		enable_mvd.store(false);
 		option() = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION;
 
 	}
