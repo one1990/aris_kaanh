@@ -298,7 +298,6 @@ namespace kaanh
 		aris::core::ImpPtr<Imp> imp_;
 	};
 
-
 	class MoveD : public aris::plan::Plan
 	{
 	public:
@@ -318,7 +317,6 @@ namespace kaanh
 		aris::core::ImpPtr<Imp> imp_;
 	};
 
-
 	class CalibFZero : public aris::plan::Plan
 	{
 	public:
@@ -328,17 +326,6 @@ namespace kaanh
 
 		explicit CalibFZero(const std::string &name = "CalibFZero_plan");
 		ARIS_REGISTER_TYPE(CalibFZero);
-	};
-
-	class CalibFLoad : public aris::plan::Plan
-	{
-	public:
-		auto virtual prepareNrt()->void;
-		auto virtual executeRT()->int;
-		auto virtual collectNrt()->void;
-
-		explicit CalibFLoad(const std::string &name = "CalibFLoad_plan");
-		ARIS_REGISTER_TYPE(CalibFLoad);
 	};
 
 	class FCStop : public aris::plan::Plan
