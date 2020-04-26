@@ -911,7 +911,7 @@ SetTF::SetTF(const std::string &name) :Plan(name)
 	command().loadXmlStr(
 		"<Command name=\"settf\">"
 		"	<GroupParam>"
-		"		<Param name=\"tool_name\" default=\"Tool0\"/>"
+		"		<Param name=\"tool_name\" default=\"tool0\"/>"
 		"		<Param name=\"tool_pe\" default=\"{0,0,0,0,0,0}\"/>"
 		"   </GroupParam>"
 		"</Command>");

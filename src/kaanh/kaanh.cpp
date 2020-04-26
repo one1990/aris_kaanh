@@ -3734,16 +3734,14 @@ namespace kaanh
 
 
 	//力传感器标定:零点、机械臂安装倾角、负载重量、重心数据//
-	double thelta_setup = 51.166;//力传感器安装位置相对tcp偏移角
-	double pos_setup = 0.061;//力传感器安装位置相对tcp偏移距离
-	std::vector<double> Gravity_value(6, 0.0);		//负载重力分量
-	std::vector<double> Gravity_center(3, 0.0);		//重心数据:x,y,z
-	std::vector<double> Gravity_xyzindex(3, 0.0);	//重力系数:Lx,Ly,Lz
-	std::vector<double> Zero_value(6, 0.0);			//力传感器零点偏移量
-	double U = 0.0;		//机械臂安装倾角:世界坐标系绕X轴旋转角度U
-	double V = 0.0;		//机械臂安装倾角:世界坐标系绕基座坐标系的Y1轴选择V
 	struct CalibFZeroParam
 	{
+		double thelta_setup = 51.166;//力传感器安装位置相对tcp偏移角
+		double pos_setup = 0.061;//力传感器安装位置相对tcp偏移距离
+		std::vector<double> Gravity_value;		//负载重力分量
+		std::vector<double> Gravity_center;		//重心数据:x,y,z
+		std::vector<double> Gravity_xyzindex;	//重力系数:Lx,Ly,Lz
+		std::vector<double> Zero_value;			//力传感器零点偏移量
 		aris::dynamic::Marker *tool, *wobj;
 		std::vector<Size> total_count_vec;
 		std::vector<double> p1, p2, p3;
@@ -3756,8 +3754,8 @@ namespace kaanh
 		std::vector<double> R;	//姿态转换矩阵
 		std::vector<double> l;	//零点力偏移向量-求解：重力xyz分量，零点偏移量xyz分量
 		std::vector<double> f;	//力向量
-		double U = 0.0;	//世界坐标系绕X轴旋转角度U
-		double V = 0.0;	//世界坐标系绕基座坐标系的Y1轴选择V
+		double U = 0.0;	//机械臂安装倾角:世界坐标系绕X轴旋转角度U
+		double V = 0.0;	//机械臂安装倾角:世界坐标系绕基座坐标系的Y1轴选择V
 	};
 	auto CalibFZero::prepareNrt()->void
 	{
@@ -3779,6 +3777,10 @@ namespace kaanh
 			param.l.resize(6, 0.0);
 			param.f.resize(9, 0.0);
 
+			param.Gravity_value.resize(6, 0.0);	
+			param.Gravity_center.resize(3, 0.0);
+			param.Gravity_xyzindex.resize(3, 0.0);
+			param.Zero_value.resize(6, 0.0);
 		}
 
 		std::vector<double> p1(7, 0.0), p2(7, 0.0), p3(7, 0.0);
@@ -3916,8 +3918,8 @@ namespace kaanh
 		if (count() == 1)
 		{
 			//获取力传感器相对tcp的旋转矩阵//
-			auto thelta = (180 - thelta_setup)*PI / 180;
-			double pq_setup[7]{ 0.0,0.0,pos_setup,0.0,0.0,sin(thelta_setup / 2.0),cos(thelta_setup / 2.0) };
+			auto thelta = (180 - param.thelta_setup)*PI / 180;
+			double pq_setup[7]{ 0.0,0.0,param.pos_setup,0.0,0.0,sin(thelta / 2.0),cos(thelta / 2.0) };
 			s_pq2pm(pq_setup, fs2tpm);
 
 			for (int i = 0; i < 6; i++)
@@ -4053,8 +4055,17 @@ namespace kaanh
 		s_householder_utp2pinv(6, 6, rank, U, tau, p, pinv, tau2, 1e-10);
 		s_mm(6, 1, 9, pinv, param.f.data(), param.l.data());
 
-		//求重心
-		Gravity_center.assign(param.p.begin(), param.p.begin() + 3);
+		//求重心并保存到variablepool中
+		param.Gravity_center.assign(param.p.begin(), param.p.begin() + 3);
+		aris::core::Matrix center = { param.Gravity_center[0], param.Gravity_center[1], param.Gravity_center[2]};
+		if (model()->variablePool().findByName("Gravity_center") != model()->variablePool().end())
+		{
+			dynamic_cast<aris::dynamic::MatrixVariable*>(&*model()->variablePool().findByName("Gravity_center"))->data() = center;
+		}
+		else
+		{
+			model()->variablePool().add<aris::dynamic::MatrixVariable>("Gravity_center", center);
+		}
 		std::cout << "gravity center:" << std::endl;
 		for (int i = 0; i < param.p.size(); i++)
 		{
@@ -4063,23 +4074,37 @@ namespace kaanh
 		std::cout << std::endl;
 
 		//求力传感器零点偏移量
-		std::copy(param.l.begin() + 3, param.l.end(), Zero_value.begin());
+		std::copy(param.l.begin() + 3, param.l.end(), param.Zero_value.begin());
 		//p:x, y, z, k1, k2, k3
 		//l:Lx,Ly,Lz,Fx0,Fy0,Fz0
-		Zero_value[3] = param.p[3] - param.l[4] * param.p[2] + param.l[5] * param.p[1];
-		Zero_value[4] = param.p[4] - param.l[5] * param.p[0] + param.l[3] * param.p[2];
-		Zero_value[5] = param.p[5] - param.l[3] * param.p[1] + param.l[4] * param.p[0];
+		param.Zero_value[3] = param.p[3] - param.l[4] * param.p[2] + param.l[5] * param.p[1];
+		param.Zero_value[4] = param.p[4] - param.l[5] * param.p[0] + param.l[3] * param.p[2];
+		param.Zero_value[5] = param.p[5] - param.l[3] * param.p[1] + param.l[4] * param.p[0];
 		std::cout << "zero value:" << std::endl;
-		for (int i = 0; i < Zero_value.size(); i++)
+		for (int i = 0; i < param.Zero_value.size(); i++)
 		{
-			std::cout << Zero_value[i] << "  ";
+			std::cout << param.Zero_value[i] << "  ";
 		}
 		std::cout << std::endl;
 
 		//负载重力xyz方向系数
-		Gravity_xyzindex[0] = param.l[0];
-		Gravity_xyzindex[1] = param.l[1];
-		Gravity_xyzindex[2] = param.l[2];
+		param.Gravity_xyzindex[0] = param.l[0];
+		param.Gravity_xyzindex[1] = param.l[1];
+		param.Gravity_xyzindex[2] = param.l[2];
+
+		aris::core::Matrix xyzindex = { param.Gravity_center[0], param.Gravity_center[1], param.Gravity_center[2] };
+		if (model()->variablePool().findByName("Gravity_xyzindex") != model()->variablePool().end())
+		{
+			dynamic_cast<aris::dynamic::MatrixVariable*>(&*model()->variablePool().findByName("Gravity_xyzindex"))->data() = xyzindex;
+		}
+		else
+		{
+			model()->variablePool().add<aris::dynamic::MatrixVariable>("Gravity_xyzindex", xyzindex);
+		}
+		auto xmlpath = std::filesystem::absolute(".");
+		const std::string xmlfile = "kaanh.xml";
+		xmlpath = xmlpath / xmlfile;
+		controlServer()->saveXmlFile(xmlpath.string().c_str());
 	}
 	CalibFZero::CalibFZero(const std::string &name) :Plan(name)
 	{
@@ -4100,6 +4125,7 @@ namespace kaanh
 
 
 	std::atomic_bool enable_mvd = true;
+	std::atomic_bool recalib_zero = true;
 	struct MoveDParam
 	{
 		aris::dynamic::Marker *tool, *wobj;
@@ -4111,6 +4137,9 @@ namespace kaanh
 		double thelta_setup = 51.166;//力传感器安装位置相对tcp偏移角
 		double pos_setup = 0.061;//力传感器安装位置相对tcp偏移距离
 		double threshold = 1e-6;
+		std::vector<double> center;
+		std::vector<double> xyzindex;
+		std::vector<double> Zero_value;			//力传感器零点偏移量
 	};
 	struct MoveD::Imp :public MoveDParam {};
 	auto MoveD::prepareNrt()->void
@@ -4118,6 +4147,11 @@ namespace kaanh
 		enable_mvd.store(true);
 		imp_->tool = &*model()->generalMotionPool()[0].makI().fatherPart().markerPool().findByName(std::string(cmdParams().at("tool")));
 		imp_->wobj = &*model()->generalMotionPool()[0].makJ().fatherPart().markerPool().findByName(std::string(cmdParams().at("wobj")));
+		auto c = dynamic_cast<aris::dynamic::MatrixVariable*>(&*model()->variablePool().findByName("Gravity_center"));
+		auto xyz = dynamic_cast<aris::dynamic::MatrixVariable*>(&*model()->variablePool().findByName("Gravity_xyzindex"));
+		imp_->center.assign(c->data().begin(), c->data().end());
+		imp_->xyzindex.assign(xyz->data().begin(), xyz->data().end());
+		imp_->Zero_value.resize(6, 0.0);
 
 		for (auto cmd_param : cmdParams())
 		{
@@ -4201,17 +4235,29 @@ namespace kaanh
 		imp_->tool->getPm(*imp_->wobj, imp_->t2bpm);
 		s_pm_dot_pm(imp_->t2bpm, imp_->fs2tpm, imp_->fs2bpm);
 
+		//零漂标定，此时必须确保末端不受外载
+		if (recalib_zero.load())
+		{
+			double G[6];
+			s_mm(3, 1, 3, imp_->fs2bpm, aris::dynamic::RowMajor{ 4 }, imp_->xyzindex.data(), 1, G, 1);
+			G[3] = G[2] * imp_->center[1] - G[1] * imp_->center[2];
+			G[4] = G[0] * imp_->center[2] - G[2] * imp_->center[0];
+			G[5] = G[1] * imp_->center[0] - G[0] * imp_->center[1];
+			for (int i = 0; i < 6; i++)imp_->Zero_value[i] = imp_->force_target[i] - G[i];
+			recalib_zero.store(false);
+		}
+
 		//求重力分量
 		double G[6];
-		s_mm(3, 1, 3, imp_->fs2bpm, aris::dynamic::RowMajor{ 4 }, Gravity_xyzindex.data(), 1, G, 1);
-		G[3] = G[2] * Gravity_center[1] - G[1] * Gravity_center[2];
-		G[4] = G[0] * Gravity_center[2] - G[2] * Gravity_center[0];
-		G[5] = G[1] * Gravity_center[0] - G[0] * Gravity_center[1];
+		s_mm(3, 1, 3, imp_->fs2bpm, aris::dynamic::RowMajor{ 4 }, imp_->xyzindex.data(), 1, G, 1);
+		G[3] = G[2] * imp_->center[1] - G[1] * imp_->center[2];
+		G[4] = G[0] * imp_->center[2] - G[2] * imp_->center[0];
+		G[5] = G[1] * imp_->center[0] - G[0] * imp_->center[1];
 
 		//求外部力=imp_->force_target = realdata - Zero_value - G
-		s_vs(6, Zero_value.data(), imp_->force_target);
 		s_vs(6, G, imp_->force_target);
-
+		s_vs(6, imp_->Zero_value.data(), imp_->force_target);
+		
 		//求阻尼力
 		model()->generalMotionPool()[0].getMve(v_now, eu_type);
 		model()->generalMotionPool()[0].getMve(v_tcp, eu_type);
@@ -4786,6 +4832,21 @@ namespace kaanh
 			"	<GroupParam>"
 			"		<Param name=\"f\" default=\"{1,0,0,0,0,0}\"/>"
 			"	</GroupParam>"
+			"</Command>");
+	}
+
+
+	// 在线标定零漂 //
+	auto SetZero::prepareNrt()->void
+	{
+		recalib_zero.store(true);
+		option() = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION | aris::plan::Plan::NOT_RUN_COLLECT_FUNCTION;
+
+	}
+	SetZero::SetZero(const std::string &name) :Plan(name)
+	{
+		command().loadXmlStr(
+			"<Command name=\"setzero\">"
 			"</Command>");
 	}
 
@@ -6763,7 +6824,7 @@ namespace kaanh
 	}
 
 	
-	// 配置PG参数 //
+	// 配置单个PG参数 //
 	struct SetPGParam
 	{
 		std::string name;

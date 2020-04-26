@@ -978,6 +978,8 @@ namespace kaanhconfig
 		plan_root->planPool().add<kaanh::MoveF>();
 		plan_root->planPool().add<kaanh::Switch>();
         plan_root->planPool().add<kaanh::Yuli>();
+		plan_root->planPool().add<kaanh::CalibFZero>();
+		plan_root->planPool().add<kaanh::MoveD>();
         plan_root->planPool().add<kaanh::MoveJoint>();
         plan_root->planPool().add<kaanh::FCStop>();
 		plan_root->planPool().add<kaanh::SetFS>();

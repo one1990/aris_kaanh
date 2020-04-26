@@ -357,6 +357,14 @@ namespace kaanh
 		ARIS_REGISTER_TYPE(SetFS);
 	};
 
+	class SetZero : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepareNrt()->void;
+		explicit SetZero(const std::string &name = "SetZero");
+		ARIS_REGISTER_TYPE(SetZero);
+	};
+
 	class JogJ1 : public aris::plan::Plan
 	{
 	public:

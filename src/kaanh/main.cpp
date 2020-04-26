@@ -145,6 +145,8 @@ int main(int argc, char *argv[])
     */
 
     cs.loadXmlFile(path.string().c_str());
+	cs.resetPlanRoot(kaanhconfig::createPlanRoot().release());
+	cs.saveXmlFile(xmlpath.string().c_str());
 	cs.init();
 
 	aris::core::logDirectory(logp);
