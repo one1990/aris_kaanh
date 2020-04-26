@@ -3745,7 +3745,7 @@ namespace kaanh
 		aris::dynamic::Marker *tool, *wobj;
 		std::vector<Size> total_count_vec;
 		std::vector<double> p1, p2, p3;
-        std::vector<float> sdata1, sdata2, sdata3;
+        std::vector<double> sdata1, sdata2, sdata3;
 		std::vector<double> axis_first_pos_vec;
 		std::vector<double> vel, acc, dec;
 		std::vector<double> F;	//力矩阵
@@ -3957,9 +3957,11 @@ namespace kaanh
 		if (count() == param.total_count_vec[0] + 1000)
 		{
 			auto slave7 = dynamic_cast<aris::control::EthercatSlave&>(controller()->slavePool().at(6));
+            float rawdata[6];
 			for (uint8_t i = 0; i < 6; i++)
 			{
-                slave7.readPdo(0x6030, i+1, &param.sdata1[i], 32);
+                slave7.readPdo(0x6030, i+1, &rawdata[i], 32);
+                param.sdata1[i] = double(rawdata[i]);
                 cout << param.sdata1[i] << " ";
 			}
             cout << std::endl;
@@ -3978,9 +3980,11 @@ namespace kaanh
 		else if (count() == param.total_count_vec[0] + param.total_count_vec[1] + 2000)
 		{
 			auto slave7 = dynamic_cast<aris::control::EthercatSlave&>(controller()->slavePool().at(6));
+            float rawdata[6];
 			for (uint8_t i = 0; i < 6; i++)
 			{
-                slave7.readPdo(0x6030, i+1, &param.sdata2[i], 32);
+                slave7.readPdo(0x6030, i+1, &rawdata[i], 32);
+                param.sdata2[i] = double(rawdata[i]);
                 cout << param.sdata2[i] << " ";
 			}
             cout << std::endl;
@@ -3999,9 +4003,11 @@ namespace kaanh
 		else if (count() == param.total_count_vec[0] + param.total_count_vec[1] + param.total_count_vec[2] + 3000)
 		{
 			auto slave7 = dynamic_cast<aris::control::EthercatSlave&>(controller()->slavePool().at(6));
+            float rawdata[6];
 			for (uint8_t i = 0; i < 6; i++)
 			{
-                slave7.readPdo(0x6030, i+1, &param.sdata3[i], 32);
+                slave7.readPdo(0x6030, i+1, &rawdata[i], 32);
+                param.sdata3[i] = double(rawdata[i]);
                 cout << param.sdata3[i] << " ";
 			}
             cout << std::endl;
@@ -4010,7 +4016,6 @@ namespace kaanh
 
 			double temp[18] = { 0,param.sdata3[2],-param.sdata3[1],1,0,0,-param.sdata3[2],0,param.sdata3[0],0,1,0,param.sdata3[1],-param.sdata3[0],0,0,0,1 };
 			std::copy(temp, temp + 18, param.F.begin() + 36);
-
 			double pm[16], pmr[16];
 			model()->generalMotionPool().at(0).updMpm();
 			param.tool->getPm(*param.wobj, pmr);
@@ -4030,15 +4035,25 @@ namespace kaanh
 		Size rank;
 		double pinv[54];
 		// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A)
-		s_householder_utp(6, 6, param.F.data(), U, tau, p, rank, 1e-3);
-		s_householder_utp2pinv(6, 6, rank, U, tau, p, pinv, tau2, 1e-10);
+        s_householder_utp(9, 6, param.F.data(), U, tau, p, rank, 1e-3);
+        s_householder_utp2pinv(9, 6, rank, U, tau, p, pinv, tau2, 1e-10);
 		s_mm(6, 1, 9, pinv, param.m.data(), param.p.data());
-
+        std::cout << "p:" <<"";
+        for(int i=0; i<6; i++)
+        {
+            std::cout << param.p[i] << " ";
+        }
+        std::cout<<std::endl;
 		// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A)
-		s_householder_utp(6, 6, param.R.data(), U, tau, p, rank, 1e-3);
-		s_householder_utp2pinv(6, 6, rank, U, tau, p, pinv, tau2, 1e-10);
+        s_householder_utp(9, 6, param.R.data(), U, tau, p, rank, 1e-3);
+        s_householder_utp2pinv(9, 6, rank, U, tau, p, pinv, tau2, 1e-10);
 		s_mm(6, 1, 9, pinv, param.f.data(), param.l.data());
-
+        std::cout << "l:" <<"";
+        for(int i=0; i<6; i++)
+        {
+            std::cout << param.l[i] << " ";
+        }
+        std::cout<<std::endl;
 		//求重心并保存到variablepool中
 		param.Gravity_center.assign(param.p.begin(), param.p.begin() + 3);
 		aris::core::Matrix center = { param.Gravity_center[0], param.Gravity_center[1], param.Gravity_center[2]};
@@ -4076,7 +4091,7 @@ namespace kaanh
 		param.Gravity_xyzindex[1] = param.l[1];
 		param.Gravity_xyzindex[2] = param.l[2];
 
-		aris::core::Matrix xyzindex = { param.Gravity_center[0], param.Gravity_center[1], param.Gravity_center[2] };
+        aris::core::Matrix xyzindex = { param.Gravity_xyzindex[0], param.Gravity_xyzindex[1], param.Gravity_xyzindex[2] };
 		if (model()->variablePool().findByName("Gravity_xyzindex") != model()->variablePool().end())
 		{
 			dynamic_cast<aris::dynamic::MatrixVariable*>(&*model()->variablePool().findByName("Gravity_xyzindex"))->data() = xyzindex;
@@ -4209,9 +4224,11 @@ namespace kaanh
 
 		//获取力传感器数值
 		auto slave7 = dynamic_cast<aris::control::EthercatSlave&>(controller()->slavePool().at(6));
+        float data[6];
 		for (uint8_t i = 0; i < 6; i++)
 		{
-            slave7.readPdo(0x6030, i+1, &imp_->force_target[i], 32);
+            slave7.readPdo(0x6030, i+1, &data[i], 32);
+            imp_->force_target[i] = double(data[i]);
 		}
 
 		//获取每个周期力传感器坐标系相对与基座坐标系的位姿矩阵
