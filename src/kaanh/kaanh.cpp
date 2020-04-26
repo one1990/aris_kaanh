@@ -3783,8 +3783,6 @@ namespace kaanh
 			param.Zero_value.resize(6, 0.0);
 		}
 
-		std::vector<double> p1(7, 0.0), p2(7, 0.0), p3(7, 0.0);
-
 		param.tool = &*model()->generalMotionPool()[0].makI().fatherPart().markerPool().findByName(std::string(cmdParams().at("tool")));
 		param.wobj = &*model()->generalMotionPool()[0].makJ().fatherPart().markerPool().findByName(std::string(cmdParams().at("wobj")));
 
@@ -3793,58 +3791,37 @@ namespace kaanh
 			if (cmd_param.first == "p1")
 			{
 				auto p = matrixParam(cmd_param.first);
-				if (p.size() == 7)
+				if (p.size() == 6)
 				{
-					p1.assign(p.begin(), p.end());
+					param.p1.assign(p.begin(), p.end());
 				}
 				else
 				{
 					THROW_FILE_LINE("");
-				}
-				param.tool->setPq(*param.wobj, p1.data());
-				model()->generalMotionPool().at(0).updMpm();
-				if (model()->solverPool().at(0).kinPos())THROW_FILE_LINE("");
-				for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
-				{
-					param.p1[i] = model()->motionPool()[i].mp();
 				}
 			}
 			else if (cmd_param.first == "p2")
 			{
 				auto p = matrixParam(cmd_param.first);
-				if (p.size() == 7)
+				if (p.size() == 6)
 				{
-					p2.assign(p.begin(), p.end());
+					param.p2.assign(p.begin(), p.end());
 				}
 				else
 				{
 					THROW_FILE_LINE("");
-				}
-				param.tool->setPq(*param.wobj, p2.data());
-				model()->generalMotionPool().at(0).updMpm();
-				if (model()->solverPool().at(0).kinPos())THROW_FILE_LINE("");
-				for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
-				{
-					param.p2[i] = model()->motionPool()[i].mp();
 				}
 			}
 			else if (cmd_param.first == "p3")
 			{
 				auto p = matrixParam(cmd_param.first);
-				if (p.size() == 7)
+				if (p.size() == 6)
 				{
-					p3.assign(p.begin(), p.end());
+					param.p3.assign(p.begin(), p.end());
 				}
 				else
 				{
 					THROW_FILE_LINE("");
-				}
-				param.tool->setPq(*param.wobj, p3.data());
-				model()->generalMotionPool().at(0).updMpm();
-				if (model()->solverPool().at(0).kinPos())THROW_FILE_LINE("");
-				for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
-				{
-					param.p3[i] = model()->motionPool()[i].mp();
 				}
 			}
 			else if (cmd_param.first == "acc")
@@ -4111,9 +4088,9 @@ namespace kaanh
 		command().loadXmlStr(
 			"<Command name=\"CalibFZero\">"
 			"	<GroupParam>"
-            "		<Param name=\"p1\" default=\"{0.37601,-0.000007,0.683685,-0.0044048,0.38913432,-0.01045049,0.921111}\"/>"
-            "		<Param name=\"p2\" default=\"{0.379549,-0.0322091,0.5907641,0.2653565,0.0233424,-0.09180885,0.4932183}\"/>"
-            "		<Param name=\"p3\" default=\"{0,3740698,0.0329845,0.5839755,-0.29204086,0.8405569,0.0966188,0.445916}\"/>"
+			"		<Param name=\"p1\" default=\"{0,0,0,0,-0.6,-0.7}\"/>"
+            "		<Param name=\"p2\" default=\"{0,0,0,-0.6,0.5,0}\"/>"
+            "		<Param name=\"p3\" default=\"{0,0,0,0.6,0.8,0.8}\"/>"
 			"		<Param name=\"vel\" default=\"0.05\"/>"
 			"		<Param name=\"acc\" default=\"0.1\"/>"
 			"		<Param name=\"dec\" default=\"0.1\"/>"
