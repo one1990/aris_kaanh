@@ -3958,7 +3958,7 @@ namespace kaanh
 			for (int i = 0; i < 6; i++)
 			{
 				// 在第一个周期走梯形规划复位
-				aris::plan::moveAbsolute(count() - param.total_count_vec[0] - 1000, param.axis_first_pos_vec[i], param.p1[i], param.vel[i] / 1000, param.acc[i] / 1000 / 1000, param.dec[i] / 1000 / 1000, p, v, a, t_count);
+                aris::plan::moveAbsolute(count() - param.total_count_vec[0] - 1000, param.p1[i], param.p2[i], param.vel[i] / 1000, param.acc[i] / 1000 / 1000, param.dec[i] / 1000 / 1000, p, v, a, t_count);
 				controller()->motionAtAbs(i).setTargetPos(p);
 				model()->motionPool().at(i).setMp(p);
 			}
@@ -3968,7 +3968,7 @@ namespace kaanh
 			for (int i = 0; i < 6; i++)
 			{
 				// 在第一个周期走梯形规划复位
-				aris::plan::moveAbsolute(count() - param.total_count_vec[0] - param.total_count_vec[1] - 2000, param.axis_first_pos_vec[i], param.p1[i], param.vel[i] / 1000, param.acc[i] / 1000 / 1000, param.dec[i] / 1000 / 1000, p, v, a, t_count);
+                aris::plan::moveAbsolute(count() - param.total_count_vec[0] - param.total_count_vec[1] - 2000, param.p2[i], param.p3[i], param.vel[i] / 1000, param.acc[i] / 1000 / 1000, param.dec[i] / 1000 / 1000, p, v, a, t_count);
 				controller()->motionAtAbs(i).setTargetPos(p);
 				model()->motionPool().at(i).setMp(p);
 			}
@@ -4111,9 +4111,9 @@ namespace kaanh
 		command().loadXmlStr(
 			"<Command name=\"CalibFZero\">"
 			"	<GroupParam>"
-			"		<Param name=\"p1\" default=\"{0,0,0,0,0,0,1}\"/>"
-			"		<Param name=\"p2\" default=\"{0,0,0,0,0,0,1}\"/>"
-			"		<Param name=\"p3\" default=\"{0,0,0,0,0,0,1}\"/>"
+            "		<Param name=\"p1\" default=\"{0.37601,-0.000007,0.683685,-0.0044048,0.38913432,-0.01045049,0.921111}\"/>"
+            "		<Param name=\"p2\" default=\"{0.379549,-0.0322091,0.5907641,0.2653565,0.0233424,-0.09180885,0.4932183}\"/>"
+            "		<Param name=\"p3\" default=\"{0,3740698,0.0329845,0.5839755,-0.29204086,0.8405569,0.0966188,0.445916}\"/>"
 			"		<Param name=\"vel\" default=\"0.05\"/>"
 			"		<Param name=\"acc\" default=\"0.1\"/>"
 			"		<Param name=\"dec\" default=\"0.1\"/>"
