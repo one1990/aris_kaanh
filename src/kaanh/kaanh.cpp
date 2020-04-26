@@ -3745,7 +3745,7 @@ namespace kaanh
 		aris::dynamic::Marker *tool, *wobj;
 		std::vector<Size> total_count_vec;
 		std::vector<double> p1, p2, p3;
-		std::vector<double> sdata1, sdata2, sdata3;
+        std::vector<float> sdata1, sdata2, sdata3;
 		std::vector<double> axis_first_pos_vec;
 		std::vector<double> vel, acc, dec;
 		std::vector<double> F;	//力矩阵
@@ -3886,6 +3886,7 @@ namespace kaanh
 	auto CalibFZero::executeRT()->int
 	{
 		auto &param = std::any_cast<CalibFZeroParam&>(this->param());
+        auto &cout = controller()->mout();
 		double p, v, a;
 		aris::Size t_count;
 		static aris::Size total_count = 1;
@@ -3958,8 +3959,10 @@ namespace kaanh
 			auto slave7 = dynamic_cast<aris::control::EthercatSlave&>(controller()->slavePool().at(6));
 			for (uint8_t i = 0; i < 6; i++)
 			{
-				slave7.readPdo(0x6030, i, &param.sdata1[i], 32);
+                slave7.readPdo(0x6030, i+1, &param.sdata1[i], 32);
+                cout << param.sdata1[i] << " ";
 			}
+            cout << std::endl;
 			std::copy(param.sdata1.begin() + 3, param.sdata1.end(), param.m.begin());
 			std::copy(param.sdata1.begin(), param.sdata1.begin() + 3, param.f.begin());
 
@@ -3977,8 +3980,10 @@ namespace kaanh
 			auto slave7 = dynamic_cast<aris::control::EthercatSlave&>(controller()->slavePool().at(6));
 			for (uint8_t i = 0; i < 6; i++)
 			{
-				slave7.readPdo(0x6030, i, &param.sdata2[i], 32);
+                slave7.readPdo(0x6030, i+1, &param.sdata2[i], 32);
+                cout << param.sdata2[i] << " ";
 			}
+            cout << std::endl;
 			std::copy(param.sdata2.begin() + 3, param.sdata2.end(), param.m.begin() + 3);
 			std::copy(param.sdata2.begin(), param.sdata2.begin() + 3, param.f.begin() + 3);
 
@@ -3996,8 +4001,10 @@ namespace kaanh
 			auto slave7 = dynamic_cast<aris::control::EthercatSlave&>(controller()->slavePool().at(6));
 			for (uint8_t i = 0; i < 6; i++)
 			{
-				slave7.readPdo(0x6030, i, &param.sdata3[i], 32);
+                slave7.readPdo(0x6030, i+1, &param.sdata3[i], 32);
+                cout << param.sdata3[i] << " ";
 			}
+            cout << std::endl;
 			std::copy(param.sdata3.begin() + 3, param.sdata3.end(), param.m.begin() + 6);
 			std::copy(param.sdata3.begin(), param.sdata3.begin() + 3, param.f.begin() + 6);
 
@@ -4204,7 +4211,7 @@ namespace kaanh
 		auto slave7 = dynamic_cast<aris::control::EthercatSlave&>(controller()->slavePool().at(6));
 		for (uint8_t i = 0; i < 6; i++)
 		{
-			slave7.readPdo(0x6030, i, &imp_->force_target[i], 32);
+            slave7.readPdo(0x6030, i+1, &imp_->force_target[i], 32);
 		}
 
 		//获取每个周期力传感器坐标系相对与基座坐标系的位姿矩阵
