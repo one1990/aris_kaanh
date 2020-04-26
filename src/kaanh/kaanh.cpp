@@ -3896,7 +3896,7 @@ namespace kaanh
 		if (count() == 1)
 		{
 			//获取力传感器相对tcp的旋转矩阵//
-			auto thelta = (180 - param.thelta_setup)*PI / 180;
+			auto thelta = (- param.thelta_setup)*PI / 180;
 			double pq_setup[7]{ 0.0,0.0,param.pos_setup,0.0,0.0,sin(thelta / 2.0),cos(thelta / 2.0) };
 			s_pq2pm(pq_setup, fs2tpm);
 
@@ -4202,7 +4202,7 @@ namespace kaanh
 			controller()->logFileRawName("motion_replay");
 
 			//获取力传感器相对tcp的旋转矩阵//
-			imp_->thelta = (180 - imp_->thelta_setup)*PI / 180;
+			imp_->thelta = (- imp_->thelta_setup)*PI / 180;
 			double pq_setup[7]{ 0.0,0.0,imp_->pos_setup,0.0,0.0,sin(imp_->thelta / 2.0),cos(imp_->thelta / 2.0) };
 			s_pq2pm(pq_setup, imp_->fs2tpm);
 		}
@@ -4452,7 +4452,7 @@ namespace kaanh
 			controller()->logFileRawName("motion_replay");
 
 			//获取力传感器相对tcp的旋转矩阵//
-			imp_->thelta = (180 - imp_->thelta_setup)*PI / 180;
+			imp_->thelta = (- imp_->thelta_setup)*PI / 180;
 			double pq_setup[7]{ 0.0,0.0,imp_->pos_setup,0.0,0.0,sin(imp_->thelta / 2.0),cos(imp_->thelta / 2.0) };
 			s_pq2pm(pq_setup, imp_->fs2tpm);
 
