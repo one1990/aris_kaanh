@@ -4350,7 +4350,7 @@ namespace kaanh
 		lout << std::endl;
 
 		//延时1000ms停止力控
-		aris::Size total_count = 1;
+        static aris::Size total_count = 1;
 		if (enable_mvd.load())
 		{
 			total_count = count() + 1000;
@@ -4632,7 +4632,7 @@ namespace kaanh
 		// 运动学正解 //
 		if (model()->solverPool().at(1).kinPos())return -1;
 		
-        aris::Size total_count = 1;
+        static aris::Size total_count = 1;
 		if (enable_mvJoint.load())
 		{
             total_count = count() + 1000;
