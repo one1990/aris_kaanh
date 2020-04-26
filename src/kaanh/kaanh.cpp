@@ -3974,7 +3974,7 @@ namespace kaanh
 			model()->generalMotionPool().at(0).updMpm();
 			param.tool->getPm(*param.wobj, pmr);
 			s_pm_dot_pm(pmr, fs2tpm, pm);
-			double rm[18] = { pm[0],pm[1],pm[2],1,0,0,pm[4],pm[5],pm[6],0,1,0,pm[8],pm[9],pm[10],0,0,1 };
+			double rm[18] = { pm[0],pm[4],pm[8],1,0,0,pm[1],pm[5],pm[9],0,1,0,pm[2],pm[6],pm[10],0,0,1 };//取pm的逆
 			std::copy(rm, rm + 18, param.R.begin());
 		}
 		else if (count() == param.total_count_vec[0] + param.total_count_vec[1] + 2000)
@@ -3997,7 +3997,7 @@ namespace kaanh
 			model()->generalMotionPool().at(0).updMpm();
 			param.tool->getPm(*param.wobj, pmr);
 			s_pm_dot_pm(pmr, fs2tpm, pm);
-			double rm[18] = { pm[0],pm[1],pm[2],1,0,0,pm[4],pm[5],pm[6],0,1,0,pm[8],pm[9],pm[10],0,0,1 };
+			double rm[18] = { pm[0],pm[4],pm[8],1,0,0,pm[1],pm[5],pm[9],0,1,0,pm[2],pm[6],pm[10],0,0,1 };//取pm的逆
 			std::copy(rm, rm + 18, param.R.begin() + 18);
 		}
 		else if (count() == param.total_count_vec[0] + param.total_count_vec[1] + param.total_count_vec[2] + 3000)
@@ -4020,7 +4020,7 @@ namespace kaanh
 			model()->generalMotionPool().at(0).updMpm();
 			param.tool->getPm(*param.wobj, pmr);
 			s_pm_dot_pm(pmr, fs2tpm, pm);
-			double rm[18] = { pm[0],pm[1],pm[2],1,0,0,pm[4],pm[5],pm[6],0,1,0,pm[8],pm[9],pm[10],0,0,1 };
+			double rm[18] = { pm[0],pm[4],pm[8],1,0,0,pm[1],pm[5],pm[9],0,1,0,pm[2],pm[6],pm[10],0,0,1 };//取pm的逆
 			std::copy(rm, rm + 18, param.R.begin() + 36);
 		}
 
@@ -4240,7 +4240,7 @@ namespace kaanh
 		if (recalib_zero.load())
 		{
 			double G[6];
-			s_mm(3, 1, 3, imp_->fs2bpm, aris::dynamic::RowMajor{ 4 }, imp_->xyzindex.data(), 1, G, 1);
+			s_mm(3, 1, 3, imp_->fs2bpm, aris::dynamic::ColMajor{ 4 }, imp_->xyzindex.data(), 1, G, 1);
 			G[3] = G[2] * imp_->center[1] - G[1] * imp_->center[2];
 			G[4] = G[0] * imp_->center[2] - G[2] * imp_->center[0];
 			G[5] = G[1] * imp_->center[0] - G[0] * imp_->center[1];
@@ -4250,7 +4250,7 @@ namespace kaanh
 
 		//求重力分量
 		double G[6];
-		s_mm(3, 1, 3, imp_->fs2bpm, aris::dynamic::RowMajor{ 4 }, imp_->xyzindex.data(), 1, G, 1);
+		s_mm(3, 1, 3, imp_->fs2bpm, aris::dynamic::ColMajor{ 4 }, imp_->xyzindex.data(), 1, G, 1);
 		G[3] = G[2] * imp_->center[1] - G[1] * imp_->center[2];
 		G[4] = G[0] * imp_->center[2] - G[2] * imp_->center[0];
 		G[5] = G[1] * imp_->center[0] - G[0] * imp_->center[1];
@@ -4259,6 +4259,11 @@ namespace kaanh
 		s_vs(6, G, imp_->force_target);
 		s_vs(6, imp_->Zero_value.data(), imp_->force_target);
 		
+		//根据力传感器受到的外力反算机械臂基座受到的力
+		double xyz_temp[3]{ imp_->force_target[0], imp_->force_target[1], imp_->force_target[2] }, abc_temp[3]{ imp_->force_target[3], imp_->force_target[4], imp_->force_target[5] };
+		s_mm(3, 1, 3, imp_->fs2bpm, aris::dynamic::RowMajor{ 4 }, xyz_temp, 1, imp_->force_target, 1);
+		s_mm(3, 1, 3, imp_->fs2bpm, aris::dynamic::RowMajor{ 4 }, abc_temp, 1, imp_->force_target + 3, 1);
+
 		//求阻尼力
 		model()->generalMotionPool()[0].getMve(v_now, eu_type);
 		model()->generalMotionPool()[0].getMve(v_tcp, eu_type);
