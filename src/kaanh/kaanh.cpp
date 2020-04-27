@@ -1251,34 +1251,66 @@ namespace kaanh
 		param.max_total_count = *std::max_element(param.total_count.begin(), param.total_count.end());
 
 		//二分法//
+		traplan::sCurved(0.0, param.axis_begin_pos_vec[max_i], param.axis_pos_vec[max_i],
+			param.axis_vel_vec[max_i] / 1000 * param.pos_ratio[max_i], param.axis_acc_vec[max_i] / 1000 / 1000 * param.pos_ratio[max_i] * param.pos_ratio[max_i], param.axis_jerk_vec[max_i] / 1000 / 1000 / 1000 * param.pos_ratio[max_i] * param.pos_ratio[max_i] * param.pos_ratio[max_i],
+			p, v, a, j, param.total_count[max_i]);
 		auto pos_zone = param.axis_pos_vec[max_i] - max_pos * param.zone.per;
-        double begin_count = 1.0, target_count = 0.0, end_count;
+        double begin_count = 0.0, target_count = 0.0, end_count;
 		end_count = param.max_total_count;
 		if (param.zone_enabled)
 		{
 			if (std::abs(max_pos) > 2e-3)//转弯半径大于0.002rad
 			{
-				while (std::abs(p - pos_zone) > 1e-6)
+				if (max_pos > 0)//目标角度大于起始角度
 				{
-					if (p < pos_zone)
+					while (std::abs(p - pos_zone) > 1e-6)
 					{
-						begin_count = target_count;
-						target_count = (begin_count + end_count) / 2;
-						traplan::sCurved(target_count, param.axis_begin_pos_vec[max_i], param.axis_pos_vec[max_i],
-							param.axis_vel_vec[max_i] / 1000 * param.pos_ratio[max_i], param.axis_acc_vec[max_i] / 1000 / 1000 * param.pos_ratio[max_i] * param.pos_ratio[max_i], param.axis_jerk_vec[max_i] / 1000 / 1000 / 1000 * param.pos_ratio[max_i] * param.pos_ratio[max_i] * param.pos_ratio[max_i],
-							p, v, a, j, param.total_count[max_i]);
+						if (p < pos_zone)
+						{
+							begin_count = target_count;
+							target_count = (begin_count + end_count) / 2;
+							traplan::sCurved(target_count, param.axis_begin_pos_vec[max_i], param.axis_pos_vec[max_i],
+								param.axis_vel_vec[max_i] / 1000 * param.pos_ratio[max_i], param.axis_acc_vec[max_i] / 1000 / 1000 * param.pos_ratio[max_i] * param.pos_ratio[max_i], param.axis_jerk_vec[max_i] / 1000 / 1000 / 1000 * param.pos_ratio[max_i] * param.pos_ratio[max_i] * param.pos_ratio[max_i],
+								p, v, a, j, param.total_count[max_i]);
+						}
+						else
+						{
+							end_count = target_count;
+							target_count = (begin_count + end_count) / 2;
+							traplan::sCurved(target_count, param.axis_begin_pos_vec[max_i], param.axis_pos_vec[max_i],
+								param.axis_vel_vec[max_i] / 1000 * param.pos_ratio[max_i], param.axis_acc_vec[max_i] / 1000 / 1000 * param.pos_ratio[max_i] * param.pos_ratio[max_i], param.axis_jerk_vec[max_i] / 1000 / 1000 / 1000 * param.pos_ratio[max_i] * param.pos_ratio[max_i] * param.pos_ratio[max_i],
+								p, v, a, j, param.total_count[max_i]);
+						}
+						if ((std::abs(begin_count - end_count) <= 1e-9) || (std::abs(begin_count + 1 - end_count) <= 1e-9) || (end_count <= 1e-9))
+						{
+							break;
+						}
 					}
-					else
+				}
+				else//目标角度小于起始角度
+				{
+					while (std::abs(p - pos_zone) > 1e-6)
 					{
-						end_count = target_count;
-						target_count = (begin_count + end_count) / 2;
-						traplan::sCurved(target_count, param.axis_begin_pos_vec[max_i], param.axis_pos_vec[max_i],
-							param.axis_vel_vec[max_i] / 1000 * param.pos_ratio[max_i], param.axis_acc_vec[max_i] / 1000 / 1000 * param.pos_ratio[max_i] * param.pos_ratio[max_i], param.axis_jerk_vec[max_i] / 1000 / 1000 / 1000 * param.pos_ratio[max_i] * param.pos_ratio[max_i] * param.pos_ratio[max_i],
-							p, v, a, j, param.total_count[max_i]);
-					}
-					if ((std::abs(begin_count - end_count) <= 1e-9) || (std::abs(begin_count + 1 - end_count) <= 1e-9) || (end_count <= 1e-9))
-					{
-						break;
+						if (p > pos_zone)
+						{
+							begin_count = target_count;
+							target_count = (begin_count + end_count) / 2;
+							traplan::sCurved(target_count, param.axis_begin_pos_vec[max_i], param.axis_pos_vec[max_i],
+								param.axis_vel_vec[max_i] / 1000 * param.pos_ratio[max_i], param.axis_acc_vec[max_i] / 1000 / 1000 * param.pos_ratio[max_i] * param.pos_ratio[max_i], param.axis_jerk_vec[max_i] / 1000 / 1000 / 1000 * param.pos_ratio[max_i] * param.pos_ratio[max_i] * param.pos_ratio[max_i],
+								p, v, a, j, param.total_count[max_i]);
+						}
+						else
+						{
+							end_count = target_count;
+							target_count = (begin_count + end_count) / 2;
+							traplan::sCurved(target_count, param.axis_begin_pos_vec[max_i], param.axis_pos_vec[max_i],
+								param.axis_vel_vec[max_i] / 1000 * param.pos_ratio[max_i], param.axis_acc_vec[max_i] / 1000 / 1000 * param.pos_ratio[max_i] * param.pos_ratio[max_i], param.axis_jerk_vec[max_i] / 1000 / 1000 / 1000 * param.pos_ratio[max_i] * param.pos_ratio[max_i] * param.pos_ratio[max_i],
+								p, v, a, j, param.total_count[max_i]);
+						}
+						if ((std::abs(begin_count - end_count) <= 1e-9) || (std::abs(begin_count + 1 - end_count) <= 1e-9) || (end_count <= 1e-9))
+						{
+							break;
+						}
 					}
 				}
 			}
@@ -1885,34 +1917,68 @@ namespace kaanh
 		mvj_param.max_total_count = *std::max_element(mvj_param.total_count.begin(), mvj_param.total_count.end());
 
 		//二分法//
+		traplan::sCurved(0.0, mvj_param.joint_pos_begin[max_i], mvj_param.joint_pos_end[max_i],
+			mvj_param.joint_vel[max_i] / 1000 * mvj_param.pos_ratio[max_i], mvj_param.joint_acc[max_i] / 1000 / 1000 * mvj_param.pos_ratio[max_i] * mvj_param.pos_ratio[max_i], mvj_param.joint_jerk[max_i] / 1000 / 1000 / 1000 * mvj_param.pos_ratio[max_i] * mvj_param.pos_ratio[max_i] * mvj_param.pos_ratio[max_i],
+			p, v, a, j, mvj_param.total_count[max_i]);
 		auto pos_zone = mvj_param.joint_pos_end[max_i] - max_pos * mvj_param.zone.per;
-        double begin_count = 1, target_count = 0, end_count;
+        double begin_count = 0.0, target_count = 0.0, end_count;
 		end_count = mvj_param.max_total_count;
 		if (mvj_param.zone_enabled)
 		{
 			if (std::abs(max_pos) > 2e-3)//转弯半径大于0.002rad
 			{
-				while (std::abs(p - pos_zone) > 1e-9)
+				if (max_pos > 0)//目标角度大于起始角度
 				{
-					if (p < pos_zone)
+					while (std::abs(p - pos_zone) > 1e-9)
 					{
-						begin_count = target_count;
-						target_count = (begin_count + end_count) / 2;
-						traplan::sCurved(target_count, mvj_param.joint_pos_begin[max_i], mvj_param.joint_pos_end[max_i],
-							mvj_param.joint_vel[max_i] / 1000 * mvj_param.pos_ratio[max_i], mvj_param.joint_acc[max_i] / 1000 / 1000 * mvj_param.pos_ratio[max_i] * mvj_param.pos_ratio[max_i], mvj_param.joint_jerk[max_i] / 1000 / 1000 / 1000 * mvj_param.pos_ratio[max_i] * mvj_param.pos_ratio[max_i] * mvj_param.pos_ratio[max_i],
-							p, v, a, j, mvj_param.total_count[max_i]);
+						if (p < pos_zone)
+						{
+							begin_count = target_count;
+							target_count = (begin_count + end_count) / 2;
+							traplan::sCurved(target_count, mvj_param.joint_pos_begin[max_i], mvj_param.joint_pos_end[max_i],
+								mvj_param.joint_vel[max_i] / 1000 * mvj_param.pos_ratio[max_i], mvj_param.joint_acc[max_i] / 1000 / 1000 * mvj_param.pos_ratio[max_i] * mvj_param.pos_ratio[max_i], mvj_param.joint_jerk[max_i] / 1000 / 1000 / 1000 * mvj_param.pos_ratio[max_i] * mvj_param.pos_ratio[max_i] * mvj_param.pos_ratio[max_i],
+								p, v, a, j, mvj_param.total_count[max_i]);
+						}
+						else
+						{
+							end_count = target_count;
+							target_count = (begin_count + end_count) / 2;
+							traplan::sCurved(target_count, mvj_param.joint_pos_begin[max_i], mvj_param.joint_pos_end[max_i],
+								mvj_param.joint_vel[max_i] / 1000 * mvj_param.pos_ratio[max_i], mvj_param.joint_acc[max_i] / 1000 / 1000 * mvj_param.pos_ratio[max_i] * mvj_param.pos_ratio[max_i], mvj_param.joint_jerk[max_i] / 1000 / 1000 / 1000 * mvj_param.pos_ratio[max_i] * mvj_param.pos_ratio[max_i] * mvj_param.pos_ratio[max_i],
+								p, v, a, j, mvj_param.total_count[max_i]);
+						}
+						//满足以下条件，即可退出二分法
+						if ((std::abs(begin_count - end_count) <= 1e-9) || (std::abs(begin_count + 1 - end_count) <= 1e-9) || (end_count <= 1e-9))
+						{
+							break;
+						}
 					}
-					else
+				}
+				else//目标角度小于起始角度
+				{
+					while (std::abs(p - pos_zone) > 1e-9)
 					{
-						end_count = target_count;
-						target_count = (begin_count + end_count) / 2;
-						traplan::sCurved(target_count, mvj_param.joint_pos_begin[max_i], mvj_param.joint_pos_end[max_i],
-							mvj_param.joint_vel[max_i] / 1000 * mvj_param.pos_ratio[max_i], mvj_param.joint_acc[max_i] / 1000 / 1000 * mvj_param.pos_ratio[max_i] * mvj_param.pos_ratio[max_i], mvj_param.joint_jerk[max_i] / 1000 / 1000 / 1000 * mvj_param.pos_ratio[max_i] * mvj_param.pos_ratio[max_i] * mvj_param.pos_ratio[max_i],
-							p, v, a, j, mvj_param.total_count[max_i]);
-					}
-					if ((std::abs(begin_count - end_count) <= 1e-9) || (std::abs(begin_count + 1 - end_count) <= 1e-9) || (end_count <= 1e-9))
-					{
-						break;
+						if (p > pos_zone)
+						{
+							begin_count = target_count;
+							target_count = (begin_count + end_count) / 2;
+							traplan::sCurved(target_count, mvj_param.joint_pos_begin[max_i], mvj_param.joint_pos_end[max_i],
+								mvj_param.joint_vel[max_i] / 1000 * mvj_param.pos_ratio[max_i], mvj_param.joint_acc[max_i] / 1000 / 1000 * mvj_param.pos_ratio[max_i] * mvj_param.pos_ratio[max_i], mvj_param.joint_jerk[max_i] / 1000 / 1000 / 1000 * mvj_param.pos_ratio[max_i] * mvj_param.pos_ratio[max_i] * mvj_param.pos_ratio[max_i],
+								p, v, a, j, mvj_param.total_count[max_i]);
+						}
+						else
+						{
+							end_count = target_count;
+							target_count = (begin_count + end_count) / 2;
+							traplan::sCurved(target_count, mvj_param.joint_pos_begin[max_i], mvj_param.joint_pos_end[max_i],
+								mvj_param.joint_vel[max_i] / 1000 * mvj_param.pos_ratio[max_i], mvj_param.joint_acc[max_i] / 1000 / 1000 * mvj_param.pos_ratio[max_i] * mvj_param.pos_ratio[max_i], mvj_param.joint_jerk[max_i] / 1000 / 1000 / 1000 * mvj_param.pos_ratio[max_i] * mvj_param.pos_ratio[max_i] * mvj_param.pos_ratio[max_i],
+								p, v, a, j, mvj_param.total_count[max_i]);
+						}
+						//满足以下条件，即可退出二分法
+						if ((std::abs(begin_count - end_count) <= 1e-9) || (std::abs(begin_count + 1 - end_count) <= 1e-9) || (end_count <= 1e-9))
+						{
+							break;
+						}
 					}
 				}
 			}
@@ -2388,7 +2454,7 @@ namespace kaanh
 		//二分法//
 		auto pos_zone = mvl_param.norm_pos - mvl_param.zone.dis;
 		auto ori_zone = mvl_param.norm_ori - mvl_param.norm_ori*mvl_param.zone.per;
-        double begin_count = 1, target_count = 0, end_count;
+        double begin_count = 0.0, target_count = 0, end_count;
 		if (mvl_param.zone_enabled)
 		{
 			if (std::abs(mvl_param.norm_pos) > 2e-3)//转弯半径大于1mm,直线长度至少为2mm
