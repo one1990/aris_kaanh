@@ -4436,7 +4436,7 @@ namespace kaanh
 	MoveD::MoveD(const std::string &name) :Plan(name), imp_(new Imp)
 	{
 		command().loadXmlStr(
-			"<Command name=\"mvd\">"
+            "<Command name=\"mvJoint\">"
 			"	<GroupParam>"
 			"		<Param name=\"vellimit\" default=\"{0.1,0.1,0.1,0.5,0.5,0.5}\"/>"
 			"		<Param name=\"damping\" default=\"{0.01,0.01,0.01,0.01,0.01,0.01}\"/>"
@@ -4718,7 +4718,7 @@ namespace kaanh
 	MoveJoint::MoveJoint(const std::string &name) :Plan(name), imp_(new Imp)
 	{
 		command().loadXmlStr(
-			"<Command name=\"mvJoint\">"
+            "<Command name=\"movejoint\">"
 			"	<GroupParam>"
             "		<Param name=\"vellimit\" default=\"{0.1,0.1,0.1,0.5,0.5,0.5}\"/>"
             "		<Param name=\"damping\" default=\"{0.01,0.01,0.01,0.01,0.01,0.01}\"/>"
@@ -4930,7 +4930,7 @@ namespace kaanh
 		command().loadXmlStr(
 			"<Command name=\"mvf\">"
 			"	<GroupParam>"
-            "		<Param name=\"path\" default=\"/home/kaanh/Desktop/build-Kaanh-gk-Desktop_Qt_5_11_2_GCC_64bit-Default/log/motion_replay.txt\"/>"
+            "		<Param name=\"path\" default=\"/home/kaanh/Desktop/UI_DarkColor_0406/robot/log/motion_replay.txt\"/>"
             "		<Param name=\"vel\" default=\"0.5\" abbreviation=\"v\"/>"
             "		<Param name=\"acc\" default=\"0.6\" abbreviation=\"a\"/>"
             "		<Param name=\"dec\" default=\"0.6\" abbreviation=\"d\"/>"
