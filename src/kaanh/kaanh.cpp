@@ -4283,6 +4283,14 @@ namespace kaanh
 		auto &lout = controller()->lout();
 		char eu_type[4]{ '1', '2', '3', '\0' };
 
+
+        static double v_joint[6];
+        if (count() == 1)
+        {
+            //设置log文件名称//
+            std::fill_n(v_joint, 6, 0.0);
+        }
+
 		// 前三维为xyz，后三维是w的积分，注意没有物理含义
         static double v_tcp[6];
 		if (count() == 1)
@@ -4307,7 +4315,7 @@ namespace kaanh
 		}
 
         // Filter
-        constexpr int filter_num = 10;
+        constexpr int filter_num = 20;
         static double force_data_raw[6][filter_num];
         if(count() == 1)
         {
@@ -4348,7 +4356,7 @@ namespace kaanh
 		s_vs(6, imp_->Zero_value.data(), imp_->force_target);
 		
         // max move force
-        const double max_move_force[6]{5.0,5.0,5.0,5.0,5.0,5.0};
+        const double max_move_force[6]{5.0, 5.0, 5.0, 0.2, 0.2, 0.07};
         for(int i=0;i<6;++i)
         {
             if(imp_->force_target[i] > max_move_force[i])
@@ -4364,20 +4372,33 @@ namespace kaanh
 		s_mm(3, 1, 3, imp_->fs2bpm, aris::dynamic::RowMajor{ 4 }, xyz_temp, 1, imp_->force_target, 1);
 		s_mm(3, 1, 3, imp_->fs2bpm, aris::dynamic::RowMajor{ 4 }, abc_temp, 1, imp_->force_target + 3, 1);
 
-		//求阻尼力
-		for (int i = 0; i < 6; i++)
-		{
-            imp_->force_damp[i] = imp_->damping[i] * v_tcp[i];
-		}
-		s_vs(6, imp_->force_damp, imp_->force_target);
+        //joint force
+        double f_joint[6];
+        auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(model()->solverPool()[1]);
+        fwd.cptJacobiWrtEE();
+        s_mm(6,1,6,fwd.Jf(), T(6), imp_->force_target, 1, f_joint, 1);
 
-        // 打印
         if (count() % 100 == 0)
         {
-            cout << "force_target:" << std::endl;
+            cout << "f_joint before:" << std::endl;
             for (int i = 0; i < 6; i++)
             {
-                cout << imp_->force_target[i] << "  ";
+                cout << f_joint[i] << "  ";
+            }
+            cout << std::endl;
+        }
+
+        //求阻尼力
+        for (int i = 0; i < 6; i++)
+            imp_->force_damp[i] = imp_->damping[i] * v_joint[i];
+        s_vs(6, imp_->force_damp, f_joint);
+
+        if (count() % 100 == 0)
+        {
+            cout << "f_joint:" << std::endl;
+            for (int i = 0; i < 6; i++)
+            {
+                cout << f_joint[i] << "  ";
             }
             cout << std::endl;
             cout << "damp:" << std::endl;
@@ -4388,67 +4409,23 @@ namespace kaanh
             cout << std::endl;
         }
 
-        // 根据力传感器受力和阻尼力计算v_tcp //
-        for (int i = 0; i < 3; i++)
-		{
-            //if (std::abs(imp_->force_target[i]) > imp_->threshold)
-			{
-                v_tcp[i] += imp_->k[i] * imp_->force_target[i] * 1e-3;//1e-3:1ms
-			}
-			v_tcp[i] = std::min(std::max(v_tcp[i], -imp_->vel_limit[i]), imp_->vel_limit[i]);
-		}
+        for (int i = 0; i < 6; i++)
+        {
+            v_joint[i] += imp_->k[i] * f_joint[i] * 1e-3;//1e-3:1ms
+            v_joint[i] = std::min(std::max(v_joint[i], 0.2*controller()->motionPool().at(i).minVel()), 0.2*controller()->motionPool().at(i).maxVel());
+        }
 
         if(count()%100==0)
         {
-            cout << "v_tcp:"<<std::endl;;
+            cout << "v_joint:"<<std::endl;;
             for(int i=0; i<6; i++)
             {
-                cout << v_tcp[i] << " ";
+                cout << v_joint[i] << " ";
             }
             cout<<std::endl;
             cout<<std::endl;
         }
 
-        // 获取雅可比矩阵，并对过奇异点的雅可比矩阵进行特殊处理
-		double pinv[36];
-		{
-			auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(model()->solverPool()[1]);
-			fwd.cptJacobiWrtEE();
-			//QR分解求方程的解
-			double U[36], tau[6], tau2[6];
-			aris::Size p[6];
-			Size rank;
-			//auto inline s_householder_utp(Size m, Size n, const double *A, AType a_t, double *U, UType u_t, double *tau, TauType tau_t, Size *p, Size &rank, double zero_check = 1e-10)noexcept->void
-			//A为输入,根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A) //
-			s_householder_utp(6, 6, fwd.Jf(), U, tau, p, rank, 1e-3);
-			//对奇异点进行特殊处理,对U进行处理
-			if (rank < 6)
-			{
-				for (int i = 0; i < 6; i++)
-				{
-					if (U[7 * i] >= 0)
-					{
-						U[7 * i] = U[7 * i] + 0.1;
-					}
-					else
-					{
-						U[7 * i] = U[7 * i] - 0.1;
-					}
-				}
-			}
-			// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A) //
-			s_householder_utp2pinv(6, 6, rank, U, tau, p, pinv, tau2, 1e-10);
-		}
-
-		// 根据v_tcp以及雅可比矩阵反算到关节v_joint
-        double v_joint[6];
-        s_mm(6, 1, 6, pinv, v_tcp, v_joint);
-
-        // limit the value of v_joint
-        for (int i = 0; i < 6; i++)
-        {
-            v_joint[i] = std::min(std::max(v_joint[i], 0.1*controller()->motionPool().at(i).minVel()), 0.1*controller()->motionPool().at(i).maxVel());
-        }
 
         // 根据关节速度v_joint规划每个关节的运动角度
         double p_next[6];
@@ -4456,7 +4433,7 @@ namespace kaanh
 		{
 			p_next[i] = controller()->motionPool().at(i).targetPos();
 			p_next[i] += v_joint[i] * 1e-3;
-			p_next[i] = std::min(std::max(p_next[i], controller()->motionPool().at(i).minPos() + 0.1), controller()->motionPool().at(i).maxPos() - 0.1);
+            p_next[i] = std::min(std::max(p_next[i], controller()->motionPool().at(i).minPos() + 0.1), controller()->motionPool().at(i).maxPos() - 0.1);
 
 			controller()->motionPool().at(i).setTargetPos(p_next[i]);
 			model()->motionPool().at(i).setMp(p_next[i]);
