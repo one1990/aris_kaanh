@@ -4145,6 +4145,15 @@ namespace kaanh
 		param.Zero_value[3] = param.p[3] - param.l[4] * param.p[2] + param.l[5] * param.p[1];
 		param.Zero_value[4] = param.p[4] - param.l[5] * param.p[0] + param.l[3] * param.p[2];
 		param.Zero_value[5] = param.p[5] - param.l[3] * param.p[1] + param.l[4] * param.p[0];
+        aris::core::Matrix zero = { param.Zero_value[0], param.Zero_value[1], param.Zero_value[2], param.Zero_value[3], param.Zero_value[4], param.Zero_value[5] };
+        if (model()->variablePool().findByName("Zero_value") != model()->variablePool().end())
+        {
+            dynamic_cast<aris::dynamic::MatrixVariable*>(&*model()->variablePool().findByName("Zero_value"))->data() = zero;
+        }
+        else
+        {
+            model()->variablePool().add<aris::dynamic::MatrixVariable>("Zero_value", zero);
+        }
 		std::cout << "zero value:" << std::endl;
 		for (int i = 0; i < param.Zero_value.size(); i++)
 		{
@@ -4190,7 +4199,7 @@ namespace kaanh
 
 
 	std::atomic_bool enable_mvd = true;
-	std::atomic_bool recalib_zero = true;
+    std::atomic_bool recalib_zero = true;
 	struct MoveDParam
 	{
 		aris::dynamic::Marker *tool, *wobj;
@@ -4201,7 +4210,7 @@ namespace kaanh
 		double force_damp[6]{ 0.0,0.0,0.0,0.0,0.0,0.0 };
 		double thelta_setup = 51.166;//力传感器安装位置相对tcp偏移角
 		double pos_setup = 0.061;//力传感器安装位置相对tcp偏移距离
-		double threshold = 1e-6;
+        double threshold = 1e-2;
 		std::vector<double> center;
 		std::vector<double> xyzindex;
 		std::vector<double> Zero_value;			//力传感器零点偏移量
@@ -4214,9 +4223,10 @@ namespace kaanh
 		imp_->wobj = &*model()->generalMotionPool()[0].makJ().fatherPart().markerPool().findByName(std::string(cmdParams().at("wobj")));
 		auto c = dynamic_cast<aris::dynamic::MatrixVariable*>(&*model()->variablePool().findByName("Gravity_center"));
 		auto xyz = dynamic_cast<aris::dynamic::MatrixVariable*>(&*model()->variablePool().findByName("Gravity_xyzindex"));
+        auto zero = dynamic_cast<aris::dynamic::MatrixVariable*>(&*model()->variablePool().findByName("Zero_value"));
 		imp_->center.assign(c->data().begin(), c->data().end());
 		imp_->xyzindex.assign(xyz->data().begin(), xyz->data().end());
-		imp_->Zero_value.resize(6, 0.0);
+        imp_->Zero_value.assign(zero->data().begin(), zero->data().end());
 
 		for (auto cmd_param : cmdParams())
 		{
@@ -4274,13 +4284,12 @@ namespace kaanh
 		char eu_type[4]{ '1', '2', '3', '\0' };
 
 		// 前三维为xyz，后三维是w的积分，注意没有物理含义
-		static double p_next[6], v_now[6], v_tcp[6]{ 0.0,0.0,0.0,0.0,0.0,0.0 }, v_joint[6];
-		static float rawdata[6], realdata[6];
-
+        static double v_tcp[6];
 		if (count() == 1)
 		{
 			//设置log文件名称//
 			controller()->logFileRawName("motion_replay");
+            std::fill_n(v_tcp, 6, 0.0);
 
 			//获取力传感器相对tcp的旋转矩阵//
 			imp_->thelta = (- imp_->thelta_setup)*PI / 180;
@@ -4297,59 +4306,110 @@ namespace kaanh
             imp_->force_target[i] = double(data[i]);
 		}
 
-		//获取每个周期力传感器坐标系相对与基座坐标系的位姿矩阵
-		model()->generalMotionPool().at(0).updMpm();
-		imp_->tool->getPm(*imp_->wobj, imp_->t2bpm);
-		s_pm_dot_pm(imp_->t2bpm, imp_->fs2tpm, imp_->fs2bpm);
+        // Filter
+        constexpr int filter_num = 10;
+        static double force_data_raw[6][filter_num];
+        if(count() == 1)
+        {
+           std::fill_n(static_cast<double*>(*force_data_raw), 6*filter_num, 0.0);
+        }
 
-		//零漂标定，此时必须确保末端不受外载
-		if (recalib_zero.load())
-		{
-			double G[6];
-			s_mm(3, 1, 3, imp_->fs2bpm, aris::dynamic::ColMajor{ 4 }, imp_->xyzindex.data(), 1, G, 1);
-			G[3] = G[2] * imp_->center[1] - G[1] * imp_->center[2];
-			G[4] = G[0] * imp_->center[2] - G[2] * imp_->center[0];
-			G[5] = G[1] * imp_->center[0] - G[0] * imp_->center[1];
-			for (int i = 0; i < 6; i++)imp_->Zero_value[i] = imp_->force_target[i] - G[i];
-			recalib_zero.store(false);
-		}
+        for (uint8_t i = 0; i < 6; i++)
+        {
+            force_data_raw[i][count()%10] = imp_->force_target[i];
+            imp_->force_target[i] = std::accumulate(force_data_raw[i], force_data_raw[i] + filter_num, 0.0) / filter_num;
+        }
 
-		//求重力分量
-		double G[6];
-		s_mm(3, 1, 3, imp_->fs2bpm, aris::dynamic::ColMajor{ 4 }, imp_->xyzindex.data(), 1, G, 1);
-		G[3] = G[2] * imp_->center[1] - G[1] * imp_->center[2];
-		G[4] = G[0] * imp_->center[2] - G[2] * imp_->center[0];
-		G[5] = G[1] * imp_->center[0] - G[0] * imp_->center[1];
+        //获取每个周期力传感器坐标系相对与基座坐标系的位姿矩阵
+        model()->generalMotionPool().at(0).updMpm();
+        imp_->tool->getPm(*imp_->wobj, imp_->t2bpm);
+        s_pm_dot_pm(imp_->t2bpm, imp_->fs2tpm, imp_->fs2bpm);
+
+        //求重力分量
+        double G[6];
+        s_mm(3, 1, 3, imp_->fs2bpm, aris::dynamic::ColMajor{ 4 }, imp_->xyzindex.data(), 1, G, 1);
+        G[3] = G[2] * imp_->center[1] - G[1] * imp_->center[2];
+        G[4] = G[0] * imp_->center[2] - G[2] * imp_->center[0];
+        G[5] = G[1] * imp_->center[0] - G[0] * imp_->center[1];
+
+        //零漂标定，此时必须确保末端不受外载
+        if(count() <= filter_num) cout << imp_->force_target[0]<<"  "<<imp_->force_target[1]<<"  "<<imp_->force_target[2]<<std::endl;
+        if(count() <= filter_num)return 1;
+
+        if (recalib_zero.exchange(false))
+        {
+            for (int i = 0; i < 6; i++)imp_->Zero_value[i] = imp_->force_target[i] - G[i];
+            cout <<"ZERO:  "<< imp_->force_target[0]<<"  "<<imp_->force_target[1]<<"  "<<imp_->force_target[2]<<std::endl;
+            cout <<"ZERO:  "<< imp_->Zero_value[0]<<"  "<<imp_->Zero_value[1]<<"  "<<imp_->Zero_value[2]<<std::endl;
+        }
 
 		//求外部力=imp_->force_target = realdata - Zero_value - G
 		s_vs(6, G, imp_->force_target);
 		s_vs(6, imp_->Zero_value.data(), imp_->force_target);
 		
+        // max move force
+        const double max_move_force[6]{5.0,5.0,5.0,5.0,5.0,5.0};
+        for(int i=0;i<6;++i)
+        {
+            if(imp_->force_target[i] > max_move_force[i])
+                imp_->force_target[i] -= max_move_force[i];
+            else if(imp_->force_target[i] < -max_move_force[i])
+                imp_->force_target[i] += max_move_force[i];
+            else
+                imp_->force_target[i] = 0;
+        }
+
 		//根据力传感器受到的外力反算机械臂基座受到的力
 		double xyz_temp[3]{ imp_->force_target[0], imp_->force_target[1], imp_->force_target[2] }, abc_temp[3]{ imp_->force_target[3], imp_->force_target[4], imp_->force_target[5] };
 		s_mm(3, 1, 3, imp_->fs2bpm, aris::dynamic::RowMajor{ 4 }, xyz_temp, 1, imp_->force_target, 1);
 		s_mm(3, 1, 3, imp_->fs2bpm, aris::dynamic::RowMajor{ 4 }, abc_temp, 1, imp_->force_target + 3, 1);
 
 		//求阻尼力
-		model()->generalMotionPool()[0].getMve(v_now, eu_type);
-		model()->generalMotionPool()[0].getMve(v_tcp, eu_type);
 		for (int i = 0; i < 6; i++)
 		{
-			imp_->force_damp[i] = imp_->damping[i] * v_now[i];
+            imp_->force_damp[i] = imp_->damping[i] * v_tcp[i];
 		}
 		s_vs(6, imp_->force_damp, imp_->force_target);
 
-		// 根据力传感器受力和阻尼力计算v_tcp //
-		for (int i = 0; i < 6; i++)
+        // 打印
+        if (count() % 100 == 0)
+        {
+            cout << "force_target:" << std::endl;
+            for (int i = 0; i < 6; i++)
+            {
+                cout << imp_->force_target[i] << "  ";
+            }
+            cout << std::endl;
+            cout << "damp:" << std::endl;
+            for (int i = 0; i < 6; i++)
+            {
+                cout << imp_->force_damp[i] << "  ";
+            }
+            cout << std::endl;
+        }
+
+        // 根据力传感器受力和阻尼力计算v_tcp //
+        for (int i = 0; i < 3; i++)
 		{
-			if (std::abs(imp_->force_target[i]) > imp_->threshold)
+            //if (std::abs(imp_->force_target[i]) > imp_->threshold)
 			{
-				v_tcp[i] += imp_->k[i] * imp_->force_target[i] * 1e-3;
+                v_tcp[i] += imp_->k[i] * imp_->force_target[i] * 1e-3;//1e-3:1ms
 			}
 			v_tcp[i] = std::min(std::max(v_tcp[i], -imp_->vel_limit[i]), imp_->vel_limit[i]);
 		}
 
-		// 获取雅可比矩阵，并对过奇异点的雅可比矩阵进行特殊处理
+        if(count()%100==0)
+        {
+            cout << "v_tcp:"<<std::endl;;
+            for(int i=0; i<6; i++)
+            {
+                cout << v_tcp[i] << " ";
+            }
+            cout<<std::endl;
+            cout<<std::endl;
+        }
+
+        // 获取雅可比矩阵，并对过奇异点的雅可比矩阵进行特殊处理
 		double pinv[36];
 		{
 			auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(model()->solverPool()[1]);
@@ -4381,9 +4441,17 @@ namespace kaanh
 		}
 
 		// 根据v_tcp以及雅可比矩阵反算到关节v_joint
-		s_mm(6, 1, 6, pinv, v_tcp, v_joint);
+        double v_joint[6];
+        s_mm(6, 1, 6, pinv, v_tcp, v_joint);
 
-		// 根据关节速度v_joint规划每个关节的运动角度 //
+        // limit the value of v_joint
+        for (int i = 0; i < 6; i++)
+        {
+            v_joint[i] = std::min(std::max(v_joint[i], 0.1*controller()->motionPool().at(i).minVel()), 0.1*controller()->motionPool().at(i).maxVel());
+        }
+
+        // 根据关节速度v_joint规划每个关节的运动角度
+        double p_next[6];
 		for (int i = 0; i < 6; i++)
 		{
 			p_next[i] = controller()->motionPool().at(i).targetPos();
@@ -4396,17 +4464,6 @@ namespace kaanh
 
 		// 运动学正解
 		if (model()->solverPool().at(1).kinPos())return -1;
-
-		// 打印
-		if (count() % 500 == 0)
-		{
-			cout << "realdata:" << std::endl;
-			for (int i = 0; i < 6; i++)
-			{
-				cout << realdata[i] << "  ";
-			}
-			cout << std::endl;
-		}
 
 		// log
 		for (int i = 0; i < 6; i++)
@@ -4439,7 +4496,7 @@ namespace kaanh
             "<Command name=\"mvJoint\">"
 			"	<GroupParam>"
 			"		<Param name=\"vellimit\" default=\"{0.1,0.1,0.1,0.5,0.5,0.5}\"/>"
-			"		<Param name=\"damping\" default=\"{0.01,0.01,0.01,0.01,0.01,0.01}\"/>"
+            "		<Param name=\"damping\" default=\"{0.01,0.01,0.01,0.01,0.01,0.01}\"/>"
 			"		<Param name=\"kd\" default=\"{2,2,1,3,3,3}\"/>"
 			"		<Param name=\"tool\" default=\"tool0\"/>"
 			"		<Param name=\"wobj\" default=\"wobj0\"/>"
@@ -5783,9 +5840,8 @@ namespace kaanh
 
 			model()->generalMotionPool()[0].getMpe(p_now, eu_type);
 			std::fill_n(p_now + 3, 3, 0.0);
-
-			model()->generalMotionPool()[0].getMve(v_now, eu_type);
-			model()->generalMotionPool()[0].getMae(a_now, eu_type);
+            std::fill_n(v_now, 6, 0.0);
+            std::fill_n(a_now, 6, 0.0);
 		}
 
 		// init status //
