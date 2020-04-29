@@ -4358,10 +4358,11 @@ namespace kaanh
                 imp_->force_target[i] = 0;
         }
 
-		//根据力传感器受到的外力反算机械臂基座受到的力
+        //根据力传感器受到的外力
 		double xyz_temp[3]{ imp_->force_target[0], imp_->force_target[1], imp_->force_target[2] }, abc_temp[3]{ imp_->force_target[3], imp_->force_target[4], imp_->force_target[5] };
 		s_mm(3, 1, 3, imp_->fs2bpm, aris::dynamic::RowMajor{ 4 }, xyz_temp, 1, imp_->force_target, 1);
 		s_mm(3, 1, 3, imp_->fs2bpm, aris::dynamic::RowMajor{ 4 }, abc_temp, 1, imp_->force_target + 3, 1);
+
 
         //joint force
         double f_joint[6];
@@ -4619,22 +4620,24 @@ namespace kaanh
 		s_vs(6, G, imp_->force_target);
 		s_vs(6, imp_->Zero_value.data(), imp_->force_target);
 
-		// 作用力的大小在max_move_force以内，默认为0；在max_move_force以外，数值减去max_move_force
-		const double max_move_force[6]{ 5.0,5.0,5.0,5.0,5.0,5.0 };
-		for (int i = 0; i < 6; ++i)
-		{
-			if (imp_->force_target[i] > max_move_force[i])
-				imp_->force_target[i] -= max_move_force[i];
-			else if (imp_->force_target[i] < -max_move_force[i])
-				imp_->force_target[i] += max_move_force[i];
-			else
-				imp_->force_target[i] = 0;
-		}
-
-		//根据力传感器受到的外力反算机械臂基座受到的力
+        //calculate force in base cordinate diretion
 		double xyz_temp[3]{ imp_->force_target[0], imp_->force_target[1], imp_->force_target[2] }, abc_temp[3]{ imp_->force_target[3], imp_->force_target[4], imp_->force_target[5] };
 		s_mm(3, 1, 3, imp_->fs2bpm, aris::dynamic::RowMajor{ 4 }, xyz_temp, 1, imp_->force_target, 1);
 		s_mm(3, 1, 3, imp_->fs2bpm, aris::dynamic::RowMajor{ 4 }, abc_temp, 1, imp_->force_target + 3, 1);
+
+
+        // 作用力的大小在max_move_force以内，默认为0；在max_move_force以外，数值减去max_move_force
+        const double max_move_force[6]{ 5.0,5.0,5.0,0.1,0.1,0.1 };
+        for (int i = 0; i < 6; ++i)
+        {
+            if (imp_->force_target[i] > max_move_force[i])
+                imp_->force_target[i] -= max_move_force[i];
+            else if (imp_->force_target[i] < -max_move_force[i])
+                imp_->force_target[i] += max_move_force[i];
+            else
+                imp_->force_target[i] = 0;
+        }
+
 
 		//求阻尼力
 		for (int i = 0; i < 6; i++)
@@ -4644,7 +4647,7 @@ namespace kaanh
 		s_vs(6, imp_->force_damp, imp_->force_target);
 
 		// 打印
-		if (count() % 100 == 0)
+        if (count() % 1000 == 0)
 		{
 			cout << "force_target:" << std::endl;
 			for (int i = 0; i < 6; i++)
@@ -4661,13 +4664,13 @@ namespace kaanh
 		}
 
 		// 根据力传感器受力和阻尼力计算v_tcp //
-		for (int i = 0; i < 3; i++)
+        for (int i = 0; i < 6; i++)
 		{
 			v_tcp[i] += imp_->k[i] * imp_->force_target[i] * 1e-3;//1e-3:1ms
 			v_tcp[i] = std::min(std::max(v_tcp[i], -imp_->vel_limit[i]), imp_->vel_limit[i]);
 		}
 
-		if (count() % 100 == 0)
+        if (count() % 1000 == 0)
 		{
 			cout << "v_tcp:" << std::endl;;
 			for (int i = 0; i < 6; i++)
@@ -4716,7 +4719,7 @@ namespace kaanh
 		// limit the value of v_joint
 		for (int i = 0; i < 6; i++)
 		{
-			v_joint[i] = std::min(std::max(v_joint[i], 0.1*controller()->motionPool().at(i).minVel()), 0.1*controller()->motionPool().at(i).maxVel());
+            v_joint[i] = std::min(std::max(v_joint[i], 0.2*controller()->motionPool().at(i).minVel()), 0.2*controller()->motionPool().at(i).maxVel());
 		}
 
 		// 根据关节速度v_joint规划每个关节的运动角度
@@ -4765,8 +4768,8 @@ namespace kaanh
 			"<Command name=\"mvJoint\">"
 			"	<GroupParam>"
 			"		<Param name=\"vellimit\" default=\"{0.1,0.1,0.1,0.5,0.5,0.5}\"/>"
-			"		<Param name=\"damping\" default=\"{0.01,0.01,0.01,0.01,0.01,0.01}\"/>"
-			"		<Param name=\"kd\" default=\"{2,2,1,3,3,3}\"/>"
+            "		<Param name=\"damping\" default=\"{20,20,20,20,20,20}\"/>"
+            "		<Param name=\"kd\" default=\"{0.2,0.2,0.1,0.3,0.3,0.3}\"/>"
 			"		<Param name=\"tool\" default=\"tool0\"/>"
 			"		<Param name=\"wobj\" default=\"wobj0\"/>"
 			"	</GroupParam>"
@@ -5258,7 +5261,7 @@ namespace kaanh
 		command().loadXmlStr(
 			"<Command name=\"mvf\">"
 			"	<GroupParam>"
-            "		<Param name=\"path\" default=\"/home/kaanh/Desktop/UI_DarkColor_0406/robot/log/motion_replay.txt\"/>"
+            "		<Param name=\"path\" default=\"/home/kaanh/Desktop/UI_DarkColor_0427/robot/log/motion_replay.txt\"/>"
             "		<Param name=\"vel\" default=\"0.5\" abbreviation=\"v\"/>"
             "		<Param name=\"acc\" default=\"0.6\" abbreviation=\"a\"/>"
             "		<Param name=\"dec\" default=\"0.6\" abbreviation=\"d\"/>"
