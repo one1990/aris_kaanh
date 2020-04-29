@@ -4767,9 +4767,9 @@ namespace kaanh
 		command().loadXmlStr(
 			"<Command name=\"mvJoint\">"
 			"	<GroupParam>"
-			"		<Param name=\"vellimit\" default=\"{0.1,0.1,0.1,0.5,0.5,0.5}\"/>"
-            "		<Param name=\"damping\" default=\"{20,20,20,20,20,20}\"/>"
-            "		<Param name=\"kd\" default=\"{0.2,0.2,0.1,0.3,0.3,0.3}\"/>"
+            "		<Param name=\"vellimit\" default=\"{0.3,0.3,0.3,1,1,1}\"/>"
+            "		<Param name=\"damping\" default=\"{20,20,20,4,5,5}\"/>"
+            "		<Param name=\"kd\" default=\"{0.2,0.2,0.2,10,10,10}\"/>"
 			"		<Param name=\"tool\" default=\"tool0\"/>"
 			"		<Param name=\"wobj\" default=\"wobj0\"/>"
 			"	</GroupParam>"
