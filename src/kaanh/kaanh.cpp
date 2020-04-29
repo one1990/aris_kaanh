@@ -4200,7 +4200,7 @@ namespace kaanh
 
 	std::atomic_bool enable_mvd = true;
     std::atomic_bool recalib_zero = true;
-	struct MoveDParam
+	struct MoveDTParam
 	{
 		aris::dynamic::Marker *tool, *wobj;
 		double thelta;
@@ -4215,8 +4215,8 @@ namespace kaanh
 		std::vector<double> xyzindex;
 		std::vector<double> Zero_value;			//力传感器零点偏移量
 	};
-	struct MoveD::Imp :public MoveDParam {};
-	auto MoveD::prepareNrt()->void
+	struct MoveDT::Imp :public MoveDTParam {};
+	auto MoveDT::prepareNrt()->void
 	{
 		enable_mvd.store(true);
 		imp_->tool = &*model()->generalMotionPool()[0].makI().fatherPart().markerPool().findByName(std::string(cmdParams().at("tool")));
@@ -4277,27 +4277,19 @@ namespace kaanh
 		ret() = ret_value;
 
 	}
-	auto MoveD::executeRT()->int
+	auto MoveDT::executeRT()->int
 	{
 		auto &cout = controller()->mout();
 		auto &lout = controller()->lout();
 		char eu_type[4]{ '1', '2', '3', '\0' };
 
-
+		// 定义关节速度
         static double v_joint[6];
-        if (count() == 1)
-        {
-            //设置log文件名称//
-            std::fill_n(v_joint, 6, 0.0);
-        }
-
-		// 前三维为xyz，后三维是w的积分，注意没有物理含义
-        static double v_tcp[6];
 		if (count() == 1)
 		{
 			//设置log文件名称//
+			std::fill_n(v_joint, 6, 0.0);
 			controller()->logFileRawName("motion_replay");
-            std::fill_n(v_tcp, 6, 0.0);
 
 			//获取力传感器相对tcp的旋转矩阵//
 			imp_->thelta = (- imp_->thelta_setup)*PI / 180;
@@ -4314,14 +4306,13 @@ namespace kaanh
             imp_->force_target[i] = double(data[i]);
 		}
 
-        // Filter
+        // 平均值滤波
         constexpr int filter_num = 20;
         static double force_data_raw[6][filter_num];
         if(count() == 1)
         {
            std::fill_n(static_cast<double*>(*force_data_raw), 6*filter_num, 0.0);
         }
-
         for (uint8_t i = 0; i < 6; i++)
         {
             force_data_raw[i][count()%10] = imp_->force_target[i];
@@ -4340,10 +4331,10 @@ namespace kaanh
         G[4] = G[0] * imp_->center[2] - G[2] * imp_->center[0];
         G[5] = G[1] * imp_->center[0] - G[0] * imp_->center[1];
 
-        //零漂标定，此时必须确保末端不受外载
         if(count() <= filter_num) cout << imp_->force_target[0]<<"  "<<imp_->force_target[1]<<"  "<<imp_->force_target[2]<<std::endl;
         if(count() <= filter_num)return 1;
 
+		//零漂标定，此时必须确保末端不受外载
         if (recalib_zero.exchange(false))
         {
             for (int i = 0; i < 6; i++)imp_->Zero_value[i] = imp_->force_target[i] - G[i];
@@ -4461,16 +4452,16 @@ namespace kaanh
 			return total_count - count();
 		}
 	}
-	auto MoveD::collectNrt()->void {}
-	MoveD::~MoveD() = default;
-	MoveD::MoveD(const MoveD &other) = default;
-	MoveD::MoveD(MoveD &other) = default;
-	MoveD& MoveD::operator=(const MoveD &other) = default;
-	MoveD& MoveD::operator=(MoveD &&other) = default;
-	MoveD::MoveD(const std::string &name) :Plan(name), imp_(new Imp)
+	auto MoveDT::collectNrt()->void {}
+	MoveDT::~MoveDT() = default;
+	MoveDT::MoveDT(const MoveDT &other) = default;
+	MoveDT::MoveDT(MoveDT &other) = default;
+	MoveDT& MoveDT::operator=(const MoveDT &other) = default;
+	MoveDT& MoveDT::operator=(MoveDT &&other) = default;
+	MoveDT::MoveDT(const std::string &name) :Plan(name), imp_(new Imp)
 	{
 		command().loadXmlStr(
-            "<Command name=\"mvJoint\">"
+            "<Command name=\"mvd\">"
 			"	<GroupParam>"
 			"		<Param name=\"vellimit\" default=\"{0.1,0.1,0.1,0.5,0.5,0.5}\"/>"
             "		<Param name=\"damping\" default=\"{0.01,0.01,0.01,0.01,0.01,0.01}\"/>"
@@ -4480,6 +4471,308 @@ namespace kaanh
 			"	</GroupParam>"
 			"</Command>");
 	}
+
+
+	std::atomic_bool enable_mvdj = true;
+	struct MoveDJParam
+	{
+		aris::dynamic::Marker *tool, *wobj;
+		double thelta;
+		double vel_limit[6], k[6], damping[6];
+		double fs2tpm[16], t2bpm[16], fs2bpm[16];
+		double force_offset[6], force_target[6];
+		double force_damp[6]{ 0.0,0.0,0.0,0.0,0.0,0.0 };
+		double thelta_setup = 51.166;//力传感器安装位置相对tcp偏移角
+		double pos_setup = 0.061;//力传感器安装位置相对tcp偏移距离
+		double threshold = 1e-2;
+		std::vector<double> center;
+		std::vector<double> xyzindex;
+		std::vector<double> Zero_value;			//力传感器零点偏移量
+	};
+	struct MoveDJ::Imp :public MoveDJParam {};
+	auto MoveDJ::prepareNrt()->void
+	{
+		enable_mvdj.store(true);
+		imp_->tool = &*model()->generalMotionPool()[0].makI().fatherPart().markerPool().findByName(std::string(cmdParams().at("tool")));
+		imp_->wobj = &*model()->generalMotionPool()[0].makJ().fatherPart().markerPool().findByName(std::string(cmdParams().at("wobj")));
+		auto c = dynamic_cast<aris::dynamic::MatrixVariable*>(&*model()->variablePool().findByName("Gravity_center"));
+		auto xyz = dynamic_cast<aris::dynamic::MatrixVariable*>(&*model()->variablePool().findByName("Gravity_xyzindex"));
+		auto zero = dynamic_cast<aris::dynamic::MatrixVariable*>(&*model()->variablePool().findByName("Zero_value"));
+		imp_->center.assign(c->data().begin(), c->data().end());
+		imp_->xyzindex.assign(xyz->data().begin(), xyz->data().end());
+		imp_->Zero_value.assign(zero->data().begin(), zero->data().end());
+
+		for (auto cmd_param : cmdParams())
+		{
+			if (cmd_param.first == "vellimit")
+			{
+				auto a = matrixParam(cmd_param.first);
+				if (a.size() == 6)
+				{
+					std::copy(a.data(), a.data() + 6, imp_->vel_limit);
+				}
+				else
+				{
+					THROW_FILE_LINE("");
+				}
+			}
+			else if (cmd_param.first == "kd")
+			{
+				auto temp = matrixParam(cmd_param.first);
+				if (temp.size() == 6)
+				{
+					std::copy(temp.data(), temp.data() + 6, imp_->k);
+				}
+				else
+				{
+					THROW_FILE_LINE("");
+				}
+			}
+			else if (cmd_param.first == "damping")
+			{
+				auto temp = matrixParam(cmd_param.first);
+				if (temp.size() == 1)
+				{
+					std::fill(imp_->damping, imp_->damping + 6, temp.toDouble());
+				}
+				else if (temp.size() == 6)
+				{
+					std::copy(temp.data(), temp.data() + 6, imp_->damping);
+				}
+				else
+				{
+					THROW_FILE_LINE("");
+				}
+			}
+		}
+
+		for (auto &option : motorOptions()) option |= aris::plan::Plan::NOT_CHECK_POS_CONTINUOUS_SECOND_ORDER | NOT_CHECK_VEL_CONTINUOUS;
+		std::vector<std::pair<std::string, std::any>> ret_value;
+		ret() = ret_value;
+
+	}
+	auto MoveDJ::executeRT()->int
+	{
+		auto &cout = controller()->mout();
+		auto &lout = controller()->lout();
+		char eu_type[4]{ '1', '2', '3', '\0' };
+
+		// 前三维为xyz，后三维是w的积分，注意没有物理含义
+		static double v_tcp[6];
+		if (count() == 1)
+		{
+			//设置log文件名称//
+			controller()->logFileRawName("motion_replay");
+			std::fill_n(v_tcp, 6, 0.0);
+
+			//获取力传感器相对tcp的旋转矩阵//
+			imp_->thelta = (-imp_->thelta_setup)*PI / 180;
+			double pq_setup[7]{ 0.0,0.0,imp_->pos_setup,0.0,0.0,sin(imp_->thelta / 2.0),cos(imp_->thelta / 2.0) };
+			s_pq2pm(pq_setup, imp_->fs2tpm);
+		}
+
+		//获取力传感器数值
+		auto slave7 = dynamic_cast<aris::control::EthercatSlave&>(controller()->slavePool().at(6));
+		float data[6];
+		for (uint8_t i = 0; i < 6; i++)
+		{
+			slave7.readPdo(0x6030, i + 1, &data[i], 32);
+			imp_->force_target[i] = double(data[i]);
+		}
+
+		//滤波
+		constexpr int filter_num = 10;
+		static double force_data_raw[6][filter_num];
+		if (count() == 1)
+		{
+			std::fill_n(static_cast<double*>(*force_data_raw), 6 * filter_num, 0.0);
+		}
+		for (uint8_t i = 0; i < 6; i++)
+		{
+			force_data_raw[i][count() % 10] = imp_->force_target[i];
+			imp_->force_target[i] = std::accumulate(force_data_raw[i], force_data_raw[i] + filter_num, 0.0) / filter_num;
+		}
+
+		//获取每个周期力传感器坐标系相对与基座坐标系的位姿矩阵
+		model()->generalMotionPool().at(0).updMpm();
+		imp_->tool->getPm(*imp_->wobj, imp_->t2bpm);
+		s_pm_dot_pm(imp_->t2bpm, imp_->fs2tpm, imp_->fs2bpm);
+
+		//求重力分量
+		double G[6];
+		s_mm(3, 1, 3, imp_->fs2bpm, aris::dynamic::ColMajor{ 4 }, imp_->xyzindex.data(), 1, G, 1);
+		G[3] = G[2] * imp_->center[1] - G[1] * imp_->center[2];
+		G[4] = G[0] * imp_->center[2] - G[2] * imp_->center[0];
+		G[5] = G[1] * imp_->center[0] - G[0] * imp_->center[1];
+
+		if (count() <= filter_num)return 1;
+
+		//零漂标定，此时必须确保末端不受外载
+		if (recalib_zero.exchange(false))
+		{
+			for (int i = 0; i < 6; i++)imp_->Zero_value[i] = imp_->force_target[i] - G[i];
+			cout << "ZERO:  " << imp_->force_target[0] << "  " << imp_->force_target[1] << "  " << imp_->force_target[2] << std::endl;
+			cout << "ZERO:  " << imp_->Zero_value[0] << "  " << imp_->Zero_value[1] << "  " << imp_->Zero_value[2] << std::endl;
+		}
+
+		//求外部力=imp_->force_target = realdata - Zero_value - G
+		s_vs(6, G, imp_->force_target);
+		s_vs(6, imp_->Zero_value.data(), imp_->force_target);
+
+		// 作用力的大小在max_move_force以内，默认为0；在max_move_force以外，数值减去max_move_force
+		const double max_move_force[6]{ 5.0,5.0,5.0,5.0,5.0,5.0 };
+		for (int i = 0; i < 6; ++i)
+		{
+			if (imp_->force_target[i] > max_move_force[i])
+				imp_->force_target[i] -= max_move_force[i];
+			else if (imp_->force_target[i] < -max_move_force[i])
+				imp_->force_target[i] += max_move_force[i];
+			else
+				imp_->force_target[i] = 0;
+		}
+
+		//根据力传感器受到的外力反算机械臂基座受到的力
+		double xyz_temp[3]{ imp_->force_target[0], imp_->force_target[1], imp_->force_target[2] }, abc_temp[3]{ imp_->force_target[3], imp_->force_target[4], imp_->force_target[5] };
+		s_mm(3, 1, 3, imp_->fs2bpm, aris::dynamic::RowMajor{ 4 }, xyz_temp, 1, imp_->force_target, 1);
+		s_mm(3, 1, 3, imp_->fs2bpm, aris::dynamic::RowMajor{ 4 }, abc_temp, 1, imp_->force_target + 3, 1);
+
+		//求阻尼力
+		for (int i = 0; i < 6; i++)
+		{
+			imp_->force_damp[i] = imp_->damping[i] * v_tcp[i];
+		}
+		s_vs(6, imp_->force_damp, imp_->force_target);
+
+		// 打印
+		if (count() % 100 == 0)
+		{
+			cout << "force_target:" << std::endl;
+			for (int i = 0; i < 6; i++)
+			{
+				cout << imp_->force_target[i] << "  ";
+			}
+			cout << std::endl;
+			cout << "damp:" << std::endl;
+			for (int i = 0; i < 6; i++)
+			{
+				cout << imp_->force_damp[i] << "  ";
+			}
+			cout << std::endl;
+		}
+
+		// 根据力传感器受力和阻尼力计算v_tcp //
+		for (int i = 0; i < 3; i++)
+		{
+			v_tcp[i] += imp_->k[i] * imp_->force_target[i] * 1e-3;//1e-3:1ms
+			v_tcp[i] = std::min(std::max(v_tcp[i], -imp_->vel_limit[i]), imp_->vel_limit[i]);
+		}
+
+		if (count() % 100 == 0)
+		{
+			cout << "v_tcp:" << std::endl;;
+			for (int i = 0; i < 6; i++)
+			{
+				cout << v_tcp[i] << " ";
+			}
+			cout << std::endl;
+			cout << std::endl;
+		}
+
+		// 获取雅可比矩阵，并对过奇异点的雅可比矩阵进行特殊处理
+		double pinv[36];
+		{
+			auto &fwd = dynamic_cast<aris::dynamic::ForwardKinematicSolver&>(model()->solverPool()[1]);
+			fwd.cptJacobiWrtEE();
+			//QR分解求方程的解
+			double U[36], tau[6], tau2[6];
+			aris::Size p[6];
+			Size rank;
+			//auto inline s_householder_utp(Size m, Size n, const double *A, AType a_t, double *U, UType u_t, double *tau, TauType tau_t, Size *p, Size &rank, double zero_check = 1e-10)noexcept->void
+			//A为输入,根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A) //
+			s_householder_utp(6, 6, fwd.Jf(), U, tau, p, rank, 1e-3);
+			//对奇异点进行特殊处理,对U进行处理
+			if (rank < 6)
+			{
+				for (int i = 0; i < 6; i++)
+				{
+					if (U[7 * i] >= 0)
+					{
+						U[7 * i] = U[7 * i] + 0.1;
+					}
+					else
+					{
+						U[7 * i] = U[7 * i] - 0.1;
+					}
+				}
+			}
+			// 根据QR分解的结果求广义逆，相当于Matlab中的 pinv(A) //
+			s_householder_utp2pinv(6, 6, rank, U, tau, p, pinv, tau2, 1e-10);
+		}
+
+		// 根据v_tcp以及雅可比矩阵反算到关节v_joint
+		double v_joint[6];
+		s_mm(6, 1, 6, pinv, v_tcp, v_joint);
+
+		// limit the value of v_joint
+		for (int i = 0; i < 6; i++)
+		{
+			v_joint[i] = std::min(std::max(v_joint[i], 0.1*controller()->motionPool().at(i).minVel()), 0.1*controller()->motionPool().at(i).maxVel());
+		}
+
+		// 根据关节速度v_joint规划每个关节的运动角度
+		double p_next[6];
+		for (int i = 0; i < 6; i++)
+		{
+			p_next[i] = controller()->motionPool().at(i).targetPos();
+			p_next[i] += v_joint[i] * 1e-3;
+			p_next[i] = std::min(std::max(p_next[i], controller()->motionPool().at(i).minPos() + 0.1), controller()->motionPool().at(i).maxPos() - 0.1);
+
+			controller()->motionPool().at(i).setTargetPos(p_next[i]);
+			model()->motionPool().at(i).setMp(p_next[i]);
+		}
+
+		// 运动学正解
+		if (model()->solverPool().at(1).kinPos())return -1;
+
+		// log
+		for (int i = 0; i < 6; i++)
+		{
+			lout << controller()->motionPool().at(i).actualPos() << "  ";
+		}
+		lout << std::endl;
+
+		//延时1000ms停止力控
+		static aris::Size total_count = 1;
+		if (enable_mvdj.load())
+		{
+			total_count = count() + 1000;
+			return 1;
+		}
+		else
+		{
+			return total_count - count();
+		}
+	}
+	auto MoveDJ::collectNrt()->void {}
+	MoveDJ::~MoveDJ() = default;
+	MoveDJ::MoveDJ(const MoveDJ &other) = default;
+	MoveDJ::MoveDJ(MoveDJ &other) = default;
+	MoveDJ& MoveDJ::operator=(const MoveDJ &other) = default;
+	MoveDJ& MoveDJ::operator=(MoveDJ &&other) = default;
+	MoveDJ::MoveDJ(const std::string &name) :Plan(name), imp_(new Imp)
+	{
+		command().loadXmlStr(
+			"<Command name=\"mvJoint\">"
+			"	<GroupParam>"
+			"		<Param name=\"vellimit\" default=\"{0.1,0.1,0.1,0.5,0.5,0.5}\"/>"
+			"		<Param name=\"damping\" default=\"{0.01,0.01,0.01,0.01,0.01,0.01}\"/>"
+			"		<Param name=\"kd\" default=\"{2,2,1,3,3,3}\"/>"
+			"		<Param name=\"tool\" default=\"tool0\"/>"
+			"		<Param name=\"wobj\" default=\"wobj0\"/>"
+			"	</GroupParam>"
+			"</Command>");
+	}
+
 
 
 	// 导纳控制 //
@@ -4823,6 +5116,7 @@ namespace kaanh
 	{
 		enable_mvJoint.store(false);
 		enable_mvd.store(false);
+		enable_mvdj.store(false);
 		option() = aris::plan::Plan::NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION;
 
 	}

@@ -298,19 +298,38 @@ namespace kaanh
 		aris::core::ImpPtr<Imp> imp_;
 	};
 
-	class MoveD : public aris::plan::Plan
+	class MoveDT : public aris::plan::Plan
 	{
 	public:
 		auto virtual prepareNrt()->void;
 		auto virtual executeRT()->int;
 		auto virtual collectNrt()->void;
-		virtual ~MoveD();
-		explicit MoveD(const std::string &name = "MoveD_plan");
-		ARIS_REGISTER_TYPE(MoveD);
-		MoveD(const MoveD &);
-		MoveD(MoveD &);
-		MoveD& operator=(const MoveD &);
-		MoveD& operator=(MoveD &&);
+		virtual ~MoveDT();
+		explicit MoveDT(const std::string &name = "MoveDT_plan");
+		ARIS_REGISTER_TYPE(MoveDT);
+		MoveDT(const MoveDT &);
+		MoveDT(MoveDT &);
+		MoveDT& operator=(const MoveDT &);
+		MoveDT& operator=(MoveDT &&);
+
+	private:
+		struct Imp;
+		aris::core::ImpPtr<Imp> imp_;
+	};
+
+	class MoveDJ : public aris::plan::Plan
+	{
+	public:
+		auto virtual prepareNrt()->void;
+		auto virtual executeRT()->int;
+		auto virtual collectNrt()->void;
+		virtual ~MoveDJ();
+		explicit MoveDJ(const std::string &name = "MoveDJ_plan");
+		ARIS_REGISTER_TYPE(MoveDJ);
+		MoveDJ(const MoveDJ &);
+		MoveDJ(MoveDJ &);
+		MoveDJ& operator=(const MoveDJ &);
+		MoveDJ& operator=(MoveDJ &&);
 
 	private:
 		struct Imp;
