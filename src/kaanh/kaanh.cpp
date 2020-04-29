@@ -4307,7 +4307,7 @@ namespace kaanh
 		}
 
         // 平均值滤波
-        constexpr int filter_num = 20;
+        constexpr int filter_num = 10;
         static double force_data_raw[6][filter_num];
         if(count() == 1)
         {
@@ -4344,10 +4344,15 @@ namespace kaanh
 
 		//求外部力=imp_->force_target = realdata - Zero_value - G
 		s_vs(6, G, imp_->force_target);
-		s_vs(6, imp_->Zero_value.data(), imp_->force_target);
-		
+		s_vs(6, imp_->Zero_value.data(), imp_->force_target);		
+
+        //根据力传感器受到的外力
+		double xyz_temp[3]{ imp_->force_target[0], imp_->force_target[1], imp_->force_target[2] }, abc_temp[3]{ imp_->force_target[3], imp_->force_target[4], imp_->force_target[5] };
+		s_mm(3, 1, 3, imp_->fs2bpm, aris::dynamic::RowMajor{ 4 }, xyz_temp, 1, imp_->force_target, 1);
+		s_mm(3, 1, 3, imp_->fs2bpm, aris::dynamic::RowMajor{ 4 }, abc_temp, 1, imp_->force_target + 3, 1);
+
         // max move force
-        const double max_move_force[6]{5.0, 5.0, 5.0, 0.2, 0.2, 0.07};
+        const double max_move_force[6]{1.2, 1.2, 1.2, 0.09, 0.09, 0.09};//adjust parameter
         for(int i=0;i<6;++i)
         {
             if(imp_->force_target[i] > max_move_force[i])
@@ -4357,12 +4362,6 @@ namespace kaanh
             else
                 imp_->force_target[i] = 0;
         }
-
-        //根据力传感器受到的外力
-		double xyz_temp[3]{ imp_->force_target[0], imp_->force_target[1], imp_->force_target[2] }, abc_temp[3]{ imp_->force_target[3], imp_->force_target[4], imp_->force_target[5] };
-		s_mm(3, 1, 3, imp_->fs2bpm, aris::dynamic::RowMajor{ 4 }, xyz_temp, 1, imp_->force_target, 1);
-		s_mm(3, 1, 3, imp_->fs2bpm, aris::dynamic::RowMajor{ 4 }, abc_temp, 1, imp_->force_target + 3, 1);
-
 
         //joint force
         double f_joint[6];
@@ -4404,7 +4403,7 @@ namespace kaanh
         for (int i = 0; i < 6; i++)
         {
             v_joint[i] += imp_->k[i] * f_joint[i] * 1e-3;//1e-3:1ms
-            v_joint[i] = std::min(std::max(v_joint[i], 0.2*controller()->motionPool().at(i).minVel()), 0.2*controller()->motionPool().at(i).maxVel());
+            v_joint[i] = std::min(std::max(v_joint[i], imp_->vel_limit[i]*controller()->motionPool().at(i).minVel()), imp_->vel_limit[i]*controller()->motionPool().at(i).maxVel());
         }
 
         if(count()%100==0)
@@ -4464,7 +4463,7 @@ namespace kaanh
 		command().loadXmlStr(
             "<Command name=\"mvd\">"
 			"	<GroupParam>"
-			"		<Param name=\"vellimit\" default=\"{0.1,0.1,0.1,0.5,0.5,0.5}\"/>"
+            "		<Param name=\"vellimit\" default=\"{0.2,0.2,0.2,0.3,0.3,0.3}\"/>"
             "		<Param name=\"damping\" default=\"{0.01,0.01,0.01,0.01,0.01,0.01}\"/>"
 			"		<Param name=\"kd\" default=\"{2,2,1,3,3,3}\"/>"
 			"		<Param name=\"tool\" default=\"tool0\"/>"
