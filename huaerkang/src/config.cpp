@@ -612,7 +612,7 @@ namespace config
 
 			//获取目标姿态
 			double pe[6]{0,0,0,param->ee[0],param->ee[1],param->ee[2]};//根据目标姿态构造位置为0的位姿矩阵
-			aris::dynamic::s_pe2pq(pe, pq_end);						//获取目标姿态
+			aris::dynamic::s_pe2pq(pe, pq_end, "321");						//获取目标姿态
 			std::copy(pq_end + 3, pq_end + 7, q_end);				//提取目标姿态
 
 			//计算姿态规划角
