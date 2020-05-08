@@ -969,6 +969,7 @@ namespace kaanh
 		double last_count = 0.0;
 		double ampli = 100.0;
 		bool zone_enabled = false;
+		double begin_pm[16];
 		Speed sp;
 		Zone zone;
 		Load ld;
@@ -1840,7 +1841,11 @@ namespace kaanh
 				for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
 				{
 					mvj_param.joint_pos_begin[i] = preparam->axis_pos_vec[i];
-				}
+					g_model.motionPool().at(i).setMp(preparam->axis_pos_vec[i]);
+				}			
+				g_model.solverPool().at(1).kinPos();
+				g_model.generalMotionPool().at(0).updMpm();
+				g_model.generalMotionPool().at(0).getMpm(end_pm);
 			}
 			if (std::string(mvj_param.pre_plan->name()) == "MoveL")
 			{
@@ -1866,6 +1871,9 @@ namespace kaanh
 					mvj_param.joint_pos_begin[i] = g_model.motionPool()[i].mp();
 				}
 			}
+			g_tool->setPm(*g_wobj, end_pm);
+			g_model.generalMotionPool().at(0).updMpm();
+			g_tool->getPm(*g_wobj, mvj_param.begin_pm);
 		
 		}
 
@@ -2012,8 +2020,25 @@ namespace kaanh
 		{
 			//更新本plan的planzone//
 			this->planzone.store(target_count);
-			//上一条指令不进行转弯//
-			mvj_param.pre_plan->realzone.store(0);
+			
+			if (std::string(mvj_param.pre_plan->name()) == "MoveL")
+			{
+				//更新上一条转弯指令的realzone//
+				if (mvj_param.pre_plan->cmd_executing.load())
+				{
+					mvj_param.pre_plan->realzone.store(0);
+				}
+				else
+				{
+					auto min_zone = std::min(1.0*mvj_param.pre_plan->planzone.load(), mvj_param.ampli * mvj_param.max_total_count / 2);//当前指令所需count数/2
+					mvj_param.pre_plan->realzone.store(min_zone);
+				}
+			}
+			else
+			{
+				//上一条指令不进行转弯//
+				mvj_param.pre_plan->realzone.store(0);
+			}
 		}
 		
 		this->param() = mvj_param;
@@ -2172,7 +2197,65 @@ namespace kaanh
 				}
 			}
 		}
-		else//本条指令设置了转弯区，但是与上一条指令无法实现转弯，比如moveL,moveC,moveAbsJ
+		else if (mvj_param->pre_plan->name() == "MoveL")
+		{
+			auto param = std::any_cast<MoveLParam&>(mvj_param->pre_plan->param());
+			double zonecount = 1.0*mvj_param->pre_plan->realzone.load() / param.ampli;
+
+			//count数小于等于上一条指令的realzone，zone起作用//
+			if (g_count <= zonecount)
+			{
+				//preplan//	
+				double p, v, a, j;
+				double pos_total_count, ori_total_count;
+				double pre_pa[6]{ 0,0,0,0,0,0 }, pre_pm[16], pm[16];
+
+				traplan::sCurved(param.last_count + g_count, 0.0, param.norm_pos, param.vel / 1000 * param.pos_ratio, param.acc / 1000 / 1000 * param.pos_ratio* param.pos_ratio, param.jerk / 1000 / 1000 / 1000 * param.pos_ratio* param.pos_ratio* param.pos_ratio, p, v, a, j, pos_total_count);
+				if (param.norm_pos > 1e-10)aris::dynamic::s_vc(3, p / param.norm_pos, param.relative_pa.data(), pre_pa);
+
+				traplan::sCurved(param.last_count + g_count, 0.0, param.norm_ori, param.angular_vel / 1000 * param.ori_ratio, param.angular_acc / 1000 / 1000 * param.ori_ratio * param.ori_ratio, param.angular_jerk / 1000 / 1000 / 1000 * param.ori_ratio * param.ori_ratio * param.ori_ratio, p, v, a, j, ori_total_count);
+				if (param.norm_ori > 1e-10)aris::dynamic::s_vc(3, p / param.norm_ori, param.relative_pa.data() + 3, pre_pa + 3);
+
+				aris::dynamic::s_pa2pm(pre_pa, pre_pm);
+				aris::dynamic::s_pm_dot_pm(param.begin_pm, pre_pm, pm);
+				// 反解计算电机位置 //
+				g_tool->setPm(*g_wobj, pm);
+				g_model.generalMotionPool().at(0).updMpm();
+				if (g_model.solverPool().at(0).kinPos())THROW_FILE_LINE("");
+
+				double prep = 0.0;
+				for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
+				{
+					//preplan//
+					prep = g_model.motionPool()[i].mp();
+
+					//thisplan//
+					double p, v, a, j;
+					traplan::sCurved(g_count, 0.0, mvj_param->joint_pos_end[i] - mvj_param->joint_pos_begin[i],
+						mvj_param->joint_vel[i] / 1000 * mvj_param->pos_ratio[i], mvj_param->joint_acc[i] / 1000 / 1000 * mvj_param->pos_ratio[i] * mvj_param->pos_ratio[i], mvj_param->joint_jerk[i] / 1000 / 1000 / 1000 * mvj_param->pos_ratio[i] * mvj_param->pos_ratio[i] * mvj_param->pos_ratio[i],
+						p, v, a, j, mvj_param->total_count[i]);
+
+					controller()->motionPool()[i].setTargetPos(prep + p);
+					model()->motionPool()[i].setMp(prep + p);
+				}
+			}
+			else
+			{
+				//thisplan//
+				mvj_param->pre_plan->cmd_finished.store(true);
+				for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
+				{
+					double p, v, a, j;
+					traplan::sCurved(g_count, mvj_param->joint_pos_begin[i], mvj_param->joint_pos_end[i],
+						mvj_param->joint_vel[i] / 1000 * mvj_param->pos_ratio[i], mvj_param->joint_acc[i] / 1000 / 1000 * mvj_param->pos_ratio[i] * mvj_param->pos_ratio[i], mvj_param->joint_jerk[i] / 1000 / 1000 / 1000 * mvj_param->pos_ratio[i] * mvj_param->pos_ratio[i] * mvj_param->pos_ratio[i],
+						p, v, a, j, mvj_param->total_count[i]);
+
+					controller()->motionPool()[i].setTargetPos(p);
+					model()->motionPool()[i].setMp(p);
+				}
+			}
+		}
+		else//本条指令设置了转弯区，但是与上一条指令无法实现转弯，比如moveC,moveAbsJ
 		{
 			for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
 			{
@@ -2561,8 +2644,26 @@ namespace kaanh
 		{
 			//更新本plan的planzone//
 			this->planzone.store(target_count);
-			//上一条指令不进行转弯//
-			mvl_param.pre_plan->realzone.store(0);
+			
+			if (mvl_param.pre_plan->name() == "MoveJ")
+			{
+				//更新上一条转弯指令的realzone//
+				if (mvl_param.pre_plan->cmd_executing.load())
+				{
+					mvl_param.pre_plan->realzone.store(0);
+				}
+				else
+				{
+					auto min_zone = std::min(1.0*mvl_param.pre_plan->planzone.load(), mvl_param.ampli * mvl_param.max_total_count / 2);//当前指令所需count数/2
+					mvl_param.pre_plan->realzone.store(min_zone);
+				}
+			}
+			else
+			{
+				//上一条指令不进行转弯//
+				mvl_param.pre_plan->realzone.store(0);
+			}
+			
 		}
 
         for (auto &option : motorOptions())	option |= USE_TARGET_POS;
@@ -2729,6 +2830,68 @@ namespace kaanh
 				aris::dynamic::s_pm_dot_pm(pre_pm, pm, pm2);
 				aris::dynamic::s_pm_dot_pm(param.begin_pm, pm2, target_pm);
 				mvl_param->tool->setPm(*mvl_param->wobj, target_pm);
+				model()->generalMotionPool().at(0).updMpm();
+			}
+			else
+			{
+				//thisplan//
+				mvl_param->pre_plan->cmd_finished.store(true);
+				double pa[6]{ 0.0,0.0,0.0,0.0,0.0,0.0 }, pm[16], pm2[16];
+
+				traplan::sCurved(g_count, 0.0, mvl_param->norm_pos, mvl_param->vel / 1000 * mvl_param->pos_ratio, mvl_param->acc / 1000 / 1000 * mvl_param->pos_ratio* mvl_param->pos_ratio, mvl_param->jerk / 1000 / 1000 / 1000 * mvl_param->pos_ratio* mvl_param->pos_ratio* mvl_param->pos_ratio, p, v, a, j, pos_total_count);
+				if (mvl_param->norm_pos > 1e-10)aris::dynamic::s_vc(3, p / mvl_param->norm_pos, mvl_param->relative_pa.data(), pa);
+
+				traplan::sCurved(g_count, 0.0, mvl_param->norm_ori, mvl_param->angular_vel / 1000 * mvl_param->ori_ratio, mvl_param->angular_acc / 1000 / 1000 * mvl_param->ori_ratio * mvl_param->ori_ratio, mvl_param->angular_jerk / 1000 / 1000 / 1000 * mvl_param->ori_ratio * mvl_param->ori_ratio * mvl_param->ori_ratio, p, v, a, j, ori_total_count);
+				if (mvl_param->norm_ori > 1e-10)aris::dynamic::s_vc(3, p / mvl_param->norm_ori, mvl_param->relative_pa.data() + 3, pa + 3);
+
+				aris::dynamic::s_pa2pm(pa, pm);
+				aris::dynamic::s_pm_dot_pm(mvl_param->begin_pm, pm, pm2);
+
+				// 反解计算电机位置 //
+				mvl_param->tool->setPm(*mvl_param->wobj, pm2);
+				model()->generalMotionPool().at(0).updMpm();
+			}
+		}
+		else if (mvl_param->pre_plan->name() == "MoveJ")
+		{
+			auto param = std::any_cast<MoveJParam&>(mvl_param->pre_plan->param());
+			double zonecount = 1.0*mvl_param->pre_plan->realzone.load() / param.ampli;
+
+			//preplan//
+			double prep = 0.0, prev, prea, prej;
+
+			//count数小于等于上一条指令的realzone，zone起作用//
+			if (g_count <= zonecount)
+			{
+				//preplan//				
+				double pre_pm[16];
+				for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
+				{
+					traplan::sCurved(param.last_count + g_count,
+						param.joint_pos_begin[i], param.joint_pos_end[i],
+						param.joint_vel[i] / 1000 * param.pos_ratio[i], param.joint_acc[i] / 1000 / 1000 * param.pos_ratio[i] * param.pos_ratio[i], param.joint_jerk[i] / 1000 / 1000 / 1000 * param.pos_ratio[i] * param.pos_ratio[i] * param.pos_ratio[i],
+						prep, prev, prea, prej, param.total_count[i]);
+					g_model.motionPool().at(i).setMp(prep);
+				}
+				g_model.solverPool().at(1).kinPos();
+				g_model.generalMotionPool().at(0).updMpm();
+				g_model.generalMotionPool().at(0).getMpm(pre_pm);
+
+				//thisplan//
+				double pa[6]{ 0,0,0,0,0,0 }, pm[16];
+
+				traplan::sCurved(g_count, 0.0, mvl_param->norm_pos, mvl_param->vel / 1000 * mvl_param->pos_ratio, mvl_param->acc / 1000 / 1000 * mvl_param->pos_ratio* mvl_param->pos_ratio, mvl_param->jerk / 1000 / 1000 / 1000 * mvl_param->pos_ratio* mvl_param->pos_ratio* mvl_param->pos_ratio, p, v, a, j, pos_total_count);
+				if (mvl_param->norm_pos > 1e-10)aris::dynamic::s_vc(3, p / mvl_param->norm_pos, mvl_param->relative_pa.data(), pa);
+
+				traplan::sCurved(g_count, 0.0, mvl_param->norm_ori, mvl_param->angular_vel / 1000 * mvl_param->ori_ratio, mvl_param->angular_acc / 1000 / 1000 * mvl_param->ori_ratio * mvl_param->ori_ratio, mvl_param->angular_jerk / 1000 / 1000 / 1000 * mvl_param->ori_ratio * mvl_param->ori_ratio * mvl_param->ori_ratio, p, v, a, j, ori_total_count);
+				if (mvl_param->norm_ori > 1e-10)aris::dynamic::s_vc(3, p / mvl_param->norm_ori, mvl_param->relative_pa.data() + 3, pa + 3);
+
+				aris::dynamic::s_pa2pm(pa, pm);
+
+				// 反解计算电机位置 //
+				double target_pm[16];
+				aris::dynamic::s_pm_dot_pm(pre_pm, pm, target_pm);
+				param.tool->setPm(*param.wobj, target_pm);
 				model()->generalMotionPool().at(0).updMpm();
 			}
 			else
