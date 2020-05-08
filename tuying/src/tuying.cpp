@@ -1120,8 +1120,9 @@ namespace tuying
 		std::vector<std::vector<double>> target_pos;
 		std::vector<std::vector<double>> temp_pos;
 		std::vector<bool> active;
-		std::int16_t col;
 		double ratio;
+		static std::atomic_int32_t mve_flag;
+		//mve指令标志位：0:加载emily文件，1:前进，2:后退，3:替换当前emily数据点，4:保存更新emily文件，5:开始，6:暂停，7:退出
 	};
 	bool splitString(std::string spCharacter, const std::string& objString, std::vector<bool>& stringVector)
 	{
@@ -1153,33 +1154,31 @@ namespace tuying
 		}
 		return true;
 	}
+	std::atomic_int32_t MoveEParam::mve_flag = 0;
 	auto MoveE::prepareNrt()->void
 	{
-        //当前有指令在执行//
+		MoveEParam param;
 		auto&cs = aris::server::ControlServer::instance();
 		std::shared_ptr<aris::plan::Plan> planptr = cs.currentExecutePlan();
-		if (planptr && planptr->cmdName() == this->cmdName())
-		{
-			option() |= aris::plan::Plan::Option::NOT_RUN_EXECUTE_FUNCTION;
-			return;
-		}
-		auto c = controller();
-		MoveEParam param;
-		param.active.clear();
-		param.pos.clear();
-		param.target_pos.clear();
-		param.temp_pos.clear();
-		param.target_pos.resize(7);
-		std::ifstream infile;
 
 		for (auto cmd_param : cmdParams())
 		{
-			if (cmd_param.first == "col")
+			if (cmd_param.first == "file")
 			{
-                param.col = int32Param(cmd_param.first);
-			}
-            else if (cmd_param.first == "file")
-			{
+				//当前有指令在执行//
+				if (planptr && planptr->cmdName() != this->cmdName())throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + "Other command is running");
+				if (planptr && planptr->cmdName() == this->cmdName())
+				{
+					option() |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION;
+					return;
+				}
+				param.active.clear();
+				param.pos.clear();
+				param.target_pos.clear();
+				param.temp_pos.clear();
+				param.target_pos.resize(7);
+				std::ifstream infile;
+				param.mve_flag.store(0);//加载emily文件
 				std::unique_lock<std::mutex> run_lock(dynamixel_mutex);
 				dxl_pos.clear();
 				dxl_pos.resize(3);
@@ -1189,7 +1188,7 @@ namespace tuying
 #ifdef UNIX
 				auto path = "/home/kaanh/Desktop/emily/" + std::string(cmd_param.second);
 #endif
-                
+
 				infile.open(path);
 
 				//检查读取文件是否成功//
@@ -1226,7 +1225,7 @@ namespace tuying
 						dxl1_active = param.active[7];
 						dxl2_active = param.active[8];
 						dxl3_active = param.active[9];
-                        param.pos.resize(param.active.size());//size of ACTIVE_AXIS
+						param.pos.resize(param.active.size());//size of ACTIVE_AXIS
 						continue;
 					}
 					if (data.find("[RECORDS]") != std::string::npos)
@@ -1237,7 +1236,7 @@ namespace tuying
 					{
 						break;
 					}
-                    param.temp_pos.resize(param.active.size() + 1);
+					param.temp_pos.resize(param.active.size() + 1);
 					char *s_input = (char *)data.c_str();
 					const char *split = "  ";
 					// 以‘ ’为分隔符拆分字符串//
@@ -1261,11 +1260,11 @@ namespace tuying
 				}
 
 				//数据提取//
-                int pos_count = 1;
+				int pos_count = 1;
 				for (int k = 0; k < param.active.size(); k++)
 				{
-                    param.pos[k].assign(param.temp_pos[pos_count].begin(), param.temp_pos[pos_count].end());
-                    pos_count++;
+					param.pos[k].assign(param.temp_pos[pos_count].begin(), param.temp_pos[pos_count].end());
+					pos_count++;
 				}
 
 				//如果没有提取到数据，不执行程序，并返回
@@ -1281,23 +1280,23 @@ namespace tuying
 					return;
 				}
 
-                //数据处理---导轨数值除以1000，单位由mm换算成m
-                if (param.active[6])
-                {
-                    for (int m = 0; m < param.pos[6].size(); m++)
-                    {
-                        param.pos[6][m] = (param.pos[6][m]) / 1000.0;
-                    }
-                }
+				//数据处理---导轨数值除以1000，单位由mm换算成m
+				if (param.active[6])
+				{
+					for (int m = 0; m < param.pos[6].size(); m++)
+					{
+						param.pos[6][m] = (param.pos[6][m]) / 1000.0;
+					}
+				}
 
 				//数据处理---舵机数据单位是0.1度，除以10并乘以11.378，换算成脉冲数
-                for (int j = 7; j < param.active.size(); j++)
+				for (int j = 7; j < param.active.size(); j++)
 				{
-                    if (param.active[j])
+					if (param.active[j])
 					{
-                        for (int m = 0; m < param.pos[j].size(); m++)
+						for (int m = 0; m < param.pos[j].size(); m++)
 						{
-                            param.pos[j][m] = param.pos[j][m] / 10.0*11.378;
+							param.pos[j][m] = param.pos[j][m] / 10.0*11.378;
 						}
 					}
 					else
@@ -1305,53 +1304,88 @@ namespace tuying
 						continue;
 					}
 				}
- 
-                //数据处理--对机械臂,外部轴,duoji数据进行插值//
-                int dxl_count = 0;
+
+				//数据处理--对机械臂,外部轴,duoji数据进行插值//
+				int dxl_count = 0;
 				for (int i = 0; i < param.pos.size(); i++)
 				{
-                    if (i < 6)
-                    {
-                        if (!param.pos[i].empty())
-                        {
-                            for (int j = 0; j < param.pos[i].size() - 1; j++)
-                            {
-                                for (double count = param.temp_pos[0][j]; count < param.temp_pos[0][j + 1] - 0.2*0.001*param.ratio; count = count + 0.001*param.ratio)
-                                {
-                                    param.target_pos[i].push_back(interpolate(param.temp_pos[0][j], param.temp_pos[0][j + 1], param.pos[i][j], param.pos[i][j + 1], count)* PI / 180.0);
-                                }
-                            }
-                        }
-                    }
-                    else if(i==6)
-                    {
-                        if (!param.pos[i].empty())
-                        {
-                            for (int j = 0; j < param.pos[i].size() - 1; j++)
-                            {
-                                for (double count = param.temp_pos[0][j]; count < param.temp_pos[0][j + 1] - 0.2*0.001*param.ratio; count = count + 0.001*param.ratio)
-                                {
-                                    param.target_pos[i].push_back(interpolate(param.temp_pos[0][j], param.temp_pos[0][j + 1], param.pos[i][j], param.pos[i][j + 1], count));
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (!param.pos[i].empty())
-                        {
-                            for (int j = 0; j < param.pos[i].size() - 1; j++)
-                            {
-                                for (double count = param.temp_pos[0][j]; count < param.temp_pos[0][j + 1] - 0.2*0.001*param.ratio; count = count + 0.001*param.ratio)
-                                {
-                                    dxl_pos[dxl_count].push_back(interpolate(param.temp_pos[0][j], param.temp_pos[0][j + 1], param.pos[i][j], param.pos[i][j + 1], count));
-                                }
-                            }
-                        }
-                        dxl_count++;
-                    }
+					if (i < 6)
+					{
+						if (!param.pos[i].empty())
+						{
+							for (int j = 0; j < param.pos[i].size() - 1; j++)
+							{
+								for (double count = param.temp_pos[0][j]; count < param.temp_pos[0][j + 1] - 0.2*0.001*param.ratio; count = count + 0.001*param.ratio)
+								{
+									param.target_pos[i].push_back(interpolate(param.temp_pos[0][j], param.temp_pos[0][j + 1], param.pos[i][j], param.pos[i][j + 1], count)* PI / 180.0);
+								}
+							}
+						}
+					}
+					else if (i == 6)
+					{
+						if (!param.pos[i].empty())
+						{
+							for (int j = 0; j < param.pos[i].size() - 1; j++)
+							{
+								for (double count = param.temp_pos[0][j]; count < param.temp_pos[0][j + 1] - 0.2*0.001*param.ratio; count = count + 0.001*param.ratio)
+								{
+									param.target_pos[i].push_back(interpolate(param.temp_pos[0][j], param.temp_pos[0][j + 1], param.pos[i][j], param.pos[i][j + 1], count));
+								}
+							}
+						}
+					}
+					else
+					{
+						if (!param.pos[i].empty())
+						{
+							for (int j = 0; j < param.pos[i].size() - 1; j++)
+							{
+								for (double count = param.temp_pos[0][j]; count < param.temp_pos[0][j + 1] - 0.2*0.001*param.ratio; count = count + 0.001*param.ratio)
+								{
+									dxl_pos[dxl_count].push_back(interpolate(param.temp_pos[0][j], param.temp_pos[0][j + 1], param.pos[i][j], param.pos[i][j + 1], count));
+								}
+							}
+						}
+						dxl_count++;
+					}
 				}
 				infile.close();
+			}
+			else if (cmd_param.first == "forward")
+			{ 
+				//当前有指令在执行//
+				if (planptr && planptr->cmdName() != this->cmdName())throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + "Other command is running");
+				if (planptr && planptr->cmdName() == this->cmdName())
+				{
+					option() |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION;
+					return;
+				}
+				param.mve_flag.store(1);
+			}
+			else if (cmd_param.first == "backward")
+			{
+				param.mve_flag.store(2);
+			}
+			else if (cmd_param.first == "replace")
+			{
+				param.mve_flag.store(3);
+			}
+			else if (cmd_param.first == "save")
+			{
+				param.mve_flag.store(4);
+			}
+			else if (cmd_param.first == "start")
+			{
+				param.mve_flag.store(5);
+			}
+			else if (cmd_param.first == "pause")
+			{
+				param.mve_flag.store(6);
+			}
+			else if (cmd_param.first == "quit")
+			{
+				param.mve_flag.store(7);
 			}
 		}
 		//对机械臂及外部轴数据进行滑动滤波，窗口为11
@@ -1501,8 +1535,16 @@ namespace tuying
 		command().loadXmlStr(
 			"<Command name=\"mve\">"
 			"	<GroupParam>"
-            "		<Param name=\"col\" default=\"10\"/>"
-            "		<Param name=\"file\" default=\"output.emily\"/>"
+			"		<UniqueParam default=\"file\">"
+			"			<Param name=\"file\" default=\"output.emily\"/>"
+			"			<Param name=\"forward\"/>"	//前进
+			"			<Param name=\"backward\"/>"	//后退
+			"			<Param name=\"replace\"/>"	//替换当前emily数据点
+			"			<Param name=\"save\"/>"		//保存更新emily文件
+			"			<Param name=\"start\"/>"	//开始
+			"			<Param name=\"pause\"/>"	//暂停
+			"			<Param name=\"quit\"/>"		//退出
+			"		</UniqueParam>"
 			"	</GroupParam>"
 			"</Command>");
 	}
