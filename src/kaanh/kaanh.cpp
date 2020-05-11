@@ -979,6 +979,7 @@ namespace kaanh
 		std::vector<double> ee_pq, relative_pa;
 		std::vector<double> total_count;
 
+		std::vector<double> joint_vel, joint_acc, joint_dec, joint_jerk, joint_pos_begin, joint_pos_end, joint_pos_ratio;
 		double acc, vel, dec, jerk, norm_pos, norm_ori, begin_pm[16], pos_ratio = 1.0, ori_ratio = 1.0;
 		double angular_acc, angular_vel, angular_dec, angular_jerk;
 		aris::dynamic::Marker *tool, *wobj;
@@ -2052,57 +2053,6 @@ namespace kaanh
 		this->cmd_executing.store(true);
 		auto mvj_param = std::any_cast<MoveJParam>(&this->param());
 		auto &pwinter = dynamic_cast<aris::server::ProgramWebInterface&>(controlServer()->interfacePool().at(0));
-		/*
-		// 取得起始位置 //
-		double p, v, a, j;
-		if (count() == 1)
-		{
-			// inverse kinematic //
-			double end_pm[16];
-			aris::dynamic::s_pq2pm(mvj_param->ee_pq.data(), end_pm);
-			//model()->generalMotionPool().at(0).setMpm(end_pm);
-			mvj_param->tool->setPm(*mvj_param->wobj, end_pm);
-			model()->generalMotionPool().at(0).updMpm();
-
-			if (model()->solverPool().at(0).kinPos())return -1;
-
-			// init joint_pos //
-			for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
-			{
-				mvj_param->joint_pos_begin[i] = controller()->motionPool()[i].targetPos();
-				mvj_param->joint_pos_end[i] = model()->motionPool()[i].mp();
-				//梯形轨迹规划//
-				//aris::plan::moveAbsolute(count(), mvj_param->joint_pos_begin[i], mvj_param->joint_pos_end[i]
-				//	, mvj_param->joint_vel[i] / 1000, mvj_param->joint_acc[i] / 1000 / 1000, mvj_param->joint_dec[i] / 1000 / 1000
-				//	, p, v, a, mvj_param->total_count[i]);
-
-				//S形轨迹规划//
-				traplan::sCurve(static_cast<double>(count()), mvj_param->joint_pos_begin[i], mvj_param->joint_pos_end[i],
-					mvj_param->joint_vel[i] / 1000, mvj_param->joint_acc[i] / 1000 / 1000, mvj_param->joint_jerk[i] / 1000 / 1000 / 1000,
-					p, v, a, j, mvj_param->total_count[i]);
-			}
-
-			mvj_param->max_total_count = *std::max_element(mvj_param->total_count.begin(), mvj_param->total_count.end());
-		}
-		
-		for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
-		{
-			aris::plan::moveAbsolute(static_cast<double>(count()) * mvj_param->total_count[i] / mvj_param->max_total_count,
-				mvj_param->joint_pos_begin[i], mvj_param->joint_pos_end[i],
-				mvj_param->joint_vel[i] / 1000, mvj_param->joint_acc[i] / 1000 / 1000, mvj_param->joint_dec[i] / 1000 / 1000,
-				p, v, a, mvj_param->total_count[i]);
-
-			controller()->motionPool()[i].setTargetPos(p);
-			model()->motionPool()[i].setMp(p);
-		}
-		if (model()->solverPool().at(1).kinPos())return -1;
-
-		if (g_move_pause)
-		{
-			return -4;
-		}
-		return mvj_param->max_total_count == 0 ? 0 : mvj_param->max_total_count - count();
-		*/
 
 		//如果停止功能开启，并且时间已经停止，退出本条指令//
 		if (count() == 1)
@@ -2371,6 +2321,8 @@ namespace kaanh
 		mvl_param.ee_pq.resize(7);
 		mvl_param.relative_pa.resize(6, 0.0);
 		mvl_param.total_count.resize(model()->motionPool().size(), 0);
+		mvl_param.joint_pos_begin.resize(6, 0.0);
+		mvl_param.joint_pos_end.resize(6, 0.0);
 
 		if (!find_pq(cmdParams(), *this, mvl_param.ee_pq.data()))THROW_FILE_LINE("");
 
@@ -2392,7 +2344,15 @@ namespace kaanh
                 mvl_param.sp = s;
                 mvl_param.vel = mvl_param.sp.v_tcp;
                 mvl_param.angular_vel = mvl_param.sp.w_tcp;
-				mvl_param.angular_vel = 0.52;//调试
+				for (int i = 0; i < model()->motionPool().size(); ++i)
+				{
+					mvl_param.joint_vel[i] = controller()->motionPool()[i].maxVel()*mvl_param.sp.w_per;
+				}
+
+				// check value validity //
+				for (Size i = 0; i < std::min(model()->motionPool().size(), controller()->motionPool().size()); ++i)
+					if (mvl_param.joint_vel[i] <= 0 || mvl_param.joint_vel[i] > controller()->motionPool()[i].maxVel())
+						THROW_FILE_LINE("");
 			}
 			else if (cmd_param.first == "dec")
 			{
@@ -2401,6 +2361,57 @@ namespace kaanh
 			else if (cmd_param.first == "jerk")
 			{
 				mvl_param.jerk = doubleParam(cmd_param.first)*mvl_param.acc;
+			}
+			else if (cmd_param.first == "joint_acc")
+			{
+				mvl_param.joint_acc.clear();
+				mvl_param.joint_acc.resize(model()->motionPool().size(), 0.0);
+
+				auto acc_mat = matrixParam(cmd_param.first);
+				if (acc_mat.size() == 1)std::fill(mvl_param.joint_acc.begin(), mvl_param.joint_acc.end(), acc_mat.toDouble());
+				else if (acc_mat.size() == model()->motionPool().size()) std::copy(acc_mat.begin(), acc_mat.end(), mvl_param.joint_acc.begin());
+				else THROW_FILE_LINE("");
+
+				for (int i = 0; i < 6; ++i)mvl_param.joint_acc[i] *= controller()->motionPool()[i].maxAcc();
+
+				// check value validity //
+				for (Size i = 0; i < std::min(model()->motionPool().size(), controller()->motionPool().size()); ++i)
+					if (mvl_param.joint_acc[i] <= 0 || mvl_param.joint_acc[i] > controller()->motionPool()[i].maxAcc())
+						THROW_FILE_LINE("");
+			}
+			else if (cmd_param.first == "joint_dec")
+			{
+				mvl_param.joint_dec.clear();
+				mvl_param.joint_dec.resize(model()->motionPool().size(), 0.0);
+
+				auto dec_mat = matrixParam(cmd_param.first);
+				if (dec_mat.size() == 1)std::fill(mvl_param.joint_dec.begin(), mvl_param.joint_dec.end(), dec_mat.toDouble());
+				else if (dec_mat.size() == model()->motionPool().size()) std::copy(dec_mat.begin(), dec_mat.end(), mvl_param.joint_dec.begin());
+				else THROW_FILE_LINE("");
+
+				for (int i = 0; i < 6; ++i) mvl_param.joint_dec[i] *= controller()->motionPool()[i].maxAcc();
+
+				// check value validity //
+				for (Size i = 0; i < std::min(model()->motionPool().size(), controller()->motionPool().size()); ++i)
+					if (mvl_param.joint_dec[i] <= 0 || mvl_param.joint_dec[i] > controller()->motionPool()[i].maxAcc())
+						THROW_FILE_LINE("");
+			}
+			else if (cmd_param.first == "joint_jerk")
+			{
+				mvl_param.joint_jerk.clear();
+				mvl_param.joint_jerk.resize(model()->motionPool().size(), 0.0);
+
+				auto dec_mat = matrixParam(cmd_param.first);
+				if (dec_mat.size() == 1)std::fill(mvl_param.joint_jerk.begin(), mvl_param.joint_jerk.end(), dec_mat.toDouble());
+				else if (dec_mat.size() == model()->motionPool().size()) std::copy(dec_mat.begin(), dec_mat.end(), mvl_param.joint_jerk.begin());
+				else THROW_FILE_LINE("");
+
+				for (int i = 0; i < 6; ++i) mvl_param.joint_jerk[i] *= mvl_param.joint_acc[i];
+
+				// check value validity //
+				for (Size i = 0; i < std::min(model()->motionPool().size(), controller()->motionPool().size()); ++i)
+					if (mvl_param.joint_jerk[i] <= 0 || mvl_param.joint_jerk[i] > 1000 * controller()->motionPool()[i].maxAcc())
+						THROW_FILE_LINE("");
 			}
 			else if (cmd_param.first == "angular_acc")
 			{
@@ -2510,6 +2521,10 @@ namespace kaanh
 			g_tool->setPm(*g_wobj, end_pm);
 			g_model.generalMotionPool().at(0).updMpm();
 			g_tool->getPm(*g_wobj, mvl_param.begin_pm);
+			for (Size i = 0; i < std::min(controller()->motionPool().size(), g_model.motionPool().size()); ++i)
+			{
+				 mvl_param.joint_pos_begin[i] = g_model.motionPool().at(i).mp();
+			}
 		}
 
 		//获取终止点位置//
@@ -2696,66 +2711,7 @@ namespace kaanh
 		static double begin_pm[16], relative_pm[16], relative_pa[6], pos_ratio, ori_ratio, norm_pos, norm_ori;
 		double p, v, a, j;
 		double pos_total_count, ori_total_count;
-		/*
-		if (count() == 1)
-		{
-			double end_pm[16];
-			aris::dynamic::s_pq2pm(mvl_param->ee_pq.data(), end_pm);
-			model()->generalMotionPool().at(0).updMpm();
-			//model()->generalMotionPool().at(0).getMpm(begin_pm);
-			mvl_param->tool->getPm(*mvl_param->wobj, begin_pm);
-			aris::dynamic::s_inv_pm_dot_pm(begin_pm, end_pm, relative_pm);
 
-
-			// relative_pa //
-			aris::dynamic::s_pm2pa(relative_pm, relative_pa);
-
-			norm_pos = aris::dynamic::s_norm(3, relative_pa);
-			norm_ori = aris::dynamic::s_norm(3, relative_pa + 3);
-
-			//aris::plan::moveAbsolute(count(), 0.0, norm_pos, mvl_param->vel / 1000, mvl_param->acc / 1000 / 1000, mvl_param->dec / 1000 / 1000, p, v, a, pos_total_count);
-			//aris::plan::moveAbsolute(count(), 0.0, norm_ori, mvl_param->angular_vel / 1000, mvl_param->angular_acc / 1000 / 1000, mvl_param->angular_dec / 1000 / 1000, p, v, a, ori_total_count);
-
-			traplan::sCurve(static_cast<double>(count()), 0.0, norm_pos, mvl_param->vel / 1000, mvl_param->acc / 1000 / 1000, mvl_param->jerk / 1000 / 1000 / 1000, p, v, a, j, pos_total_count);
-			traplan::sCurve(static_cast<double>(count()), 0.0, norm_ori, mvl_param->angular_vel / 1000, mvl_param->angular_acc / 1000 / 1000, mvl_param->angular_jerk / 1000 / 1000 / 1000, p, v, a, j, ori_total_count);
-
-			pos_ratio = pos_total_count < ori_total_count ? double(pos_total_count) / ori_total_count : 1.0;
-			ori_ratio = ori_total_count < pos_total_count ? double(ori_total_count) / pos_total_count : 1.0;
-
-			//aris::plan::moveAbsolute(count(), 0.0, norm_pos, mvl_param->vel / 1000 * pos_ratio, mvl_param->acc / 1000 / 1000 * pos_ratio* pos_ratio, mvl_param->dec / 1000 / 1000 * pos_ratio* pos_ratio, p, v, a, pos_total_count);
-			//aris::plan::moveAbsolute(count(), 0.0, norm_ori, mvl_param->angular_vel / 1000 * ori_ratio, mvl_param->angular_acc / 1000 / 1000 * ori_ratio * ori_ratio, mvl_param->angular_dec / 1000 / 1000 * ori_ratio * ori_ratio, p, v, a, ori_total_count);
-		
-			traplan::sCurve(static_cast<double>(count()), 0.0, norm_pos, mvl_param->vel / 1000 * pos_ratio, mvl_param->acc / 1000 / 1000 * pos_ratio * pos_ratio, mvl_param->jerk / 1000 / 1000 / 1000 * pos_ratio* pos_ratio* pos_ratio, p, v, a, j, pos_total_count);
-			traplan::sCurve(static_cast<double>(count()), 0.0, norm_ori, mvl_param->angular_vel / 1000 * ori_ratio, mvl_param->angular_acc / 1000 / 1000 * ori_ratio * ori_ratio, mvl_param->angular_jerk / 1000 / 1000 / 1000 * ori_ratio * ori_ratio* ori_ratio, p, v, a, j, ori_total_count);
-		
-		}
-		
-		double pa[6]{ 0,0,0,0,0,0 }, pm[16], pm2[16];
-
-		//aris::plan::moveAbsolute(count(), 0.0, norm_pos, mvl_param->vel / 1000 * pos_ratio, mvl_param->acc / 1000 / 1000 * pos_ratio* pos_ratio, mvl_param->dec / 1000 / 1000 * pos_ratio* pos_ratio, p, v, a, pos_total_count);
-		traplan::sCurve(static_cast<double>(count()), 0.0, norm_pos, mvl_param->vel / 1000 * pos_ratio, mvl_param->acc / 1000 / 1000 * pos_ratio* pos_ratio, mvl_param->jerk / 1000 / 1000 /1000 * pos_ratio* pos_ratio* pos_ratio, p, v, a, j, pos_total_count);
-		if (norm_pos > 1e-10)aris::dynamic::s_vc(3, p / norm_pos, relative_pa, pa);
-
-		//aris::plan::moveAbsolute(count(), 0.0, norm_ori, mvl_param->angular_vel / 1000 * ori_ratio, mvl_param->angular_acc / 1000 / 1000 * ori_ratio * ori_ratio, mvl_param->angular_dec / 1000 / 1000 * ori_ratio * ori_ratio, p, v, a, ori_total_count);
-		traplan::sCurve(static_cast<double>(count()), 0.0, norm_ori, mvl_param->angular_vel / 1000 * ori_ratio, mvl_param->angular_acc / 1000 / 1000 * ori_ratio * ori_ratio, mvl_param->angular_jerk / 1000 / 1000 /1000 * ori_ratio * ori_ratio * ori_ratio, p, v, a, j, ori_total_count);
-		if (norm_ori > 1e-10)aris::dynamic::s_vc(3, p / norm_ori, relative_pa + 3, pa + 3);
-
-		aris::dynamic::s_pa2pm(pa, pm);
-		aris::dynamic::s_pm_dot_pm(begin_pm, pm, pm2);
-
-		// 反解计算电机位置 //
-		//model()->generalMotionPool().at(0).setMpm(pm2);
-		mvl_param->tool->setPm(*mvl_param->wobj, pm2);
-		model()->generalMotionPool().at(0).updMpm();
-		if (model()->solverPool().at(0).kinPos())return -1;
-
-		if (g_move_pause)
-		{
-			return -4;
-		}
-		return std::max(pos_total_count, ori_total_count) > count() ? 1 : 0;
-		*/
-	
 		if (mvl_param->pre_plan == nullptr) //转弯第一条指令
 		{
 			if (count() == 1)
@@ -2864,35 +2820,39 @@ namespace kaanh
 			if (g_count <= zonecount)
 			{
 				//preplan//				
-				double pre_pm[16];
 				for (Size i = 0; i < std::min(controller()->motionPool().size(), model()->motionPool().size()); ++i)
 				{
 					traplan::sCurved(param.last_count + g_count,
 						param.joint_pos_begin[i], param.joint_pos_end[i],
 						param.joint_vel[i] / 1000 * param.pos_ratio[i], param.joint_acc[i] / 1000 / 1000 * param.pos_ratio[i] * param.pos_ratio[i], param.joint_jerk[i] / 1000 / 1000 / 1000 * param.pos_ratio[i] * param.pos_ratio[i] * param.pos_ratio[i],
 						prep, prev, prea, prej, param.total_count[i]);
-					g_model.motionPool().at(i).setMp(prep);
 				}
-				g_model.solverPool().at(1).kinPos();
-				g_model.generalMotionPool().at(0).updMpm();
-				g_model.generalMotionPool().at(0).getMpm(pre_pm);
 
 				//thisplan//
-				double pa[6]{ 0,0,0,0,0,0 }, pm[16];
+				if (count() == 1)
+				{
+					double pa[6]{ 0,0,0,0,0,0 }, pm[16];
 
-				traplan::sCurved(g_count, 0.0, mvl_param->norm_pos, mvl_param->vel / 1000 * mvl_param->pos_ratio, mvl_param->acc / 1000 / 1000 * mvl_param->pos_ratio* mvl_param->pos_ratio, mvl_param->jerk / 1000 / 1000 / 1000 * mvl_param->pos_ratio* mvl_param->pos_ratio* mvl_param->pos_ratio, p, v, a, j, pos_total_count);
-				if (mvl_param->norm_pos > 1e-10)aris::dynamic::s_vc(3, p / mvl_param->norm_pos, mvl_param->relative_pa.data(), pa);
+					traplan::sCurved(zonecount, 0.0, mvl_param->norm_pos, mvl_param->vel / 1000 * mvl_param->pos_ratio, mvl_param->acc / 1000 / 1000 * mvl_param->pos_ratio* mvl_param->pos_ratio, mvl_param->jerk / 1000 / 1000 / 1000 * mvl_param->pos_ratio* mvl_param->pos_ratio* mvl_param->pos_ratio, p, v, a, j, pos_total_count);
+					if (mvl_param->norm_pos > 1e-10)aris::dynamic::s_vc(3, p / mvl_param->norm_pos, mvl_param->relative_pa.data(), pa);
 
-				traplan::sCurved(g_count, 0.0, mvl_param->norm_ori, mvl_param->angular_vel / 1000 * mvl_param->ori_ratio, mvl_param->angular_acc / 1000 / 1000 * mvl_param->ori_ratio * mvl_param->ori_ratio, mvl_param->angular_jerk / 1000 / 1000 / 1000 * mvl_param->ori_ratio * mvl_param->ori_ratio * mvl_param->ori_ratio, p, v, a, j, ori_total_count);
-				if (mvl_param->norm_ori > 1e-10)aris::dynamic::s_vc(3, p / mvl_param->norm_ori, mvl_param->relative_pa.data() + 3, pa + 3);
+					traplan::sCurved(zonecount, 0.0, mvl_param->norm_ori, mvl_param->angular_vel / 1000 * mvl_param->ori_ratio, mvl_param->angular_acc / 1000 / 1000 * mvl_param->ori_ratio * mvl_param->ori_ratio, mvl_param->angular_jerk / 1000 / 1000 / 1000 * mvl_param->ori_ratio * mvl_param->ori_ratio * mvl_param->ori_ratio, p, v, a, j, ori_total_count);
+					if (mvl_param->norm_ori > 1e-10)aris::dynamic::s_vc(3, p / mvl_param->norm_ori, mvl_param->relative_pa.data() + 3, pa + 3);
 
-				aris::dynamic::s_pa2pm(pa, pm);
+					aris::dynamic::s_pa2pm(pa, pm);
 
-				// 反解计算电机位置 //
-				double target_pm[16];
-				aris::dynamic::s_pm_dot_pm(pre_pm, pm, target_pm);
-				param.tool->setPm(*param.wobj, target_pm);
-				model()->generalMotionPool().at(0).updMpm();
+					// 反解计算电机位置 //
+					double target_pm[16];
+					aris::dynamic::s_pm_dot_pm(mvl_param->begin_pm, pm, target_pm);
+					g_tool->setPm(*g_wobj, target_pm);
+					g_model.generalMotionPool().at(0).updMpm();
+					g_model.solverPool().at(0).kinPos();
+					for (Size i = 0; i < std::min(controller()->motionPool().size(), g_model.motionPool().size()); ++i)
+					{
+						mvl_param->joint_pos_end[i] = g_model.motionPool().at(i).mp();
+					}
+				}
+
 			}
 			else
 			{
@@ -3024,6 +2984,9 @@ namespace kaanh
             "		<Param name=\"vel\" default=\"{0.025, 0.025, 3.4, 0.0, 0.0}\"/>"
             "		<Param name=\"dec\" default=\"1.0\"/>"
 			"		<Param name=\"jerk\" default=\"10.0\"/>"
+			"		<Param name=\"joint_acc\" default=\"0.9\"/>"
+			"		<Param name=\"joint_dec\" default=\"0.9\"/>"
+			"		<Param name=\"joint_jerk\" default=\"10.0\"/>"
             "		<Param name=\"angular_acc\" default=\"10\"/>"
             "		<Param name=\"angular_vel\" default=\"2\"/>"
             "		<Param name=\"angular_dec\" default=\"10\"/>"
