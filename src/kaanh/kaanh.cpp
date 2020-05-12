@@ -3925,6 +3925,70 @@ namespace kaanh
     }
 
 
+	//get kunwei force sensor data//
+    struct KunweiParam
+    {
+        int times;
+    };
+    auto Kunwei::prepareNrt()->void
+    {
+		KunweiParam param;
+        for (auto &p : cmdParams())
+        {
+            if (p.first == "times")
+            {
+                param.times = int32Param(p.first);
+            }
+        }
+
+        this->param() = param;
+        std::vector<std::pair<std::string, std::any>> ret_value;
+        ret() = ret_value;
+        option() = aris::plan::Plan::NOT_CHECK_ENABLE;
+    }
+    auto Kunwei::executeRT()->int
+    {
+
+        auto &param = std::any_cast<KunweiParam&>(this->param());
+        int16_t datanum = 0;
+        float rawdata[6];
+
+    #ifdef UNIX
+        auto slave7 = dynamic_cast<aris::control::EthercatSlave&>(controller()->slavePool().at(5));
+        slave7.readPdo(0x6020, 11, &rawdata[0] ,32);
+        slave7.readPdo(0x6020, 12, &rawdata[1], 32);
+        slave7.readPdo(0x6020, 13, &rawdata[2], 32);
+        slave7.readPdo(0x6020, 14, &rawdata[3], 32);
+        slave7.readPdo(0x6020, 15, &rawdata[4], 32);
+        slave7.readPdo(0x6020, 16, &rawdata[5], 32);
+    #endif
+
+        auto &cout = controller()->mout();
+
+        if(count()%100==0)
+        {
+            cout << "datanum:" << datanum << std::endl;
+            for(int i=0; i<6; i++)
+            {
+                cout << rawdata[i] << "    ";
+            }
+            cout << std::endl;
+        }
+
+        return param.times - count();
+
+    }
+	Kunwei::Kunwei(const std::string &name) :Plan(name)
+    {
+        command().loadXmlStr(
+            "<Command name=\"kw\">"
+            "	<GroupParam>"
+            "		<Param name=\"times\" abbreviation=\"t\" default=\"1000\"/>"
+            "	</GroupParam>"
+            "</Command>");
+    }
+
+
 	//力传感器标定:零点、机械臂安装倾角、负载重量、重心数据//
 	struct CalibFZeroParam
 	{
