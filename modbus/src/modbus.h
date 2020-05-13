@@ -1,15 +1,13 @@
-//
-// Created by Fanzhe on 5/28/2017.
-//
-
 #ifndef MODBUSPP_MODBUS_H
 #define MODBUSPP_MODBUS_H
 
 #include <string.h>
 #include <iostream>
+#ifdef UNIX
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
+#endif // UNIX
 #include "modbus_exception.h"
 using namespace std;
 

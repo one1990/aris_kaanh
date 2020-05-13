@@ -13,13 +13,11 @@ auto xmlpath = std::filesystem::absolute(".");	//获取当前工程所在的路�
 auto logpath = std::filesystem::absolute(".");	//获取当前工程所在的路径
 const std::string xmlfile = "kaanh.xml";		//控制配置文件名称
 const std::string logfolder = "log";			//log文件夹名称
-
-
+std::thread t_modbus;
+controlboard cbd;
 
 int main(int argc, char *argv[])
 {
-	
-	t_modbus = std::thread(fun_modbus);			//示教器modbus线程
 	
     xmlpath = xmlpath / xmlfile;				//拼接控制器配置文件路径
 	logpath = logpath / logfolder;				//拼接log文件夹路径
@@ -33,7 +31,7 @@ int main(int argc, char *argv[])
     auto &cal = cs.model().calculator();		//UI变量求解器
     kaanhconfig::createUserDataType(cal);		//预定义UI界面变量集
 	kaanhconfig::createPauseTimeSpeed();		//初始化UI停止暂停功能参数
-    //cs.start();
+    cs.start();
 
 	//实时回调函数，每个实时周期调用一次//
 	cs.setRtPlanPostCallback(kaanh::update_state);
@@ -50,8 +48,13 @@ int main(int argc, char *argv[])
 	//开启WebSocket/socket服务器//
     cs.open();
 
+    //示教器modbus线程;
+	t_modbus = std::thread(cbd.fun_modbus(cs));
+
 	//等待终端输入函数，本函数不能去掉，否则实时线程和主线程都会结束//
 	cs.runCmdLine();
+
+	t_modbus.detach();
 
 	return 0;
 }
