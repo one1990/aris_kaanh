@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
 	//开启WebSocket/socket服务器//
     cs.open();
 
-    //示教器modbus线程;
+    //示教器线程;
     t_modbus = std::thread([&]()->bool
     {
        // 创建modbus master
@@ -97,8 +97,7 @@ int main(int argc, char *argv[])
    #endif
 
                /*************以上打印时间相关**************************/
-               //read_input_regs[0]存地址为30001的寄存器,read_input_regs[1]存地址为30002的寄存器
-               //读输入寄存器 功能码04
+               //read_input_regs[0]存地址为30001的寄存器,read_input_regs[1]存地址为30002的寄存器，读输入寄存器 功能码04
                mb.modbus_read_input_registers(0, 2, read_input_regs);
                if (read_input_regs[0] != 0 || read_input_regs[1] != 0)			//有按键按下
                    cbd.send_command(read_input_regs, cs);					//发送指令
@@ -120,6 +119,7 @@ int main(int argc, char *argv[])
        return 0 ;
     });
 
+	//分离示教器线程
     t_modbus.detach();
 
 	//等待终端输入函数，本函数不能去掉，否则实时线程和主线程都会结束//
