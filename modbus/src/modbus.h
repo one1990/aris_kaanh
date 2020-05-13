@@ -3,11 +3,9 @@
 
 #include <string.h>
 #include <iostream>
-#ifdef UNIX
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
-#endif // UNIX
 #include "modbus_exception.h"
 using namespace std;
 

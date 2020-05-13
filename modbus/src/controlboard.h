@@ -2,18 +2,18 @@
 #define CONTROLBOARD_H
 
 #include "aris.hpp"
+#include "modbus.h"
 #define print_time false	//是否需要打印时间
 
 
 class controlboard
 {
 public:
-	auto virtual fun_modbus(aris::server::ControlServer &cs)->bool;//modbus线程函数
-	auto virtual send_command(uint16_t *buffer, aris::server::ControlServer &cs)->bool;//发送指令
+    auto send_command(uint16_t *buffer, aris::server::ControlServer &cs)->bool;//发送指令
 
 private:
 	bool cor = 0;				//默认工具坐标系
-	bool joint_cart = false;	//默认关节坐标系
+    bool joint_cart = true;     //默认关节坐标系
 	int velocity = 1;			//默认加减速值为1
 
 	//控制指令集
@@ -26,7 +26,8 @@ private:
 							"j4 --direction=-1","j4 --direction=1",
 							"j5 --direction=-1","j5 --direction=1",
 							"j6 --direction=-1","j6 --direction=1" };
-	//笛卡尔坐标系指令集
+
+    //笛卡尔坐标系指令集
 	std::string control_pose[12] = { "jx --direction=-1 --cor=0 --tool=tool0 --wobj=wobj0",
 							"jx --direction=1 --cor=0 --tool=tool0 --wobj=wobj0",
 							"jy --direction=-1 --cor=0 --tool=tool0 --wobj=wobj0",
