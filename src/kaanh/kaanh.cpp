@@ -503,7 +503,6 @@ namespace kaanh
 		else
 			num = plan.model()->motionPool().size();
 		for (Size i = 0; i < num; ++i)
-		for (Size i = 0; i < c->motionPool().size(); ++i)
 		{
 			if (active.active_motor[i])
 			{
