@@ -129,20 +129,20 @@ int main(int argc, char *argv[])
     //-------for daye robot end//
     */
 
-    /*
+    
 	//-------for qifan robot begin//
 	cs.resetController(kaanhconfig::createControllerQifan().release());
 	cs.resetModel(kaanhconfig::createModelQifan().release());
 	cs.resetPlanRoot(kaanhconfig::createPlanRoot().release());
-	cs.interfacePool().add<aris::server::WebInterface>("", "5866", aris::core::Socket::WEB);
+	cs.interfacePool().add<aris::server::ProgramWebInterface>("", "5866", aris::core::Socket::WEB);
 	cs.interfacePool().add<aris::server::WebInterface>("", "5867", aris::core::Socket::TCP);
 	cs.resetSensorRoot(new aris::sensor::SensorRoot);
-	cs.interfaceRoot().loadXmlFile(uixmlpath.string().c_str());
+	//cs.interfaceRoot().loadXmlFile(uixmlpath.string().c_str());
 	//cs.model().saveXmlFile(modelxmlpath.string().c_str());	//for new model
-	cs.model().loadXmlFile(modelxmlpath.string().c_str());
+	//cs.model().loadXmlFile(modelxmlpath.string().c_str());
 	cs.saveXmlFile(xmlpath.string().c_str());
 	//-------for qifan robot end// 
-    */
+    
 
     cs.loadXmlFile(path.string().c_str());
     cs.resetPlanRoot(kaanhconfig::createPlanRoot().release());
