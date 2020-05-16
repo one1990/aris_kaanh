@@ -733,10 +733,12 @@ namespace kaanhconfig
 		cal.addTypename("jointtarget");
 		cal.addFunction("jointtarget", std::vector<std::string>{"Matrix"}, "jointtarget", [](std::vector<std::any>&params)->std::any
 		{
-			if (std::any_cast<aris::core::Matrix>(params[0]).size() != 6)
+			/*
+			if (std::any_cast<aris::core::Matrix>(params[0]).size() != 6)//对于7轴不适用
 			{
 				THROW_FILE_LINE("input data error");
 			}
+			*/
 			return params[0];
 		});
 		cal.addTypename("robtarget");
