@@ -3030,7 +3030,7 @@ namespace kaanh
 		double k0, k1;
 
 		// If the inputs are too close for comfort, linearly interpolate
-		if (cosa > 0.9995f)
+		if (cosa > 0.999999f)//如果出现姿态出现往复波动时，这个数值要设置得更大一些，避免二阶不连续
 		{
 			k0 = 1.0f - t;
 			k1 = t;
