@@ -3592,10 +3592,6 @@ namespace kaanh
 			//count数小于等于上一条指令的realzone，zone起作用//
             if (param.last_count + g_count < param.max_total_count + step)
 			{
-				if ((count() <= 2379) && (count() >= 2377))
-				{
-					controller()->mout()<< param.last_count + g_count << "   "<< param.max_total_count + step <<std::endl;
-				}
 				//preplan//				
 				double w[3], pmr[16], p, v, a, j;
 				
