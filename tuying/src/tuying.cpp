@@ -1121,8 +1121,6 @@ namespace tuying
 		std::vector<std::vector<double>> temp_pos;
 		std::vector<bool> active;
 		double ratio;
-		static std::atomic_int32_t mve_flag;
-		//mve指令标志位：0:加载emily文件，1:前进，2:后退，3:替换当前emily数据点，4:保存更新emily文件，5:开始，6:暂停，7:退出
 	};
 	bool splitString(std::string spCharacter, const std::string& objString, std::vector<bool>& stringVector)
 	{
@@ -1154,7 +1152,6 @@ namespace tuying
 		}
 		return true;
 	}
-	std::atomic_int32_t MoveEParam::mve_flag = 0;
 	auto MoveE::prepareNrt()->void
 	{
 		MoveEParam param;
@@ -1178,7 +1175,6 @@ namespace tuying
 				param.temp_pos.clear();
 				param.target_pos.resize(7);
 				std::ifstream infile;
-				param.mve_flag.store(0);//加载emily文件
 				std::unique_lock<std::mutex> run_lock(dynamixel_mutex);
 				dxl_pos.clear();
 				dxl_pos.resize(3);
@@ -1352,41 +1348,7 @@ namespace tuying
 				}
 				infile.close();
 			}
-			else if (cmd_param.first == "forward")
-			{ 
-				//当前有指令在执行//
-				if (planptr && planptr->cmdName() != this->cmdName())throw std::runtime_error(__FILE__ + std::to_string(__LINE__) + "Other command is running");
-				if (planptr && planptr->cmdName() == this->cmdName())
-				{
-					option() |= NOT_RUN_EXECUTE_FUNCTION | NOT_RUN_COLLECT_FUNCTION;
-					return;
-				}
-				param.mve_flag.store(1);
-			}
-			else if (cmd_param.first == "backward")
-			{
-				param.mve_flag.store(2);
-			}
-			else if (cmd_param.first == "replace")
-			{
-				param.mve_flag.store(3);
-			}
-			else if (cmd_param.first == "save")
-			{
-				param.mve_flag.store(4);
-			}
-			else if (cmd_param.first == "start")
-			{
-				param.mve_flag.store(5);
-			}
-			else if (cmd_param.first == "pause")
-			{
-				param.mve_flag.store(6);
-			}
-			else if (cmd_param.first == "quit")
-			{
-				param.mve_flag.store(7);
-			}
+
 		}
 		//对机械臂及外部轴数据进行滑动滤波，窗口为11
 		uint16_t window = 11;
@@ -1537,13 +1499,6 @@ namespace tuying
 			"	<GroupParam>"
 			"		<UniqueParam default=\"file\">"
 			"			<Param name=\"file\" default=\"output.emily\"/>"
-			"			<Param name=\"forward\"/>"	//前进
-			"			<Param name=\"backward\"/>"	//后退
-			"			<Param name=\"replace\"/>"	//替换当前emily数据点
-			"			<Param name=\"save\"/>"		//保存更新emily文件
-			"			<Param name=\"start\"/>"	//开始
-			"			<Param name=\"pause\"/>"	//暂停
-			"			<Param name=\"quit\"/>"		//退出
 			"		</UniqueParam>"
 			"	</GroupParam>"
 			"</Command>");
@@ -3259,7 +3214,6 @@ namespace tuying
 		rs.command().findParam("pos")->setDefaultValue("{0.0,0.0,0.0,0.0,0.0,0.0,0.0}");
 		plan_root->planPool().add<aris::server::GetInfo>();
 		plan_root->planPool().add<kaanh::MoveAbsJ>();
-        plan_root->planPool().add<aris::plan::MoveAbsJ>();
 		plan_root->planPool().add<kaanh::MoveL>();
 		plan_root->planPool().add<kaanh::MoveJ>();
 		plan_root->planPool().add<kaanh::MoveC>();

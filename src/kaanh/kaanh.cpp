@@ -821,7 +821,10 @@ namespace kaanh
                 aris::plan::moveAbsolute(static_cast<double>(count()), imp_->axis_begin_pos_vec[i], imp_->axis_pos_vec[i], imp_->axis_vel_vec[i] / 1000
                     , imp_->axis_acc_vec[i] / 1000 / 1000, imp_->axis_dec_vec[i] / 1000 / 1000, p, v, a, imp_->total_count_vec[i]);
                 controller()->motionAtAbs(i).setTargetPos(p);
-                if(model()->generalMotionPool().size()>0)model()->motionPool().at(i).setMp(p);
+				if (model()->generalMotionPool().size() > 0)
+				{
+					if(i< model()->motionPool().size())model()->motionPool().at(i).setMp(p);
+				}
             }
         }
         if(model()->generalMotionPool().size()>0)
