@@ -3214,7 +3214,6 @@ namespace tuying
 		rs.command().findParam("pos")->setDefaultValue("{0.0,0.0,0.0,0.0,0.0,0.0,0.0}");
 		plan_root->planPool().add<aris::server::GetInfo>();
 		plan_root->planPool().add<kaanh::MoveAbsJ>();
-        plan_root->planPool().add<aris::plan::MoveAbsJ>();
 		plan_root->planPool().add<kaanh::MoveL>();
 		plan_root->planPool().add<kaanh::MoveJ>();
 		plan_root->planPool().add<kaanh::MoveC>();
