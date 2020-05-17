@@ -2413,7 +2413,7 @@ namespace tuying
 		{
 			if (p.first == "step")
 			{
-				step = 11.378*doubleParam(p.first);
+				step = 11.378*doubleParam(p.first)*g_vel_percent.load()/100.0;
 				direction = int32Param("direction");
 				if (dxl1_state.load() > 0)dynamixel_control_mode.store(1);
 			}	
@@ -2443,7 +2443,7 @@ namespace tuying
 			"<Command name=\"dj1\">"
 			"	<UniqueParam default=\"group\">"
 			"		<GroupParam name=\"group\">"
-            "			<Param name=\"step\" default=\"0.3\"/>"
+            "			<Param name=\"step\" default=\"5\"/>"
 			"			<Param name=\"direction\" default=\"1\"/>"
 			"		</GroupParam>"
 			"		<Param name=\"stop\"/>"
@@ -2460,7 +2460,7 @@ namespace tuying
 		{
 			if (p.first == "step")
 			{
-				step = 11.378*doubleParam(p.first);
+				step = 11.378*doubleParam(p.first)*g_vel_percent.load() / 100.0;;
 				direction = int32Param("direction");
 				if (dxl2_state.load() > 0)dynamixel_control_mode.store(1);
 			}
@@ -2491,7 +2491,7 @@ namespace tuying
 			"<Command name=\"dj2\">"
 			"	<UniqueParam default=\"group\">"
 			"		<GroupParam name=\"group\">"
-            "			<Param name=\"step\" default=\"0.3\"/>"
+            "			<Param name=\"step\" default=\"5\"/>"
 			"			<Param name=\"direction\" default=\"1\"/>"
 			"		</GroupParam>"
 			"		<Param name=\"stop\"/>"
@@ -2508,7 +2508,7 @@ namespace tuying
 		{
 			if (p.first == "step")
 			{
-				step = 11.378*doubleParam(p.first);
+				step = 11.378*doubleParam(p.first)*g_vel_percent.load() / 100.0;;
 				direction = int32Param("direction");
 				if (dxl3_state.load() > 0)dynamixel_control_mode.store(1);
 			}
@@ -2539,7 +2539,7 @@ namespace tuying
 			"<Command name=\"dj3\">"
 			"	<UniqueParam default=\"group\">"
 			"		<GroupParam name=\"group\">"
-            "			<Param name=\"step\" default=\"0.3\"/>"
+            "			<Param name=\"step\" default=\"5\"/>"
 			"			<Param name=\"direction\" default=\"1\"/>"
 			"		</GroupParam>"
 			"		<Param name=\"stop\"/>"
