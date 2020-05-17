@@ -129,7 +129,7 @@ int main(int argc, char *argv[])
     //-------for daye robot end//
     */
 
-    
+    /*
 	//-------for qifan robot begin//
 	cs.resetController(kaanhconfig::createControllerQifan().release());
 	cs.resetModel(kaanhconfig::createModelQifan().release());
@@ -142,7 +142,7 @@ int main(int argc, char *argv[])
 	//cs.model().loadXmlFile(modelxmlpath.string().c_str());
 	cs.saveXmlFile(xmlpath.string().c_str());
 	//-------for qifan robot end// 
-    
+    */
 
     cs.loadXmlFile(path.string().c_str());
     cs.resetPlanRoot(kaanhconfig::createPlanRoot().release());
