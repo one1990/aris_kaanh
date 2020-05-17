@@ -2366,6 +2366,9 @@ namespace kaanh
                 mvl_param.sp = s;
                 mvl_param.vel = mvl_param.sp.v_tcp;
                 mvl_param.angular_vel = mvl_param.sp.w_tcp;
+
+				mvl_param.joint_vel.clear();
+				mvl_param.joint_vel.resize(model()->motionPool().size(), 0.0);
 				for (int i = 0; i < model()->motionPool().size(); ++i)
 				{
 					mvl_param.joint_vel[i] = controller()->motionPool()[i].maxVel()*mvl_param.sp.w_per;
