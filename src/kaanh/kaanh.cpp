@@ -499,9 +499,9 @@ namespace kaanh
 		auto c = plan.controller();
 		int num;
 		if (plan.name() == "MoveAbsJ")
-			num = plan.controller()->motionPool().size();
-		else
 			num = plan.model()->motionPool().size();
+		else
+			num = plan.controller()->motionPool().size();
 		for (Size i = 0; i < num; ++i)
 		{
 			if (active.active_motor[i])
