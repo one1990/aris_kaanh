@@ -979,7 +979,7 @@ int main(int argc, char *argv[])
 
 
     //生成kaanh.xml文档//
-    /*
+    
 	//-------for qifan robot begin//
     cs.resetController(tuying::createControllerQifan().release());
     cs.resetModel(tuying::createModelQifan().release());
@@ -991,7 +991,7 @@ int main(int argc, char *argv[])
     cs.resetSensorRoot(new aris::sensor::SensorRoot);
     //cs.model().loadXmlFile(modelxmlpath.string().c_str());
     cs.saveXmlFile(xmlpath.string().c_str());
-	*/
+	
     //-------for qifan robot end//
 
     cs.loadXmlFile(xmlpath.string().c_str());

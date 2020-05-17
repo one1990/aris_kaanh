@@ -1040,7 +1040,7 @@ namespace kaanh
 		if (plan->count() == 1)
 		{
 			g_count = 0.0;
-			for (int i = 0; i < plan->controller()->motionPool().size(); i++)
+			for (int i = 0; i < std::min(plan->controller()->motionPool().size(), plan->model()->motionPool().size()); i++)
 			{
 				max_acc = std::max(plan->controller()->motionPool().at(i).maxAcc(), max_acc);
 				max_vel = std::max(plan->controller()->motionPool().at(i).maxVel(), max_vel);
